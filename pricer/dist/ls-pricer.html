@@ -176,7 +176,7 @@ details.card[open] > summary{margin-bottom:12px}
 .guide .gk{font-weight:600}
 @media (max-width:640px){.guide{grid-template-columns:1fr}.guide .gk{margin-top:8px}}
 .loading{padding:60px 0;text-align:center;color:var(--ink3)}
-.arrbox{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;padding:10px 12px;border:1px dashed var(--line2);border-radius:8px}
+.arrbox{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:12px;padding:10px 12px;border:1px dashed var(--line2);border-radius:8px}
 .stp{display:inline-flex;align-items:center;gap:6px}.stp span{font-size:13px;font-weight:600;color:var(--ink2);min-width:56px}.stp b{min-width:18px;text-align:center;font-family:var(--f-cond);font-size:20px}
 .stp .btn{width:30px;padding:2px 0}.stp .btn:disabled{opacity:.4;cursor:default}
 .arrcode{font-size:13px;color:var(--ink3)}.arrcode b{font-size:15px;color:var(--ink)}
@@ -188,7 +188,7 @@ details.card[open] > summary{margin-bottom:12px}
 .t tr.click{cursor:pointer}
 .chk{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink2)}
 .banner{padding:10px 12px;border-radius:8px;font-size:13.5px;margin-top:8px}
-.banner.warn{background:var(--warn-bg);color:var(--warn)}.banner.bad{background:var(--bad-bg);color:var(--bad)}
+.banner.warn{background:var(--warn-bg);color:var(--warn)}.banner.info{background:var(--card);border:1px solid var(--line2);color:var(--ink2)}.banner.bad{background:var(--bad-bg);color:var(--bad)}
 .hist{display:grid;gap:8px;font-size:13px}
 .hist > div{border-left:3px solid var(--or-line);padding:2px 0 2px 10px}
 .hist small{color:var(--ink3)}
@@ -202,6 +202,55 @@ textarea.paste{width:100%;min-height:110px;font-family:var(--f-mono);font-size:1
 .modal .fields input:disabled,.modal .fields select:disabled{opacity:.8;cursor:default}
 .modal input,.modal select{border:1px solid var(--line2);background:var(--card);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
 .modal .card{width:min(820px,100%)}
+/* modo simples */
+.flowhead{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.sumbar{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:center;padding:8px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px}
+.sumbar > div{display:flex;align-items:baseline;gap:6px}
+.sumbar span:not(.pill){font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.sumbar b{font-family:var(--f-cond);font-size:22px;font-variant-numeric:tabular-nums}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.step{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--line2);background:var(--card);border-radius:10px;padding:10px 12px;cursor:pointer;min-width:0}
+.step .sn{flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--bg);font-family:var(--f-cond);font-weight:700;border:1px solid var(--line2)}
+.step .st{min-width:0}
+.step b{display:block;font-family:var(--f-cond);font-size:16px;letter-spacing:.04em;text-transform:uppercase}
+.step small{display:block;color:var(--ink3);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step.on{border-color:var(--or);box-shadow:inset 0 -3px 0 var(--or)}
+.step.on .sn{background:var(--or);color:#fff;border-color:var(--or)}
+.step.done .sn{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+@media (max-width:640px){.steps{grid-template-columns:1fr}}
+.flowbar{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.backbar{margin-bottom:12px}
+.icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.icard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px;align-content:start;box-shadow:var(--shadow);min-width:0}
+.icard header{display:flex;gap:10px;align-items:start}
+.icard header b{display:block;font-weight:600;line-height:1.3}
+.icard code{display:block;font-family:var(--f-mono);font-size:12px;color:var(--ink3);overflow-wrap:anywhere;margin-top:3px}
+.ino{font-family:var(--f-cond);font-weight:700;font-size:20px;color:var(--or-ink);background:var(--or-soft);border-radius:7px;padding:1px 8px}
+.itotal{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.itotal span{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:600}
+.itotal b{font-family:var(--f-cond);font-size:24px;font-variant-numeric:tabular-nums}
+.ifacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.ifacts dt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:600}
+.ifacts dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;font-size:14px;overflow-wrap:anywhere}
+.icard footer{display:flex;gap:6px;flex-wrap:wrap}
+.icard.add{border:2px dashed var(--line2);background:transparent;box-shadow:none;place-content:center;text-align:center;min-height:190px;cursor:pointer;font-family:var(--f-cond);font-size:20px;font-weight:700;color:var(--or-ink)}
+.icard.add:hover{border-color:var(--or)}
+.icard.add small{display:block;font-family:var(--f-body);font-size:13px;font-weight:400;color:var(--ink3)}
+.alerts{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.alerts li{display:flex;gap:10px;align-items:baseline;padding:8px 12px;border-radius:8px;font-size:14px;border-left:4px solid currentColor}
+.alerts li.bad{background:var(--bad-bg);color:var(--bad)}.alerts li.warn{background:var(--warn-bg);color:var(--warn)}.alerts li.info{background:var(--card);color:var(--ink2);border:1px solid var(--line);border-left:4px solid var(--line2)}
+.alerts li b{white-space:nowrap}
+.alerts li .restore{margin-left:auto}
+.fs .autov{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:33px;padding:5px 0;border-bottom:1px dashed var(--line2)}
+.fs .autov span{font-weight:600;overflow-wrap:anywhere;min-width:0}
+.sep-or{display:flex;align-items:center;gap:10px;color:var(--ink3);font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin:14px 0 10px}
+.sep-or::before,.sep-or::after{content:"";flex:1;border-top:1px solid var(--line)}
+.set{border-top:1px solid var(--line);margin-top:14px;padding-top:12px;display:grid;gap:10px}
+.set h3{font-size:15px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:14px;font-weight:600}
+.chip:has(input:checked){border-color:var(--or);background:var(--or-soft);color:var(--or-ink)}
+.t.comp tr.grp td{background:var(--bg);font-family:var(--f-cond);font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:12.5px;color:var(--ink2)}
+details.card > summary .sub{font-family:var(--f-body);text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -220,6 +269,7 @@ textarea.paste{width:100%;min-height:110px;font-family:var(--f-mono);font-size:1
       <button data-view="guia">Guia</button>
     </nav>
     <div class="actions">
+      <button class="btn ghost" id="bMode">Modo detalhado</button>
       <button class="btn ghost" id="bNew">Nova</button>
       <button class="btn ghost" id="bOpen">Abrir</button>
       <button class="btn pri" id="bSave">Salvar</button>
@@ -1568,7 +1618,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
   };
   let state = store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
-  let ui = Object.assign({ view: 'proposta', item: 0, table: 'PARÂMETROS', filter: '', cad: 'insumos' }, store.get(SK.view, {}));
+  let ui = Object.assign({ view: 'proposta', item: 0, simple: true, step: 1, table: 'PARÂMETROS', filter: '', cad: 'insumos' }, store.get(SK.view, {}));
   if (ui.view === 'tabelas') { ui.view = 'cadastro'; ui.cad = 'tabelas'; }
   let wb;
   // cadastro compartilhado (claude.ai) ou local (arquivo)
@@ -1730,9 +1780,9 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     const r = e.target.closest('[data-restore]');
     if (r) { const [s, a] = r.dataset.restore.split('|'); commit(s, a, null, true); return; }
     const go = e.target.closest('[data-goitem]');
-    if (go) { ui.item = +go.dataset.goitem; setView('item'); return; }
+    if (go) { ui.item = +go.dataset.goitem; ui.itemFull = false; setView('item'); return; }
     const nv = e.target.closest('[data-view]');
-    if (nv) { setView(nv.dataset.view); return; }
+    if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = 2; ui.propFull = false; setView('proposta'); return; } setView(nv.dataset.view); return; }
   });
 
   // ---------- visões ----------
@@ -1742,8 +1792,11 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     const nm = txt('PROPOSTA', 'C5'), cli = txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = (nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>';
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
-    const html = { proposta: vProposta, item: vItem, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }[ui.view]();
-    $('#app').innerHTML = html;
+    const full = ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
+    const views = ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
+    const html = Object.assign({ memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
+    $('#app').innerHTML = (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
+    const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
     if (ui.view === 'cadastro') bindCadastro();
     window.scrollTo(0, scroll);
     if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') f.focus(); }
@@ -2068,6 +2121,177 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
       ${datalists()}
     </div>`;
   }
+
+  // ---------- modo simples: proposta em 3 passos, item enxuto, alertas num lugar só ----------
+  const uiEdit = new Set();
+  const used = (i) => filled(ITEMS[i]) || !!(state.doc && state.doc[ITEMS[i]] && Object.keys(state.doc[ITEMS[i]]).length) || !!(state.doc && state.doc.PROPOSTA && state.doc.PROPOSTA['C' + (20 + i)]);
+  const firstFree = () => ITEMS.findIndex((s, i) => !used(i));
+  // automático aparece como texto; "alterar" abre o campo
+  function fieldS(sheet, a, label, opt = {}) {
+    const key = sheet + '|' + a;
+    if (isFormulaBase(sheet, a) && !overridden(sheet, a) && !uiEdit.has(key)) {
+      const v = opt.fmt ? opt.fmt(val(sheet, a)) : show(sheet, a);
+      return `<div class="f fs ${opt.cls || ''}"><label>${esc(label)}</label><div class="autov"><span>${esc(v) || '—'}</span><button class="restore" data-edit="${esc(key)}" aria-label="Alterar ${esc(label)}">alterar</button></div></div>`;
+    }
+    return field(sheet, a, label, opt);
+  }
+  function alertsFor(S) {
+    const out = []; const add = (lvl, msg) => { if (!out.some((x) => x.msg === msg)) out.push({ lvl, msg }); };
+    if (!filled(S)) {
+      // ainda sem preço: diz o que falta para montar
+      const b = txt(S, 'B32');
+      if (/MOTOR DIESEL NÃO ENCONTRADO/.test(b)) add('warn', `Não há motor diesel de ${txt(S, 'C19') || '?'} HP${txt(S, 'H19') ? ' a ' + txt(S, 'H19') + ' RPM' : ''}${txt(S, 'F19') ? ' com ' + txt(S, 'F19').toLowerCase() : ''} no cadastro. Troque a potência, a rotação ou o arrefecimento.`);
+      if (/MOTOR ELÉTRICO NÃO ENCONTRADO/.test(b)) add('warn', `Não há motor elétrico de ${txt(S, 'I19') || '?'} CV no cadastro. Escolha outra potência.`);
+      if (/jockey e nenhum/.test(b)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.');
+      if (/SEM VAZÃO NOMINAL/.test(b)) add('info', 'Informe a vazão para entrar a hidráulica (válvula de alívio, cone, medidor e barriletes).');
+      return out;
+    }
+    const p84 = txt(S, 'P84');
+    if (p84 === 'ABAIXO DO PISO') add('bad', `Fator ${fmtNum(val(S, 'F15'), '0.000')} abaixo do piso da política (${fmtNum(val(S, 'H15'), '0.000')}): precisa de aprovação`);
+    else if (/NÃO ENCONTRADO/.test(p84)) add('bad', p84.charAt(0) + p84.slice(1).toLowerCase() + '. Escolha a potência na lista.');
+    else if (/SEM PREÇO/.test(p84)) add('bad', 'Há componente sem preço no cadastro: entra com custo zero.');
+    if (txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO') add('bad', `Margem ${pct(val(S, 'J15'))} abaixo do mínimo de ${pct(val('PARÂMETROS', 'C34'))}`);
+    for (const a of ['P78', 'P105', 'C185', 'C187']) { const t = txt(S, a); if (t && !/^OK/.test(t)) add('warn', t); }
+    const b32 = txt(S, 'B32');
+    if (/SEM VAZÃO NOMINAL/.test(b32)) add('warn', 'Sem vazão nominal: válvula de alívio, cone, medidor e barriletes não entram. Informe a vazão.');
+    if (/jockey e nenhum/.test(b32)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.');
+    const m = /(\d+) LINHA\(S\) ALÉM DA 30ª/.exec(b32); if (m) add('info', `${m[1]} componente(s) além da 30ª linha da planilha: já estão no custo.`);
+    const lc = txt(S, 'C27').length, ld = txt(S, 'C28').length;
+    if (lc > 60) add('warn', `Código com ${lc} caracteres: passa do limite de 60 do ERP.`);
+    if (ld > 120) add('warn', `Descrição breve com ${ld} caracteres: passa do limite de 120 do ERP.`);
+    const fci = txt(S, 'C196'); if (fci && !/^OK/.test(fci)) add('info', 'FCI: ' + fci);
+    return out;
+  }
+  const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => `<li class="${x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}</span>${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</li>`).join('')}</ul>` : '';
+  const countPills = (list) => { const n = (l) => list.filter((x) => x.lvl === l).length; return list.length ? [['bad', 'alerta'], ['warn', 'aviso']].filter(([l]) => n(l)).map(([l, w]) => `<span class="pill ${l}">${n(l)} ${w}${n(l) > 1 ? 's' : ''}</span>`).join(' ') || '<span class="pill mute">só informação</span>' : '<span class="pill ok">sem alertas</span>'; };
+
+  function vPropostaS() {
+    const P = 'PROPOSTA'; const step = ui.step || 1;
+    const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => used(x.i));
+    const alerts = items.flatMap((x) => alertsFor(x.s).map((a) => Object.assign({ i: x.i }, a)));
+    const okCli = !!(txt(P, 'F5') && txt(P, 'F7') && txt(P, 'J5') && txt(P, 'J6'));
+    const margem = val(P, 'J16'), mMin = val('PARÂMETROS', 'C34');
+    const st = (n, lb, info, done) => `<button class="step ${step === n ? 'on' : ''} ${done && step !== n ? 'done' : ''}" data-step="${n}" aria-current="${step === n ? 'step' : 'false'}"><span class="sn">${done && step !== n ? '✓' : n}</span><span class="st"><b>${lb}</b><small>${esc(info)}</small></span></button>`;
+    const head = `<div class="flowhead"><div><h1>Proposta ${esc(txt(P, 'C5') || 'nova')}</h1><div class="sub">${esc(txt(P, 'F5') || 'Comece pelo cliente')}</div></div>
+      <div class="sumbar"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div></div></div>
+      <nav class="steps" aria-label="Etapas da proposta">${st(1, 'Cliente', okCli ? txt(P, 'F5') : 'falta preencher', okCli)}${st(2, 'Itens', items.length ? items.length + ' item(ns)' : 'nenhum item ainda', items.length > 0)}${st(3, 'Revisão', alerts.some((a) => a.lvl === 'bad') ? 'há alertas para ver' : 'conferir e gerar documentos', false)}</nav>`;
+    let body = '';
+    if (step === 1) {
+      const cif = /^CIF/.test(txt(P, 'B13'));
+      body = `<section class="card"><h2>Cliente e condições <span class="sub">o que todo item herda</span></h2>
+          <div class="fields">${fieldS(P, 'F5', 'Cliente', { cls: 'span2' })}${fieldS(P, 'F6', 'Obra / local', { cls: 'span2' })}${fieldS(P, 'C5', 'Nº da proposta')}${fieldS(P, 'F7', 'UF de destino')}${fieldS(P, 'J5', 'Cadastro fiscal', { cls: 'span2' })}${fieldS(P, 'J6', 'Condição de pagamento', { cls: 'span2' })}${fieldS(P, 'C8', 'Vendedor')}${fieldS(P, 'F9', 'Norma')}</div></section>
+        <section class="card"><h2>Frete</h2><div class="fields">${fieldS(P, 'B13', 'Modalidade', { cls: 'span2' })}${cif ? fieldS(P, 'D13', 'Distância (km)') + fieldS(P, 'F13', 'Valor fechado (opcional)') : ''}${field(P, 'H13', 'Frete total', { ro: true, fmt: brl })}</div></section>
+        <details class="card"${keep('mais')}><summary>Mais opções <span class="sub">revisão, data, validade, desconto global, comissões, NCM, unidade</span></summary>
+          <div class="fields">${fieldS(P, 'C6', 'Revisão')}${fieldS(P, 'C7', 'Data')}${fieldS(P, 'C10', 'Validade')}${fieldS(P, 'C9', 'Desconto global')}${fieldS(P, 'F8', 'Segmento')}${fieldS(P, 'J7', 'Comissão — vendedor')}${fieldS(P, 'J8', 'Comissão — agente')}${fieldS(P, 'J9', 'NCM do produto')}${fieldS(P, 'J10', 'Unidade padrão')}${cif ? '' : fieldS(P, 'D13', 'Frete — distância (km)')}${fieldS(P, 'E13', 'Frete — R$ por km')}</div></details>
+        <div class="flowbar"><span></span><button class="btn pri" data-step="2">Próximo: itens →</button></div>`;
+    } else if (step === 2) {
+      const cards = items.map((x) => {
+        const S = x.s; const al = alertsFor(S); const ok = filled(S);
+        return `<article class="icard"><header><span class="ino">${S.slice(5)}</span><div style="min-width:0"><b>${esc(txt(S, 'C28') || 'Equipamento ainda não escolhido')}</b><code>${esc(txt(S, 'C27'))}</code></div></header>
+          ${ok ? `<div class="itotal"><span>Total c/ IPI</span><b>${brl(val(S, 'D15'))}</b></div><dl class="ifacts"><div><dt>Qtd</dt><dd>${show(S, 'P17')}</dd></div><div><dt>Margem</dt><dd class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</dd></div><div><dt>Origem</dt><dd>${esc(txt(S, 'P33').slice(0, 3))} ${pct(val(S, 'P32'), 0)}</dd></div></dl>` : '<p class="sub" style="margin:0">Abra para escolher o modelo pronto ou montar o equipamento.</p>'}
+          <div>${ok ? countPills(al) : ''}</div>
+          <footer><button class="btn sm pri" data-goitem="${x.i}">Abrir</button><button class="btn sm" data-dup="${x.i}">Duplicar</button><button class="btn sm" data-rmitem="${x.i}">Remover</button></footer></article>`;
+      }).join('');
+      const free = firstFree();
+      body = `<div class="icards">${cards}${free >= 0 ? `<button class="icard add" data-additem>+ Adicionar item<small>modelo pronto ou montagem própria</small></button>` : ''}</div>
+        <div class="flowbar"><button class="btn" data-step="1">← Cliente</button><button class="btn pri" data-step="3">Próximo: revisão →</button></div>`;
+    } else {
+      const rows = items.filter((x) => filled(x.s)).map((x) => { const S = x.s; return `<tr><td><button class="btn sm" data-goitem="${x.i}">${S.slice(5)}</button></td><td style="min-width:240px">${esc(txt(S, 'C28'))}</td><td class="n">${show(S, 'P17')}</td><td class="n">${brl(val(S, 'B15'))}</td><td class="n"><b>${brl(val(S, 'D15'))}</b></td><td class="n">${pct(val(S, 'J15'))}</td><td>${situPill(txt(S, 'P84'))} ${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? situPill('MARGEM ABAIXO DO MÍNIMO') : ''}</td></tr>`; }).join('');
+      const memo = val(P, 'E83'); const memoOk = typeof memo !== 'number' || Math.abs(memo) <= 0.005;
+      body = `<div class="kpis">
+          <div class="kpi lead"><span>Preço total (com IPI)</span><b>${brl(val(P, 'B16'))}</b></div>
+          <div class="kpi"><span>Custo total</span><b>${brl(val(P, 'G16'))}</b></div>
+          <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
+          <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
+        <section class="card"><h2>Alertas</h2>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta: preços dentro da política, conferências fechando e FCI pronta.</p>'}${memoOk ? '' : `<ul class="alerts" style="margin-top:6px"><li class="bad"><span>A proposta não bate com o memorial: diferença de ${brl(memo)}.</span></li></ul>`}</section>
+        <section class="card"><h2>Itens</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
+        <section class="card"><h2>Documentos</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-savebtn>Salvar proposta</button><button class="btn" data-propfull>Ver todas as colunas</button></div></section>
+        <div class="flowbar"><button class="btn" data-step="2">← Itens</button><span></span></div>`;
+    }
+    return `<div class="stack">${head}${body}</div>`;
+  }
+
+  function vItemS() {
+    const S = ITEMS[ui.item]; const f = (a, lb, o) => field(S, a, lb, o); const fs = (a, lb, o) => fieldS(S, a, lb, o);
+    const c = arrCounts(S); const ok = filled(S); const al = alertsFor(S);
+    const cmb = isCMB(S); const cmbOne = c.d + c.e + (c.j ? 1 : 0) === 1;
+    const chip = (k, lb, on) => `<label class="chip"><input type="radio" name="cmbAc" data-cmb="${k}"${on ? ' checked' : ''}> ${lb}</label>`;
+    const step = (k, lb, n) => `<div class="stp"><span>${lb}</span><button type="button" class="btn sm" data-arr="${k}-" aria-label="Menos ${lb}"${n ? '' : ' disabled'}>−</button><b>${n}</b><button type="button" class="btn sm" data-arr="${k}+" aria-label="Mais ${lb}"${c.d + c.e >= 4 ? ' disabled' : ''}>+</button></div>`;
+    const arr = cmb ? `${chip('D', 'Diesel', cmbOne && c.d === 1)}${chip('E', 'Elétrica', cmbOne && c.e === 1)}${chip('J', 'Jockey', cmbOne && c.j)}`
+      : `${step('D', 'Diesel', c.d)}${step('E', 'Elétrica', c.e)}<label class="chk"><input type="checkbox" data-arrj${c.j ? ' checked' : ''}> Bomba jockey</label>`;
+    const fromModel = (a) => !!txt(S, 'AR1') && (val(S, a) === null || val(S, a) === '') && !uiEdit.has(S + '|' + a);
+    const modelTxt = (a, label, value, o = {}) => `<div class="f fs ${o.cls || ''}"><label>${esc(label)}</label><div class="autov"><span>${esc(value) || '—'} <small class="sub">do modelo</small></span><button class="restore" data-edit="${esc(S)}|${a}" aria-label="Alterar ${esc(label)}">alterar</button></div></div>`;
+    const dieselMotor = fromModel('C19') && txt(S, 'C20') ? modelTxt('C19', 'Motor diesel', txt(S, 'C20'), { cls: 'span2' }) : `${f('C19', 'Potência (HP)')}${f('H19', 'Rotação (RPM)')}${f('F19', 'Arrefecimento')}${field(S, 'C20', 'Motor', { ro: true, cls: 'span2' })}`;
+    const eletMotor = fromModel('I19') && txt(S, 'H20') ? modelTxt('I19', 'Motor elétrico', txt(S, 'H20'), { cls: 'span2' }) : `${f('I19', 'Potência (CV)')}${f('L19', 'Tensão do painel')}${field(S, 'H20', 'Motor', { ro: true, cls: 'span2' })}`;
+    const arrNames = [c.d ? (c.d > 1 ? c.d + '× diesel' : 'diesel') : '', c.e ? (c.e > 1 ? c.e + '× elétrica' : 'elétrica') : '', c.j ? 'jockey' : ''].filter(Boolean).join(' + ');
+    const arrUi = c.code && !overridden(S, 'E17') && !uiEdit.has(S + '|E17') && txt(S, 'AR1')
+      ? `<span class="stp"><span>Acionamento</span></span><b>${esc(arrNames.charAt(0).toUpperCase() + arrNames.slice(1))}</b><small class="sub">do modelo · arranjo ${esc(c.code)}</small><button class="restore" data-edit="${esc(S)}|E17">alterar</button>`
+      : `<span class="stp"><span>Acionamento</span></span>${arr}<span class="arrcode">Arranjo <b class="code">${esc(c.code || '—')}</b></span>${overridden(S, 'E17') ? `<button class="restore" data-restore="${esc(S)}|E17">↺ arranjo do modelo pronto</button>` : ''}`;
+    const sets = [];
+    if (c.d) sets.push(`<div class="set"><h3>Conjunto diesel${c.d > 1 ? ' × ' + c.d : ''}</h3><div class="fields">${fs('D19', 'Bomba', { cls: 'span2' })}${dieselMotor}</div></div>`);
+    if (c.e) sets.push(`<div class="set"><h3>Conjunto elétrico${c.e > 1 ? ' × ' + c.e : ''}</h3><div class="fields">${c.d ? f('BA19', 'Bomba (em branco = a do diesel)', { cls: 'span2' }) : fs('D19', 'Bomba', { cls: 'span2' }) + f('H19', 'Rotação (RPM)')}${eletMotor}</div></div>`);
+    if (c.j) sets.push(`<div class="set"><h3>Bomba jockey</h3><div class="fields">${fs('J19', 'Bomba jockey', { cls: 'span2' })}</div></div>`);
+    // componentes: leitura rápida, agrupados
+    const groups = { DIESEL: [], ELETRICA: [], JOCKEY: [], TODOS: [], ESC: [] };
+    for (const x of montLines(S)) groups[x.acion].push({ d: txt(S, 'D' + x.r), q: show(S, 'F' + x.r), t: show(S, 'H' + x.r), o: txt(S, 'L' + x.r) });
+    for (const x of hiddenLines(S)) groups[x.acion].push({ d: x.desc, q: fmtNum(x.qtd), t: fmtNum(x.tot, '#,##0.00'), o: '' });
+    for (let r = 68; r <= 112; r++) if (txt(S, 'D' + r)) groups.ESC.push({ d: txt(S, 'D' + r), q: show(S, 'F' + r), t: show(S, 'H' + r), o: txt(S, 'L' + r) });
+    const nComp = Object.values(groups).reduce((n, g) => n + g.length, 0);
+    const gl = { DIESEL: 'Conjunto diesel', ELETRICA: 'Conjunto elétrico', JOCKEY: 'Jockey', TODOS: 'Comuns ao equipamento', ESC: 'Escopo adicional (digitado à mão)' };
+    const comp = Object.entries(groups).filter(([, g]) => g.length).map(([k, g]) => `<tr class="grp"><td colspan="3">${gl[k]}</td></tr>${g.map((x) => `<tr><td>${esc(x.d)}${x.o ? ` <span class="pill warn">${esc(x.o)}</span>` : ''}</td><td class="n">${esc(x.q)}</td><td class="n">${esc(x.t)}</td></tr>`).join('')}`).join('');
+    const cond = `Desconto ${pct(val(S, 'C8') || 0, 1)} · margem alvo ${pct(val(S, 'P89'))} · start-up ${val(S, 'K12') ? brl(val(S, 'K12')) + '/un.' : 'não'}`;
+    return `<div class="stack">
+      <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-step="2">← Itens da proposta</button><h1 style="margin-top:8px">${S}</h1><div class="sub">${esc(txt(S, 'C28')) || 'Escolha um modelo pronto ou monte o equipamento abaixo.'}</div></div>
+        <div class="sumbar"><div><span>Unitário c/ IPI</span><b>${brl(val(S, 'B15'))}</b></div><div><span>Total</span><b>${brl(val(S, 'D15'))}</b></div><div><span>Margem</span><b class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</b></div><div>${ok ? countPills(al) : ''}</div></div></div>
+      ${alertList(al, false)}
+      ${scopeWarning(S)}
+      ${!montLines(S).length && groups.ESC.length ? `<div class="banner info">Este item foi montado linha a linha no escopo (${groups.ESC.length} componentes digitados à mão), sem usar a seleção abaixo. O preço vem dessas linhas: veja em Componentes ou clique em <button class="restore" data-itemfull>editar componentes</button>.</div>` : ''}
+      <section class="card"><h2>Equipamento</h2>
+        <div class="fields">${f('C17', 'Modelo pronto', { cls: 'span2' })}${f('C6', 'Quantidade').replace('<input ', '<input placeholder="1" ')}</div>
+        <div class="sep-or">ou monte</div>
+        <div class="fields">${fs('C21', 'Família')}${fromModel('G17') && val(S, 'AR4') ? modelTxt('G17', 'Vazão (USgpm)', fmtNum(val(S, 'AR4'))) : f('G17', 'Vazão (USgpm)')}${fs('H17', 'Pressão (mca)')}${fs('I17', 'Norma')}</div>
+        <div class="arrbox">${arrUi}</div>
+        ${sets.join('')}
+      </section>
+      <details class="card"${keep('cond')}><summary>Condições deste item <span class="sub">${esc(cond)}</span></summary>
+        <div class="fields">${f('C8', 'Desconto de negociação')}${fs('L17', 'Margem alvo')}${fs('J17', 'Modo de preço')}${fs('K7', 'Folga de negociação')}${f('C12', 'Start-up — distância (km)')}${f('F12', 'Start-up — diárias')}${f('I12', 'Start-up — valor fechado')}</div></details>
+      <details class="card"${keep('comp')}><summary>Componentes <span class="sub">${nComp} itens · custo ${brl(val(S, 'H114'))}</span></summary>
+        ${nComp ? `<div class="tw"><table class="t comp"><thead><tr><th>Componente</th><th>Qtd</th><th>Custo total</th></tr></thead><tbody>${comp}</tbody></table></div>` : '<p class="sub">Os componentes aparecem quando o equipamento estiver escolhido.</p>'}
+        <div class="docbar" style="margin-top:10px"><button class="btn sm" data-itemfull>Editar componentes, código e FCI</button></div></details>
+      <section class="card"><h2>Código</h2><div class="codebox">${esc(txt(S, 'C27') || 'o código sai aqui')}</div><p class="sub" style="margin:8px 0 0">${esc(txt(S, 'C29'))}</p></section>
+      <div class="flowbar"><button class="btn" data-step="2">← Itens da proposta</button><span style="display:flex;gap:6px"><button class="btn" data-dup="${ui.item}">Duplicar</button><button class="btn" data-rmitem="${ui.item}">Remover</button></span></div>
+      ${datalists()}
+    </div>`;
+  }
+  function dupItem(i) {
+    const j = firstFree(); if (j < 0) return toast('As 10 posições de item já estão em uso');
+    const d = state.doc = state.doc || {};
+    if (d[ITEMS[i]]) d[ITEMS[j]] = JSON.parse(JSON.stringify(d[ITEMS[i]]));
+    const P = d.PROPOSTA = d.PROPOSTA || {}; for (const c of ['C', 'E', 'F', 'G', 'H']) { const v = P[c + (20 + i)]; if (v !== undefined) P[c + (20 + j)] = v; }
+    build(); persist(); render(); toast(`${ITEMS[i]} duplicado em ${ITEMS[j]}`);
+  }
+  function rmItem(i) {
+    const S = ITEMS[i]; if (state.doc) delete state.doc[S];
+    if (state.doc && state.doc.PROPOSTA) for (const c of ['C', 'E', 'F', 'G', 'H']) delete state.doc.PROPOSTA[c + (20 + i)];
+    build(); persist(); toast(S + ' removido');
+  }
+  document.addEventListener('click', (e) => {
+    const ed = e.target.closest('[data-edit]');
+    if (ed) { uiEdit.add(ed.dataset.edit); render(); const [s, a] = ed.dataset.edit.split('|'); const el = document.getElementById(id(s, a)); if (el) el.focus(); return; }
+    const sp = e.target.closest('[data-step]');
+    if (sp) { ui.step = +sp.dataset.step; ui.propFull = false; setView('proposta'); return; }
+    if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; setView('item'); return; }
+    const dp = e.target.closest('[data-dup]'); if (dp) { dupItem(+dp.dataset.dup); return; }
+    const rm = e.target.closest('[data-rmitem]');
+    if (rm) { if (!rm.dataset.sure) { rm.dataset.sure = 1; rm.textContent = 'Confirmar remoção'; rm.classList.add('pri'); return; } rmItem(+rm.dataset.rmitem); ui.step = 2; setView('proposta'); return; }
+    if (e.target.closest('[data-itemfull]')) { ui.itemFull = true; setView('item'); return; }
+    if (e.target.closest('[data-propfull]')) { ui.propFull = true; setView('proposta'); return; }
+    if (e.target.closest('[data-simpleback]')) { ui.itemFull = false; ui.propFull = false; render(); return; }
+    if (e.target.closest('[data-savebtn]')) { $('#bSave').click(); return; }
+  });
+  const openSet = {};
+  const keep = (k) => ` data-keep="${k}"${openSet[k] ? ' open' : ''}`;
+  document.addEventListener('toggle', (e) => { const k = e.target.dataset && e.target.dataset.keep; if (k) openSet[k] = e.target.open; }, true);
 
   // listas de insumos por família (CADASTRO)
   let dlMap = null;
@@ -2516,9 +2740,10 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   function loadDoc(doc, name, id) { state = { id: id || null, doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }; build(); persist(); dlMap = null; ui.item = 0; render(); }
   function docTitle() { const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return [n, c].filter(Boolean).join(' · ') || 'Proposta sem nome'; }
 
+  $('#bMode').onclick = () => { ui.simple = !ui.simple; ui.propFull = false; ui.itemFull = false; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
   $('#bNew').onclick = () => modal(`<h2>Nova proposta</h2><p class="sub">A proposta atual continua salva se você já clicou em Salvar. Alterações não salvas se perdem.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">Proposta em branco</button><button class="btn" id="mExample">Abrir o exemplo (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
-    (o, close) => { $('#mBlank', o).onclick = () => { close(); loadDoc({}, ''); setView('proposta'); toast('Proposta em branco'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
+    (o, close) => { $('#mBlank', o).onclick = () => { close(); loadDoc({}, ''); ui.step = 1; setView('proposta'); toast('Proposta em branco'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
 
   $('#bSave').onclick = async () => {
     const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
