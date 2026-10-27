@@ -652,21 +652,37 @@
     if (c.d) sets.push(`<div class="set"><h3>Conjunto diesel${c.d > 1 ? ' × ' + c.d : ''}</h3><div class="fields">${fs('D19', 'Bomba', { cls: 'span2' })}${dieselMotor}</div></div>`);
     if (c.e) sets.push(`<div class="set"><h3>Conjunto elétrico${c.e > 1 ? ' × ' + c.e : ''}</h3><div class="fields">${c.d ? f('BA19', 'Bomba (em branco = a do diesel)', { cls: 'span2' }) : fs('D19', 'Bomba', { cls: 'span2' }) + f('H19', 'Rotação (RPM)')}${eletMotor}</div></div>`);
     if (c.j) sets.push(`<div class="set"><h3>Bomba jockey</h3><div class="fields">${fs('J19', 'Bomba jockey', { cls: 'span2' })}</div></div>`);
-    // componentes: leitura rápida, agrupados
+    // componentes editáveis, agrupados por conjunto
+    const num = (x) => (typeof x === 'number' ? x : 0);
     const groups = { DIESEL: [], ELETRICA: [], JOCKEY: [], TODOS: [], ESC: [] };
-    for (const x of montLines(S)) groups[x.acion].push({ d: txt(S, 'D' + x.r), q: show(S, 'F' + x.r), t: show(S, 'H' + x.r), o: txt(S, 'L' + x.r) });
-    for (const x of hiddenLines(S)) groups[x.acion].push({ d: x.desc, q: fmtNum(x.qtd), t: fmtNum(x.tot, '#,##0.00'), o: '' });
-    for (let r = 68; r <= 112; r++) if (txt(S, 'D' + r)) groups.ESC.push({ d: txt(S, 'D' + r), q: show(S, 'F' + r), t: show(S, 'H' + r), o: txt(S, 'L' + r) });
+    for (const x of montLines(S)) groups[x.acion].push({ r: x.r, rot: x.rot, tot: num(val(S, 'H' + x.r)) });
+    for (const x of hiddenLines(S)) groups[x.acion].push({ hid: x, tot: x.tot });
+    const escRows = []; for (let r = 68; r <= 112; r++) if (txt(S, 'D' + r) || txt(S, 'C' + r) || txt(S, 'B' + r)) escRows.push(r);
+    if (ui.addRow && ui.addRow.S === S && !escRows.includes(ui.addRow.r)) escRows.push(ui.addRow.r);
+    groups.ESC = escRows.map((r) => ({ r, esc: true, tot: num(val(S, 'H' + r)) }));
     const nComp = Object.values(groups).reduce((n, g) => n + g.length, 0);
-    const gl = { DIESEL: 'Conjunto diesel', ELETRICA: 'Conjunto elétrico', JOCKEY: 'Jockey', TODOS: 'Comuns ao equipamento', ESC: 'Escopo adicional (digitado à mão)' };
-    const comp = Object.entries(groups).filter(([, g]) => g.length).map(([k, g]) => `<tr class="grp"><td colspan="3">${gl[k]}</td></tr>${g.map((x) => `<tr><td>${esc(x.d)}${x.o ? ` <span class="pill warn">${esc(x.o)}</span>` : ''}</td><td class="n">${esc(x.q)}</td><td class="n">${esc(x.t)}</td></tr>`).join('')}`).join('');
+    const gl = { DIESEL: 'Conjunto diesel', ELETRICA: 'Conjunto elétrico', JOCKEY: 'Bomba jockey', TODOS: 'Comuns ao equipamento', ESC: 'Escopo adicional (digitado à mão)' };
+    const obs = (r) => { const o = txt(S, 'L' + r); return o ? `<span class="pill ${/sem custo|sem o preço/.test(o) ? 'bad' : 'warn'}">${esc(o)}</span>` : ''; };
+    const rowC = (x) => {
+      if (x.hid) return `<tr class="ro"><td class="sub">${esc(x.hid.rot)}</td><td>${esc(x.hid.desc)}</td><td class="n">${fmtNum(x.hid.qtd)}</td><td class="n">${fmtNum(x.hid.unit, '#,##0.00')}</td><td class="n">${fmtNum(x.hid.tot, '#,##0.00')}</td><td><span class="pill mute">além da linha 30 da planilha</span></td></tr>`;
+      const r = x.r; const fam = txt(S, 'C' + r);
+      const first = x.esc ? cellIn(S, 'C' + r) : `<td class="sub">${esc(x.rot)}</td>`;
+      return `<tr>${first}${cellIn(S, 'D' + r, { datalist: fam ? dlFor(fam) : 'dl_all' })}${cellIn(S, 'F' + r)}${cellIn(S, 'G' + r)}<td class="n">${show(S, 'H' + r)}</td><td>${obs(r)}${x.esc ? ` <button class="restore" data-rmrow="${r}">remover</button>` : ''}</td></tr>`;
+    };
+    const comp = Object.entries(groups).filter(([, g]) => g.length).map(([k, g]) => `<tr class="grp"><td colspan="4">${gl[k]}</td><td class="n">${fmtNum(g.reduce((t, x) => t + x.tot, 0), '#,##0.00')}</td><td></td></tr>${g.map(rowC).join('')}`).join('');
+    // código e FCI
+    const lenTag = (n, lim) => `<span class="pill ${n > lim ? 'bad' : 'ok'}">${n} de ${lim} caracteres</span>`;
+    const imp = []; let nNac = 0;
+    for (let r = 34; r <= 112; r++) { if ((r > 63 && r < 68) || val(S, 'AU' + r) !== 1) continue; if (txt(S, 'AB' + r) === 'IMP') imp.push({ d: txt(S, 'D' + r), q: show(S, 'F' + r), t: num(val(S, 'F' + r)) * num(val(S, 'AD' + r)) }); else nNac++; }
+    for (const x of fciHidden(S)) { if (x.ori === 'IMP') imp.push({ d: x.desc, q: fmtNum(x.qtd), t: x.tot }); else nNac++; }
+    const fciSt = txt(S, 'C196');
     const cond = `Desconto ${pct(val(S, 'C8') || 0, 1)} · margem alvo ${pct(val(S, 'P89'))} · start-up ${val(S, 'K12') ? brl(val(S, 'K12')) + '/un.' : 'não'}`;
     return `<div class="stack">
       <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-step="2">← Itens da proposta</button><h1 style="margin-top:8px">${S}</h1><div class="sub">${esc(txt(S, 'C28')) || 'Escolha um modelo pronto ou monte o equipamento abaixo.'}</div></div>
         <div class="sumbar"><div><span>Unitário c/ IPI</span><b>${brl(val(S, 'B15'))}</b></div><div><span>Total</span><b>${brl(val(S, 'D15'))}</b></div><div><span>Margem</span><b class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</b></div><div>${ok ? countPills(al) : ''}</div></div></div>
       ${alertList(al, false)}
       ${scopeWarning(S)}
-      ${!montLines(S).length && groups.ESC.length ? `<div class="banner info">Este item foi montado linha a linha no escopo (${groups.ESC.length} componentes digitados à mão), sem usar a seleção abaixo. O preço vem dessas linhas: veja em Componentes ou clique em <button class="restore" data-itemfull>editar componentes</button>.</div>` : ''}
+      ${!montLines(S).length && groups.ESC.length ? `<div class="banner info">Este item foi montado linha a linha no escopo (${groups.ESC.length} componentes digitados à mão), sem usar a seleção abaixo. O preço vem dessas linhas, que você edita em Componentes, abaixo.</div>` : ''}
       <section class="card"><h2>Equipamento</h2>
         <div class="fields">${f('C17', 'Modelo pronto', { cls: 'span2' })}${f('C6', 'Quantidade').replace('<input ', '<input placeholder="1" ')}</div>
         <div class="sep-or">ou monte</div>
@@ -677,10 +693,32 @@
       <details class="card"${keep('cond')}><summary>Condições deste item <span class="sub">${esc(cond)}</span></summary>
         <div class="fields">${f('C8', 'Desconto de negociação')}${fs('L17', 'Margem alvo')}${fs('J17', 'Modo de preço')}${fs('K7', 'Folga de negociação')}${f('C12', 'Start-up — distância (km)')}${f('F12', 'Start-up — diárias')}${f('I12', 'Start-up — valor fechado')}</div></details>
       <details class="card"${keep('comp')}><summary>Componentes <span class="sub">${nComp} itens · custo ${brl(val(S, 'H114'))}</span></summary>
-        ${nComp ? `<div class="tw"><table class="t comp"><thead><tr><th>Componente</th><th>Qtd</th><th>Custo total</th></tr></thead><tbody>${comp}</tbody></table></div>` : '<p class="sub">Os componentes aparecem quando o equipamento estiver escolhido.</p>'}
-        <div class="docbar" style="margin-top:10px"><button class="btn sm" data-itemfull>Editar componentes, código e FCI</button></div></details>
-      <section class="card"><h2>Código</h2><div class="codebox">${esc(txt(S, 'C27') || 'o código sai aqui')}</div><p class="sub" style="margin:8px 0 0">${esc(txt(S, 'C29'))}</p></section>
+        <p class="sub" style="margin:0 0 10px">Verde é o que a montagem escolheu sozinha: troque o insumo, a quantidade ou o custo direto na linha. Para incluir algo que não está na montagem, use "Adicionar componente".</p>
+        ${nComp ? `<div class="tw"><table class="t comp"><thead><tr><th>Item / família</th><th>Insumo</th><th>Qtd</th><th>Custo unit.</th><th>Custo total</th><th></th></tr></thead><tbody>${comp}<tr class="tot"><td colspan="4">Custo do item</td><td class="n">${brl(val(S, 'H114'))}</td><td></td></tr></tbody></table></div>` : '<p class="sub">Os componentes aparecem quando o equipamento estiver escolhido.</p>'}
+        <div class="docbar" style="margin-top:10px"><button class="btn sm" data-addrow>+ Adicionar componente</button></div></details>
+      <details class="card"${keep('cod')}><summary>Código e descrição <span class="sub">${lenTag(txt(S, 'C27').length, 60)} ${lenTag(txt(S, 'C28').length, 120)}</span></summary>
+        <div class="stack">
+          <div><div class="lbl">Código ${lenTag(txt(S, 'C27').length, 60)}</div><div class="codebox">${esc(txt(S, 'C27') || 'o código sai aqui')}</div></div>
+          <div><div class="lbl">Descrição breve ${lenTag(txt(S, 'C28').length, 120)}</div><p class="txtv">${esc(txt(S, 'C28')) || '—'}</p></div>
+          <div><div class="lbl">Descrição completa</div><p class="txtv">${esc(txt(S, 'C29')) || '—'}</p></div>
+          <div><div class="lbl">Ponto operacional</div><p class="txtv">${esc(txt(S, 'C30')) || '—'}</p></div>
+          <div class="fields">${fs('J21', 'Marca')}${fs('H21', 'Unidade')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div>
+        </div></details>
+      <details class="card"${keep('fci')}><summary>FCI <span class="sub">conteúdo importado ${pct(val(S, 'C172'), 2)} · ${esc(txt(S, 'E172'))} · ${/^OK/.test(fciSt) ? 'pronta' : 'com pendência'}</span></summary>
+        <div class="stack">
+          ${fciSt && !/^OK/.test(fciSt) ? `<div class="banner warn">${esc(fciSt)}</div>` : ''}
+          <div class="kpis">
+            <div class="kpi"><span>Conteúdo importado</span><b>${pct(val(S, 'C172'), 2)}</b><em>${esc(txt(S, 'E172'))} (limite ${pct(val('PARÂMETROS', 'C9'), 0)})</em></div>
+            <div class="kpi"><span>Valor da saída</span><b>${brl(val(S, 'H170'))}</b><em>sem ICMS e IPI</em></div>
+            <div class="kpi"><span>ICMS na nota</span><b>${pct(val(S, 'C181'), 2)}</b><em>CST ${esc(txt(S, 'C183'))}</em></div>
+          </div>
+          <div class="fields">${fs('C193', 'Unidade p/ transmissão')}${fs('C194', 'Finalidade', { list: ['ATIVO IMOBILIZADO', 'USO E CONSUMO'] })}</div>
+          ${imp.length ? `<div class="tw"><table class="t"><thead><tr><th>Componente importado</th><th>Qtd</th><th>Parcela importada</th></tr></thead><tbody>${imp.map((x) => `<tr><td>${esc(x.d)}</td><td class="n">${esc(x.q)}</td><td class="n">${fmtNum(x.t, '#,##0.00')}</td></tr>`).join('')}<tr class="tot"><td colspan="2">Total importado</td><td class="n">${show(S, 'H166')}</td></tr></tbody></table></div>` : '<p class="sub" style="margin:0">Nenhum componente importado.</p>'}
+          <p class="sub" style="margin:0">${nNac} componente(s) nacional(is): entram na FCI com parcela importada zero.</p>
+          <div class="docbar"><button class="btn sm pri" data-doc="fcipdf" data-docitem="${S}">FCI em PDF</button><button class="btn sm" data-doc="fcixlsx" data-docitem="${S}">FCI em Excel (template)</button></div>
+        </div></details>
       <div class="flowbar"><button class="btn" data-step="2">← Itens da proposta</button><span style="display:flex;gap:6px"><button class="btn" data-dup="${ui.item}">Duplicar</button><button class="btn" data-rmitem="${ui.item}">Remover</button></span></div>
+      <p class="sub" style="text-align:right;margin:0">Precisa da planilha célula por célula? <button class="restore" data-itemfull>abrir a visão completa</button></p>
       ${datalists()}
     </div>`;
   }
@@ -705,6 +743,14 @@
     const dp = e.target.closest('[data-dup]'); if (dp) { dupItem(+dp.dataset.dup); return; }
     const rm = e.target.closest('[data-rmitem]');
     if (rm) { if (!rm.dataset.sure) { rm.dataset.sure = 1; rm.textContent = 'Confirmar remoção'; rm.classList.add('pri'); return; } rmItem(+rm.dataset.rmitem); ui.step = 2; setView('proposta'); return; }
+    if (e.target.closest('[data-addrow]')) {
+      const S = ITEMS[ui.item]; let r = 0;
+      for (let q = 68; q <= 112; q++) if (!txt(S, 'D' + q) && !txt(S, 'C' + q) && !txt(S, 'B' + q) && !(ui.addRow && ui.addRow.S === S && ui.addRow.r === q)) { r = q; break; }
+      if (!r) return toast('O escopo já tem 45 linhas');
+      ui.addRow = { S, r }; openSet.comp = true; render(); const el = document.getElementById(id(S, 'C' + r)); if (el) el.focus(); return;
+    }
+    const rr = e.target.closest('[data-rmrow]');
+    if (rr) { const S = ITEMS[ui.item]; if (ui.addRow && ui.addRow.r === +rr.dataset.rmrow) ui.addRow = null; clearScopeRows(S, [+rr.dataset.rmrow]); toast('Linha removida'); return; }
     if (e.target.closest('[data-itemfull]')) { ui.itemFull = true; setView('item'); return; }
     if (e.target.closest('[data-propfull]')) { ui.propFull = true; setView('proposta'); return; }
     if (e.target.closest('[data-simpleback]')) { ui.itemFull = false; ui.propFull = false; render(); return; }
