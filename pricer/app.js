@@ -656,25 +656,31 @@
   // com valor target: vale enquanto a proposta não ficar abaixo do valor aprovado; sem target (pedidos antigos): pela margem
   function aprovInfo() {
     const ap = state.id ? MG.aprovDe(state.id) : null; if (!ap) return { estado: null };
-    let estado = MG.estadoA(ap); const base = { id: ap.id, at: ap.at, margem: ap.snap.margemPct, decisoes: ap.decisoes || {} };
+    let estado = MG.estadoA(ap); const base = { id: ap.id, at: ap.at, margem: ap.snap.margemPct, decisoes: ap.decisoes || {}, com: MG.comQuem(ap, true), aplicadoEm: ap.aplicadoEm || null };
     if (ap.alvo) {
       const atualIpi = isSpv() ? SPV.total() : isFacts() ? FX.total() : val('PROPOSTA', 'P43'); const alvoIpi = ap.alvo.vendaSem * MG.ipiRatio(ap.snap);
       if (estado === 'aprovada' && typeof atualIpi === 'number' && atualIpi < alvoIpi - 1) estado = 'vencida';
-      return Object.assign(base, { estado, alvoIpi, atualIpi, desc: 1 - ap.alvo.k, margemAlvo: ap.alvo.margemPct, aplicar: estado === 'aprovada' && !isSpv() && !isFacts() && typeof atualIpi === 'number' && atualIpi > alvoIpi + 1 });
+      return Object.assign(base, { estado, alvoIpi, atualIpi, desc: 1 - ap.alvo.k, margemAlvo: ap.alvo.margemPct, aplicar: estado === 'aprovada' && !isSpv() && !isFacts() && typeof atualIpi === 'number' && atualIpi > alvoIpi + 1, falta: estado === 'aprovada' && !ap.aplicadoEm && typeof atualIpi === 'number' && atualIpi > alvoIpi + 1 });
     }
     const atual = isSpv() ? SPV.snapshot(state.spv).margemPct : isFacts() ? FX.snapshot(state.facts).margemPct : val('PROPOSTA', 'J16');
     if (estado === 'aprovada' && typeof atual === 'number' && atual < num0(ap.snap.margemPct) - 5e-4) estado = 'vencida';
     return Object.assign(base, { estado });
   }
+  // selo no topo da proposta: onde está a aprovação, com um clique para ela
+  function apSelo() {
+    const a = aprovInfo(); if (!a.estado) return '';
+    const [cls, t] = a.estado === 'pendente' ? ['warn', 'Aprovação ' + a.com.replace(/ \([^)]*\)/g, '')] : a.estado === 'aprovada' ? ['ok', a.falta ? 'Aprovado · falta aplicar' : 'Desconto aprovado'] : a.estado === 'vencida' ? ['bad', 'Abaixo do valor aprovado'] : ['bad', 'Desconto reprovado'];
+    return `<div><button class="pill ${cls} apselo" data-apopen="${esc(a.id)}" title="Ver a aprovação">${esc(t)} ›</button></div>`;
+  }
   function aprovLinha(x) {
     const a = x.aprov; if (!a || !a.estado) return '';
     const d = Object.values(a.decisoes).filter((y) => y.comentario).map((y) => y.comentario).join(' · ');
     const alvo = a.alvoIpi ? ` o valor target de ${brl(a.alvoIpi)} (desconto de ${pct(a.desc, 1)}, margem ${pct(a.margemAlvo, 1)})` : '';
-    const t = a.estado === 'pendente' ? `Aprovação${alvo ? ' d' + alvo.trim().replace(/^o /, 'o ') : ''} pedida em ${new Date(a.at).toLocaleDateString('pt-BR')}: aguardando ${['diretoria', 'financeiro'].filter((k) => !a.decisoes[k]).map((k) => (k === 'diretoria' ? 'Diretoria' : 'Financeiro')).join(' e ')}.`
+    const t = a.estado === 'pendente' ? `Aprovação${alvo ? ' d' + alvo.trim().replace(/^o /, 'o ') : ''} pedida em ${new Date(a.at).toLocaleDateString('pt-BR')}: está \u0001.`
       : a.estado === 'aprovada' ? (alvo ? `Diretoria e Financeiro aprovaram${alvo}.` : `Aprovado pela Diretoria e pelo Financeiro com margem de ${pct(a.margem)}.`) + (d ? ' ' + d : '')
       : a.estado === 'vencida' ? (alvo ? `Aprovado${alvo}, mas a proposta está em ${brl(a.atualIpi)}, abaixo do aprovado. Peça de novo.` : `A aprovação foi para margem de ${pct(a.margem)}; a margem caiu depois disso. Peça de novo.`)
       : `Desconto reprovado${d ? ': ' + d : ''}.`;
-    return `<br><small class="sub">${esc(t)} ${a.aplicar ? '<button class="btn sm pri" data-apaplica>Aplicar o valor aprovado na proposta</button> ' : ''}<button class="restore" data-apopen="${esc(a.id)}">ver aprovação</button></small>`;
+    return `<br><small class="sub">${esc(t).replace('\u0001', '<b>' + a.com + '</b>')} ${a.aplicar ? '<button class="btn sm pri" data-apaplica>Aplicar o valor aprovado na proposta</button> ' : ''}<button class="restore" data-apopen="${esc(a.id)}">ver aprovação</button></small>`;
   }
   // cada alerta: corrigir agora (quando dá) ou seguir assim, com a justificativa no histórico
   const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => { const key = esc(JSON.stringify([x.S, x.msg]));
@@ -690,6 +696,7 @@
       const setq = (v) => { const tg = target(P); tg[P] = tg[P] || {}; tg[P].C9 = v; wb.setRaw(P, 'C9', v); };
       for (let k = 0; k < 10; k++) { const cur = val(P, 'P43'); if (typeof cur !== 'number' || Math.abs(cur - ai.alvoIpi) < 0.5) break; const d = num0(val(P, 'C9')); setq(Math.min(0.95, 1 - (1 - d) * ai.alvoIpi / cur)); }
       listCache = new Map(); dirty = true; persist(); render();
+      MG.marcarAplicado(ai.id, val(P, 'P43')).catch(() => {});
       logEv({ tipo: 'Aprovação — valor aplicado', ref: state.id, desc: docTitle() + ': proposta levada ao valor aprovado de ' + brl(ai.alvoIpi), mudancas: [{ campo: 'Desconto global', de: d0, para: val(P, 'C9') }, { campo: 'Total com IPI', de: ai.atualIpi, para: val(P, 'P43') }] });
       toast('Proposta no valor aprovado: ' + brl(val(P, 'P43')) + '. Salve para guardar.'); return;
     }
@@ -792,7 +799,7 @@
     const margem = val(P, 'J16'), mMin = val('PARÂMETROS', 'C34');
     const st = (n, lb, info, done) => `<button class="step ${step === n ? 'on' : ''} ${done && step !== n ? 'done' : ''}" data-step="${n}" aria-current="${step === n ? 'step' : 'false'}"><span class="sn">${done && step !== n ? '✓' : n}</span><span class="st"><b>${lb}</b><small>${esc(info)}</small></span></button>`;
     const head = `<div class="flowhead"><div><h1>Proposta ${esc(txt(P, 'C5') || 'nova')}</h1><div class="sub">${esc(txt(P, 'F5') || 'Comece pelo cliente')}</div></div>
-      <div class="sumbar"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div></div></div>
+      <div class="sumbar"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div>${apSelo()}</div></div>
       <nav class="steps" aria-label="Etapas da proposta">${st(1, 'Cliente', okCli ? txt(P, 'F5') : 'falta preencher', okCli)}${st(2, 'Itens', items.length ? items.length + ' item(ns)' : 'nenhum item ainda', items.length > 0)}${st(3, 'Revisão', alerts.filter((a) => !a.ack).some((a) => a.lvl === 'bad') ? 'há alertas para ver' : 'conferir e gerar documentos', false)}</nav>`;
     let body = '';
     if (step === 1) {
@@ -2309,7 +2316,7 @@
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
   const FX = window.PricerFacts({ REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
-  const MG = window.PricerMargens({ REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
+  const MG = window.PricerMargens({ abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
     // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas

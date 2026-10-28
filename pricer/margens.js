@@ -538,10 +538,12 @@
     const dt = (iso) => { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); } catch (e) { return ''; } };
     function etapas(p) {
       ensure(); const F = fechDe(p.id); const e = p.etapas || {}; const st = p.status || 'rascunho'; const perdida = st === 'perdida';
-      const R = F ? realizado(F) : null;
-      return ETAPAS.map(([k, lb]) => {
+      const R = F ? realizado(F) : null; const ap = aprovDe(p.id);
+      const lista = ETAPAS.slice(); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
+      return lista.map(([k, lb]) => {
         let s = 'pend', info = '', act = null;
         if (k === 'formacao') { s = 'ok'; info = dt(p.at); }
+        else if (k === 'aprovacao') { const ea = estadoA(ap); act = 'aprovacao'; if (ea === 'aprovada') { s = ap.alvo && !ap.aplicadoEm && !F ? 'parcial' : 'ok'; info = s === 'ok' ? 'aprovada' : 'falta aplicar'; } else if (ea === 'reprovada') { s = 'parcial'; info = 'reprovada'; } else { s = 'parcial'; info = comQuem(ap); } }
         else if (k === 'cliente') { if (['enviada', 'negociacao', 'ganha', 'perdida'].includes(st) || F) { s = 'ok'; info = e.cliente ? dt(e.cliente.at) : ''; } else act = 'cliente'; }
         else if (perdida) { s = 'off'; info = k === 'baixa' ? 'perdida' : ''; }
         else if (k === 'baixa') { if (F) { s = 'ok'; info = dt(F.fechadoEm); } else act = 'baixa'; }
@@ -569,6 +571,7 @@
       const [pid, k] = b.dataset.etp.split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
       const x = etapas(p).find((y) => y.k === k); if (!x) return;
       if (x.act === 'baixa') { fecharModal(p); return; }
+      if (x.act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'cliente') { const rec = Object.assign({}, p, { status: 'enviada', etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }); delete rec.id; delete rec.local;
         REG.saveProposta(p.id, rec).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
@@ -692,6 +695,26 @@
     const ipiRatio = (snap) => (snap.vendaIpi && snap.venda ? snap.vendaIpi / snap.venda : 1);
     // preço mínimo da proposta pela margem mínima (sem IPI)
     const minPelaMargem = (snap) => { if (!snap.venda) return null; const t = (snap.venda - num(snap.margem) - snap.custo) / snap.venda; const bf = snap.itens.reduce((a, x) => a + x.venda * baseFrac(x), 0) / snap.venda; const d = 1 - t - num(snap.minimo) * bf; return d > 0 ? snap.custo / d : null; };
+    // com quem está: papéis que ainda não decidiram, com os nomes de quem cuida de cada um
+    const pendPapeis = (a) => PAPEIS.filter(([k]) => !(a.decisoes || {})[k]);
+    const nomesPapel = (k) => ((REG.acessos || {})['ap_' + k] || []);
+    function comQuem(a, html) {
+      const pp = pendPapeis(a); if (!pp.length) return '';
+      const parte = ([k, lb]) => { const ids = nomesPapel(k); return html && ids.length ? `${lb} (${ids.map((id) => `<span data-uid="${esc(id)}">…</span>`).join(', ')})` : lb; };
+      return 'com ' + pp.map(parte).join(' e ');
+    }
+    function trilha(a) {
+      const d = a.decisoes || {}; const e = estadoA(a);
+      const passo = (cls, lb, info) => `<div class="etp ${cls}"><span class="etc">${cls === 'ok' ? '✓' : cls === 'bad' ? '✕' : ''}</span><span class="etl">${lb}</span>${info ? `<small>${info}</small>` : ''}</div>`;
+      const quem = (id) => (id ? `<span data-uid="${esc(id)}">…</span>` : '');
+      const L = [passo('ok', 'Pedido', `${dt(a.at)} ${quem(a.by)}`)];
+      for (const [k, lb] of PAPEIS) { const x = d[k];
+        if (x) L.push(passo(x.decisao === 'aprovada' ? 'ok' : 'bad', lb + (x.decisao === 'aprovada' ? ' aprovou' : ' reprovou'), `${dt(x.at)} ${quem(x.by)}`));
+        else { const ids = nomesPapel(k); L.push(passo(e === 'pendente' ? 'next' : 'pend', lb, e === 'pendente' ? 'aguardando' + (ids.length ? ' ' + ids.map(quem).join(', ') : '') : '')); } }
+      if (a.alvo) L.push(passo(a.aplicadoEm ? 'ok' : e === 'aprovada' ? 'next' : 'pend', 'Valor aplicado', a.aplicadoEm ? dt(a.aplicadoEm) : e === 'aprovada' ? 'falta aplicar na proposta' : ''));
+      return `<div class="etapas trilha" style="--n:${L.length}">${L.join('')}</div>`;
+    }
+    async function marcarAplicado(id, valor) { const a = aprov.find((x) => x.id === id); if (!a) return; await gravarA(id, Object.assign({}, a, { aplicadoEm: new Date().toISOString(), aplicadoValor: valor, aplicadoBy: REG.me || null })); }
     // análise no formato da planilha (Reunião): fator mínimo × fator que o preço suporta, por item
     function analise(snap) {
       return snap.itens.map((x) => {
@@ -749,8 +772,8 @@
       if (ui.apId) return vAprovDetalhe(ui.apId);
       const rows = aprov.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).map((a) => { const e = estadoA(a); const pill = { pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e];
         return `<tr class="click" data-apopen="${esc(a.id)}"><td>${esc(fmtD(a.at))}</td><td><span class="divb ${String(a.div || 'SEQ').toLowerCase()}">${esc(a.div || 'SEQ')}</span> <b>${esc(a.numero || '—')}</b><br><small class="sub">${esc(a.cliente || a.nome || '')}</small></td><td class="n">${a.alvo ? `${brl(a.alvo.vendaSem * ipiRatio(a.snap))}<br><small class="sub">atual ${brl(a.snap.venda * ipiRatio(a.snap))}</small>` : brl(a.snap.venda)}</td><td class="n">${pct(escala(a.snap, kAlvo(a)).margemPct, 1)}</td>
-          <td>${PAPEIS.map(([k, lb]) => { const d = (a.decisoes || {})[k]; return `<span class="pill ${d ? (d.decisao === 'aprovada' ? 'ok' : 'bad') : 'mute'}">${lb}: ${d ? d.decisao : 'pendente'}</span>`; }).join(' ')}</td><td><span class="pill ${pill}">${e}</span></td><td><button class="btn sm pri" data-apopen="${esc(a.id)}">Analisar</button></td></tr>`; }).join('');
-      return `<section class="card"><h2>Aprovações de desconto <span class="sub">propostas fora da política</span></h2><div class="tw"><table class="t"><thead><tr><th>Pedido</th><th>Proposta</th><th>Valor target</th><th>Margem no target</th><th>Decisões</th><th>Situação</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum pedido de aprovação.</td></tr>'}</tbody></table></div></section>`;
+          <td>${PAPEIS.map(([k, lb]) => { const d = (a.decisoes || {})[k]; return `<span class="pill ${d ? (d.decisao === 'aprovada' ? 'ok' : 'bad') : 'mute'}">${lb}: ${d ? d.decisao : 'pendente'}</span>`; }).join(' ')}</td><td><span class="pill ${pill}">${e === 'pendente' ? esc(comQuem(a)) : e}</span>${e === 'aprovada' && a.alvo && !a.aplicadoEm ? '<br><small class="sub">falta aplicar na proposta</small>' : ''}</td><td><button class="btn sm pri" data-apopen="${esc(a.id)}">Analisar</button></td></tr>`; }).join('');
+      return `<section class="card"><h2>Aprovações de desconto <span class="sub">propostas fora da política</span></h2><div class="tw"><table class="t"><thead><tr><th>Pedido</th><th>Proposta</th><th>Valor target</th><th>Margem no target</th><th>Decisões</th><th>Onde está</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum pedido de aprovação.</td></tr>'}</tbody></table></div></section>`;
     }
     function vAprovDetalhe(id) {
       const a = aprov.find((x) => x.id === id); if (!a) { ui.apId = null; return '<p class="sub">Pedido não encontrado.</p>'; }
@@ -766,14 +789,18 @@
         return `<div class="kpi"><span>${lb}</span>${x ? `<b class="${x.decisao === 'aprovada' ? 'ok-t' : 'bad-t'}">${x.decisao}</b><em>${esc(fmtD(x.at))} · <span data-uid="${esc(x.by || '')}">${x.by ? '…' : ''}</span>${x.comentario ? ' · ' + esc(x.comentario) : ''}</em>` : `<b>pendente</b><em>${pode ? `<button class="btn sm pri" data-apdec="${esc(a.id)}|${k}|aprovada">Aprovar</button> <button class="btn sm" data-apdec="${esc(a.id)}|${k}|reprovada">Reprovar</button>` : 'aguardando quem cuida desta aprovação'}</em>`}</div>`; }).join('');
       return `<div class="stack"><div class="flowhead"><div><button class="btn sm" data-apback>← Aprovações</button><h1 style="margin-top:8px">Aprovação · ${esc(a.numero || a.nome || '')}</h1><div class="sub">${esc(a.cliente || '')} · pedido em ${esc(fmtD(a.at))} por <span data-uid="${esc(a.by || '')}">${a.by ? '…' : 'alguém da equipe'}</span></div></div>
         <div class="sumbar">${a.alvo ? `<div><span>Valor atual</span><b>${brl(a.snap.venda * ri)}</b></div><div><span>Valor target</span><b>${brl(a.alvo.vendaSem * ri)}</b></div><div><span>Desconto</span><b>${pct(1 - k, 1)}</b></div>` : `<div><span>Valor proposto</span><b>${brl(a.snap.venda)}</b></div>`}<div><span>${a.alvo ? 'Margem no target' : 'Margem líquida'}</span><b class="${sc.margemPct < num(a.snap.minimo) - 5e-4 ? 'bad-t' : 'ok-t'}">${pct(sc.margemPct, 1)}</b></div><div><span class="pill ${{ pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e]}">${e}</span></div></div></div>
+        <section class="card"><h2>Onde está <span class="sub">${e === 'pendente' ? esc(comQuem(a)) : e === 'aprovada' ? (a.alvo && !a.aplicadoEm ? 'aprovada · falta aplicar o valor na proposta' : 'aprovada') : 'reprovada'}</span></h2>${trilha(a)}
+          <div class="kpis" style="margin-top:10px">${dec}</div>
+          <div class="docbar" style="margin-top:8px"><button class="btn" data-approp="${esc(a.id)}">Abrir a proposta</button></div></section>
         <section class="card"><h2>Justificativa</h2><p style="margin:0">${esc(a.motivo || '')}</p></section>
         <section class="card"><h2>Análise no formato da planilha <span class="sub">${a.alvo ? 'no valor target · ' : ''}fator mínimo × fator que o preço suporta · valores com IPI</span></h2>${tabela}<div class="docbar" style="margin-top:10px"><button class="btn" data-apxls="${esc(a.id)}">Baixar a planilha (Reunião e Base)</button></div></section>
-        <div class="kpis">${dec}</div></div>`;
+        </div>`;
     }
     document.addEventListener('click', (ev) => {
       const t = ev.target;
       const op = t.closest('[data-apopen]'); if (op && !t.closest('[data-apdec]')) { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = op.dataset.apopen; ctx.render(); window.scrollTo(0, 0); return; }
       if (t.closest('[data-apback]')) { ui.apId = null; ctx.render(); return; }
+      const ap2 = t.closest('[data-approp]'); if (ap2) { const p = (REG.listPropostas() || []).find((x) => x.id === ap2.dataset.approp); if (!p) { toast('Proposta não encontrada'); return; } ctx.abrirProposta && ctx.abrirProposta(p, 3); return; }
       const xl = t.closest('[data-apxls]'); if (xl) { const a = aprov.find((x) => x.id === xl.dataset.apxls); if (a) excel(fAprov({ id: a.id, numero: a.numero, cliente: a.cliente, name: a.nome, div: a.div }, a), true).catch((e) => toast(e.message || 'Não consegui gerar o Excel')); return; }
       const dc = t.closest('[data-apdec]'); if (dc) { const [id, papel, decisao] = dc.dataset.apdec.split('|'); const a = aprov.find((x) => x.id === id); if (!a) return;
         modal(`<h2>${decisao === 'aprovada' ? 'Aprovar' : 'Reprovar'} · ${esc(PAPEIS.find((x) => x[0] === papel)[1])}</h2><div class="f"><label for="adCom">Comentário${decisao === 'reprovada' ? ' (obrigatório)' : ' (opcional)'}</label><input id="adCom" placeholder="${decisao === 'aprovada' ? 'ex.: aprovado com prazo de pagamento 28 DDL' : 'ex.: margem baixa demais; tentar 30%'}"></div><div style="display:flex;gap:8px"><button class="btn pri" id="adOk">Confirmar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
@@ -789,7 +816,11 @@
     function proximo(p) {
       ensure(); const F = fechDe(p.id); const st = p.status || 'rascunho'; const e = p.etapas || {};
       if (st === 'perdida') return { lb: 'Reabrir', act: 'reabrir' };
-      const ap = aprovDe(p.id); if (!F && ap && estadoA(ap) === 'pendente' && PAPEIS.some(([k]) => !(ap.decisoes || {})[k] && podeDecidir(k))) return { lb: 'Analisar aprovação', act: 'aprovacao' };
+      const ap = aprovDe(p.id);
+      if (!F && ap) { const ea = estadoA(ap);
+        if (ea === 'pendente') return PAPEIS.some(([k]) => !(ap.decisoes || {})[k] && podeDecidir(k)) ? { lb: 'Analisar aprovação', act: 'aprovacao' } : { lb: 'Ver aprovação', act: 'aprovacao' };
+        if (ea === 'aprovada' && ap.alvo && !ap.aplicadoEm) return { lb: 'Aplicar valor aprovado', act: 'aplicar' };
+        if (ea === 'reprovada') return { lb: 'Ver motivo', act: 'aprovacao' }; }
       if (!F) return st === 'rascunho' ? { lb: 'Enviar ao cliente', act: 'cliente' } : { lb: 'Dar baixa', act: 'baixa' };
       if (!e.financeiro || !e.engenharia) return { lb: 'Avisar áreas', act: 'avisar' };
       if (realizado(F).cobertura < 1 - 1e-9) return { lb: 'Custo real', act: 'real' };
@@ -800,7 +831,7 @@
       const F = fechDe(p.id); const st = p.status || 'rascunho'; const e = p.etapas || {};
       if (st === 'perdida') return ['Perdida', 'bad']; if (F && (e.encerrada || F.execucao === 'encerrada')) return ['Encerrada', 'ok'];
       if (F) return ['Fechada', 'ok'];
-      const ap = aprovDe(p.id); if (ap) { const e2 = estadoA(ap); if (e2 === 'pendente') return ['Aguardando aprovação', 'warn']; if (e2 === 'reprovada') return ['Desconto reprovado', 'bad']; }
+      const ap = aprovDe(p.id); if (ap) { const e2 = estadoA(ap); if (e2 === 'pendente') return ['Aprovação ' + comQuem(ap), 'warn']; if (e2 === 'reprovada') return ['Desconto reprovado', 'bad']; if (ap.alvo && !ap.aplicadoEm) return ['Desconto aprovado · falta aplicar', 'ok']; }
       if (st === 'enviada' || st === 'negociacao') return ['Enviada ao cliente', 'warn']; return ['Rascunho', 'mute'];
     }
     document.addEventListener('click', (ev) => {
@@ -809,6 +840,7 @@
       const salvaStatus = async (status, extra, desc) => { const rec = Object.assign({}, p, { status }, extra || {}); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec); ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + (desc ? ' — ' + desc : ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: status }] }); ctx.render(); };
       if (act === 'cliente') { salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
       if (act === 'baixa') { fecharModal(p); return; }
+      if (act === 'aplicar') { ctx.abrirProposta && ctx.abrirProposta(p, 3); return; }
       if (act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (act === 'avisar') { const e = p.etapas || {}; avisarModal(p, ['financeiro', 'engenharia'].filter((a) => !e[a])); return; }
       if (act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
@@ -820,7 +852,7 @@
         }); }
     });
 
-    return { escala, ipiRatio, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
+    return { escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();
