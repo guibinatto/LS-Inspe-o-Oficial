@@ -354,8 +354,20 @@
         const s = wb.sheet(sheet); if (!s) continue;
         for (const [a, v] of Object.entries(cells)) { if (!parseAddr(a)) continue; if (v === null || v === '') s.cells.delete(a); else s.cells.set(a, v); }
       }
+      // NCM e unidade de cada item vêm do cadastro por família (Fiscal); a proposta não escolhe mais
+      const ff = Object.assign({}, R.FISCAL_FAM_PADRAO, ((R.tabelas || {}).FISCAL_FAM || {}).map || {});
+      const q = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+      const fams = Object.entries(ff).filter(([, v]) => v && (v.ncm || v.unid));
+      for (let i = 1; i <= 10; i++) {
+        const s = wb.sheet('ITEM ' + String(i).padStart(2, '0')); if (!s) continue;
+        const ncm = fams.filter(([, v]) => v.ncm).reduceRight((acc, [f, v]) => `IF($C$21=${q(f)},${q(v.ncm)},${acc})`, 'PROP_NCM');
+        const un = fams.filter(([, v]) => v.unid).reduceRight((acc, [f, v]) => `IF($C$21=${q(f)},${q(v.unid)},${acc})`, 'IF(PROP_UNIDADE="","CJ",PROP_UNIDADE)');
+        s.cells.set('G7', '=' + ncm); s.cells.set('H21', '=IF($C$21="","",' + un + ')');
+      }
       wb.invalidate();
     };
+    // ponto de partida até o Fiscal confirmar cada família
+    R.FISCAL_FAM_PADRAO = { 'CONJUNTO MOTOBOMBA': { ncm: '8413.70.90', unid: 'CJ' }, SKID: { ncm: '8413.70.90', unid: 'CJ' }, CONTAINER: { ncm: '8413.70.90', unid: 'CJ' }, ESPECIAL: { ncm: '8413.70.90', unid: 'CJ' }, 'BOMBA JOCKEY + PAINEL': { ncm: '8413.70.80', unid: 'CJ' } };
     R.helpers = { KMD_COLS, KB_COLS, KMD_LABELS, KB_LABELS, LIMITS, kmdTotals, kbTotals, famCode, sortIns, sortKit, slug };
     return R;
   }

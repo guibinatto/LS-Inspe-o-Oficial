@@ -364,6 +364,9 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 .alerts .alact{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
 .nbadge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--or);color:#fff;font-size:11px;line-height:18px;text-align:center;vertical-align:1px}
 .seg{display:inline-flex;flex-wrap:wrap;gap:4px}
+.f.req > label{justify-content:flex-start;gap:3px}.f.req > label::after{content:"*";color:var(--bad,#c0392b)}
+.f.miss input,.f.miss select,.f.miss .seg,.f.miss .autov{outline:2px solid var(--bad,#c0392b);outline-offset:1px;border-radius:7px}
+.cnpjrow{display:flex;gap:6px}.cnpjrow input{flex:1 1 auto;min-width:0}
 .seg label{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:7px;padding:5px 10px;font-size:13.5px;cursor:pointer;background:var(--card);color:var(--ink2);font-weight:600;user-select:none}
 .seg label.on,.seg label:has(input:checked){border-color:var(--or);background:var(--or-soft);color:var(--or-ink)}
 .seg input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}

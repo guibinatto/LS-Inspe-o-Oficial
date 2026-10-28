@@ -243,13 +243,14 @@
     const go = e.target.closest('[data-goitem]');
     if (go) { ui.item = +go.dataset.goitem; ui.itemFull = false; setView('item'); return; }
     const nv = e.target.closest('[data-view]');
-    if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = 2; ui.propFull = false; setView('proposta'); return; } setView(nv.dataset.view); return; }
+    if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = cabOk() ? 2 : 1; if (!cabOk()) ui.reqShow = true; ui.propFull = false; setView('proposta'); return; } setView(nv.dataset.view); return; }
   });
 
   // ---------- visões ----------
-  function setView(v) { ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
+  function setView(v) { if ((v === 'item' || v === 'memorial') && !cabOk()) { ui.step = 1; ui.reqShow = true; v = 'proposta'; toast('Preencha o cabeçalho antes do equipamento'); } ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
     const spv = isSpv(); const fx = isFacts(); const outro = spv || fx;
+    aplicaLogo();
     if (outro && (ui.view === 'item' || ui.view === 'memorial')) ui.view = 'proposta';
     for (const b of document.querySelectorAll('#nav button')) { b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false'); if ('seqonly' in b.dataset) b.hidden = outro; }
     const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
@@ -566,7 +567,7 @@
           <section class="card"><h2>Comercial e fiscal <span class="sub">herdado da proposta; mude aqui só o que for deste item</span></h2>
             <div class="fields">
               ${f('C4', 'Descrição do item', { cls: 'spanall' })}${f('C5', 'Família de produto', { cls: 'span2' })}${f('C6', 'Quantidade')}${f('C7', 'Norma')}${f('C8', 'Desconto de negociação')}
-              ${f('G4', 'Segmento')}${f('G5', 'UF de destino')}${f('G6', 'Cadastro fiscal', { cls: 'span2' })}${f('G7', 'NCM')}${f('G8', 'ICMS manual (opcional)')}
+              ${f('G4', 'Segmento')}${f('G5', 'UF de destino')}${f('G6', 'Cadastro fiscal', { cls: 'span2' })}${fs('G7', 'NCM (do cadastro Fiscal)')}${f('G8', 'ICMS manual (opcional)')}
               ${f('K4', 'Condição de pagamento', { cls: 'span2' })}${f('K5', 'Comissão — vendedor')}${f('K6', 'Comissão — agente')}${f('K7', 'Folga de negociação')}${f('K8', 'Encargo financeiro')}
               ${f('J17', 'Modo de preço')}${f('L17', 'Margem alvo')}
             </div></section>
@@ -708,6 +709,65 @@
     if (au) { let k; try { k = JSON.parse(au.dataset.alundo); } catch (er) { return; } const ack = Object.assign({}, state.ack); delete ack[k[0] + '|' + k[1]]; state.ack = ack; persist(); dirty = true; logEv({ tipo: 'Alerta — justificativa retirada', ref: docTitle(), desc: k[0] + ': ' + k[1], mudancas: [] }); render(); }
   });
 
+  // cabeçalho obrigatório antes dos itens
+  const fmtDoc = (v) => { const d = String(v || '').replace(/\D/g, ''); return d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : d.length === 11 ? d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : String(v || ''); };
+  function faltaCab() {
+    const P = 'PROPOSTA'; const req = [['L5', 'CNPJ/CPF'], ['F5', 'Cliente'], ['F6', 'Obra / local'], ['F7', 'UF'], ['J5', 'Cadastro fiscal'], ['F8', 'Segmento'], ['C5', 'Nº da proposta'], ['C6', 'Revisão'], ['C7', 'Data'], ['C10', 'Validade'], ['J6', 'Condição de pagamento'], ['F9', 'Norma'], ['C8', 'Vendedor'], ['B13', 'Frete']];
+    if (/^CIF/.test(txt(P, 'B13')) && !txt(P, 'F13')) req.push(['D13', 'Distância do frete']);
+    if (txt(P, 'J8') && txt(P, 'J8') !== 'SEM COMISSÃO') req.push(['L8', 'Agente de negócio']);
+    return req.filter(([a]) => { if (a === 'L5') { const d = txt(P, a).replace(/\D/g, ''); return d.length !== 14 && d.length !== 11; } return !txt(P, a); });
+  }
+  // obrigatório nas propostas novas; as antigas mostram o que falta sem travar
+  const cabOk = () => isSpv() || isFacts() || !state.cabReq || !faltaCab().length;
+  // vendedores e agentes de negócio (Precificação)
+  const equipeCom = () => (((REG.tabelas || {}).EQUIPE_COM || {}).lista || []).slice().sort((a, b) => a.nome.localeCompare(b.nome));
+  // consulta pública do CNPJ (sem o Claude): CNPJ.ws traz a inscrição estadual; BrasilAPI é a reserva
+  async function buscaCnpj(doc) {
+    const d = doc.replace(/\D/g, ''); if (d.length !== 14) throw new Error('Para consultar a Receita, informe um CNPJ com 14 dígitos.');
+    const get = async (u) => { const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 9000); try { const r = await fetch(u, { signal: ctl.signal }); if (r.status === 404) throw new Error('CNPJ não encontrado na Receita.'); if (!r.ok) throw new Error('http ' + r.status); return await r.json(); } finally { clearTimeout(t); } };
+    try { const j = await get('https://publica.cnpj.ws/cnpj/' + d); const e = j.estabelecimento || {};
+      return { razao: j.razao_social, fantasia: e.nome_fantasia, uf: e.estado && e.estado.sigla, cidade: e.cidade && e.cidade.nome, situacao: e.situacao_cadastral, cnae: String((e.atividade_principal || {}).id || ''), natureza: String((j.natureza_juridica || {}).id || ''), ies: (e.inscricoes_estaduais || []).map((x) => ({ ie: x.inscricao_estadual, ativo: x.ativo, uf: x.estado && x.estado.sigla })), fonte: 'CNPJ.ws' };
+    } catch (e1) { if (/não encontrado/.test(e1.message)) throw e1;
+      const j = await get('https://brasilapi.com.br/api/cnpj/v1/' + d);
+      return { razao: j.razao_social, fantasia: j.nome_fantasia, uf: j.uf, cidade: j.municipio, situacao: j.descricao_situacao_cadastral, cnae: String(j.cnae_fiscal || ''), natureza: String(j.codigo_natureza_juridica || ''), ies: null, fonte: 'BrasilAPI' }; }
+  }
+  // cadastro fiscal sugerido: IE ativa = contribuinte; comércio atacadista/varejista ou segmento revenda/OEM = revenda ou industrialização
+  function cadFiscalDe(x) {
+    const P = 'PROPOSTA'; const seg = txt(P, 'F8'); const pub = /^1/.test(x.natureza) || /^3/.test(x.natureza);
+    const ie = x.ies ? x.ies.filter((i) => i.ativo !== false && (!txt(P, 'F7') || !i.uf || i.uf === (txt(P, 'F7') || x.uf))) : null;
+    const contrib = ie ? ie.length > 0 : !pub;
+    if (!contrib) return ['NÃO CONTRIBUINTE — CONSUMIDOR FINAL', ie ? 'sem inscrição estadual ativa' : 'órgão público ou entidade sem fins lucrativos'];
+    if (/^4[5-7]/.test(x.cnae.padStart(7, '0')) || /REVENDA|OEM/.test(seg)) return ['CONTRIBUINTE — REVENDA OU INDUSTRIALIZAÇÃO', /REVENDA|OEM/.test(seg) ? 'segmento ' + seg.toLowerCase() : 'atividade de comércio'];
+    return ['CONTRIBUINTE — USO/CONSUMO OU ATIVO', ie ? 'inscrição estadual ativa' : 'empresa com atividade comercial ou industrial'];
+  }
+  document.addEventListener('change', (e) => {
+    const t = e.target; const P = 'PROPOSTA';
+    if (t.id === 'cnpjIn') { const d = t.value.replace(/\D/g, ''); commit(P, 'L5', d || null, !d); return; }
+    if (t.dataset && t.dataset.ppcell) { commit(P, t.dataset.ppcell, t.value); return; }
+    if (t.dataset && t.dataset.pcom) { commit(P, t.dataset.pcom, t.checked ? (isSpv() ? 'SPV' : 'SEQ') : 'SEM COMISSÃO'); if (t.dataset.pcom === 'J8' && !t.checked) commit(P, 'L8', null, true); return; }
+  });
+  document.addEventListener('click', async (e) => {
+    const P = 'PROPOSTA';
+    if (e.target.closest('#cnpjGo')) {
+      const inp = $('#cnpjIn'); const msg = $('#cnpjMsg'); const d = (inp.value || '').replace(/\D/g, '');
+      if (d) commit(P, 'L5', d); const m2 = () => $('#cnpjMsg');
+      try { if (m2()) m2().textContent = 'Consultando a Receita…';
+        const x = await buscaCnpj(d); const [cad, pq] = cadFiscalDe(x);
+        if (x.razao) commit(P, 'F5', x.razao.toUpperCase());
+        if (!txt(P, 'F6') && x.cidade) commit(P, 'F6', (x.cidade + ' / ' + (x.uf || '')).toUpperCase());
+        if (!txt(P, 'F7') && x.uf) commit(P, 'F7', x.uf);
+        commit(P, 'J5', cad);
+        state.cnpjInfo = `${x.fonte}: ${x.situacao || 'situação não informada'}${x.situacao && !/ATIVA/i.test(x.situacao) ? ' — ATENÇÃO' : ''} · ${x.cidade || ''}/${x.uf || ''} · cadastro fiscal: ${cad.split(' — ')[0].toLowerCase()} (${pq}). Confira.`;
+        persist(); render(); logEv({ tipo: 'Proposta — CNPJ consultado', ref: docTitle(), desc: fmtDoc(d) + ' · ' + (x.razao || ''), mudancas: [{ campo: 'Cadastro fiscal', de: null, para: cad }] });
+      } catch (er) { const t = /^http|Failed to fetch|NetworkError|aborted|Load failed/i.test(er.message || '') || er.name === 'AbortError' || er.name === 'TypeError' ? 'Não consegui falar com a Receita daqui (sem internet ou bloqueado). Preencha os dados à mão.' : er.message; state.cnpjInfo = t; render(); }
+      return;
+    }
+    if (e.target.closest('[data-cabnext]')) {
+      if (!cabOk()) { ui.reqShow = true; render(); const m = document.querySelector('.f.miss'); if (m) m.scrollIntoView({ block: 'center' }); toast('Preencha os campos marcados'); return; }
+      ui.reqShow = false; if (ui.famPend && !filled(ITEMS[0])) { ui.item = 0; ui.itemFull = false; ui.famPend = null; setView('item'); return; }
+      ui.famPend = null; ui.step = 2; setView('proposta'); return;
+    }
+  });
   function vPropostaS() {
     const P = 'PROPOSTA'; const step = ui.step || 1;
     const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => used(x.i));
@@ -720,13 +780,27 @@
       <nav class="steps" aria-label="Etapas da proposta">${st(1, 'Cliente', okCli ? txt(P, 'F5') : 'falta preencher', okCli)}${st(2, 'Itens', items.length ? items.length + ' item(ns)' : 'nenhum item ainda', items.length > 0)}${st(3, 'Revisão', alerts.filter((a) => !a.ack).some((a) => a.lvl === 'bad') ? 'há alertas para ver' : 'conferir e gerar documentos', false)}</nav>`;
     let body = '';
     if (step === 1) {
-      const cif = /^CIF/.test(txt(P, 'B13'));
-      body = `<section class="card"><h2>Cliente e condições <span class="sub">o que todo item herda</span></h2>
-          <div class="fields">${fieldS(P, 'F5', 'Cliente', { cls: 'span2' })}${fieldS(P, 'F6', 'Obra / local', { cls: 'span2' })}${fieldS(P, 'C5', 'Nº da proposta')}${fieldS(P, 'F7', 'UF de destino')}${fieldS(P, 'J5', 'Cadastro fiscal', { cls: 'span2' })}${fieldS(P, 'J6', 'Condição de pagamento', { cls: 'span2' })}${fieldS(P, 'C8', 'Vendedor')}${fieldS(P, 'F9', 'Norma')}</div></section>
-        <section class="card"><h2>Frete</h2><div class="fields">${fieldS(P, 'B13', 'Modalidade', { cls: 'span2' })}${cif ? fieldS(P, 'D13', 'Distância (km)') + fieldS(P, 'F13', 'Valor fechado (opcional)') : ''}${field(P, 'H13', 'Frete total', { ro: true, fmt: brl })}</div></section>
-        <details class="card"${keep('mais')}><summary>Mais opções <span class="sub">revisão, data, validade, desconto global, comissões, NCM, unidade</span></summary>
-          <div class="fields">${fieldS(P, 'C6', 'Revisão')}${fieldS(P, 'C7', 'Data')}${fieldS(P, 'C10', 'Validade')}${fieldS(P, 'C9', 'Desconto global')}${fieldS(P, 'F8', 'Segmento')}${fieldS(P, 'J7', 'Comissão — vendedor')}${fieldS(P, 'J8', 'Comissão — agente')}${fieldS(P, 'J9', 'NCM do produto')}${fieldS(P, 'J10', 'Unidade padrão')}${cif ? '' : fieldS(P, 'D13', 'Frete — distância (km)')}${fieldS(P, 'E13', 'Frete — R$ por km')}</div></details>
-        <div class="flowbar"><span></span><button class="btn pri" data-step="2">Próximo: itens →</button></div>`;
+      const cif = /^CIF/.test(txt(P, 'B13')); const falta = new Set(ui.reqShow ? faltaCab().map((x) => x[0]) : []);
+      const rq = (a, lb, cls = '') => fieldS(P, a, lb, { cls: 'req ' + cls + (falta.has(a) ? ' miss' : '') });
+      const ven = equipeCom(); const vs = ven.filter((x) => x.papel !== 'an'), ans = ven.filter((x) => x.papel === 'an');
+      const chips = (lista, cell, vazio) => { const cur = txt(P, cell); const nomes = [...new Set(lista.map((x) => x.nome).concat(cur && !lista.some((x) => x.nome === cur) ? [cur] : []))];
+        return nomes.length ? `<div class="seg" role="radiogroup">${nomes.map((n) => `<label class="${n === cur ? 'on' : ''}"><input type="radio" name="pp_${cell}" data-ppcell="${cell}" value="${esc(n)}"${n === cur ? ' checked' : ''}>${esc(n)}</label>`).join('')}</div>` : `<p class="sub" style="margin:0">${vazio}</p>`; };
+      const comV = txt(P, 'J7') !== 'SEM COMISSÃO' && txt(P, 'J7') !== ''; const comA = txt(P, 'J8') !== 'SEM COMISSÃO' && txt(P, 'J8') !== '';
+      const famPend = ui.famPend && !filled(ITEMS[0]) ? ui.famPend : null;
+      body = `${famPend ? `<div class="banner info">Nova proposta SEQ · <b>${esc(FAM_SEQ_LB[famPend] || famPend)}</b>. Preencha o cabeçalho para seguir ao equipamento.</div>` : ''}
+        <section class="card"><h2>Cliente <span class="sub">todos os campos são obrigatórios</span></h2>
+          <div class="fields">
+            <div class="f span2 req${falta.has('L5') ? ' miss' : ''}"><label for="cnpjIn">CNPJ / CPF</label><div class="cnpjrow"><input id="cnpjIn" value="${esc(fmtDoc(txt(P, 'L5')))}" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off"><button class="btn" id="cnpjGo" type="button">Buscar na Receita</button></div><small class="sub" id="cnpjMsg">${esc(state.cnpjInfo || 'Preenche cliente, local, UF e cadastro fiscal.')}</small></div>
+            ${rq('F5', 'Cliente (razão social)', 'span2')}${rq('F6', 'Obra / local', 'span2')}${rq('F7', 'UF de destino')}${rq('J5', 'Cadastro fiscal', 'span2')}${rq('F8', 'Segmento')}</div></section>
+        <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
+        <section class="card"><h2>Vendedor e comissões</h2><div class="fields">
+            <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor</label>${chips(vs, 'C8', 'Nenhum vendedor cadastrado: cadastre em Cadastro → Precificação → Vendedores e agentes.')}</div>
+            <div class="f spanall"><label>Comissões <span class="sub">taxa da divisão (Precificação)</span></label><div class="seg"><label class="${comV ? 'on' : ''}"><input type="checkbox" data-pcom="J7"${comV ? ' checked' : ''}>Vendedor</label><label class="${comA ? 'on' : ''}"><input type="checkbox" data-pcom="J8"${comA ? ' checked' : ''}>Agente de negócio (AN)</label></div></div>
+            ${comA ? `<div class="f spanall req${falta.has('L8') ? ' miss' : ''}"><label>Agente de negócio</label>${chips(ans, 'L8', 'Nenhum AN cadastrado: cadastre em Cadastro → Precificação → Vendedores e agentes.')}</div>` : ''}</div></section>
+        <section class="card"><h2>Frete</h2><div class="fields">${rq('B13', 'Modalidade', 'span2')}${cif ? rq('D13', 'Distância (km)') + fieldS(P, 'F13', 'Valor fechado (opcional)') : ''}${field(P, 'H13', 'Frete total', { ro: true, fmt: brl })}</div></section>
+        <details class="card"${keep('mais')}><summary>Mais opções <span class="sub">desconto global e R$ por km do frete</span></summary>
+          <div class="fields">${fieldS(P, 'C9', 'Desconto global (vazio = sem desconto)')}${fieldS(P, 'E13', 'Frete — R$ por km')}</div></details>
+        <div class="flowbar"><span class="sub">${ui.reqShow && falta.size ? 'Falta: ' + esc(faltaCab().map((x) => x[1]).join(', ')) : ''}</span><button class="btn pri" data-cabnext>${famPend ? 'Próximo: equipamento →' : 'Próximo: itens →'}</button></div>`;
     } else if (step === 2) {
       const cards = items.map((x) => {
         const S = x.s; const al = alertsFor(S); const ok = filled(S);
@@ -835,7 +909,7 @@
           <div><div class="lbl">Descrição breve ${lenTag(txt(S, 'C28').length, 120)}</div><p class="txtv">${esc(txt(S, 'C28')) || '—'}</p></div>
           <div><div class="lbl">Descrição completa</div><p class="txtv">${esc(txt(S, 'C29')) || '—'}</p></div>
           <div><div class="lbl">Ponto operacional</div><p class="txtv">${esc(txt(S, 'C30')) || '—'}</p></div>
-          <div class="fields">${fs('J21', 'Marca')}${fs('H21', 'Unidade')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div>
+          <div class="fields">${fs('J21', 'Marca')}${fs('G7', 'NCM (do cadastro Fiscal)')}${fs('H21', 'Unidade (do cadastro Fiscal)')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div>
         </div></details>
       <details class="card"${keep('fci')}><summary>FCI <span class="sub">conteúdo importado ${pct(val(S, 'C172'), 2)} · ${esc(txt(S, 'E172'))} · ${/^OK/.test(fciSt) ? 'pronta' : 'com pendência'}</span></summary>
         <div class="stack">
@@ -946,7 +1020,7 @@
     const ed = e.target.closest('[data-edit]');
     if (ed) { uiEdit.add(ed.dataset.edit); render(); const [s, a] = ed.dataset.edit.split('|'); const el = document.getElementById(id(s, a)); if (el) el.focus(); return; }
     const sp = e.target.closest('[data-step]');
-    if (sp) { ui.step = +sp.dataset.step; ui.propFull = false; setView('proposta'); return; }
+    if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; setView('proposta'); return; }
     if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; setView('item'); return; }
     const dp = e.target.closest('[data-dup]'); if (dp) { dupItem(+dp.dataset.dup); return; }
     const rm = e.target.closest('[data-rmitem]');
@@ -1031,7 +1105,7 @@
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
     ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições']]],
-    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis e e-mails'], ['tabelas', 'Planilha (avançado)']]],
+    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
@@ -1446,9 +1520,32 @@
     const cfg = Object.assign({}, old, { [k]: el.value.trim() });
     try { await REG.setTable('AVISOS', { cfg }, 'E-mails das áreas', [{ campo: (AV_CAMPOS.find((x) => x[0] === k) || [0, k])[1], de: old[k] || null, para: cfg[k] || null }]); toast('E-mail salvo'); } catch (er) { toast(errMsg(er)); }
   });
+  // logo da empresa: enviado pelo app, vale no topo e nos PDFs
+  const logoAtual = () => ((REG.tabelas || {}).MARCA || {}).logo || '';
+  function aplicaLogo() { const img = document.querySelector('.logo-plate img'); const lg = logoAtual(); if (img && lg && img.getAttribute('src') !== lg) img.setAttribute('src', lg); }
+  function logoCard() {
+    const ed = REG.areaOk('sistema');
+    return `<section class="card"><h2>Logo <span class="sub">topo do app, memorial e PDFs</span></h2>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="logo-plate" style="border:1px solid var(--line)"><img src="${esc(logoAtual() || (document.querySelector('.logo-plate img') || {}).src || '')}" alt="Logo atual" style="height:44px"></span>
+      ${ed ? '<label class="btn pri" for="logoUp">Trocar logo (PNG, JPG ou SVG)</label><input type="file" id="logoUp" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden>' + (logoAtual() ? ' <button class="btn" data-logoreset>Voltar ao original</button>' : '') : '<span class="sub">Só quem cuida de Sistema troca o logo.</span>'}</div></section>`;
+  }
+  async function salvaLogo(dataUrl, desc) { try { await REG.setTable('MARCA', dataUrl ? { logo: dataUrl } : {}, desc, []); if (!dataUrl) { const img = document.querySelector('.logo-plate img'); if (img) img.setAttribute('src', 'logo-lsfire.png'); } render(); toast(dataUrl ? 'Logo trocado' : 'Logo original'); } catch (e) { toast(errMsg(e)); } }
+  document.addEventListener('change', (e) => {
+    if (e.target.id !== 'logoUp') return; const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      const src = String(rd.result);
+      if (/svg/.test(f.type)) { if (src.length > 300000) { toast('SVG grande demais (máx. 300 KB)'); return; } salvaLogo(src, 'Logo trocado (' + f.name + ')'); return; }
+      // reduz para 120 px de altura: fica leve e nítido no topo e nos PDFs
+      const im = new Image(); im.onload = () => { const h = Math.min(120, im.naturalHeight); const w = Math.round(im.naturalWidth * h / im.naturalHeight); const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(im, 0, 0, w, h); salvaLogo(cv.toDataURL('image/png'), 'Logo trocado (' + f.name + ')'); };
+      im.onerror = () => toast('Não consegui ler essa imagem'); im.src = src;
+    };
+    rd.readAsDataURL(f);
+  });
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-logoreset]')) salvaLogo(null, 'Logo original restaurado'); });
   const PAPEIS_AP = [['ap_diretoria', 'Diretoria', 'aprova desconto fora da política'], ['ap_financeiro', 'Financeiro', 'aprova desconto fora da política']];
   function vAcessos() {
-    if (REG.mode !== 'shared') return avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
+    if (REG.mode !== 'shared') return logoCard() + avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
     const own = REG.isOwner; const ac = REG.acessos || {};
     const rows = AREAS.filter((a) => a[0] !== 'sistema').concat(PAPEIS_AP).map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
       <td>${(ac[k] || []).map((id) => `<span class="pchip"><span data-uid="${esc(id)}">…</span>${own ? `<button class="restore" data-acrm="${k}|${esc(id)}" aria-label="Remover">×</button>` : ''}</span>`).join(' ') || `<span class="sub">${/^ap_/.test(k) ? 'ninguém: qualquer Editor aprova' : 'ninguém (só o dono edita)'}</span>`}</td>
@@ -1458,7 +1555,7 @@
         <p class="sub" style="margin:0 0 10px">Cada área do cadastro só pode ser alterada por quem está nela. ${REG.areasConfiguradas() ? '' : '<b>Ainda não há ninguém definido: hoje todo Editor altera tudo.</b> Ao incluir a primeira pessoa, a trava passa a valer.'} O dono do app altera tudo.</p>
         <div class="tw"><table class="t"><thead><tr><th>Área</th><th>Pessoas</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
         <p class="sub" style="margin:10px 0 0">As duas últimas linhas são os aprovadores de desconto fora da política: cada pedido precisa do sim da Diretoria e do Financeiro.${own ? '' : ' Só o dono do app muda esta lista.'}</p></section>
-      ${avisosCard()}
+      ${logoCard()}${avisosCard()}
       <section class="card"><h2>Como dar acesso</h2><div class="kv" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr)">
         <div>Comercial e vendedores</div><div style="text-align:left;font-weight:400">Compartilhe o app como <b>Contribuidor</b>: fazem e salvam propostas, anexam documentos e não alteram nenhum cadastro (o banco bloqueia).</div>
         <div>Custos, Engenharia, Fiscal, Precificação, Serviços</div><div style="text-align:left;font-weight:400">Compartilhe como <b>Editor</b> e inclua a pessoa na área acima. O app só libera a edição das áreas dela.</div>
@@ -1832,10 +1929,42 @@
   }
   const divh = (d, t) => `<h3 class="divh"><span class="divb ${d.toLowerCase()}">${d}</span> ${esc(t)}</h3>`;
   const pcard = (t) => paramCard(PARAM_CARDS.parametros.find((c) => c.t === t));
+  // NCM e unidade por família de produto: cada item puxa daqui
+  function ncmFamCard() {
+    const ed = canEd(); const fams = listFor('ITEM 01', 'C21').filter((f) => f && f !== 'FABRICANTES');
+    const map = Object.assign({}, REG.FISCAL_FAM_PADRAO, ((REG.tabelas || {}).FISCAL_FAM || {}).map || {});
+    const ncms = []; for (let r = 110; r <= 126; r++) { const c = txt(PA, 'C' + r); if (c) ncms.push([c, txt(PA, 'B' + r)]); }
+    const uns = []; for (let r = 150; r <= 169; r++) { const u = txt(PA, 'B' + r); if (u) uns.push([u, txt(PA, 'C' + r)]); }
+    const sel = (f, k, opts, cur) => `<select data-ffam="${esc(f)}|${k}"${ed ? '' : ' disabled'}><option value="">—</option>${opts.map(([v, d]) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(v + (d ? ' · ' + d : ''))}</option>`).join('')}</select>`;
+    return `<section class="card"><h2>NCM e unidade por família <span class="sub">o item puxa daqui; na proposta não se escolhe mais</span></h2>
+      <div class="tw"><table class="t"><thead><tr><th>Família do equipamento</th><th>NCM</th><th>Unidade</th></tr></thead><tbody>${fams.map((f) => { const m = map[f] || {}; return `<tr><td><b>${esc(FAM_SEQ_LB[f] || f)}</b></td><td>${sel(f, 'ncm', ncms, m.ncm || '')}</td><td>${sel(f, 'unid', uns, m.unid || '')}</td></tr>`; }).join('')}</tbody></table></div>
+      <p class="sub" style="margin:8px 0 0">Família sem NCM aqui: o item fica sem NCM e o alerta da FCI avisa. Um item específico ainda pode trocar o NCM na tela do item (ex.: jockey de vazão pequena).</p></section>`;
+  }
+  document.addEventListener('change', async (e) => {
+    const el = e.target.closest('[data-ffam]'); if (!el) return; const [f, k] = el.dataset.ffam.split('|');
+    const cur = JSON.parse(JSON.stringify(((REG.tabelas || {}).FISCAL_FAM || {}).map || {})); const base = Object.assign({}, (REG.FISCAL_FAM_PADRAO || {})[f], cur[f]);
+    const de = base[k] || null; base[k] = el.value || ''; cur[f] = base;
+    try { await REG.setTable('FISCAL_FAM', { map: cur }, (k === 'ncm' ? 'NCM' : 'Unidade') + ' da família ' + f, [{ campo: (k === 'ncm' ? 'NCM ' : 'Unidade ') + f, de, para: el.value || null }]); toast('Salvo'); } catch (er) { toast(errMsg(er)); }
+  });
+  // vendedores e agentes de negócio (AN): a proposta escolhe daqui, sem digitar
+  function vendCard() {
+    const ed = canEd(); const L = equipeCom();
+    const row = (x, i) => `<tr><td><b>${esc(x.nome)}</b></td><td>${x.papel === 'an' ? 'Agente de negócio (AN)' : 'Vendedor'}</td><td>${esc(x.email || '')}</td><td>${ed ? `<button class="restore" data-vrm="${esc(x.nome)}|${x.papel}">remover</button>` : ''}</td></tr>`;
+    return `<section class="card"><h2>Vendedores e agentes de negócio <span class="sub">a proposta escolhe daqui; a taxa de comissão está na tabela de comissões</span></h2>
+      <div class="tw"><table class="t"><thead><tr><th>Nome</th><th>Papel</th><th>E-mail</th><th></th></tr></thead><tbody>${L.map(row).join('') || '<tr><td colspan="4" class="sub">Ninguém cadastrado ainda.</td></tr>'}</tbody></table></div>
+      ${ed ? `<div class="fields" style="margin-top:10px"><div class="f span2"><label for="vNome">Nome</label><input id="vNome" placeholder="ex.: THIAGO SILVA"></div><div class="f"><label>Papel</label><div class="seg"><label class="on"><input type="radio" name="vPapel" value="vendedor" checked>Vendedor</label><label><input type="radio" name="vPapel" value="an">AN</label></div></div><div class="f span2"><label for="vMail">E-mail (opcional)</label><input id="vMail"></div><div class="f" style="justify-content:end"><button class="btn pri" id="vAdd">Incluir</button></div></div>` : ''}</section>`;
+  }
+  async function salvaEquipe(lista, desc, mud) { try { await REG.setTable('EQUIPE_COM', { lista }, desc, mud || []); render(); } catch (e) { toast(errMsg(e)); } }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#vAdd')) { const nome = ($('#vNome').value || '').trim().toUpperCase().replace(/\s+/g, ' '); const papel = (document.querySelector('input[name="vPapel"]:checked') || {}).value || 'vendedor'; const email = ($('#vMail').value || '').trim();
+      if (!nome) { toast('Escreva o nome'); return; } const L = equipeCom(); if (L.some((x) => x.nome === nome && x.papel === papel)) { toast('Já cadastrado'); return; }
+      salvaEquipe(L.concat([{ nome, papel, email }]), (papel === 'an' ? 'AN' : 'Vendedor') + ' incluído: ' + nome, [{ campo: nome, de: null, para: papel }]); return; }
+    const rm = e.target.closest('[data-vrm]'); if (rm) { const [nome, papel] = rm.dataset.vrm.split('|'); salvaEquipe(equipeCom().filter((x) => !(x.nome === nome && x.papel === papel)), 'Removido de vendedores/AN: ' + nome, [{ campo: nome, de: papel, para: null }]); }
+  });
   function vParamTab(tab) {
     const groups = {
-      fiscal: () => divh('SEQ', 'Equipamentos') + pcard('Tributos sobre a receita') + pcard('Convênio ICMS 52/91') + ['ncm', 'uf', 'fciuf'].map(tableCard).join('') + divh('SPV', 'Serviços e pós-venda') + SPV.cfgSec('fiscal', canEd()),
-      preco: () => divh('SEQ', 'Equipamentos') + pcard('Formação do preço') + pcard('Fatores e negociação') + ['polfam', 'segdesc', 'comissao', 'pagto'].map(tableCard).join('') + divh('SPV', 'Serviços e pós-venda') + SPV.cfgSec('preco', canEd()),
+      fiscal: () => divh('SEQ', 'Equipamentos') + ncmFamCard() + pcard('Tributos sobre a receita') + pcard('Convênio ICMS 52/91') + ['ncm', 'uf', 'fciuf'].map(tableCard).join('') + divh('SPV', 'Serviços e pós-venda') + SPV.cfgSec('fiscal', canEd()),
+      preco: () => vendCard() + divh('SEQ', 'Equipamentos') + pcard('Formação do preço') + pcard('Fatores e negociação') + ['polfam', 'segdesc', 'comissao', 'pagto'].map(tableCard).join('') + divh('SPV', 'Serviços e pós-venda') + SPV.cfgSec('preco', canEd()),
       servicos: () => divh('SPV', 'Serviços e pós-venda') + SPV.cfgSec('servicos', canEd()) + divh('SEQ', 'Start-up de equipamentos') + pcard('Start-up e visitas técnicas'),
       geral: () => pcard('Emitente') + tableCard('unid') + SPV.cfgSec('geral', canEd()),
       codificacao: () => PARAM_CARDS.codificacao.map(paramCard).join('') + ['config', 'rot', 'norma', 'tensao', 'marca', 'segcod', 'modcfg'].map(tableCard).join('')
@@ -2033,9 +2162,12 @@
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const MG = window.PricerMargens({ REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
-  function newSeq(fam) { loadDoc({}, ''); ui.propFull = false;
-    if (fam) { commit('ITEM 01', 'C21', fam); ui.item = 0; ui.itemFull = false; ui.simple = true; setView('item'); toast('Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam)); return; }
-    ui.step = 1; setView('proposta'); toast('Proposta SEQ em branco'); }
+  function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
+    // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas
+    state.cabReq = true; const P = 'PROPOSTA'; const hoje = new Date(); commit(P, 'C6', 0); commit(P, 'C7', hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0'));
+    commit(P, 'J7', 'SEQ');
+    if (fam) { commit('ITEM 01', 'C21', fam); ui.famPend = fam; ui.simple = true; } else ui.famPend = null;
+    ui.step = 1; setView('proposta'); toast(fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
   const SPV = window.PricerSPV({ famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
