@@ -27,8 +27,8 @@
     const lsGet = () => { try { return JSON.parse(localStorage.getItem(LSK) || '{}'); } catch (e) { return {}; } };
     const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { toast('Sem espaço no navegador para guardar o fechamento'); } };
     function ensure() {
-      if (sub) return; sub = true;
-      if (shared()) REG.db.collection('fechamentos').orderBy('fechadoEm', 'desc').limit(500).onSnapshot((s) => { fech = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
+      const m = shared() ? 'shared' : 'local'; if (sub === m || sub === 'shared') return; sub = m;
+      if (m === 'shared') REG.db.collection('fechamentos').orderBy('fechadoEm', 'desc').limit(500).onSnapshot((s) => { fech = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
       else fech = Object.entries(lsGet()).map(([id, f]) => Object.assign({ id }, f));
     }
     async function gravar(id, rec) {
@@ -96,12 +96,14 @@
           $('#fcOk', o).disabled = true; const querXls = $('#fcXls', o).checked;
           try {
             await gravar(p.id, F);
+            ctx.log && ctx.log({ tipo: 'Baixa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || ''), mudancas: [{ campo: 'Valor proposto', de: null, para: snap.venda }, { campo: 'Valor fechado', de: null, para: v }, { campo: 'Margem', de: snap.margemPct, para: fechado(F).margemPct }, { campo: 'Pedido', de: null, para: F.pedido || null }] });
             const rec = Object.assign({}, p, { status: 'ganha', resumo: ctx.resumoOf(snap) }); delete rec.id; delete rec.local;
             await REG.saveProposta(p.id, rec);
             if (!shared()) fech = Object.entries(lsGet()).map(([k, f]) => Object.assign({ id: k }, f));
             close(); toast('Baixa registrada: ' + (p.numero || p.name || 'proposta'));
             if (querXls) excel(Object.assign({ id: p.id }, F)).catch((e) => toast(e.message || 'Não consegui gerar o Excel'));
-            onDone && onDone(); ctx.render();
+            // vai direto para a tela do custo real desta proposta
+            ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = p.id; onDone && onDone(); ctx.render(); window.scrollTo(0, 0);
           } catch (e) { $('#fcOk', o).disabled = false; toast((e && e.message) || 'Não consegui registrar a baixa'); }
         };
       });
@@ -177,7 +179,9 @@
         <div class="kpi lead"><span>Margem realizada</span><b>${mRe === null ? '—' : pct(mRe, 1)}</b><em>${comReal.length ? `${comReal.length} pacote(s) com custo real · previsto ${pct(mPrevRe, 1)} (${mRe - mPrevRe >= 0 ? '+' : '−'}${NF[1].format(Math.abs(mRe - mPrevRe) * 100)} p.p.)` : 'lance o custo real nas fechadas'}</em></div>
         <div class="kpi"><span>Abaixo do mínimo</span><b>${baixo}</b><em>propostas em aberto</em></div></div>
         ${B.semResumo ? `<div class="banner info">${B.semResumo} proposta(s) em aberto foram salvas antes do registro de margens. <button class="restore" data-mgcalc>Calcular as margens delas agora</button></div>` : ''}`;
-      let body = '';
+      const fila = B.fechadas.filter((f) => f.cobertura < 1).sort((a, b) => String(b.F.fechadoEm).localeCompare(String(a.F.fechadoEm))).slice(0, 6);
+      const filaHtml = fila.length ? `<section class="card"><h2>Custo real a lançar <span class="sub">fechadas com linhas sem custo real</span></h2><div class="tw"><table class="t"><tbody>${fila.map((f) => `<tr><td><span class="divb ${f.F.div.toLowerCase()}">${f.F.div}</span> <b>${esc(f.F.numero || '—')}</b> <span class="sub">${esc(f.F.cliente || '')} · fechada em ${fmtD(f.F.fechadoEm)}</span></td><td class="n">${pct(f.cobertura, 0)} apontado</td><td style="text-align:right"><button class="btn sm pri" data-mgopen="${esc(f.F.id)}">Lançar custo real</button></td></tr>`).join('')}</tbody></table></div></section>` : '';
+      let body = filaHtml;
       if (tab === 'painel') {
         const divs = ['SEQ', 'SPV'].map((d) => { const a = itAb.filter((x) => x.div === d), f = itFe.filter((x) => x.div === d); const pa = wavg(a, (x) => x.venda, (x) => x.margem), pf = wavg(f, (x) => x.venda, (x) => x.margem);
           return { label: d, sub: `${mi(a.reduce((t, x) => t + x.venda, 0))} · ${mi(f.reduce((t, x) => t + x.venda, 0))}`, vals: [pa, pf], tips: [`${d} em aberto: margem ${pa === null ? '—' : pct(pa, 1)} sobre ${brl(a.reduce((t, x) => t + x.venda, 0))}`, `${d} fechadas: margem ${pf === null ? '—' : pct(pf, 1)} sobre ${brl(f.reduce((t, x) => t + x.venda, 0))}`] }; }).filter((r) => r.vals.some((v) => v !== null));
@@ -189,7 +193,7 @@
             : { label: x.F.numero || x.F.nome || '—', sub: (x.F.cliente || '') + ' · fechada', vals: [x.margemPct], tips: [`${x.F.numero || ''} ${x.F.cliente || ''} (fechada ${fmtD(x.F.fechadoEm)}): ${pct(x.margemPct, 1)} sobre ${brl(x.venda)}`] });
         const pr = comReal.slice(0, 12).map((f) => ({ label: f.F.numero || f.F.nome || '—', sub: `${f.F.cliente || ''} · ${pct(f.cobertura, 0)} apontado`, vals: [f.margemPct, f.margemRealPct], tips: [`Previsto: ${pct(f.margemPct, 1)} · custo ${brl(f.custo)}`, `Realizado: ${pct(f.margemRealPct, 1)} · custo ${brl(f.custoReal)}`] }));
         const itens = grupo(itAb.concat(itFe), (x) => x.div + '|' + x.nome, (x) => x.nome).slice(0, 12).map((g) => ({ label: g.label, sub: g.k.split('|')[0] + ' · ' + mi(g.venda), vals: [g.pct], tips: [`${g.label}: ${pct(g.pct, 1)} · ${g.n} ocorrência(s) · ${brl(g.venda)}`] }));
-        body = `<div class="vzgrid">
+        body += `<div class="vzgrid">
           <section class="card"><h2>Margem por divisão</h2>${hbars(divs, { series: ['Em aberto', 'Fechadas'], aria: 'margem por divisão' })}</section>
           <section class="card"><h2>Margem por família <span class="sub"><select id="mgFam" aria-label="Base">${[['todas', 'abertas e fechadas'], ['abertas', 'só abertas'], ['fechadas', 'só fechadas']].map(([k, l]) => `<option value="${k}"${(ui.mgFam || 'todas') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span></h2>${hbars(fams, { min: minRef, aria: 'margem por família' })}</section>
           <section class="card"><h2>Margem por pacote <span class="sub">os 12 maiores</span></h2>${hbars(pacs, { min: minRef, aria: 'margem por pacote' })}</section>
@@ -197,12 +201,12 @@
           <section class="card span-all"><h2>Margem por item / linha <span class="sub">agrupado pelo nome do item</span></h2>${hbars(itens, { min: minRef, aria: 'margem por item', w: 1300 })}</section>
         </div>`;
       } else if (tab === 'fechadas') {
-        body = `<section class="card"><div class="tw"><table class="t"><thead><tr><th>Fechamento</th><th>Pacote</th><th>Venda fechada</th><th>Margem fechada</th><th>Margem realizada</th><th>Custo apontado</th><th>Execução</th><th></th></tr></thead><tbody>${B.fechadas.map((f) => `<tr class="click" data-mgopen="${esc(f.F.id)}">
+        body += `<section class="card"><div class="tw"><table class="t"><thead><tr><th>Fechamento</th><th>Pacote</th><th>Venda fechada</th><th>Margem fechada</th><th>Margem realizada</th><th>Custo apontado</th><th>Execução</th><th></th></tr></thead><tbody>${B.fechadas.map((f) => `<tr class="click" data-mgopen="${esc(f.F.id)}">
           <td>${fmtD(f.F.fechadoEm)}${f.F.pedido ? `<br><small class="sub">pedido ${esc(f.F.pedido)}</small>` : ''}</td><td><span class="divb ${f.F.div.toLowerCase()}">${f.F.div}</span> <b>${esc(f.F.numero || '—')}</b><br><small class="sub">${esc(f.F.cliente || f.F.nome || '')}</small></td>
           <td class="n">${brl(f.venda)}</td><td class="n">${pct(f.margemPct, 1)}</td><td class="n">${f.apontadas ? `<b class="${f.margemRealPct < f.margemPct - 0.005 ? 'bad-t' : 'ok-t'}">${pct(f.margemRealPct, 1)}</b>` : '—'}</td>
-          <td class="n">${pct(f.cobertura, 0)}</td><td>${esc(f.F.execucao || 'em andamento')}</td><td><button class="btn sm" data-mgopen="${esc(f.F.id)}">Abrir</button></td></tr>`).join('') || '<tr><td colspan="8" class="sub">Nenhuma proposta fechada no filtro. Na página inicial, mude o status para "Ganha" ou use "Dar baixa".</td></tr>'}</tbody></table></div></section>`;
+          <td class="n">${pct(f.cobertura, 0)}</td><td>${esc(f.F.execucao || 'em andamento')}</td><td style="white-space:nowrap"><button class="btn sm pri" data-mgopen="${esc(f.F.id)}">Custo real</button> <button class="btn sm" data-mgxls="${esc(f.F.id)}">Excel</button></td></tr>`).join('') || '<tr><td colspan="8" class="sub">Nenhuma proposta fechada no filtro. Na página inicial, mude o status para "Ganha" ou use "Dar baixa".</td></tr>'}</tbody></table></div></section>`;
       } else {
-        body = `<section class="card"><div class="tw"><table class="t"><thead><tr><th>Proposta</th><th>Status</th><th>Venda</th><th>Margem</th><th>Itens</th><th></th></tr></thead><tbody>${B.abertas.sort((a, b) => num(b.resumo.venda) - num(a.resumo.venda)).map((p) => { const low = p.resumo.minimo && p.resumo.margemPct < p.resumo.minimo;
+        body += `<section class="card"><div class="tw"><table class="t"><thead><tr><th>Proposta</th><th>Status</th><th>Venda</th><th>Margem</th><th>Itens</th><th></th></tr></thead><tbody>${B.abertas.sort((a, b) => num(b.resumo.venda) - num(a.resumo.venda)).map((p) => { const low = p.resumo.minimo && p.resumo.margemPct < p.resumo.minimo;
           return `<tr><td><span class="divb ${(p.div || 'SEQ').toLowerCase()}">${p.div || 'SEQ'}</span> <b>${esc(p.numero || '—')}</b><br><small class="sub">${esc(p.cliente || p.name || '')}</small></td><td>${esc(((ctx.SPV.STATUS || []).find((x) => x[0] === p.status) || [0, p.status || 'rascunho'])[1])}</td>
           <td class="n">${brl(p.resumo.venda)}</td><td class="n"><b class="${low ? 'bad-t' : ''}">${pct(p.resumo.margemPct, 1)}</b>${low ? ' <span class="pill bad">abaixo do mínimo</span>' : ''}</td><td class="sub">${esc((p.resumo.itens || []).map((x) => x.nome).join(' · ').slice(0, 90))}</td>
           <td style="white-space:nowrap"><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm pri" data-mgclose="${esc(p.id)}">Dar baixa</button></td></tr>`; }).join('') || '<tr><td colspan="6" class="sub">Nenhuma proposta em aberto com margem calculada.</td></tr>'}</tbody></table></div></section>`;
@@ -229,6 +233,7 @@
       return `<div class="stack">
         <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-mgback>← Margens</button><h1 style="margin-top:8px"><span class="divb ${F0.div.toLowerCase()}">${F0.div}</span> ${esc(F0.numero || F0.nome || 'Fechamento')}</h1><div class="sub">${esc(F0.cliente || '')} · fechada em ${fmtD(F0.fechadoEm)}${F0.pedido ? ' · pedido ' + esc(F0.pedido) : ''}${F0.obs ? ' · ' + esc(F0.obs) : ''}</div></div>
           <div class="sumbar"><div><span>Venda fechada</span><b>${brl(R.venda)}</b></div><div><span>Margem fechada</span><b>${pct(R.margemPct, 1)}</b></div><div><span>Realizada</span><b class="${R.margemRealPct < R.margemPct - 0.005 ? 'bad-t' : 'ok-t'}">${pct(R.margemRealPct, 1)}</b></div></div></div>
+        ${ui.mgNova === id ? `<div class="banner ok"><b>Baixa registrada.</b> É aqui que Compras e Produção lançam o custo real: digite na coluna "Real (R$)" de cada linha ou use "Ler NF ou pedido de compra". A margem realizada recalcula na hora. Esta tela fica em Margens → Fechadas, e na página inicial pelo botão "Custo real".</div>` : ''}
         <div class="kpis"><div class="kpi"><span>Proposto × fechado</span><b>${brl(F0.vendaProposta)}</b><em>fechado ${brl(R.venda)}${Math.abs(R.k - 1) > 1e-6 ? ' (' + (R.k < 1 ? '−' : '+') + pct(Math.abs(1 - R.k), 1) + ')' : ''}</em></div>
           <div class="kpi"><span>Impostos e comissões</span><b>${brl(R.impostos + R.comissao)}</b><em>impostos ${brl(R.impostos)} · comissões ${brl(R.comissao)}</em></div>
           <div class="kpi"><span>Custo previsto × real</span><b>${brl(R.custoReal)}</b><em>previsto ${brl(R.custo)} (${R.custoReal - R.custo >= 0 ? '+' : '−'}${brl(Math.abs(R.custoReal - R.custo)).replace('R$ ', '')})</em></div>
@@ -240,8 +245,10 @@
         ${ed ? '<p class="sub" style="margin:0">Lance o custo real total de cada linha (todas as unidades). Linha em branco conta como previsto. Claude lê a nota fiscal ou o pedido e sugere em qual linha cada item entra.</p>' : '<p class="sub" style="margin:0">O custo real é lançado pela área de Custos.</p>'}
         ${itens}</div>`;
     }
-    async function setReal(id, mut) {
-      const F = fech.find((f) => f.id === id); if (!F) return; const real = JSON.parse(JSON.stringify(F.real || {})); mut(real);
+    async function setReal(id, mut, desc) {
+      const F = fech.find((f) => f.id === id); if (!F) return; const real = JSON.parse(JSON.stringify(F.real || {})); const antes = realizado(F); mut(real);
+      const depois = realizado(Object.assign({}, F, { real }));
+      ctx.log && ctx.log({ tipo: 'Custo real', ref: id, desc: (F.numero || F.nome || '') + ' · ' + (desc || 'lançamento'), mudancas: [{ campo: 'Custo real', de: antes.custoReal, para: depois.custoReal }, { campo: 'Margem realizada', de: antes.margemRealPct, para: depois.margemRealPct }] });
       const rec = Object.assign({}, F, { real, upd: new Date().toISOString(), updBy: REG.me || null });
       try { await gravar(id, rec); if (!shared()) ctx.render(); } catch (e) { toast((e && e.message) || 'Não consegui salvar'); }
     }
@@ -279,37 +286,84 @@
       });
     }
 
-    // ---------- Excel do fechamento ----------
+    // ---------- Excel do fechamento: resumo no formato do Memorial (um item por coluna) ----------
     async function excel(F) {
-      const ExcelJS = await excelLib(); const R = realizado(F); const wbx = new ExcelJS.Workbook(); wbx.creator = 'LS Pricer';
-      const OR = 'FFE8570A', INK = 'FF1E1F21';
-      const head = (ws, row) => { const r = ws.getRow(row); r.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INK } }; c.alignment = { vertical: 'middle', wrapText: true }; }); r.height = 30; };
-      const money = '#,##0.00;[Red]-#,##0.00', perc = '0.0%;[Red]-0.0%';
-      // resumo
-      const ws = wbx.addWorksheet('Fechamento', { views: [{ showGridLines: false }] });
-      ws.columns = [{ width: 42 }, { width: 20 }, { width: 20 }, { width: 18 }];
-      ws.addRow(['LS FIRE — FECHAMENTO DE PROPOSTA']).font = { bold: true, size: 14, color: { argb: OR } };
-      [['Proposta', F.numero || F.nome || ''], ['Cliente', F.cliente || ''], ['Divisão', F.div + (F.tipo ? ' · ' + F.tipo : '')], ['Data do fechamento', fmtD(F.fechadoEm)], ['Pedido / OC', F.pedido || ''], ['Observações', F.obs || ''], ['Execução', F.execucao || '']].forEach((x) => { const r = ws.addRow(x); r.getCell(1).font = { bold: true }; });
-      ws.addRow([]);
-      const h = ws.addRow(['', 'Previsto (fechado)', 'Realizado', 'Diferença']); head(ws, h.number);
-      const lin = [['Venda sem IPI', R.venda, R.venda], ['Impostos', R.impostos, R.impostos], ['Comissões e encargos', R.comissao, R.comissao], ['Custos', R.custo, R.custoReal], ['Margem líquida (R$)', R.margem, R.margemReal]];
-      for (const [lb, a, b] of lin) { const r = ws.addRow([lb, a, b, b - a]); [2, 3, 4].forEach((c) => { r.getCell(c).numFmt = money; }); }
-      const rp = ws.addRow(['Margem líquida (%)', R.margemPct, R.margemRealPct, R.margemRealPct - R.margemPct]); [2, 3, 4].forEach((c) => { rp.getCell(c).numFmt = perc; }); rp.font = { bold: true };
-      ws.addRow(['Venda proposta (antes da negociação)', F.vendaProposta]).getCell(2).numFmt = money;
-      ws.addRow(['Linhas com custo real', R.apontadas + ' de ' + R.linhas]);
-      // itens
-      const wi = wbx.addWorksheet('Itens'); const hi = ['Item', 'Família', 'Qtd', 'Venda sem IPI', 'Impostos', '% impostos', 'Comissões', 'Custo previsto', 'Margem prevista', '% margem prevista', 'Custo real', 'Margem realizada', '% margem realizada', 'ICMS', 'PIS/COFINS', 'IR/CSLL', 'Conteúdo importado'];
-      wi.addRow(hi); head(wi, 1); wi.columns = hi.map((x, i) => ({ width: i < 2 ? 34 : 15 }));
-      for (const it of R.itens) { const r = wi.addRow([it.nome, it.familiaNome || it.familia, it.qtd, it.venda, it.impostos, it.venda ? it.impostos / it.venda : 0, it.comissao, it.custo, it.margem, it.margemPct, it.custoReal, it.margemReal, it.margemRealPct, it.icmsPct ?? null, it.pisCofinsPct ?? null, it.irPct ?? null, it.ci ?? null]);
-        [4, 5, 7, 8, 9, 11, 12].forEach((c) => { r.getCell(c).numFmt = money; }); [6, 10, 13, 14, 15, 16, 17].forEach((c) => { r.getCell(c).numFmt = perc; }); }
-      // linhas
-      const wl = wbx.addWorksheet('Custos por linha'); const hl = ['Item', 'Grupo', 'Componente', 'Família de insumo', 'Qtd total', 'Custo unit. previsto', 'Custo previsto', 'Custo real', 'Diferença', 'Observação'];
-      wl.addRow(hl); head(wl, 1); wl.columns = [{ width: 30 }, { width: 14 }, { width: 52 }, { width: 22 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 34 }];
-      for (const it of R.itens) {
-        for (const l of it.linhas) { const r = wl.addRow([it.nome, l.grupo || '', l.desc || l.rot || '', l.fam || '', num(l.qtd) * (it.qtd || 1), l.unit, l.prev, typeof l.real === 'number' ? l.real : null, typeof l.real === 'number' ? l.real - l.prev : null, l.obs || '']); [6, 7, 8, 9].forEach((c) => { r.getCell(c).numFmt = money; }); }
-        for (const e of it.extras) { const r = wl.addRow([it.nome, 'NÃO PREVISTO', e.desc, '', null, null, 0, e.v, e.v, '']); [7, 8, 9].forEach((c) => { r.getCell(c).numFmt = money; }); }
+      const ExcelJS = await excelLib(); const R = realizado(F); const k = R.k; const wbx = new ExcelJS.Workbook(); wbx.creator = 'LS Pricer';
+      const OR = 'FFE8570A', INK = 'FF1E1F21', SOFT = 'FFFFF1E8', GRAY = 'FFF4F3F0';
+      const money = '#,##0.00;[Red]-#,##0.00', perc = '0.00%;[Red]-0.00%', fat = '0.0000';
+      const its = R.itens; const n = its.length; const colT = n + 2;
+      const ws = wbx.addWorksheet('Fechamento', { views: [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 8 }] });
+      ws.columns = [{ width: 46 }].concat(its.map(() => ({ width: 17 }))).concat([{ width: 19 }]);
+      const t = ws.addRow(['LS FIRE — FECHAMENTO DA PROPOSTA']); t.font = { bold: true, size: 14, color: { argb: OR } };
+      ws.addRow([`${F.div}${F.tipo ? ' · ' + F.tipo : ''} · ${F.numero || F.nome || ''} · ${F.cliente || ''}`]).font = { bold: true };
+      ws.addRow([`Fechada em ${fmtD(F.fechadoEm)}${F.pedido ? ' · pedido ' + F.pedido : ''} · execução: ${F.execucao || 'em andamento'}`]);
+      ws.addRow([`Valor proposto ${brl(F.vendaProposta)} → fechado ${brl(R.venda)}${Math.abs(k - 1) > 1e-6 ? ' (' + (k < 1 ? 'desconto de ' : 'acréscimo de ') + NF[2].format(Math.abs(1 - k) * 100) + '%)' : ''}${F.obs ? ' · ' + F.obs : ''}`]);
+      ws.addRow([]); ws.addRow([]); ws.addRow([]);
+      const hd = ws.addRow(['Linha'].concat(its.map((x, i) => (F.div === 'SEQ' && x.n && /^ITEM/.test(x.n) ? x.n : 'ITEM ' + String(i + 1).padStart(2, '0')))).concat(['TOTAL DA PROPOSTA']));
+      hd.eachCell((c, ci) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ci === colT ? OR : INK } }; c.alignment = { horizontal: ci === 1 ? 'left' : 'center', vertical: 'middle', wrapText: true }; }); hd.height = 22;
+      const nm = ws.addRow(['Item'].concat(its.map((x) => x.nome)).concat([''])); nm.eachCell((c) => { c.font = { size: 9, color: { argb: 'FF52514E' } }; c.alignment = { wrapText: true, vertical: 'top' }; }); nm.height = 48;
+      const sec = (lb) => { const r = ws.addRow([lb]); r.font = { bold: true, color: { argb: OR } }; };
+      const sum = (f) => its.reduce((tt, x) => tt + num(f(x)), 0);
+      const row = (lb, f, fmt, o = {}) => {
+        const vals = its.map(f); if (o.skipZero && vals.every((v) => !num(v))) return null;
+        const tot = o.total !== undefined ? o.total : fmt === perc ? (R.venda ? sum((x) => num(f(x)) * x.venda) / R.venda : 0) : sum(f);
+        const r = ws.addRow([lb].concat(vals.map((v) => (v === null || v === undefined ? null : v))).concat([tot]));
+        r.eachCell((c, ci) => { if (ci > 1) c.numFmt = fmt; if (ci === colT) c.font = { bold: true }; });
+        if (o.bold) r.eachCell((c) => { c.font = { bold: true }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } }; });
+        if (o.lead) r.eachCell((c) => { c.font = { bold: true }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SOFT } }; });
+        return r;
+      };
+      const lin = (x) => x.linhas || [];
+      const custoOri = (x, ori) => lin(x).filter((l) => !['SERVIÇOS', 'DESLOCAMENTO', 'EQUIPE'].includes(l.grupo) && (ori === 'IMP' ? l.ori === 'IMP' : l.ori !== 'IMP')).reduce((tt, l) => tt + l.prev, 0);
+      const temOri = its.some((x) => lin(x).some((l) => l.ori === 'IMP'));
+      sec('CUSTOS');
+      // nacional = o resto, para fechar com o total (a mão de obra de fabricação tem linha própria)
+      if (temOri) { row('Peças e materiais — importado', (x) => custoOri(x, 'IMP'), money); row('Peças e materiais — nacional', (x) => x.custo - custoOri(x, 'IMP') - num(x.custoFab) - num(x.custoStartup) - num(x.custoFrete), money); }
+      else row('Custo do conjunto de peças e materiais', (x) => (x.custoMat != null ? x.custoMat : x.custo - num(x.custoStartup) - num(x.custoFrete)), money);
+      row('Custos dos serviços de fabricação', (x) => x.custoFab, money, { skipZero: true });
+      row('Custos de start-up', (x) => x.custoStartup, money, { skipZero: true });
+      row('Custos dos fretes', (x) => x.custoFrete, money, { skipZero: true });
+      row('TOTAL CUSTOS', (x) => x.custo, money, { bold: true });
+      sec('IMPOSTOS (sobre o preço sem IPI)');
+      row('ICMS', (x) => x.icmsPct, perc, { skipZero: true }); row('PIS/COFINS', (x) => x.pisCofinsPct, perc, { skipZero: true }); row('IR/CSLL', (x) => x.irPct, perc, { skipZero: true });
+      row('TOTAL IMPOSTOS (sem o IPI)', (x) => (x.venda ? x.impostos / x.venda : 0), perc, { bold: true });
+      sec('COMISSÃO E MARGEM');
+      row('TOTAL COMISSÃO', (x) => (x.venda ? x.comissao / x.venda : 0), perc);
+      row('Margem líquida', (x) => x.margemPct, perc, { lead: true, total: R.margemPct });
+      row('Fator sobre o custo de aquisição', (x) => { const base = x.custo - num(x.custoStartup) - num(x.custoFrete); return base ? (x.venda - x.impostos - num(x.custoStartup) - num(x.custoFrete)) / base : null; }, fat,
+        { total: (() => { const base = R.custo - sum((x) => num(x.custoStartup) + num(x.custoFrete)); return base ? (R.venda - R.impostos - sum((x) => num(x.custoStartup) + num(x.custoFrete))) / base : null; })() });
+      sec('PREÇO');
+      row('Preço de venda com impostos — SEM IPI (total)', (x) => x.venda, money, { lead: true });
+      row('Quantidade', (x) => x.qtd || 1, '0', {});
+      row('Preço unitário com impostos — SEM IPI', (x) => x.venda / (x.qtd || 1), money, { total: null });
+      const ipiR = (x) => num(x.ipi) * k; row('IPI (R$)', ipiR, money, { skipZero: true });
+      row('Preço de venda com impostos e COM IPI (total)', (x) => x.venda + ipiR(x), money, { lead: true });
+      if (its.some((x) => x.origem)) { const r = ws.addRow(['Origem do conjunto'].concat(its.map((x) => x.origem || '')).concat([its.every((x) => x.origem === its[0].origem) ? its[0].origem : 'MISTO'])); r.font = { bold: true }; row('Conteúdo de importação (CI)', (x) => x.ci, perc, { total: null }); }
+      sec('DEMONSTRATIVO (base: preço sem IPI — o IPI é por fora e não entra na margem)');
+      row('Preço de venda com impostos (sem IPI)', (x) => x.venda, money); row('Impostos', (x) => x.impostos, money); row('Preço de venda sem impostos', (x) => x.venda - x.impostos, money);
+      row('Custos materiais e serviços', (x) => x.custo, money); row('Comissão', (x) => x.comissao, money); row('Margem líquida', (x) => x.margem, money, { bold: true });
+      row('Conferência (custos + comissão + margem)', (x) => x.custo + x.comissao + x.margem, money);
+      if (R.apontadas || its.some((x) => x.extras.length)) {
+        sec(`REALIZADO (${R.apontadas} de ${R.linhas} linhas com custo real; as demais contam como previsto)`);
+        row('Custo real', (x) => x.custoReal, money); row('Diferença de custo (real − previsto)', (x) => x.custoReal - x.custo, money);
+        row('Margem líquida realizada (R$)', (x) => x.margemReal, money, { bold: true }); row('Margem líquida realizada (%)', (x) => x.margemRealPct, perc, { lead: true, total: R.margemRealPct });
       }
-      wl.autoFilter = { from: 'A1', to: 'J1' }; wl.views = [{ state: 'frozen', ySplit: 1 }];
+      // composição resumida, como a aba Base da análise de markup
+      const wc = wbx.addWorksheet('Composição', { views: [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 2 }] });
+      wc.columns = [{ width: 46 }].concat(its.map(() => ({ width: 17 }))).concat([{ width: 19 }]);
+      wc.addRow(['CUSTOS LANÇADOS NA FORMAÇÃO']).font = { bold: true, color: { argb: OR } };
+      const h2 = wc.addRow(['Componente'].concat(its.map((x, i) => 'ITEM ' + String(i + 1).padStart(2, '0'))).concat(['TOTAL'])); h2.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INK } }; });
+      const grupos = new Map();
+      its.forEach((x, i) => lin(x).forEach((l) => { const g = (String(l.fam || (l.grupo === 'ESCOPO' ? 'ESCOPO SEM FAMÍLIA' : l.grupo) || 'OUTROS').replace(/^\d+\./, '') || 'OUTROS') + (l.ori ? ' | ' + (l.ori === 'IMP' ? 'importado' : 'nacional') : ''); if (!grupos.has(g)) grupos.set(g, its.map(() => 0)); grupos.get(g)[i] += l.prev; }));
+      for (const [g, v] of [...grupos.entries()].sort((a2, b2) => b2[1].reduce((q, z) => q + z, 0) - a2[1].reduce((q, z) => q + z, 0))) { const r = wc.addRow([g].concat(v).concat([v.reduce((q, z) => q + z, 0)])); r.eachCell((c, ci) => { if (ci > 1) c.numFmt = money; }); }
+      const tr = wc.addRow(['TOTAL'].concat(its.map((x) => x.custo)).concat([R.custo])); tr.eachCell((c, ci) => { c.font = { bold: true }; if (ci > 1) c.numFmt = money; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } }; });
+      // custo real por linha, só quando houver apontamento
+      if (R.apontadas || its.some((x) => x.extras.length)) {
+        const wr = wbx.addWorksheet('Custo real'); wr.columns = [{ width: 28 }, { width: 52 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 34 }];
+        const h3 = wr.addRow(['Item', 'Componente', 'Previsto', 'Real', 'Diferença', 'Observação']); h3.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INK } }; });
+        for (const x of its) { for (const l of x.linhas.filter((q) => typeof q.real === 'number')) { const r = wr.addRow([x.nome, l.desc || l.rot || '', l.prev, l.real, l.real - l.prev, l.obs || '']); [3, 4, 5].forEach((c) => { r.getCell(c).numFmt = money; }); }
+          for (const e of x.extras) { const r = wr.addRow([x.nome, 'NÃO PREVISTO — ' + e.desc, 0, e.v, e.v, '']); [3, 4, 5].forEach((c) => { r.getCell(c).numFmt = money; }); } }
+      }
       const name = ('Fechamento ' + (F.numero || '') + ' ' + (F.cliente || '')).trim().replace(/[\\/:*?"<>|]+/g, '_') + '.xlsx';
       const ok = await REG.save(name, await wbx.xlsx.writeBuffer(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); if (!ok) toast('Download cancelado');
     }
@@ -327,22 +381,23 @@
       const el = e.target; if (ui.view !== 'margens') return;
       if (el.id === 'mgPer' || el.id === 'mgDiv' || el.id === 'mgFam') { ui[el.id] = el.value; ctx.render(); return; }
       if (el.dataset.real) { const [n, k] = el.dataset.real.split('|'); const t = el.value.trim(); const v = t === '' ? null : parseInput(t, 'num'); if (t !== '' && typeof v !== 'number') { toast('Número inválido'); return; }
-        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; const cur = real[n].l[k] || {}; if (v === null) { delete cur.v; } else cur.v = v; real[n].l[k] = cur; }); return; }
+        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; const cur = real[n].l[k] || {}; if (v === null) { delete cur.v; } else cur.v = v; real[n].l[k] = cur; }, 'linha ' + k + (v === null ? ' apagada' : ' = ' + brl(v))); return; }
       if (el.dataset.robs) { const [n, k] = el.dataset.robs.split('|'); setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; real[n].l[k] = Object.assign(real[n].l[k] || {}, { obs: el.value.trim() }); }); return; }
-      if (el.dataset.mgexec) { const F = fech.find((f) => f.id === el.dataset.mgexec); if (F) gravar(F.id, Object.assign({}, F, { execucao: el.value })).then(() => { if (!shared()) ctx.render(); toast('Execução: ' + el.value); }); return; }
+      if (el.dataset.mgexec) { const F = fech.find((f) => f.id === el.dataset.mgexec); if (F) gravar(F.id, Object.assign({}, F, { execucao: el.value })).then(() => { ctx.log && ctx.log({ tipo: 'Execução', ref: F.id, desc: F.numero || F.nome || '', mudancas: [{ campo: 'Execução', de: F.execucao || 'em andamento', para: el.value }] }); if (!shared()) ctx.render(); toast('Execução: ' + el.value); }); return; }
       if (el.id === 'mgNf') { lerNf(ui.mgId, el.files[0]); el.value = ''; }
     });
     document.addEventListener('click', (e) => {
       const t = e.target;
+      const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!fechDe(id)) { toast('Esta proposta ainda não tem baixa: use "Dar baixa" primeiro.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       const cl = t.closest('[data-mgclose]'); if (cl) { const p = (REG.listPropostas() || []).find((x) => x.id === cl.dataset.mgclose); if (p) fecharModal(p); return; }
       if (ui.view !== 'margens') return;
       const tb = t.closest('[data-mgtab]'); if (tb) { ui.mgTab = tb.dataset.mgtab; ctx.render(); return; }
-      const op = t.closest('[data-mgopen]'); if (op) { ui.mgId = op.dataset.mgopen; ctx.render(); window.scrollTo(0, 0); return; }
+      const op = t.closest('[data-mgopen]'); if (op) { ui.mgId = op.dataset.mgopen; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (t.closest('[data-mgback]')) { ui.mgId = null; ctx.render(); return; }
       if (t.closest('[data-mgcalc]')) { calcularAntigas(); return; }
       const xl = t.closest('[data-mgxls]'); if (xl) { const F = fech.find((f) => f.id === xl.dataset.mgxls); if (F) excel(F).catch((er) => toast(er.message || 'Não consegui gerar o Excel')); return; }
       const ro = t.closest('[data-mgreopen]'); if (ro) { if (!ro.dataset.sure) { ro.dataset.sure = 1; ro.textContent = 'Confirmar: desfazer a baixa'; ro.classList.add('pri'); return; }
-        const F = fech.find((f) => f.id === ro.dataset.mgreopen); apagar(ro.dataset.mgreopen).then(async () => { const p = (REG.listPropostas() || []).find((x) => x.id === (F && F.propId)); if (p) { const rec = Object.assign({}, p, { status: 'negociacao' }); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec).catch(() => {}); } ui.mgId = null; ctx.render(); toast('Baixa desfeita'); }).catch((er) => toast(er.message || 'Não consegui desfazer')); return; }
+        const F = fech.find((f) => f.id === ro.dataset.mgreopen); apagar(ro.dataset.mgreopen).then(async () => { ctx.log && ctx.log({ tipo: 'Baixa desfeita', ref: ro.dataset.mgreopen, desc: F ? (F.numero || F.nome || '') : '', mudancas: [] }); const p = (REG.listPropostas() || []).find((x) => x.id === (F && F.propId)); if (p) { const rec = Object.assign({}, p, { status: 'negociacao' }); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec).catch(() => {}); } ui.mgId = null; ctx.render(); toast('Baixa desfeita'); }).catch((er) => toast(er.message || 'Não consegui desfazer')); return; }
       const ad = t.closest('[data-rexadd]'); if (ad) { const n = ad.dataset.rexadd;
         modal(`<h2>Custo não previsto</h2><div class="fields"><div class="f span2"><label for="rxD">Descrição</label><input id="rxD" placeholder="retrabalho, frete extra, peça trocada…"></div><div class="f"><label for="rxV">Valor (R$)</label><input id="rxV" inputmode="decimal"></div></div><div style="display:flex;gap:8px"><button class="btn pri" id="rxOk">Lançar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
           $('#rxOk', o).onclick = () => { const d = $('#rxD', o).value.trim(); const v = parseInput($('#rxV', o).value, 'num'); if (!d || typeof v !== 'number') { toast('Preencha descrição e valor'); return; } close(); setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].extras = (real[n].extras || []).concat([{ desc: d, v }]); }); };

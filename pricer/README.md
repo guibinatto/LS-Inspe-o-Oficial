@@ -29,5 +29,7 @@ Fiscal, Precificação, Serviços, Cadastro geral, Sistema), cada uma com seus r
 - `app.js` — telas · `cadastro.js` — cadastro compartilhado · `docs.js` — Memorial/FCI em PDF e Excel
 - `spv.js` — página inicial, formação de custo SPV, documentos e leitura de orçamentos
 - `margens.js` — registro de margens: baixa da proposta, painel de margens, previsto × realizado e Excel do fechamento
+- `facts.js` — configurador FACTS (MECON): código de opções, lista 2026 em EUR, custo, preço e margem
+- `pedidos.js` — pedidos de cadastro (onde falta insumo ou preço) com descrição no padrão da família
 - `padrao.js` / `docs/padroes-descricoes.md` — proposta de padronização das descrições de motores e bombas (revisão em Cadastro geral)
 - `fci-template.js` / `templates/Calculo_FCI.xlsx` — template oficial da FCI

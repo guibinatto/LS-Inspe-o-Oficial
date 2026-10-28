@@ -56,6 +56,7 @@
   if (!state.uid) state.uid = newUid();
   if (!state.div) state.div = 'SEQ';
   const isSpv = () => state.div === 'SPV' && !!state.spv;
+  const isFacts = () => state.sol === 'FACTS' && !!state.facts;
   let ui = Object.assign({ view: 'inicio', item: 0, simple: true, step: 1, table: 'PARÂMETROS', filter: '', cad: 'insumos' }, store.get(SK.view, {}));
   if (ui.view === 'tabelas') { ui.view = 'cadastro'; ui.cad = 'tabelas'; }
   // o app sempre abre na página inicial (busca, histórico e os botões SEQ / SPV)
@@ -182,20 +183,31 @@
     return `<div class="f ${cls} ${opt.cls || ''}">${lbl}<div class="ctl">${control(sheet, a, opt)}</div></div>`;
   }
   function id(sheet, a) { return 'c_' + sheet.replace(/\W/g, '') + '_' + a; }
+  // família do equipamento pelas famílias de produto SEQ (sigla · nome); "Fabricantes" não é família
+  const FAM_SEQ_LB = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjuntos motobomba – sistemas de incêndio', SKID: 'SKD · Skids de motobombas – sistemas de incêndio', CONTAINER: 'CON · Containers / casas de bombas', ESPECIAL: 'ESP · Produtos engenheirados e soluções especiais', 'BOMBA JOCKEY + PAINEL': 'CMB · Bomba jockey + painel' };
   function control(sheet, a, opt = {}) {
     // insumos (montagem e escopo): sugestões filtradas pela família da linha, não a lista da planilha
-    const list = opt.list || (opt.datalist ? null : listFor(sheet, a));
+    let list = opt.list || (opt.datalist ? null : listFor(sheet, a));
+    if (list && a === 'C21' && /^ITEM \d+$/.test(sheet)) { const c0 = txt(sheet, a); list = list.filter((o) => o !== 'FABRICANTES' || o === c0); opt = Object.assign({ labels: FAM_SEQ_LB }, opt); }
     const kind = kindOf(sheet, a);
     const v = val(sheet, a);
     const cur = isErr(v) ? '' : (kind === 'pct' && typeof v === 'number') ? NF[2].format(v * 100).replace(/,00$/, '') : kind === 'num' && typeof v === 'number' ? fmtPlain(v) : fmtPlain(v);
     const data = `data-sheet="${esc(sheet)}" data-addr="${a}" data-kind="${kind}" id="${esc(id(sheet, a))}"`;
+    // poucas opções curtas: botões de toque em vez de lista (mais rápido)
+    if (list && !opt.free && !opt.compact && opt.seg !== false && ui.simple && list.length >= 2 && list.length <= 4 && list.every((o) => String(o).length <= 24)) {
+      const fb = isFormulaBase(sheet, a); const over = overridden(sheet, a); const nm = esc(id(sheet, a)); const base = `name="${nm}" data-sheet="${esc(sheet)}" data-addr="${a}" data-kind="${kind}"`;
+      let h = fb ? `<label class="${over ? '' : 'on'}"><input type="radio" ${base} value="\u0000auto"${over ? '' : ' checked'}>Auto${!over && cur ? ' · ' + esc(cur) : ''}</label>` : '';
+      for (const o of [...new Set(list)]) { const on = (over || !fb) && String(o) === String(cur); h += `<label class="${on ? 'on' : ''}"><input type="radio" ${base} value="${esc(o)}"${on ? ' checked' : ''}>${esc(o)}</label>`; }
+      return `<div class="seg" id="${nm}" role="radiogroup">${h}</div>`;
+    }
     if (list && !opt.free) {
       const fb = isFormulaBase(sheet, a); const over = overridden(sheet, a);
       let opts = '';
-      if (fb) opts += `<option value="\u0000auto"${over ? '' : ' selected'}>${esc(opt.compact ? (cur || '—') : cur ? 'Automático — ' + cur : 'Automático')}</option>`;
+      const LB = (o) => (opt.labels && opt.labels[o]) || o;
+      if (fb) opts += `<option value="\u0000auto"${over ? '' : ' selected'}>${esc(opt.compact ? LB(cur) || '—' : cur ? 'Automático — ' + LB(cur) : 'Automático')}</option>`;
       else opts += `<option value=""${cur === '' ? ' selected' : ''}>—</option>`;
       const seen = new Set();
-      for (const o of list) { if (seen.has(o)) continue; seen.add(o); opts += `<option${(over || !fb) && o === cur ? ' selected' : ''}>${esc(o)}</option>`; }
+      for (const o of list) { if (seen.has(o)) continue; seen.add(o); opts += `<option value="${esc(o)}"${(over || !fb) && o === cur ? ' selected' : ''}>${esc(LB(o))}</option>`; }
       if ((over || !fb) && cur !== '' && !seen.has(cur)) opts += `<option selected>${esc(cur)}</option>`;
       return `<select ${data}>${opts}</select>`;
     }
@@ -211,6 +223,7 @@
   document.addEventListener('change', (e) => {
     const el = e.target; if (!el.dataset || !el.dataset.addr) return;
     const { sheet, addr: a, kind } = el.dataset;
+    if (el.type === 'radio') { if (el.value === '\u0000auto') return commit(sheet, a, null, true); if (/^-?\d+([.,]\d+)?$/.test(el.value.trim())) return commit(sheet, a, parseFloat(el.value.replace(',', '.'))); return commit(sheet, a, el.value); }
     if (el.tagName === 'SELECT') {
       if (el.value === '\u0000auto') return commit(sheet, a, null, true);
       if (el.value === '') return commit(sheet, a, null);
@@ -236,17 +249,21 @@
   // ---------- visões ----------
   function setView(v) { ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
-    const spv = isSpv();
-    if (spv && (ui.view === 'item' || ui.view === 'memorial')) ui.view = 'proposta';
-    for (const b of document.querySelectorAll('#nav button')) { b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false'); if ('seqonly' in b.dataset) b.hidden = spv; }
-    const nm = spv ? state.spv.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : txt('PROPOSTA', 'F5');
+    const spv = isSpv(); const fx = isFacts(); const outro = spv || fx;
+    if (outro && (ui.view === 'item' || ui.view === 'memorial')) ui.view = 'proposta';
+    for (const b of document.querySelectorAll('#nav button')) { b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false'); if ('seqonly' in b.dataset) b.hidden = outro; }
+    const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
-    for (const id of ['bMode']) { const b = $('#' + id); if (b) b.hidden = spv || ['inicio', 'documentos', 'margens'].includes(ui.view); }
+    for (const id of ['bMode']) { const b = $('#' + id); if (b) b.hidden = outro || ['inicio', 'documentos', 'margens'].includes(ui.view); }
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
-    const full = !spv && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
-    const views = spv ? { proposta: SPV.vSpv } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
+    const full = !outro && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
+    const views = spv ? { proposta: SPV.vSpv } : fx ? { proposta: FX.vFacts } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
     const html = Object.assign({ inicio: SPV.vHome, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
-    $('#app').innerHTML = (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
+    MG.ensure(); SPV.ensureDocs(); PD.ensure();
+    { const nb = document.querySelector('#nav [data-view="cadastro"]'); const n = REG.areaOk('custos') ? PD.abertos().length : 0; if (nb) nb.innerHTML = 'Cadastro' + (n ? ` <span class="nbadge" title="${n} pedido(s) de cadastro em aberto">${n}</span>` : ''); }
+    const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
+    const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="${esc(state.id)}">Lançar custo real</button></div>` : '';
+    $('#app').innerHTML = aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
     const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
     if (ui.view === 'cadastro') bindCadastro();
     window.scrollTo(0, scroll);
@@ -273,9 +290,14 @@
     for (let i = 0; i < 10; i++) {
       const r = 33 + i; if (txt(P, 'C' + r) === '' && !filled(ITEMS[i])) continue;
       const sit = txt(P, 'Y' + r);
-      rows += `<tr><td><button class="btn sm" data-goitem="${i}">${ITEMS[i].slice(5)}</button></td><td class="code">${esc(txt(P, 'C' + r))}</td><td style="min-width:260px">${esc(txt(P, 'D' + r))}</td><td class="n">${show(P, 'F' + r)}</td><td>${esc(txt(P, 'G' + r))}</td><td>${esc(txt(P, 'H' + r))} <small class="sub">${show(P, 'I' + r)}</small></td><td class="n">${show(P, 'J' + r)}</td><td class="n">${show(P, 'K' + r)}</td><td class="n">${show(P, 'M' + r)}</td><td class="n">${show(P, 'N' + r)}</td><td class="n"><b>${show(P, 'P' + r)}</b></td><td class="n">${show(P, 'Q' + r)}</td><td class="n">${show(P, 'R' + r)}</td><td class="n">${show(P, 'U' + r)}</td><td class="n">${show(P, 'V' + r)}</td><td class="n">${show(P, 'W' + r)}</td><td class="n">${show(P, 'X' + r)}</td><td>${situPill(sit)}</td></tr>`;
+      // margem e valores primeiro; código e dados fiscais em linha menor (sem rolar para o lado)
+      const low = /ABAIXO|FORA/i.test(sit);
+      rows += `<tr${low ? ' class="lowrow"' : ''}><td><button class="btn sm" data-goitem="${i}">${ITEMS[i].slice(5)}</button></td>
+        <td><b class="${low ? 'bad-t' : ''}" style="font-size:17px">${show(P, 'X' + r)}</b><br>${situPill(sit)}<br><small class="sub">fator ${show(P, 'V' + r)} · piso ${show(P, 'W' + r)}</small></td>
+        <td class="n"><b style="font-size:15px">${show(P, 'P' + r)}</b><br><small class="sub">c/ IPI · ${show(P, 'F' + r)} un.</small><br><small class="sub">s/ IPI ${show(P, 'M' + r)} · custo ${show(P, 'Q' + r)}</small></td>
+        <td style="min-width:240px">${esc(txt(P, 'D' + r))}<br><small class="code sub" style="white-space:normal;overflow-wrap:anywhere">${esc(txt(P, 'C' + r))}</small><br><small class="sub">NCM ${esc(txt(P, 'G' + r))} · ${esc(txt(P, 'H' + r))} ${show(P, 'I' + r)} · ICMS ${show(P, 'R' + r)} · IPI ${show(P, 'U' + r)} · unit. s/ impostos ${show(P, 'J' + r)}</small></td></tr>`;
     }
-    rows += `<tr class="tot"><td colspan="5">Totais</td><td>${esc(txt(P, 'H43'))} <small class="sub">${show(P, 'I43')}</small></td><td></td><td class="n">${show(P, 'K43')}</td><td class="n">${show(P, 'M43')}</td><td class="n">${show(P, 'N43')}</td><td class="n">${show(P, 'P43')}</td><td class="n">${show(P, 'Q43')}</td><td colspan="3"></td><td class="n">${show(P, 'V43')}</td><td colspan="3"></td></tr>`;
+    rows += `<tr class="tot"><td>Totais</td><td><b>${pct(val(P, 'J16'))}</b><br><small class="sub">fator ${show(P, 'V43')}</small></td><td class="n"><b>${show(P, 'P43')}</b><br><small class="sub">s/ IPI ${show(P, 'M43')} · custo ${show(P, 'Q43')}</small></td><td><small class="sub">${esc(txt(P, 'H43'))} ${show(P, 'I43')} · IPI ${show(P, 'N43')}</small></td></tr>`;
     const margem = val(P, 'J16'); const mMin = val('PARÂMETROS', 'C34');
     const res = [[47, 'brl'], [48, 'brl'], [49, 'brl'], [50, 'brl'], [51, 'brl', 1], null, [53, 'pct2'], [54, 'pct2'], [55, 'pct2'], [56, 'pct2', 1], null, [58, 'pct2'], [59, 'pct2'], [60, 'pct2', 1], null, [62, 'pct2', 1], null, [64, 'brl'], [65, 'pct4'], [66, 'brl'], [67, 'brl', 1], null, [69, 'txt'], [70, 'pct2']];
     const fm = { brl, pct2: (v) => pct(v, 2), pct4: (v) => pct(v, 4), txt: (v) => fmtNum(v) };
@@ -309,7 +331,7 @@
         <div class="tw"><table class="t"><thead><tr><th>Item</th><th>Modelo pronto</th><th>Qtd</th><th>Vazão nom. (USgpm)</th><th>Nº de bombas</th><th>Descrição gerada</th></tr></thead><tbody>${quick}</tbody></table></div>
       </section>
       <section class="card"><h2>Itens da proposta</h2>
-        <div class="tw"><table class="t"><thead><tr><th>Item</th><th>Código</th><th>Descrição</th><th>Qtd</th><th>NCM</th><th>Origem · CI</th><th>Unit. s/ impostos</th><th>Total s/ impostos</th><th>Total c/ impostos s/ IPI</th><th>IPI R$</th><th>Total c/ IPI</th><th>Custo</th><th>ICMS</th><th>IPI %</th><th>Fator</th><th>Piso</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="tw"><table class="t itens"><thead><tr><th>Item</th><th>Margem e situação</th><th class="n">Valores</th><th>Descrição, código e fiscal</th></tr></thead><tbody>${rows}</tbody></table></div>
         <p class="sub">${esc(txt(P, 'B44'))}</p>
       </section>
       <div class="fields wide" style="align-items:start">
@@ -376,7 +398,7 @@
     }
     return out;
   }
-  const hiddenRow = (x, bloco) => `<tr class="ro"><td>${esc(x.rot)}</td>${bloco ? `<td>${esc(x.bloco)}</td>` : ''}<td>${esc(x.desc)}</td><td></td><td class="n">${fmtNum(x.qtd)}</td><td class="n">${fmtNum(x.unit, '#,##0.00')}</td><td class="n">${fmtNum(x.tot, '#,##0.00')}</td><td>${esc(x.ori)}</td><td class="sub">além da 30ª linha da planilha — só leitura, já no custo</td></tr>`;
+  const hiddenRow = (x, bloco) => `<tr class="ro"><td>${esc(x.rot)}</td>${bloco ? `<td>${esc(x.bloco)}</td>` : ''}<td>${esc(x.desc)}</td><td></td><td class="n">${fmtNum(x.qtd)}</td><td class="n">${fmtNum(x.unit, '#,##0.00')}</td><td></td><td class="n">${fmtNum(x.tot, '#,##0.00')}</td><td></td><td>${esc(x.ori)}</td><td class="sub">além da 30ª linha da planilha — só leitura, já no custo</td></tr>`;
   const isCMB = (S) => String(val(S, 'AR2') || 'CMB') === 'CMB';
   function equipSections(S) {
     const f = (a, lb, o) => field(S, a, lb, o);
@@ -406,8 +428,8 @@
       if (!rows.length && !hid.length) return '<p class="sub" style="margin:10px 0 0">Os itens deste conjunto aparecem aqui assim que a seleção acima estiver completa.</p>';
       let tot = 0;
       const tr = rows.map((x) => { const r = x.r; const h = val(S, 'H' + r); if (typeof h === 'number') tot += h; const fam = txt(S, 'C' + r);
-        return `<tr><td>${esc(x.rot)}</td>${cellIn(S, 'D' + r, { datalist: fam ? dlFor(fam) : 'dl_all' })}<td>${esc(txt(S, 'E' + r))}</td>${cellIn(S, 'F' + r)}${cellIn(S, 'G' + r)}<td class="n">${show(S, 'H' + r)}</td>${cellIn(S, 'I' + r)}<td>${esc(txt(S, 'L' + r))}</td></tr>`; }).join('') + hid.map((x) => { tot += x.tot; return hiddenRow(x, false); }).join('');
-      return `<div class="tw" style="margin-top:12px"><table class="t"><thead><tr><th>Item</th><th>Insumo</th><th>Fabricante</th><th>Qtd</th><th>Custo unit.</th><th>Custo total</th><th>Origem</th><th>Obs.</th></tr></thead><tbody>${tr}<tr class="tot"><td colspan="5">Custo do conjunto</td><td class="n">${fmtNum(tot, '#,##0.00')}</td><td colspan="2"></td></tr></tbody></table></div>`;
+        return `<tr><td>${esc(x.rot)}</td>${insSel(S, r)}<td>${esc(txt(S, 'E' + r))}</td>${qtdRO(S, r)}${custoRO(S, r)}${updCell(S, r)}<td class="n">${show(S, 'H' + r)}</td><td class="n sub">${pctH(S, val(S, 'H' + r))}</td>${origRO(S, r)}<td>${esc(txt(S, 'L' + r))}</td></tr>`; }).join('') + hid.map((x) => { tot += x.tot; return hiddenRow(x, false); }).join('');
+      return `<div class="tw" style="margin-top:12px"><table class="t"><thead><tr><th>Item</th><th>Insumo</th><th>Fabricante</th><th>Qtd</th><th>Custo unit.</th><th>Preço atualizado em</th><th>Custo total</th><th>% do item</th><th>Origem</th><th>Obs.</th></tr></thead><tbody>${tr}<tr class="tot"><td colspan="6">Custo do conjunto</td><td class="n">${fmtNum(tot, '#,##0.00')}</td><td class="n">${pctH(S, tot)}</td><td colspan="2"></td></tr></tbody></table></div>`;
     };
     if (c.d) html += `<section class="card"><h2>${num()}Conjunto diesel <span class="sub">${c.d}× bomba + motor diesel + painel + tanque, escape, bateria…</span></h2>
       <div class="fields">${f('D19', 'Bomba', { cls: 'span2' })}${f('H19', 'Rotação (RPM)')}${f('C19', 'Potência do motor (HP)')}${f('F19', 'Arrefecimento')}${f('C20', 'Motor diesel resolvido', { cls: 'span2' })}</div>
@@ -441,10 +463,10 @@
   function commonSection(S) {
     const rows = montLines(S).filter((x) => x.acion === 'TODOS');
     const tr = rows.map((x) => { const r = x.r; const fam = txt(S, 'C' + r);
-      return `<tr><td>${esc(x.rot)}</td><td>${esc(txt(S, 'B' + r))}</td>${cellIn(S, 'D' + r, { datalist: fam ? dlFor(fam) : 'dl_all' })}<td>${esc(txt(S, 'E' + r))}</td>${cellIn(S, 'F' + r)}${cellIn(S, 'G' + r)}<td class="n">${show(S, 'H' + r)}</td>${cellIn(S, 'I' + r)}<td>${esc(txt(S, 'L' + r))}</td></tr>`; }).join('') + hiddenLines(S).filter((x) => x.acion === 'TODOS').map((x) => hiddenRow(x, true)).join('');
+      return `<tr><td>${esc(x.rot)}</td><td>${esc(txt(S, 'B' + r))}</td>${insSel(S, r)}<td>${esc(txt(S, 'E' + r))}</td>${qtdRO(S, r)}${custoRO(S, r)}${updCell(S, r)}<td class="n">${show(S, 'H' + r)}</td><td class="n sub">${pctH(S, val(S, 'H' + r))}</td>${origRO(S, r)}<td>${esc(txt(S, 'L' + r))}</td></tr>`; }).join('') + hiddenLines(S).filter((x) => x.acion === 'TODOS').map((x) => hiddenRow(x, true)).join('');
     return `<section class="card"><h2>Itens comuns ao equipamento <span class="sub">base, hidráulica, mão de obra, embalagem — valem para o conjunto todo</span></h2>
-      <div class="tw"><table class="t"><thead><tr><th>Item</th><th>Bloco</th><th>Insumo</th><th>Fabricante</th><th>Qtd</th><th>Custo unit.</th><th>Custo total</th><th>Origem</th><th>Obs.</th></tr></thead><tbody>${tr || '<tr><td colspan="9" class="sub">Nada ainda.</td></tr>'}
-      <tr class="tot"><td colspan="6">Subtotal da montagem automática (todos os conjuntos + comuns)</td><td class="n">${show(S, 'H64')}</td><td colspan="2"></td></tr></tbody></table></div></section>`;
+      <div class="tw"><table class="t"><thead><tr><th>Item</th><th>Bloco</th><th>Insumo</th><th>Fabricante</th><th>Qtd</th><th>Custo unit.</th><th>Preço atualizado em</th><th>Custo total</th><th>% do item</th><th>Origem</th><th>Obs.</th></tr></thead><tbody>${tr || '<tr><td colspan="11" class="sub">Nada ainda.</td></tr>'}
+      <tr class="tot"><td colspan="7">Subtotal da montagem automática (todos os conjuntos + comuns)</td><td class="n">${show(S, 'H64')}</td><td class="n">${pctH(S, val(S, 'H64'))}</td><td colspan="2"></td></tr></tbody></table></div></section>`;
   }
   // componentes da receita além da 30ª linha, numerados depois dos da planilha
   function fciHidden(S) {
@@ -496,9 +518,9 @@
     const showTo = Math.min(112, Math.max(lastFilled + (ui.extraRows || 3), 70));
     for (let r = 68; r <= showTo; r++) {
       const fam = txt(S, 'C' + r);
-      scope += `<tr><td class="n">${show(S, 'A' + r)}</td>${cellIn(S, 'B' + r)}${cellIn(S, 'C' + r)}${cellIn(S, 'D' + r, { datalist: fam ? dlFor(fam) : 'dl_all' })}<td>${esc(txt(S, 'E' + r))}</td>${cellIn(S, 'F' + r)}${cellIn(S, 'G' + r)}<td class="n">${show(S, 'H' + r)}</td>${cellIn(S, 'I' + r)}<td class="n">${show(S, 'J' + r)}</td><td class="n">${show(S, 'K' + r)}</td><td>${esc(txt(S, 'L' + r))}</td></tr>`;
+      scope += `<tr><td class="n">${show(S, 'A' + r)}</td>${cellIn(S, 'B' + r)}${cellIn(S, 'C' + r)}${insSel(S, r)}<td>${esc(txt(S, 'E' + r))}</td>${cellIn(S, 'F' + r)}${custoRO(S, r)}${updCell(S, r)}<td class="n">${show(S, 'H' + r)}</td>${origRO(S, r)}<td class="n">${show(S, 'J' + r)}</td><td class="n">${show(S, 'K' + r)}</td><td>${esc(txt(S, 'L' + r))}</td></tr>`;
     }
-    const tot = (r, lb) => `<tr class="tot"><td></td><td colspan="5">${esc(lb || txt(S, 'B' + r))}</td><td class="n">${show(S, 'G' + r)}</td><td class="n">${show(S, 'H' + r)}</td><td></td><td class="n">${show(S, 'J' + r)}</td><td colspan="2"></td></tr>`;
+    const tot = (r, lb) => `<tr class="tot"><td></td><td colspan="5">${esc(lb || txt(S, 'B' + r))}</td><td class="n">${show(S, 'G' + r)}</td><td></td><td class="n">${show(S, 'H' + r)}</td><td></td><td class="n">${show(S, 'J' + r)}</td><td colspan="2"></td></tr>`;
     // FCI
     let fciRows = '';
     // lista completa (o bloco da planilha tem 45 linhas; os componentes além disso só entravam no total)
@@ -554,7 +576,7 @@
             </div></section>
           ${commonSection(S)}
           <section class="card"><h2>Escopo de fornecimento <span class="sub">o que você acrescenta à montagem; insumo com lista do CADASTRO pela família</span></h2>
-            <div class="tw"><table class="t"><thead><tr><th>#</th><th>Bloco</th><th>Família</th><th>Insumo</th><th>Fabricante</th><th>Qtd</th><th>Custo unit.</th><th>Custo total</th><th>Origem</th><th>Venda</th><th>Catálogo</th><th>Obs.</th></tr></thead><tbody>${scope}${tot(113)}${tot(114)}</tbody></table></div>
+            <div class="tw"><table class="t"><thead><tr><th>#</th><th>Bloco</th><th>Família</th><th>Insumo</th><th>Fabricante</th><th>Qtd</th><th>Custo unit.</th><th>Preço atualizado em</th><th>Custo total</th><th>Origem</th><th>Venda</th><th>Catálogo</th><th>Obs.</th></tr></thead><tbody>${scope}${tot(113)}${tot(114)}</tbody></table></div>
             <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">${showTo < 112 ? '<button class="btn sm" id="bMoreRows">+ linhas</button>' : ''}${lastFilled >= 68 ? '<button class="btn sm" id="bClearScope">Apagar todo o escopo</button>' : ''}
               <span class="sub">Nacional ${brl(val(S, 'H115'))} · Importado ${brl(val(S, 'H116'))} · Serviços ${brl(val(S, 'H117'))} · Materiais ${brl(val(S, 'H118'))} · CI ${pct(val(S, 'J115'), 2)} (${esc(txt(S, 'J116'))})</span></div>
           </section>
@@ -586,35 +608,78 @@
     }
     return field(sheet, a, label, opt);
   }
+  // dados básicos para o pedido de cadastro a partir de uma linha ou do motor do item
+  function pedidoDaLinha(S, r) {
+    const d = txt(S, 'D' + r); const fam = txt(S, 'C' + r) || (REG.insumos.find((i) => i.produto === d) || {}).fam || '';
+    const ex = REG.insumos.find((i) => i.produto === d);
+    return { fam, produto: d, produtoLinha: d || null, insumoId: ex ? ex.id : null, origem: txt(S, 'AB' + r) === 'IMP' ? 'IMP' : 'NAC', linha: { rotulo: S + ' · ' + (txt(S, 'B' + r) || 'linha ' + r) } };
+  }
+  function pedidoMotor(S, tipo) {
+    if (tipo === 'diesel') return { fam: '01.MOTORDIESEL', campos: { hp: txt(S, 'C19'), rpm: txt(S, 'H19'), arref: /^T/i.test(txt(S, 'F19')) ? 'TROCADOR DE CALOR' : 'RADIADOR', vcc: '24VCC' }, origem: 'IMP', linha: { rotulo: S + ' · motor diesel' } };
+    const rpm = num0(val(S, 'H19')); return { fam: '10.MOTORELETRICO', campos: { cv: txt(S, 'I19'), polos: rpm >= 3000 || !rpm ? '2P' : '4P', tensao: '220/380/440V', marca: 'WEG', mont: 'MANCAL' }, origem: 'NAC', linha: { rotulo: S + ' · motor elétrico' } };
+  }
+  const num0 = (x) => (typeof x === 'number' ? x : 0);
+  function primeiraSemPreco(S) { for (let r = 34; r <= 112; r++) if (/sem custo|sem o preço/.test(txt(S, 'L' + r))) return r; return 0; }
   function alertsFor(S) {
-    const out = []; const add = (lvl, msg) => { if (!out.some((x) => x.msg === msg)) out.push({ lvl, msg }); };
+    const out = []; const add = (lvl, msg, fix) => { if (!out.some((x) => x.msg === msg)) out.push({ lvl, msg, fix, S }); };
     if (!filled(S)) {
       // ainda sem preço: diz o que falta para montar
       const b = txt(S, 'B32');
-      if (/MOTOR DIESEL NÃO ENCONTRADO/.test(b)) add('warn', `Não há motor diesel de ${txt(S, 'C19') || '?'} HP${txt(S, 'H19') ? ' a ' + txt(S, 'H19') + ' RPM' : ''}${txt(S, 'F19') ? ' com ' + txt(S, 'F19').toLowerCase() : ''} no cadastro. Troque a potência, a rotação ou o arrefecimento.`);
-      if (/MOTOR ELÉTRICO NÃO ENCONTRADO/.test(b)) add('warn', `Não há motor elétrico de ${txt(S, 'I19') || '?'} CV no cadastro. Escolha outra potência.`);
-      if (/jockey e nenhum/.test(b)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.');
-      if (/SEM VAZÃO NOMINAL/.test(b)) add('info', 'Informe a vazão para entrar a hidráulica (válvula de alívio, cone, medidor e barriletes).');
+      if (/MOTOR DIESEL NÃO ENCONTRADO/.test(b)) add('warn', `Não há motor diesel de ${txt(S, 'C19') || '?'} HP${txt(S, 'H19') ? ' a ' + txt(S, 'H19') + ' RPM' : ''}${txt(S, 'F19') ? ' com ' + txt(S, 'F19').toLowerCase() : ''} no cadastro. Troque a potência, a rotação ou o arrefecimento.`, { lb: 'Pedir cadastro do motor', act: 'pedir', data: pedidoMotor(S, 'diesel') });
+      if (/MOTOR ELÉTRICO NÃO ENCONTRADO/.test(b)) add('warn', `Não há motor elétrico de ${txt(S, 'I19') || '?'} CV no cadastro. Escolha outra potência.`, { lb: 'Pedir cadastro do motor', act: 'pedir', data: pedidoMotor(S, 'eletrico') });
+      if (/jockey e nenhum/.test(b)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.', { lb: 'Escolher a jockey', act: 'foco', data: 'J19' });
+      if (/SEM VAZÃO NOMINAL/.test(b)) add('info', 'Informe a vazão para entrar a hidráulica (válvula de alívio, cone, medidor e barriletes).', { lb: 'Informar a vazão', act: 'foco', data: 'G17' });
       return out;
     }
     const p84 = txt(S, 'P84');
-    if (p84 === 'ABAIXO DO PISO') add('bad', `Fator ${fmtNum(val(S, 'F15'), '0.000')} abaixo do piso da política (${fmtNum(val(S, 'H15'), '0.000')}): precisa de aprovação`);
-    else if (/NÃO ENCONTRADO/.test(p84)) add('bad', p84.charAt(0) + p84.slice(1).toLowerCase() + '. Escolha a potência na lista.');
-    else if (/SEM PREÇO/.test(p84)) add('bad', 'Há componente sem preço no cadastro: entra com custo zero.');
-    if (txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO') add('bad', `Margem ${pct(val(S, 'J15'))} abaixo do mínimo de ${pct(val('PARÂMETROS', 'C34'))}`);
+    if (p84 === 'ABAIXO DO PISO') add('bad', `Fator ${fmtNum(val(S, 'F15'), '0.000')} abaixo do piso da política (${fmtNum(val(S, 'H15'), '0.000')}): precisa de aprovação`, val(S, 'C8') ? { lb: 'Tirar o desconto', act: 'desconto' } : { lb: 'Ajustar à margem mínima', act: 'margem' });
+    else if (/NÃO ENCONTRADO/.test(p84)) add('bad', p84.charAt(0) + p84.slice(1).toLowerCase() + '. Escolha a potência na lista.', /DIESEL/.test(p84) ? { lb: 'Pedir cadastro do motor', act: 'pedir', data: pedidoMotor(S, 'diesel') } : /ELÉTRICO/.test(p84) ? { lb: 'Pedir cadastro do motor', act: 'pedir', data: pedidoMotor(S, 'eletrico') } : null);
+    else if (/SEM PREÇO/.test(p84)) { const r0 = primeiraSemPreco(S); add('bad', 'Há componente sem preço no cadastro: entra com custo zero.', r0 ? { lb: 'Pedir cadastro do preço', act: 'pedir', data: pedidoDaLinha(S, r0) } : null); }
+    if (txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO') add('bad', `Margem ${pct(val(S, 'J15'))} abaixo do mínimo de ${pct(val('PARÂMETROS', 'C34'))}`, { lb: 'Ajustar à margem mínima', act: 'margem' });
     for (const a of ['P78', 'P105', 'C185', 'C187']) { const t = txt(S, a); if (t && !/^OK/.test(t)) add('warn', t); }
     const b32 = txt(S, 'B32');
-    if (/SEM VAZÃO NOMINAL/.test(b32)) add('warn', 'Sem vazão nominal: válvula de alívio, cone, medidor e barriletes não entram. Informe a vazão.');
-    if (/jockey e nenhum/.test(b32)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.');
+    if (/SEM VAZÃO NOMINAL/.test(b32)) add('warn', 'Sem vazão nominal: válvula de alívio, cone, medidor e barriletes não entram. Informe a vazão.', { lb: 'Informar a vazão', act: 'foco', data: 'G17' });
+    if (/jockey e nenhum/.test(b32)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.', { lb: 'Escolher a jockey', act: 'foco', data: 'J19' });
     const m = /(\d+) LINHA\(S\) ALÉM DA 30ª/.exec(b32); if (m) add('info', `${m[1]} componente(s) além da 30ª linha da planilha: já estão no custo.`);
     const lc = txt(S, 'C27').length, ld = txt(S, 'C28').length;
-    if (lc > 60) add('warn', `Código com ${lc} caracteres: passa do limite de 60 do ERP.`);
-    if (ld > 120) add('warn', `Descrição breve com ${ld} caracteres: passa do limite de 120 do ERP.`);
-    const fci = txt(S, 'C196'); if (fci && !/^OK/.test(fci)) add('info', 'FCI: ' + fci);
+    if (lc > 60) add('warn', `Código com ${lc} caracteres: passa do limite de 60 do ERP.`, { lb: 'Ver o código', act: 'abrir', data: 'cod' });
+    if (ld > 120) add('warn', `Descrição breve com ${ld} caracteres: passa do limite de 120 do ERP.`, { lb: 'Ver a descrição', act: 'abrir', data: 'cod' });
+    const fci = txt(S, 'C196'); if (fci && !/^OK/.test(fci)) add('info', 'FCI: ' + fci, { lb: 'Ver a FCI', act: 'abrir', data: 'fci' });
+    const ack = state.ack || {}; for (const a of out) { const k = S + '|' + a.msg; if (ack[k]) a.ack = ack[k]; }
     return out;
   }
-  const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => `<li class="${x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}</span>${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</li>`).join('')}</ul>` : '';
-  const countPills = (list) => { const n = (l) => list.filter((x) => x.lvl === l).length; return list.length ? [['bad', 'alerta'], ['warn', 'aviso']].filter(([l]) => n(l)).map(([l, w]) => `<span class="pill ${l}">${n(l)} ${w}${n(l) > 1 ? 's' : ''}</span>`).join(' ') || '<span class="pill mute">só informação</span>' : '<span class="pill ok">sem alertas</span>'; };
+  // cada alerta: corrigir agora (quando dá) ou seguir assim, com a justificativa no histórico
+  const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => { const key = esc(JSON.stringify([x.S, x.msg]));
+    return `<li class="${x.ack ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(new Date(x.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span>
+      <span class="alact">${x.fix && !x.ack ? `<button class="btn sm pri" data-alfix="${esc(JSON.stringify({ S: x.S, act: x.fix.act, data: x.fix.data }))}">${esc(x.fix.lb)}</button>` : ''}${x.ack ? `<button class="restore" data-alundo="${key}">desfazer</button>` : x.lvl !== 'info' ? `<button class="btn sm" data-alack="${key}">Seguir assim</button>` : ''}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
+  const countPills = (list) => { const n = (l) => list.filter((x) => x.lvl === l && !x.ack).length; return list.length ? [['bad', 'alerta'], ['warn', 'aviso']].filter(([l]) => n(l)).map(([l, w]) => `<span class="pill ${l}">${n(l)} ${w}${n(l) > 1 ? 's' : ''}</span>`).join(' ') || '<span class="pill mute">só informação</span>' : '<span class="pill ok">sem alertas</span>'; };
+
+  // ações dos alertas
+  document.addEventListener('click', (e) => {
+    const fx = e.target.closest('[data-alfix]');
+    if (fx) { let a; try { a = JSON.parse(fx.dataset.alfix); } catch (er) { return; } const S = a.S; const i = ITEMS.indexOf(S);
+      if (a.act === 'pedir') { PD.pedir(Object.assign({ propUid: state.uid, propNome: docTitle() }, a.data || {})); return; }
+      if (a.act === 'margem') { const mn = val(PA, 'C34');
+        // margem alvo e, como o desconto entra depois, sobe o alvo até a margem final chegar ao mínimo
+        const setq = (addr, v) => { const tg = target(S); tg[S] = tg[S] || {}; tg[S][addr] = v; wb.setRaw(S, addr, v); };
+        setq('J17', 'MARGEM ALVO'); let alvo = mn; setq('L17', alvo);
+        for (let k = 0; k < 8; k++) { const m = val(S, 'J15'); if (typeof m !== 'number' || m >= mn - 5e-4) break; alvo = Math.min(0.9, alvo + (mn - m) + 1e-4); setq('L17', alvo); }
+        listCache = new Map(); dirty = true; persist(); render(); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': preço ajustado à margem mínima de ' + pct(mn), mudancas: [{ campo: 'Modo de preço', de: null, para: 'MARGEM ALVO' }, { campo: 'Margem alvo', de: null, para: alvo }, { campo: 'Margem final', de: null, para: val(S, 'J15') }] }); toast('Preço ajustado à margem mínima'); return; }
+      if (a.act === 'desconto') { const d0 = val(S, 'C8'); commit(S, 'C8', null, true); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': desconto retirado', mudancas: [{ campo: 'Desconto', de: d0, para: null }] }); toast('Desconto retirado'); return; }
+      if (a.act === 'foco' || a.act === 'abrir') { ui.item = i; ui.itemFull = false; if (ui.view !== 'item') setView('item');
+        setTimeout(() => { if (a.act === 'abrir') { const d = document.querySelector(`details[data-keep="${a.data}"]`); if (d) { d.open = true; d.scrollIntoView({ block: 'start' }); } return; }
+          const el = document.getElementById(id(S, a.data)); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } else toast('Escolha a família e o equipamento primeiro'); }, 60); return; }
+    }
+    const ak = e.target.closest('[data-alack]');
+    if (ak) { let k; try { k = JSON.parse(ak.dataset.alack); } catch (er) { return; }
+      modal(`<h2>Seguir assim</h2><p class="sub" style="margin:0">${esc(k[0])}: ${esc(k[1])}</p><div class="f"><label for="akMot">Por que seguir assim? (fica no histórico)</label><input id="akMot" placeholder="ex.: aprovado pela diretoria em reunião de 28/10"></div><div style="display:flex;gap:8px"><button class="btn pri" id="akOk">Confirmar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+        $('#akMot', o).focus();
+        $('#akOk', o).onclick = () => { const mot = $('#akMot', o).value.trim(); if (!mot) { toast('Escreva o motivo'); return; } state.ack = Object.assign({}, state.ack, { [k[0] + '|' + k[1]]: { motivo: mot, by: REG.me || null, at: new Date().toISOString() } }); persist(); dirty = true;
+          logEv({ tipo: 'Alerta — seguir assim', ref: docTitle(), desc: k[0] + ': ' + k[1], mudancas: [{ campo: 'Justificativa', de: null, para: mot }] }); close(); render(); toast('Registrado. Salve a proposta para guardar.'); };
+      }); return; }
+    const au = e.target.closest('[data-alundo]');
+    if (au) { let k; try { k = JSON.parse(au.dataset.alundo); } catch (er) { return; } const ack = Object.assign({}, state.ack); delete ack[k[0] + '|' + k[1]]; state.ack = ack; persist(); dirty = true; logEv({ tipo: 'Alerta — justificativa retirada', ref: docTitle(), desc: k[0] + ': ' + k[1], mudancas: [] }); render(); }
+  });
 
   function vPropostaS() {
     const P = 'PROPOSTA'; const step = ui.step || 1;
@@ -625,7 +690,7 @@
     const st = (n, lb, info, done) => `<button class="step ${step === n ? 'on' : ''} ${done && step !== n ? 'done' : ''}" data-step="${n}" aria-current="${step === n ? 'step' : 'false'}"><span class="sn">${done && step !== n ? '✓' : n}</span><span class="st"><b>${lb}</b><small>${esc(info)}</small></span></button>`;
     const head = `<div class="flowhead"><div><h1>Proposta ${esc(txt(P, 'C5') || 'nova')}</h1><div class="sub">${esc(txt(P, 'F5') || 'Comece pelo cliente')}</div></div>
       <div class="sumbar"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div></div></div>
-      <nav class="steps" aria-label="Etapas da proposta">${st(1, 'Cliente', okCli ? txt(P, 'F5') : 'falta preencher', okCli)}${st(2, 'Itens', items.length ? items.length + ' item(ns)' : 'nenhum item ainda', items.length > 0)}${st(3, 'Revisão', alerts.some((a) => a.lvl === 'bad') ? 'há alertas para ver' : 'conferir e gerar documentos', false)}</nav>`;
+      <nav class="steps" aria-label="Etapas da proposta">${st(1, 'Cliente', okCli ? txt(P, 'F5') : 'falta preencher', okCli)}${st(2, 'Itens', items.length ? items.length + ' item(ns)' : 'nenhum item ainda', items.length > 0)}${st(3, 'Revisão', alerts.filter((a) => !a.ack).some((a) => a.lvl === 'bad') ? 'há alertas para ver' : 'conferir e gerar documentos', false)}</nav>`;
     let body = '';
     if (step === 1) {
       const cif = /^CIF/.test(txt(P, 'B13'));
@@ -685,21 +750,29 @@
     // componentes editáveis, agrupados por conjunto
     const num = (x) => (typeof x === 'number' ? x : 0);
     const groups = { DIESEL: [], ELETRICA: [], JOCKEY: [], TODOS: [], ESC: [] };
+    // quanto cada linha e cada grupo pesa no custo do item (pacote)
+    const totItem = num(val(S, 'H114')); const pItem = (v) => (totItem && v ? NF[1].format((v / totItem) * 100) + '%' : '');
     for (const x of montLines(S)) groups[x.acion].push({ r: x.r, rot: x.rot, tot: num(val(S, 'H' + x.r)) });
     for (const x of hiddenLines(S)) groups[x.acion].push({ hid: x, tot: x.tot });
     const escRows = []; for (let r = 68; r <= 112; r++) if (txt(S, 'D' + r) || txt(S, 'C' + r) || txt(S, 'B' + r)) escRows.push(r);
     if (ui.addRow && ui.addRow.S === S && !escRows.includes(ui.addRow.r)) escRows.push(ui.addRow.r);
     groups.ESC = escRows.map((r) => ({ r, esc: true, tot: num(val(S, 'H' + r)) }));
     const nComp = Object.values(groups).reduce((n, g) => n + g.length, 0);
-    const gl = { DIESEL: 'Conjunto diesel', ELETRICA: 'Conjunto elétrico', JOCKEY: 'Bomba jockey', TODOS: 'Comuns ao equipamento', ESC: 'Escopo adicional (digitado à mão)' };
-    const obs = (r) => { const o = txt(S, 'L' + r); return o ? `<span class="pill ${/sem custo|sem o preço/.test(o) ? 'bad' : 'warn'}">${esc(o)}</span>` : ''; };
+    const gl = { DIESEL: 'Conjunto diesel', ELETRICA: 'Conjunto elétrico', JOCKEY: 'Bomba jockey', TODOS: 'Comuns ao equipamento', ESC: 'Componentes adicionais (do cadastro)' };
+    if (['SKID', 'CONTAINER'].includes(String(val(S, 'AR2') || ''))) gl.TODOS = 'Equipamentos e acessórios gerais';
+    const obs = (r) => { const o = txt(S, 'L' + r); if (!o) return ''; const sem = /sem custo|sem o preço|fora do catálogo/.test(o);
+      return `<span class="pill ${sem ? 'bad' : 'warn'}">${esc(o)}</span>${sem ? ` <button class="restore" data-pedir="${esc(JSON.stringify(pedidoDaLinha(S, r)))}">pedir cadastro</button>` : ''}`; };
     const rowC = (x) => {
-      if (x.hid) return `<tr class="ro"><td class="sub">${esc(x.hid.rot)}</td><td>${esc(x.hid.desc)}</td><td class="n">${fmtNum(x.hid.qtd)}</td><td class="n">${fmtNum(x.hid.unit, '#,##0.00')}</td><td class="n">${fmtNum(x.hid.tot, '#,##0.00')}</td><td><span class="pill mute">além da linha 30 da planilha</span></td></tr>`;
+      if (x.hid) return `<tr class="ro"><td class="sub">${esc(x.hid.rot)}</td><td>${esc(x.hid.desc)}</td><td class="n">${fmtNum(x.hid.qtd)}</td><td class="n">${fmtNum(x.hid.unit, '#,##0.00')}</td><td></td><td class="n">${fmtNum(x.hid.tot, '#,##0.00')}</td><td class="n sub">${pItem(x.hid.tot)}</td><td><span class="pill mute">além da linha 30 da planilha</span></td></tr>`;
       const r = x.r; const fam = txt(S, 'C' + r);
       const first = x.esc ? cellIn(S, 'C' + r) : `<td class="sub">${esc(x.rot)}</td>`;
-      return `<tr>${first}${cellIn(S, 'D' + r, { datalist: fam ? dlFor(fam) : 'dl_all' })}${cellIn(S, 'F' + r)}${cellIn(S, 'G' + r)}<td class="n">${show(S, 'H' + r)}</td><td>${obs(r)}${x.esc ? ` <button class="restore" data-rmrow="${r}">remover</button>` : ''}</td></tr>`;
+      // sempre do cadastro: o insumo vem da lista da família e o custo unitário é o cadastrado
+      const lista = fam ? famProdutos(fam) : [];
+      const insumo = fam ? cellIn(S, 'D' + r, { list: lista }) : '<td class="sub">escolha a família</td>';
+      const custo = `<td class="n">${show(S, 'G' + r)}${overridden(S, 'G' + r) ? ` <button class="restore" data-restore="${esc(S)}|G${r}" title="Custo digitado à mão numa versão antiga">↺ usar o do cadastro</button>` : ''}</td>`;
+      return `<tr>${first}${insumo}${x.esc ? cellIn(S, 'F' + r) : qtdRO(S, r)}${custo}${updCell(S, r)}<td class="n">${show(S, 'H' + r)}</td><td class="n sub">${pItem(num(val(S, 'H' + r)))}</td><td>${obs(r)}${x.esc ? ` <button class="restore" data-rmrow="${r}">remover</button>` : ''}</td></tr>`;
     };
-    const comp = Object.entries(groups).filter(([, g]) => g.length).map(([k, g]) => `<tr class="grp"><td colspan="4">${gl[k]}</td><td class="n">${fmtNum(g.reduce((t, x) => t + x.tot, 0), '#,##0.00')}</td><td></td></tr>${g.map(rowC).join('')}`).join('');
+    const comp = Object.entries(groups).filter(([, g]) => g.length).map(([k, g]) => { const gt = g.reduce((t, x) => t + x.tot, 0); return `<tr class="grp"><td colspan="5">${gl[k]}</td><td class="n">${fmtNum(gt, '#,##0.00')}</td><td class="n">${pItem(gt)}</td><td></td></tr>${g.map(rowC).join('')}`; }).join('');
     // código e FCI
     const lenTag = (n, lim) => `<span class="pill ${n > lim ? 'bad' : 'ok'}">${n} de ${lim} caracteres</span>`;
     const imp = []; let nNac = 0;
@@ -712,7 +785,7 @@
         <div class="sumbar"><div><span>Unitário c/ IPI</span><b>${brl(val(S, 'B15'))}</b></div><div><span>Total</span><b>${brl(val(S, 'D15'))}</b></div><div><span>Margem</span><b class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</b></div><div>${ok ? countPills(al) : ''}</div></div></div>
       ${alertList(al, false)}
       ${scopeWarning(S)}
-      ${!montLines(S).length && groups.ESC.length ? `<div class="banner info">Este item foi montado linha a linha no escopo (${groups.ESC.length} componentes digitados à mão), sem usar a seleção abaixo. O preço vem dessas linhas, que você edita em Componentes, abaixo.</div>` : ''}
+      ${!montLines(S).length && groups.ESC.length ? `<div class="banner info">Este item foi montado linha a linha (${groups.ESC.length} componentes adicionais escolhidos do cadastro), sem usar a seleção abaixo. O preço vem dessas linhas, em Componentes.</div>` : ''}
       ${famPanel(S, c)}
       ${!famChosen(S, c) ? '' : `<section class="card"><h2>Equipamento <span class="sub">${esc(famLabel(String(val(S, 'AR2') || 'CMB')))} · <button class="restore" data-famreset>trocar a família</button></span></h2>
         <div class="fields">${f('C17', 'Modelo pronto', { cls: 'span2', list: modelos().filter((m) => m.estr === String(val(S, 'AR2') || 'CMB')).map((m) => m.nome) })}${f('C6', 'Quantidade').replace('<input ', '<input placeholder="1" ')}</div>
@@ -726,9 +799,9 @@
       <details class="card"${keep('cond')}><summary>Condições deste item <span class="sub">${esc(cond)}</span></summary>
         <div class="fields">${f('C8', 'Desconto de negociação')}${fs('L17', 'Margem alvo')}${fs('J17', 'Modo de preço')}${fs('K7', 'Folga de negociação')}${f('C12', 'Start-up — distância (km)')}${f('F12', 'Start-up — diárias')}${f('I12', 'Start-up — valor fechado')}</div></details>
       <details class="card"${keep('comp')}><summary>Componentes <span class="sub">${nComp} itens · custo ${brl(val(S, 'H114'))}</span></summary>
-        <p class="sub" style="margin:0 0 10px">Verde é o que a montagem escolheu sozinha: troque o insumo, a quantidade ou o custo direto na linha. Para incluir algo que não está na montagem, use "Adicionar componente".</p>
-        ${nComp ? `<div class="tw"><table class="t comp"><thead><tr><th>Item / família</th><th>Insumo</th><th>Qtd</th><th>Custo unit.</th><th>Custo total</th><th></th></tr></thead><tbody>${comp}<tr class="tot"><td colspan="4">Custo do item</td><td class="n">${brl(val(S, 'H114'))}</td><td></td></tr></tbody></table></div>` : '<p class="sub">Os componentes aparecem quando o equipamento estiver escolhido.</p>'}
-        <div class="docbar" style="margin-top:10px"><button class="btn sm" data-addrow>+ Adicionar componente</button></div></details>
+        <p class="sub" style="margin:0 0 10px">Verde é o que a montagem escolheu sozinha. O insumo vem da lista da família; preço, origem e data vêm do cadastro, e a quantidade vem da estrutura do item (Engenharia → Estruturas). Só nos componentes adicionais você informa a quantidade. Se o insumo não existe ou está sem preço, use "pedir cadastro".</p>
+        ${nComp ? `<div class="tw"><table class="t comp"><thead><tr><th>Item / família</th><th>Insumo</th><th>Qtd</th><th>Custo unit.</th><th>Preço atualizado em</th><th>Custo total</th><th>% do item</th><th></th></tr></thead><tbody>${comp}<tr class="tot"><td colspan="5">Custo do item</td><td class="n">${brl(val(S, 'H114'))}</td><td class="n">100%</td><td></td></tr></tbody></table></div>` : '<p class="sub">Os componentes aparecem quando o equipamento estiver escolhido.</p>'}
+        <div class="docbar" style="margin-top:10px"><button class="btn sm" data-addrow>+ Adicionar componente do cadastro</button><button class="btn sm" data-pedir="${esc(JSON.stringify({ linha: { rotulo: S + ' · novo componente' } }))}">Pedir cadastro de insumo</button></div></details>
       <details class="card"${keep('cod')}><summary>Código e descrição <span class="sub">${lenTag(txt(S, 'C27').length, 60)} ${lenTag(txt(S, 'C28').length, 120)}</span></summary>
         <div class="stack">
           <div><div class="lbl">Código ${lenTag(txt(S, 'C27').length, 60)}</div><div class="codebox">${esc(txt(S, 'C27') || 'o código sai aqui')}</div></div>
@@ -780,9 +853,9 @@
   function famPanel(S, c) {
     if (txt(S, 'C17')) return '';
     if (!famChosen(S, c)) {
-      const cards = FAMS.map(([k, lb, fam]) => { const reg = estrList().includes(k); const n = modelos().filter((m) => m.estr === k).length;
-        return `<button class="famcard${reg ? '' : ' off'}" data-fam="${esc(fam)}"><b>${esc(lb)}</b><small>${reg ? (n ? n + ' modelo(s) pronto(s)' : 'estrutura cadastrada, sem modelos') : 'sem estrutura cadastrada'}</small></button>`; }).join('');
-      return `<section class="card"><h2>Que equipamento é este item?</h2><div class="famgrid">${cards}</div><p class="sub" style="margin:10px 0 0">A família define a estrutura padrão e os modelos prontos que o app procura para você.</p></section>`;
+      const cards = FAMS.filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => { const reg = estrList().includes(k); const n = modelos().filter((m) => m.estr === k).length;
+        return `<button class="famcard${reg ? '' : ' off'}" data-fam="${esc(fam)}"><b>${esc(FAM_SEQ_LB[fam] || lb)}</b><small>${reg ? (n ? n + ' modelo(s) pronto(s)' : 'estrutura cadastrada, sem modelos') : 'sem estrutura cadastrada'}</small></button>`; }).join('');
+      return `<section class="card"><h2>Que equipamento é este item?</h2><div class="famgrid">${cards}<button class="famcard" data-factsnew><b>FAC · FACTS — teste automático de bombas</b><small>configurador MECON (abre uma formação própria)</small></button></div><p class="sub" style="margin:10px 0 0">A família define a estrutura padrão e os modelos prontos que o app procura para você.</p></section>`;
     }
     const m = modelMatch(S); const lb = famLabel(m.key); let h = '';
     if (!estrList().includes(m.key)) {
@@ -879,6 +952,26 @@
     }
     dlMap.set('*', all);
   }
+  // data da última atualização do preço do insumo (cadastro; ou a data escrita nas observações)
+  function precoData(prod) {
+    const i = prod && REG.insumos.find((x) => x.produto === prod); if (!i) return null;
+    let d = i.upd ? new Date(i.upd) : null;
+    if (!d || isNaN(d)) { const m = String(i.obs || '').match(/(\d{2})\/(\d{2})\/(\d{4})(?!.*\d{2}\/\d{2}\/\d{4})/); if (m) d = new Date(+m[3], +m[2] - 1, +m[1]); }
+    return d && !isNaN(d) ? d : null;
+  }
+  function updCell(S, r) {
+    const d = precoData(txt(S, 'D' + r)); if (!d) return `<td class="sub">${txt(S, 'D' + r) ? '—' : ''}</td>`;
+    const dias = (Date.now() - d.getTime()) / 864e5;
+    return `<td class="sub" style="white-space:nowrap" title="Preço do cadastro atualizado há ${Math.round(dias)} dias">${d.toLocaleDateString('pt-BR')}${dias > 180 ? ' <span class="pill warn">antigo</span>' : ''}</td>`;
+  }
+  // custo unitário sempre do cadastro (só leitura); se uma versão antiga tem custo digitado, oferece voltar
+  const custoRO = (S, r) => `<td class="n">${show(S, 'G' + r)}${overridden(S, 'G' + r) ? ` <button class="restore" data-restore="${esc(S)}|G${r}" title="Custo digitado à mão numa versão antiga">↺ cadastro</button>` : ''}</td>`;
+  // origem sempre do cadastro; quantidade da montagem sempre da estrutura
+  const pctH = (S, v) => { const t = val(S, 'H114'); return typeof t === 'number' && t && typeof v === 'number' && v ? NF[1].format((v / t) * 100) + '%' : ''; };
+  const origRO = (S, r) => `<td>${esc(txt(S, 'AB' + r))}${overridden(S, 'I' + r) ? ` <button class="restore" data-restore="${esc(S)}|I${r}" title="Origem escolhida à mão numa versão antiga">↺ cadastro</button>` : ''}</td>`;
+  const qtdRO = (S, r) => `<td class="n" title="Quantidade definida pela estrutura do item (Engenharia → Estruturas)">${show(S, 'F' + r)}${overridden(S, 'F' + r) ? ` <button class="restore" data-restore="${esc(S)}|F${r}" title="Quantidade alterada à mão numa versão antiga">↺ estrutura</button>` : ''}</td>`;
+  const insSel = (S, r) => { const fam = txt(S, 'C' + r); return fam ? cellIn(S, 'D' + r, { list: famProdutos(fam) }) : cellIn(S, 'D' + r, { list: [] }); };
+  const famProdutos = (fam) => { if (!dlMap) buildDl(); return [...(dlMap.get(fam) || [])]; };
   function dlFor(fam) { if (!dlMap) buildDl(); return dlMap.has(fam) ? 'dl_' + fam.replace(/\W/g, '') : 'dl_all'; }
   function datalists() {
     if (!dlMap) buildDl();
@@ -905,7 +998,7 @@
   const H = REG.helpers;
   // cadastro por área: cada área tem um responsável e só ele edita o que é dela
   const AREAS = [
-    ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação']]],
+    ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação'], ['facts', 'FACTS (MECON)'], ['pedidos', 'Pedidos de cadastro']]],
     ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['familias', 'Famílias'], ['codificacao', 'Codificação']]],
     ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado e FCI', [['fiscal', 'Impostos e NCM']]],
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
@@ -943,7 +1036,7 @@
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -1018,6 +1111,7 @@
         ${canEd() && !isNew ? '<button class="btn" id="fDel">Excluir</button>' : ''}
         <button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button>
       </div>
+      ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*" hidden></div>` : ''}
       ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
     (o, close) => {
       fillNames(o);
@@ -1028,6 +1122,8 @@
         $('#fHint', o).textContent = h;
         if (isNew) { const c = famSel.value === '__nova' ? (/^\d{1,2}\./.test(f) ? { a: H.famCode(f), b: H.famCode(f) * 1000 + 1 } : null) : REG.nextCode(f); $('#fCode', o).textContent = c ? String(c.a).padStart(2, '0') + '-' + c.b : '—'; }
       };
+      const pchk = () => { const m = window.PricerPadraoCheck(famSel.value, $('#fProd', o).value); let el = $('#fPad', o); if (!el) { el = document.createElement('small'); el.id = 'fPad'; $('#fProd', o).after(el); } el.textContent = m ? '⚠ ' + m : ''; el.className = 'sub bad-t'; };
+      $('#fProd', o).addEventListener('input', pchk); famSel.addEventListener('change', pchk); pchk();
       famSel.onchange = () => { $('#fNovaWrap', o).hidden = famSel.value !== '__nova'; hint(); };
       nova.oninput = hint; hint();
       const sv = $('#fSave', o);
@@ -1341,15 +1437,16 @@
   });
 
   function vHistorico() {
-    const q = (ui.histQ || '').trim().toLowerCase();
-    const list = REG.historico.filter((h) => !q || [h.tipo, h.desc, h.ref, ...(h.mudancas || []).map((m) => m.campo)].join(' ').toLowerCase().includes(q)).slice(0, 250);
+    const q = (ui.histQ || '').trim().toLowerCase(); const T = ui.histT || '';
+    const grupoH = (t) => /^(Proposta|Status|Alerta)/.test(t) ? 'propostas' : /^(Baixa|Custo real|Execução)/.test(t) ? 'margens' : /^Documento/.test(t) ? 'documentos' : /^Pedido/.test(t) ? 'pedidos' : /^Acessos/.test(t) ? 'acessos' : 'cadastro';
+    const list = REG.historico.filter((h) => !T || grupoH(h.tipo || '') === T).filter((h) => !q || [h.tipo, h.desc, h.ref, ...(h.mudancas || []).map((m) => m.campo)].join(' ').toLowerCase().includes(q)).slice(0, 250);
     const items = list.map((h) => {
       const muds = h.mudancas || []; const many = muds.length > 12;
       return `<div class="hrow"><div class="hmeta"><b>${fmtAt(h.at)}</b><small>${who(h.by)}</small></div><div><div><span class="pill mute">${esc(h.tipo)}</span> ${esc(h.desc || '')} ${h.ref && !/^import$/.test(h.ref) && !String(h.ref).includes('!') && REG.insumos.some((x) => x.id === h.ref) ? `<button class="restore" data-ins="${esc(h.ref)}">abrir</button>` : ''}</div>
         ${muds.length ? `<table class="t mini"><tbody>${muds.slice(0, 12).map((m) => `<tr><td>${esc(m.campo)}</td><td class="n sub">${esc(fmtVal(m.de))}</td><td>→</td><td class="n"><b>${esc(fmtVal(m.para))}</b></td></tr>`).join('')}</tbody></table>${many ? `<small class="sub">+ ${muds.length - 12} alterações</small>` : ''}` : ''}</div></div>`;
     }).join('');
     return `<section class="card">
-      <div class="sheetbar"><input id="histQ" type="search" placeholder="Buscar no histórico…" value="${esc(ui.histQ || '')}" aria-label="Buscar no histórico" style="flex:1 1 260px"><span class="sub">${REG.mode === 'shared' ? 'Últimos 90 dias com alteração, de toda a equipe' : 'Alterações feitas neste navegador'}</span></div>
+      <div class="sheetbar"><select id="histT" aria-label="Tipo">${[['', 'Tudo'], ['propostas', 'Propostas e alertas'], ['margens', 'Baixas e custo real'], ['documentos', 'Documentos'], ['pedidos', 'Pedidos de cadastro'], ['cadastro', 'Cadastro'], ['acessos', 'Acessos']].map(([k, l]) => `<option value="${k}"${T === k ? ' selected' : ''}>${l}</option>`).join('')}</select><input id="histQ" type="search" placeholder="Buscar no histórico…" value="${esc(ui.histQ || '')}" aria-label="Buscar no histórico" style="flex:1 1 260px"><span class="sub">${REG.mode === 'shared' ? 'Últimos 90 dias com alteração, de toda a equipe' : 'Alterações feitas neste navegador'}</span></div>
       <div class="hlist">${items || '<p class="sub">Nenhuma alteração registrada ainda. Tudo está com os valores da planilha REV21.</p>'}</div></section>`;
   }
 
@@ -1795,6 +1892,7 @@
     deb('insQ', 'insQ'); deb('kitQ', 'kitQ'); deb('histQ', 'histQ'); deb('padQ', 'padQ');
     const fam = $('#insFam'); if (fam) fam.onchange = () => { ui.insFam = fam.value; render(); };
     const sem = $('#insSem'); if (sem) sem.onchange = () => { ui.insSem = sem.checked; render(); };
+    const ht = $('#histT'); if (ht) ht.onchange = () => { ui.histT = ht.value; render(); };
     const csv = $('#insCsv'); if (csv) csv.onclick = exportInsumos;
     const nw = $('#insNew'); if (nw) nw.onclick = () => insumoModal(null);
     const kn = $('#kitNew'); if (kn) kn.onclick = () => kitModal(kn.dataset.kind, null);
@@ -1821,7 +1919,7 @@
   // ---------- fotografia da formação (para margens e fechamento) ----------
   const MEM_KEYS = { custoMat: 'Custo do conjunto de peças e materiais', custoFab: 'Custos dos serviços de fabricação', custoStartup: 'Custos de Startup', custoFrete: 'Custos dos fretes', custo: 'TOTAL CUSTOS',
     icmsPct: 'ICMS', pisCofinsPct: 'PIS/COFINS', irPct: 'IR/CSLL', impostosPct: 'TOTAL IMPOSTOS (sem o IPI)', comissaoPct: 'TOTAL COMISSÃO', margemPct: 'Margem Liquida',
-    venda: 'Preço de venda com impostos — SEM IPI (total)', qtd: 'Quantidade', ipi: 'IPI (R$)', vendaIpi: 'Preço de venda com impostos e COM IPI (total)', impostos: 'Impostos', comissao: 'Comissão', margem: 'Margem líquida', ci: 'Conteúdo de importação (CI)' };
+    venda: 'Preço de venda com impostos — SEM IPI (total)', qtd: 'Quantidade', ipiPct: 'IPI (%)', comExtPct: 'Comissão de 3os externos', comIntPct: 'Comissão de 3os internos', ipi: 'IPI (R$)', vendaIpi: 'Preço de venda com impostos e COM IPI (total)', impostos: 'Impostos', comissao: 'Comissão', margem: 'Margem líquida', ci: 'Conteúdo de importação (CI)' };
   function memRows() { const m = {}; for (let r = 3; r <= 38; r++) { const lb = txt('MEMORIAL', 'B' + r); for (const [k, l] of Object.entries(MEM_KEYS)) if (lb === l && !m[k]) m[k] = r; } return m; }
   function seqSnapshot() {
     const rows = memRows(); const n = (x) => (typeof x === 'number' && isFinite(x) ? x : 0);
@@ -1831,14 +1929,15 @@
       if (!filled(S)) return;
       const m = pick(numToCol(3 + i)); const fam = String(val(S, 'AR2') || 'CMB');
       const linhas = [];
-      for (const x of montLines(S)) { const r = x.r; const c = n(val(S, 'H' + r)); if (!c && !txt(S, 'D' + r)) continue; linhas.push({ k: 'm' + r, grupo: x.acion, rot: x.rot, fam: txt(S, 'C' + r), desc: txt(S, 'D' + r), qtd: n(val(S, 'F' + r)), unit: n(val(S, 'G' + r)), custo: c }); }
-      for (const x of hiddenLines(S)) linhas.push({ k: 'h' + x.rot, grupo: x.acion, rot: x.rot, fam: '', desc: x.desc, qtd: n(x.qtd), unit: n(x.unit), custo: n(x.tot) });
-      for (let r = 68; r <= 112; r++) { if (!txt(S, 'D' + r) && !n(val(S, 'H' + r))) continue; linhas.push({ k: 'e' + r, grupo: 'ESCOPO', rot: txt(S, 'C' + r), fam: txt(S, 'C' + r), desc: txt(S, 'D' + r), qtd: n(val(S, 'F' + r)), unit: n(val(S, 'G' + r)), custo: n(val(S, 'H' + r)) }); }
+      for (const x of montLines(S)) { const r = x.r; const c = n(val(S, 'H' + r)); if (!c && !txt(S, 'D' + r)) continue; linhas.push({ k: 'm' + r, grupo: x.acion, rot: x.rot, fam: txt(S, 'C' + r), desc: txt(S, 'D' + r), qtd: n(val(S, 'F' + r)), unit: n(val(S, 'G' + r)), custo: c, ori: txt(S, 'AB' + r) }); }
+      for (const x of hiddenLines(S)) linhas.push({ k: 'h' + x.rot, grupo: x.acion, rot: x.rot, fam: x.fam || '', desc: x.desc, qtd: n(x.qtd), unit: n(x.unit), custo: n(x.tot), ori: x.ori || '' });
+      for (let r = 68; r <= 112; r++) { if (!txt(S, 'D' + r) && !n(val(S, 'H' + r))) continue; linhas.push({ k: 'e' + r, grupo: 'ESCOPO', rot: txt(S, 'C' + r), fam: txt(S, 'C' + r), desc: txt(S, 'D' + r), qtd: n(val(S, 'F' + r)), unit: n(val(S, 'G' + r)), custo: n(val(S, 'H' + r)), ori: txt(S, 'AB' + r) }); }
       const qtd = m.qtd || 1;
       // as linhas são de uma unidade e já trazem a mão de obra de fabricação; start-up e frete entram como linhas próprias
       if (m.custoStartup) linhas.push({ k: 'startup', grupo: 'SERVIÇOS', rot: 'Start-up', desc: 'Start-up', qtd: 1, unit: m.custoStartup / qtd, custo: m.custoStartup / qtd });
       if (m.custoFrete) linhas.push({ k: 'frete', grupo: 'SERVIÇOS', rot: 'Frete', desc: 'Frete', qtd: 1, unit: m.custoFrete / qtd, custo: m.custoFrete / qtd });
-      itens.push(Object.assign({ n: S, nome: txt(S, 'C28') || txt('PROPOSTA', 'C' + (20 + i)) || S, codigo: txt(S, 'C27'), familia: fam, familiaNome: famLabel(fam), linhas }, m, { qtd }));
+      const ro = rows.custoMat ? (() => { for (let r = 3; r <= 38; r++) if (txt('MEMORIAL', 'B' + r) === 'Origem do conjunto') return txt('MEMORIAL', numToCol(3 + i) + r); return ''; })() : '';
+      itens.push(Object.assign({ n: S, origem: ro, nome: txt(S, 'C28') || txt('PROPOSTA', 'C' + (20 + i)) || S, codigo: txt(S, 'C27'), familia: fam, familiaNome: famLabel(fam), linhas }, m, { qtd }));
     });
     const T = pick('M');
     return { div: 'SEQ', venda: T.venda, vendaIpi: T.vendaIpi, custo: T.custo, impostos: T.impostos, comissao: T.comissao, margem: T.margem, margemPct: T.margemPct, minimo: n(val(PA, 'C34')), itens };
@@ -1846,6 +1945,7 @@
   // fotografia de qualquer proposta salva, sem mexer na que está aberta
   function snapshotOf(p) {
     if (p.div === 'SPV' && p.spv) return SPV.snapshot(p.spv);
+    if (p.facts) return FX.snapshot(p.facts);
     const doc = JSON.parse(JSON.stringify(p.doc || {})); migrar(doc);
     const keep = wb; const w2 = new Workbook(MODEL); REG.applyTo(w2); w2.applyDoc(doc);
     wb = w2; listCache = new Map();
@@ -1865,26 +1965,38 @@
   function loadDoc(doc, name, id, extra) { state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); }
   function docTitle() {
     if (isSpv()) return [state.spv.numero, state.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome';
+    if (isFacts()) return ['FACTS', state.facts.numero, state.facts.cliente].filter(Boolean).join(' · ');
     const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return [n, c].filter(Boolean).join(' · ') || 'Proposta sem nome';
   }
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
   function openProposta(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
-    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho') };
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}) };
     if (p.div === 'SPV' && p.spv) {
       const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
+    } else if (p.facts) {
+      const facts = JSON.parse(JSON.stringify(p.facts)); if (dup) facts.numero = '';
+      loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SEQ', sol: 'FACTS', facts }));
     } else loadDoc(p.doc, p.name, keepId, extra);
-    if (dup && !isSpv()) { if (state.doc.PROPOSTA) delete state.doc.PROPOSTA.C5; build(); persist(); }
+    if (dup && !isSpv() && !isFacts()) { if (state.doc.PROPOSTA) delete state.doc.PROPOSTA.C5; build(); persist(); }
     dirty = !!dup; ui.step = 1; ui.propFull = false; setView('proposta');
     toast(dup ? 'Cópia criada: dê um número novo e salve' : 'Aberto: ' + (p.name || docTitle()));
   }
-  const MG = window.PricerMargens({ REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
-  function newSeq() { loadDoc({}, ''); ui.step = 1; ui.propFull = false; setView('proposta'); toast('Proposta SEQ em branco'); }
-  const SPV = window.PricerSPV({ REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p),
+  const logEv = (e) => REG.log(e);
+  const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
+  const FX = window.PricerFacts({ REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
+    setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
+  const MG = window.PricerMargens({ REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
+  // nova proposta SEQ; com a família, já abre o item 01 nela
+  function newSeq(fam) { loadDoc({}, ''); ui.propFull = false;
+    if (fam) { commit('ITEM 01', 'C21', fam); ui.item = 0; ui.itemFull = false; ui.simple = true; setView('item'); toast('Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam)); return; }
+    ui.step = 1; setView('proposta'); toast('Proposta SEQ em branco'); }
+  const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_SEQ_LB[fam] || lb }));
+  const SPV = window.PricerSPV({ famsHome: () => famsHome(), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
-    current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
+    current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
 
   $('#bMode').onclick = () => { ui.simple = !ui.simple; ui.propFull = false; ui.itemFull = false; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
   $('#bNew').onclick = () => modal(`<h2>Nova proposta</h2><p class="sub">A proposta atual continua salva se você já clicou em Salvar. Alterações não salvas se perdem.</p>
@@ -1895,10 +2007,13 @@
     const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
     const base = { name: docTitle(), at: new Date().toISOString(), uid: state.uid, status: state.status || 'rascunho' };
     const p = isSpv() ? Object.assign(base, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv })
+      : isFacts() ? Object.assign(base, { div: 'SEQ', tipo: 'FAC', sol: 'FACTS', numero: state.facts.numero, cliente: state.facts.cliente, total: FX.total(), facts: state.facts })
       : Object.assign(base, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
     if (typeof p.total !== 'number') delete p.total;
-    try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
-    try { const where = await REG.saveProposta(id, p); state.id = id; persist(); dirty = false; toast((where === 'shared' ? 'Salvo para a equipe: ' : 'Salvo neste navegador: ') + docTitle()); }
+    if (state.ack && Object.keys(state.ack).length) p.ack = state.ack;
+    try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
+    try { const novo = !state.id; const where = await REG.saveProposta(id, p); state.id = id; persist(); dirty = false; toast((where === 'shared' ? 'Salvo para a equipe: ' : 'Salvo neste navegador: ') + docTitle());
+      logEv({ tipo: novo ? 'Proposta criada' : 'Proposta salva', ref: id, desc: docTitle() + ' · ' + (p.div || 'SEQ') + (p.tipo ? ' ' + p.tipo : ''), mudancas: [{ campo: 'Total', de: null, para: typeof p.total === 'number' ? p.total : null }, { campo: 'Margem', de: null, para: p.resumo ? p.resumo.margemPct : null }] }); }
     catch (err) { toast(errMsg(err)); }
   };
 
@@ -1924,13 +2039,13 @@
       o.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => {
         if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar'; b.classList.add('pri'); return; }
         const p = byId[b.dataset.del];
-        try { await REG.deleteProposta(p.id, !!p.local); b.closest('.row').remove(); if (state.id === p.id) { state.id = null; persist(); } } catch (err) { toast(errMsg(err)); }
+        try { await REG.deleteProposta(p.id, !!p.local); logEv({ tipo: 'Proposta excluída', ref: p.id, desc: p.name || '', mudancas: [] }); b.closest('.row').remove(); if (state.id === p.id) { state.id = null; persist(); } } catch (err) { toast(errMsg(err)); }
       });
-      const payload = () => JSON.stringify(Object.assign({ app: 'ls-pricer', rev: MODEL.source, name: docTitle(), doc: state.doc }, isSpv() ? { div: 'SPV', spv: state.spv } : {}), null, 1);
+      const payload = () => JSON.stringify(Object.assign({ app: 'ls-pricer', rev: MODEL.source, name: docTitle(), doc: state.doc }, isSpv() ? { div: 'SPV', spv: state.spv } : isFacts() ? { sol: 'FACTS', facts: state.facts } : {}), null, 1);
       $('#mCopy', o).onclick = () => { const t = payload(); $('#mTxt', o).value = t; navigator.clipboard.writeText(t).then(() => toast('Copiado'), () => { $('#mTxt', o).select(); toast('Selecionado — use Ctrl+C'); }); };
       $('#mDown', o).onclick = async () => { const ok = await REG.save((docTitle().replace(/[^\w\-. ]+/g, '_') || 'proposta') + '.json', payload(), 'application/json'); if (!ok) toast('Download cancelado'); };
       $('#mFile', o).onchange = (e) => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $('#mTxt', o).value = rd.result; }; rd.readAsText(f); };
-      $('#mImp', o).onclick = () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc && !j.spv) throw 0; close(); if (j.div === 'SPV' && j.spv) loadDoc({}, j.name, null, { div: 'SPV', spv: j.spv }); else loadDoc(j.doc, j.name); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
+      $('#mImp', o).onclick = () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc && !j.spv && !j.facts) throw 0; close(); if (j.div === 'SPV' && j.spv) loadDoc({}, j.name, null, { div: 'SPV', spv: j.spv }); else if (j.facts) loadDoc({}, j.name, null, { div: 'SEQ', sol: 'FACTS', facts: j.facts }); else loadDoc(j.doc, j.name); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
     });
   };
 

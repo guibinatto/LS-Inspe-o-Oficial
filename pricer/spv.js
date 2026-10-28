@@ -39,8 +39,8 @@
     [18, 'PEÇAS DE REPOSIÇÃO E SOBRESSALENTES', 'SPV', 'PAR', 'Peças de reposição para bombas e motores, flanges, válvulas de alívio, waste cone, trocadores de calor etc.'],
     [19, 'INSPEÇÕES E CONTRATOS DE MANUTENÇÃO', 'SPV', 'ITM', 'Contratos de inspeções, testes periódicos e manutenção recorrente'],
     [20, 'LOCAÇÃO DE EQUIPAMENTOS (RENTALS)', 'SPV', 'REN', 'Locação de bombas, skids, containers, painéis e sistemas completos'],
-    [null, 'FACTS — TESTE AUTOMÁTICO DE BOMBAS (CHURN TEST)', 'SEQ', 'FAC', 'Sistema automático de teste e monitoramento de bombas de incêndio (FACTS, aprovado FM 1330 / NFPA 25)'],
     [21, 'SISTEMAS DE FILTRAGEM', 'SPV', 'SFL', 'Sistemas de filtragem de óleo diesel para tanques de combustível'],
+    [22, 'FACTS — TESTE AUTOMÁTICO DE BOMBAS (CHURN TEST)', 'SEQ', 'FAC', 'Sistema automático de teste e monitoramento de bombas de incêndio (FACTS, aprovado FM 1330 / NFPA 25)'],
   ];
   // como cada tipo de SPV começa: equipe/deslocamento, peças, contrato
   const TIPO_INI = {
@@ -84,6 +84,17 @@
       escopo: 'Treinamento teórico e prático de 8 horas para a equipe do cliente: funcionamento do sistema, operação dos painéis, partida manual e automática, rotinas de inspeção semanal e mensal (NFPA 25) e cuidados de manutenção. Inclui material didático e certificado.', exclusoes: EXC },
     { id: 'frc-ativacao', tipo: 'FRC', nome: 'Fireconnect — instalação e ativação', equipe: [{ tec: 'Roger', dias: 1 }, { tec: 'João Mendes', dias: 1 }], prazo: '1 dia em campo', pecas: [],
       escopo: 'Instalação e ativação do monitoramento remoto Fireconnect na casa de bombas: montagem do gateway e dos sensores, ligação ao painel da bomba, configuração da conta e dos alarmes, teste de comunicação e treinamento rápido dos usuários. Cadastre aqui as peças padrão do kit Fireconnect para elas entrarem sozinhas na proposta.', exclusoes: EXC },
+    { id: 'facts-comiss', tipo: 'TRT', nome: 'FACTS — instalação assistida e comissionamento', equipe: [{ tec: 'Roger', dias: 2 }, { tec: 'João Mendes', dias: 1 }], prazo: '2 dias em campo por casa de bombas',
+      escopo: `Comissionamento do sistema FACTS (MECON) conforme o checklist do fabricante:
+• Conferência das pressões na tela de leituras analógicas contra os manômetros, com a bomba parada e em operação
+• Baterias acima de 13 V, temperatura da sala, vibração zerada e LEDs dos sensores de posição
+• Teste dos sensores de alagamento, proteção do acoplamento, stop relay, fluxostato de demanda de água, sensor de presença, nível de óleo e válvula de alívio de circulação
+• Retirada do controlador do automático (sinalização "Not in automatic") e supervisão das válvulas no painel de alarme (FACU 2)
+• Acionamento manual dos atuadores: sinalizador, sirene, sinal ao painel de alarme e solenoides de gaxeta
+• Auto commissioning do FACTS e teste de filtro obstruído em modo manual
+• Relatório de comissionamento assinado e treinamento dos operadores`, exclusoes: EXC },
+    { id: 'facts-anual', tipo: 'ITM', nome: 'FACTS — manutenção anual (checklist MECON)', visitas: 1, meses: 12, equipe: [{ tec: 'Roger', dias: 1 }], prazo: '1 visita por ano',
+      escopo: `Manutenção anual do sistema FACTS (MECON) pelo checklist do fabricante: conferência das pressões e dos sensores (baterias, temperatura, vibração, posição, alagamento, proteção do acoplamento, demanda de água, presença, nível de óleo, válvula de alívio de circulação), teste dos atuadores e da supervisão das válvulas, auto commissioning, teste de filtro obstruído e emissão do relatório anual. Os testes semanais seguem automáticos pelo FACTS (NFPA 25 / FM Data Sheet 2-81).`, exclusoes: EXC },
     { id: 'smf-revisao', tipo: 'SMF', nome: 'Revisão geral de bomba em fábrica', equipe: [{ tec: 'Yago', dias: 3 }], prazo: '15 dias úteis após a chegada do equipamento',
       escopo: 'Revisão geral da bomba em fábrica: desmontagem, limpeza, inspeção dimensional do rotor, eixo, buchas e mancais, troca de rolamentos, gaxetas ou selo mecânico e juntas, montagem, pintura e teste. Relatório com fotos e peças substituídas.', exclusoes: EXC },
   ]);
@@ -249,9 +260,11 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     function idb() { return new Promise((res, rej) => { const r = indexedDB.open('lspricer-docs', 1); r.onupgradeneeded = () => r.result.createObjectStore('files'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
     async function idbPut(k, blob) { const d = await idb(); return new Promise((res, rej) => { const t = d.transaction('files', 'readwrite'); t.objectStore('files').put(blob, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
     async function idbGet(k) { const d = await idb(); return new Promise((res, rej) => { const t = d.transaction('files'); const q = t.objectStore('files').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+    // assina os documentos do banco da equipe assim que ele conecta (antes disso, usa o navegador)
     function ensureDocs() {
-      if (docSub) return; docSub = true;
-      if (REG.mode === 'shared' && REG.db) {
+      const m = REG.mode === 'shared' && REG.db ? 'shared' : 'local';
+      if (docSub === m || docSub === 'shared') return; docSub = m;
+      if (m === 'shared') {
         REG.db.collection('documentos').orderBy('at', 'desc').limit(500).onSnapshot((s) => { docs = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
         window.claude.use('assets').then((a) => { assetsNs = a; ctx.render(); }).catch(() => { assetsNs = null; });
       } else { docs = lsGet(); assetsNs = null; }
@@ -270,11 +283,13 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         if (file) { await idbPut(id, file); rec.local = true; }
         docs = [Object.assign({ id }, rec)].concat(docs.filter((d) => d.id !== id)); lsSet(docs);
       }
+      ctx.log && ctx.log({ tipo: meta.id ? 'Documento alterado' : 'Documento anexado', ref: id, desc: [rec.nome, rec.fornecedor, rec.numero && 'nº ' + rec.numero].filter(Boolean).join(' · '), mudancas: [{ campo: 'Proposta', de: null, para: rec.propNome || null }, { campo: 'Itens do cadastro', de: null, para: (rec.insumos || []).join(', ') || null }] });
       ctx.render(); return id;
     }
     async function excluirDoc(d) {
       if (shared()) { await REG.db.doc('documentos/' + d.id).delete(); if (d.assetId && assetsNs) await assetsNs.delete(d.assetId).catch(() => {}); }
       else { docs = docs.filter((x) => x.id !== d.id); lsSet(docs); }
+      ctx.log && ctx.log({ tipo: 'Documento excluído', ref: d.id, desc: [d.nome, d.fornecedor].filter(Boolean).join(' · '), mudancas: [] });
       ctx.render();
     }
     async function abrirDoc(d, baixar) {
@@ -291,6 +306,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const m = new Map(); const add = (desc, x) => { const k = norm(desc); if (!k || !(x.unit > 0)) return; const arr = m.get(k) || []; arr.push(Object.assign({ desc }, x)); m.set(k, arr); };
       for (const d of docs) for (const it of d.itens || []) add(it.descricao, { unit: num(it.valor_unitario), moeda: d.moeda || 'BRL', forn: d.fornecedor, data: d.data || (d.at || '').slice(0, 10), cod: it.codigo, ipi: num(it.ipi_percentual) / 100, src: 'doc' });
       for (const p of REG.listPropostas() || []) if (p.div === 'SPV' && p.spv) for (const x of p.spv.pecas || []) add(x.desc, { unit: num(x.unit), moeda: x.moeda || 'BRL', forn: x.forn, data: (p.at || '').slice(0, 10), cod: x.cod, ipi: num(x.ipi), src: 'prop' });
+      for (const i of (ctx.insumos ? ctx.insumos() : [])) if (typeof i.valor === 'number') add(i.produto, { unit: i.valor, moeda: 'BRL', forn: i.fab || 'cadastro', data: (i.upd || '').slice(0, 10), cod: i.id, ipi: 0, src: 'cad' });
       for (const arr of m.values()) arr.sort((a, b) => String(b.data).localeCompare(String(a.data)));
       return m;
     }
@@ -315,15 +331,19 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
         <td><select data-hstatus="${esc(p.id)}" aria-label="Status">${STATUS.map(([k, lb]) => `<option value="${k}"${(p.status || 'rascunho') === k ? ' selected' : ''}>${lb}</option>`).join('')}</select></td>
         <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
-        <td><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${p.status === 'ganha' || p.status === 'perdida' ? '' : ` <button class="btn sm" data-mgclose="${esc(p.id)}" title="Registrar como fechada e congelar a formação">Dar baixa</button>`}</td></tr>`).join('');
+        <td><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${p.status === 'perdida' ? '' : p.status === 'ganha' ? ` <button class="btn sm pri" data-mgreal="${esc(p.id)}" title="Lançar o custo real de compras e fabricação">Custo real</button>` : ` <button class="btn sm" data-mgclose="${esc(p.id)}" title="Registrar como fechada e congelar a formação">Dar baixa</button>`}</td></tr>`).join('');
       const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['enviada', 'Enviadas'], ['negociacao', 'Em negociação'], ['ganha', 'Ganhas']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
       const tipos = spvTipos().map((t) => `<button class="tchip" data-spvnew="${t.abrev}" title="${esc(t.desc)}"><b>${esc((TIPO_INI[t.abrev] || {}).titulo || t.nome)}</b><small>${esc(t.abrev)}</small></button>`).join('');
       return `<div class="stack home">
         <div class="hero"><div><h1>Formação de preço</h1><div class="sub">Busque uma proposta antiga ou comece uma nova.</div></div>
           <div class="hsearch"><input id="homeQ" type="search" placeholder="Buscar por cliente, número, peça, fornecedor…" value="${esc(ui.homeQ || '')}" aria-label="Buscar propostas e documentos" autocomplete="off"></div></div>
         ${(() => { const c = ctx.current && ctx.current(); return c ? `<div class="contcard"><div><span class="divb ${c.div.toLowerCase()}">${c.div}</span> <b>Continuar: ${esc(c.label)}</b>${typeof c.total === 'number' && c.total ? ` <span class="sub">· ${brl(c.total)}</span>` : ''}</div><button class="btn sm pri" data-view="proposta">Continuar editando →</button></div>` : ''; })()}
+        ${ctx.home ? ctx.home() : ''}
         <div class="starts">
-          <button class="start seq" data-seqnew><span class="tag">SEQ</span><b>Soluções e equipamentos</b><small>Conjuntos motobomba, skids, containers, bombas e motores</small></button>
+          <div class="start seq"><span class="tag">SEQ</span><b>Soluções e equipamentos</b><small>Escolha o que vai formar</small><div class="tchips">
+            ${(ctx.famsHome ? ctx.famsHome() : []).map((f) => { const [sg, ...rest] = f.lb.split(' · '); return `<button class="tchip" data-seqfam="${esc(f.fam)}"><b>${esc(rest.join(' · ') || f.lb)}</b><small>${esc(rest.length ? sg : '')}</small></button>`; }).join('')}
+            <button class="tchip" data-seqnew><b>Em branco</b><small>escolher depois</small></button>
+            <button class="tchip" data-factsnew title="Fully Automatic Churn Testing System — MECON, FM 1330"><b>FACTS — teste automático de bombas</b><small>FAC</small></button></div></div>
           <div class="start spv"><span class="tag">SPV</span><b>Serviços e pós-venda</b><small>Escolha o tipo para começar</small><div class="tchips">${tipos}</div></div>
         </div>
         <div class="kpis">
@@ -361,7 +381,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         return `<tr${p.incluso === false ? ' class="ro"' : ''}><td class="in"><input type="checkbox" data-sp="pecas.${i}.incluso" data-k="bool"${p.incluso === false ? '' : ' checked'} aria-label="Incluso"></td>
         <td class="in wide">${inp(`pecas.${i}.desc`, p.desc, 'text', { lb: 'Descrição', list: 'dl_pb' })}${p.cod || p.forn ? `<small class="sub">${esc([p.cod, p.forn].filter(Boolean).join(' · '))}${p.docId ? ' · 📎' : ''}</small>` : ''}${last ? `<small class="hist">outra cotação: ${esc(last.moeda !== 'BRL' ? last.moeda + ' ' + fmt(last.unit) : brl(last.unit))} · ${esc(last.forn || '')} · ${esc(last.data ? new Date(last.data).toLocaleDateString('pt-BR') : '')}</small>` : ''}</td>
         <td class="in">${inp(`pecas.${i}.qtd`, p.qtd, 'num', { lb: 'Qtd' })}</td><td class="in">${sel(`pecas.${i}.moeda`, p.moeda || 'BRL', ['BRL', 'USD', 'EUR'], 'Moeda')}</td>
-        <td class="in">${inp(`pecas.${i}.unit`, p.unit, 'num', { lb: 'Valor unitário' })}</td><td class="in">${inp(`pecas.${i}.ipi`, p.ipi || 0, 'pct', { lb: 'IPI' })}</td>
+        <td class="in">${inp(`pecas.${i}.unit`, p.unit, 'num', { lb: 'Valor unitário' })}${!num(p.unit) && p.desc ? `<button class="restore" data-pedir="${esc(JSON.stringify({ produto: String(p.desc).toUpperCase(), fab: p.forn || '', origem: p.moeda && p.moeda !== 'BRL' ? 'IMP' : 'NAC', linha: { rotulo: 'peça da SPV' } }))}">pedir cadastro</button>` : ''}</td><td class="in">${inp(`pecas.${i}.ipi`, p.ipi || 0, 'pct', { lb: 'IPI' })}</td>
         <td class="n">${brl(p.unitBRL)}${p.moeda && p.moeda !== 'BRL' ? `<small class="sub">câmbio ${fmt(p.cambio ?? r.mk['cambio_' + p.moeda.toLowerCase()])} × imp. ${fmt(p.fimp ?? r.mk.fimp)}</small>` : ''}</td>
         <td class="in">${inp(`pecas.${i}.fator`, p.fator, 'num', { lb: 'Fator' })}</td><td class="n"><b>${brl(p.venda)}</b></td><td><button class="restore" data-sprm="pecas.${i}">remover</button></td></tr>`; }).join('');
       const dl = `<datalist id="dl_pb">${[...pb.values()].map((a) => `<option value="${esc(a[0].desc)}"></option>`).join('')}</datalist>`;
@@ -384,7 +404,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="docbar" style="margin-top:10px"><span class="sub">Blocos:</span>${blk('equipe', 'Equipe e deslocamento')}${blk('pecas', 'Peças e materiais')}${blk('contrato', 'Contrato recorrente')}</div></section>
         ${s.blocos.equipe ? `<section class="card"><h2>Equipe e deslocamento <span class="sub">mão de obra ${brl(r.mo)} · deslocamento ${brl(r.logTot)}</span></h2>
           <div class="tw"><table class="t reg"><thead><tr><th>Técnico</th><th>Diária (R$)</th><th>Dias</th><th>Total</th><th></th></tr></thead><tbody>${eqRows}</tbody></table></div>
-          <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="equipe">+ Técnico</button></div>
+          <div class="docbar" style="margin-top:8px"><span class="sub">Toque para incluir ou tirar:</span>${c.tecnicos.slice(0, 12).map((t) => { const on = s.equipe.some((e) => e.tec === t.nome); return `<label class="chip"><input type="checkbox" data-sptec="${esc(t.nome)}"${on ? ' checked' : ''}> ${esc(t.nome)}</label>`; }).join('')}<button class="btn sm" data-spadd="equipe">+ Outro</button></div>
           <div class="fields" style="margin-top:14px">${fld('Distância até o local (só ida, km)', inp('dist', s.dist, 'num', { lb: 'Distância' }))}<div class="f span2"><label>&nbsp;</label><div class="sub">${r.aereo ? `Ida e volta passa de ${fmt(c.custos.limite_km, 0)} km: vai de avião, com carro locado no destino.` : `Saída: ${esc(c.custos.saida)}. Acima de ${fmt(c.custos.limite_km, 0)} km ida e volta, o app troca para avião.`} Hotel e alimentação seguem a equipe (${r.pessoas} pessoa(s), ${r.dias} dia(s)).</div></div></div>
           <div class="tw" style="margin-top:10px"><table class="t reg"><thead><tr><th>Custo</th><th>Quantidade</th><th></th><th>Preço (cadastro)</th><th>Total</th></tr></thead><tbody>${logRows}<tr class="tot"><td colspan="4">Custo da prestação do serviço</td><td class="n">${brl(r.custoServ)}</td></tr></tbody></table></div>
           <p class="sub" style="margin:8px 0 0">Os preços de km, passagem, carro, hotel, alimentação e ART são cadastrados em <button class="restore" data-spcfg>Cadastro → Serviços</button>. A proposta guarda os preços do dia em que foi criada.</p>
@@ -422,10 +442,10 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       </div>`;
     }
     function docList(list) {
-      return `<div class="tw"><table class="t"><thead><tr><th>Documento</th><th>Tipo</th><th>Fornecedor</th><th>Valor</th><th>Proposta</th><th></th></tr></thead><tbody>${list.map((d) => `<tr>
+      return `<div class="tw"><table class="t"><thead><tr><th>Documento</th><th>Tipo</th><th>Fornecedor</th><th>Valor</th><th>Ligado a</th><th></th></tr></thead><tbody>${list.map((d) => `<tr>
         <td><b>${esc(d.nome || '—')}</b>${d.numero ? `<br><small class="sub">nº ${esc(d.numero)}${d.data ? ' · ' + esc(new Date(d.data).toLocaleDateString('pt-BR')) : ''}</small>` : ''}${(d.itens || []).length ? ` <span class="pill mute">${d.itens.length} itens</span>` : ''}</td>
         <td>${esc((DOC_TIPOS.find((t) => t[0] === d.tipo) || [0, d.tipo || '—'])[1])}</td><td>${esc(d.fornecedor || '—')}</td><td class="n">${typeof d.total === 'number' ? (d.moeda && d.moeda !== 'BRL' ? d.moeda + ' ' + fmt(d.total) : brl(d.total)) : '—'}</td>
-        <td>${esc(d.propNome || '—')}</td>
+        <td>${esc(d.propNome || '—')}${(d.insumos || []).length ? `<br><small class="sub">${d.insumos.length} item(ns) do cadastro: ${esc(d.insumos.slice(0, 3).join(', '))}${d.insumos.length > 3 ? '…' : ''}</small>` : ''}</td>
         <td style="white-space:nowrap">${d.assetId || d.local ? `<button class="btn sm" data-dopen="${esc(d.id)}">Abrir</button> <button class="btn sm" data-ddown="${esc(d.id)}">Baixar</button>` : ''} <button class="btn sm" data-dedit="${esc(d.id)}">Detalhes</button></td></tr>`).join('')}</tbody></table></div>`;
     }
 
@@ -433,7 +453,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     function vDocs() {
       ensureDocs();
       const ui = ctx.ui; const q = norm(ui.docQ || ''); const t = ui.docT || '';
-      const list = docs.filter((d) => (!t || d.tipo === t) && (!q || norm([d.nome, d.fornecedor, d.numero, d.propNome, d.notas, (d.itens || []).map((i) => i.descricao + ' ' + (i.codigo || '')).join(' ')].join(' ')).includes(q)));
+      const list = docs.filter((d) => (!t || d.tipo === t) && (!q || norm([d.nome, d.fornecedor, d.numero, d.propNome, d.notas, (d.insumos || []).join(' '), (d.itens || []).map((i) => i.descricao + ' ' + (i.codigo || '')).join(' ')].join(' ')).includes(q)));
       const up = canUpload();
       return `<div class="stack">
         <div class="flowhead"><div><h1>Documentos</h1><div class="sub">Orçamentos de fornecedores, notas, contratos e desenhos, ligados às propostas. ${shared() ? 'Visíveis para toda a equipe.' : 'Neste arquivo, ficam só neste navegador.'}</div></div></div>
@@ -458,6 +478,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="f"><label for="mdMoeda">Moeda</label><select id="mdMoeda">${['BRL', 'USD', 'EUR'].map((m) => `<option${d.moeda === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
           <div class="f"><label for="mdTot">Total</label><input id="mdTot" inputmode="decimal" value="${typeof d.total === 'number' ? String(d.total).replace('.', ',') : ''}"></div>
           <div class="f span2"><label for="mdProp">Proposta</label><select id="mdProp"><option value="">— nenhuma —</option>${curUid ? `<option value="${esc(curUid)}"${d.propUid === curUid || (!d.id && opts.linkCurrent) ? ' selected' : ''}>Atual: ${esc(curNome)}</option>` : ''}${props.filter((p) => p.uid && p.uid !== curUid).map((p) => `<option value="${esc(p.uid)}"${d.propUid === p.uid ? ' selected' : ''}>${esc((p.div || 'SEQ') + ' · ' + (p.numero || '') + ' · ' + (p.cliente || p.name || ''))}</option>`).join('')}</select></div>
+          <div class="f spanall"><label for="mdInsQ">Itens do cadastro ligados</label><div id="mdIns" class="docbar"></div><input id="mdInsQ" list="dl_ins_all" placeholder="buscar insumo pelo nome ou código e escolher" autocomplete="off"><datalist id="dl_ins_all">${(ctx.insumos ? ctx.insumos() : []).map((i) => `<option value="${esc(i.id + ' · ' + i.produto)}"></option>`).join('')}</datalist><small class="sub" id="mdInsSug"></small></div>
           <div class="f spanall"><label for="mdNotas">Observações</label><input id="mdNotas" value="${esc(d.notas || [d.condicao_pagamento && 'Pagamento: ' + d.condicao_pagamento, d.validade && 'Validade: ' + d.validade].filter(Boolean).join(' · '))}"></div>
         </div>
         ${d.itens.length ? `<div class="tw"><table class="t"><thead><tr><th></th><th>Código</th><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>IPI</th></tr></thead><tbody>${itRows()}</tbody></table></div>` : ''}
@@ -465,12 +486,21 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <button class="btn pri" id="mdSave">${opts.toPecas && d.itens.length ? 'Salvar e adicionar os itens marcados às peças' : 'Salvar documento'}</button>
           ${d.id ? '<button class="btn" id="mdDel">Excluir</button>' : ''}<button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
         const g = (x) => $(x, o);
+        // ligação com itens do cadastro: sugeridos pelos itens lidos do documento
+        const ins = ctx.insumos ? ctx.insumos() : []; const sel = new Set(d.insumos || opts.insumos || []);
+        const W = (t) => new Set(norm(t).split(' ').filter((w) => w.length > 1));
+        const sug = []; for (const it of d.itens || []) { const A = W(it.descricao); let best = null, bs = 0; for (const i of ins) { const B = W(i.produto); let c = 0; for (const w of A) if (B.has(w)) c++; const sc = A.size && B.size ? c / Math.max(A.size, B.size) : 0; if (sc > bs) { bs = sc; best = i; } } if (best && bs >= 0.5 && !sug.includes(best.id)) sug.push(best.id); }
+        const drawIns = () => { g('#mdIns').innerHTML = [...sel].map((id) => { const i = ins.find((x) => x.id === id); return `<span class="pchip">${esc(id)}${i ? ' · ' + esc(i.produto.slice(0, 40)) : ''} <button class="restore" data-insrm="${esc(id)}">×</button></span>`; }).join('') || '<span class="sub">nenhum</span>';
+          const fal = sug.filter((x) => !sel.has(x)); g('#mdInsSug').innerHTML = fal.length ? 'Sugeridos pelos itens do documento: ' + fal.map((id) => `<button class="restore" data-insadd="${esc(id)}">+ ${esc(id)} ${esc(((ins.find((x) => x.id === id) || {}).produto || '').slice(0, 30))}</button>`).join(' ') : '';
+          o.querySelectorAll('[data-insrm]').forEach((b) => { b.onclick = () => { sel.delete(b.dataset.insrm); drawIns(); }; }); o.querySelectorAll('[data-insadd]').forEach((b) => { b.onclick = () => { sel.add(b.dataset.insadd); drawIns(); }; }); };
+        g('#mdInsQ').onchange = () => { const id = g('#mdInsQ').value.split(' · ')[0].trim(); if (ins.some((i) => i.id === id)) { sel.add(id); g('#mdInsQ').value = ''; drawIns(); } };
+        drawIns();
         g('#mdSave').onclick = async () => {
           const tot = parseInput(g('#mdTot').value, 'num'); const pu = g('#mdProp').value;
           const pn = pu === curUid ? curNome : ((props.find((p) => p.uid === pu) || {}).numero || '') + ' · ' + ((props.find((p) => p.uid === pu) || {}).cliente || '');
           const usados = [...o.querySelectorAll('[data-mit]')].filter((x) => x.checked).map((x) => d.itens[+x.dataset.mit]);
           const rec = { id: d.id, tipo: g('#mdTipo').value, fornecedor: g('#mdForn').value.trim(), numero: g('#mdNum').value.trim(), data: g('#mdData').value || null, moeda: g('#mdMoeda').value, total: typeof tot === 'number' ? tot : null,
-            propUid: pu || null, propNome: pu ? pn : null, notas: g('#mdNotas').value.trim(), itens: d.itens, nome: d.nome, assetId: d.assetId, local: d.local, contentType: d.contentType, size: d.size, at: d.at };
+            propUid: pu || null, propNome: pu ? pn : null, notas: g('#mdNotas').value.trim(), insumos: [...sel], itens: d.itens, nome: d.nome, assetId: d.assetId, local: d.local, contentType: d.contentType, size: d.size, at: d.at };
           g('#mdSave').disabled = true; g('#mdStatus').textContent = 'Salvando…';
           try {
             const id = await salvarDoc(rec, file);
@@ -486,10 +516,10 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       for (const it of itens) s.pecas.push({ desc: it.descricao || '', cod: it.codigo || '', forn: doc.fornecedor || '', qtd: num(it.quantidade) || 1, un: it.unidade || '', unit: num(it.valor_unitario), ipi: num(it.ipi_percentual) / 100, moeda: doc.moeda || 'BRL', fator: mk.fator_pecas, incluso: true, docId });
       s.blocos.pecas = true; ctx.persist(); ctx.render();
     }
-    async function importar(file, toPecas) {
+    async function importar(file, toPecas, extra) {
       if (!file) return;
       if (file.size > 20 * 1024 * 1024) return toast('Arquivo acima de 20 MB.');
-      const base = { nome: file.name, tipo: 'orcamento', moeda: 'BRL', itens: [] };
+      const base = Object.assign({ nome: file.name, tipo: 'orcamento', moeda: 'BRL', itens: [] }, extra || {});
       const st0 = st(); const link = st0.div === 'SPV' || toPecas;
       docModal(base, file, { status: 'Claude está lendo o documento…', toPecas, linkCurrent: link });
       try {
@@ -630,13 +660,15 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         if (p === 'tipo') { const ini = TIPO_INI[v]; if (ini) s.blocos = { equipe: !!ini.equipe || s.equipe.length > 0, pecas: !!ini.pecas || s.pecas.length > 0, contrato: !!ini.contrato }; }
         ctx.persist(); ctx.render(); return;
       }
+      if (el.dataset && el.dataset.sptec && S()) { const s = S(); const nm = el.dataset.sptec; if (el.checked) { const t = cfg().tecnicos.find((x) => x.nome === nm); s.equipe.push({ tec: nm, diaria: t ? t.diaria : 0, dias: s.equipe[0] ? num(s.equipe[0].dias) || 1 : 1 }); } else s.equipe = s.equipe.filter((e) => e.tec !== nm); ctx.persist(); ctx.render(); return; }
       if (el.dataset && el.dataset.spblk && S()) { S().blocos[el.dataset.spblk] = el.checked; ctx.persist(); ctx.render(); return; }
       if (el.dataset && el.dataset.cfg) { const v = parseV(el); if (v === undefined) return toast('Número inválido'); saveCfg((c) => setPath(c, el.dataset.cfg, v), el.dataset.cfg); return; }
       if (el.dataset && el.dataset.hstatus) { const p = (REG.listPropostas() || []).find((x) => x.id === el.dataset.hstatus); if (!p) return;
-        if (el.value === 'ganha' && ctx.fechar) { ctx.render(); ctx.fechar(p); return; } const rec = Object.assign({}, p, { status: el.value }); delete rec.id; delete rec.local; REG.saveProposta(p.id, rec).then(() => { toast('Status: ' + (STATUS.find((x) => x[0] === el.value) || [0, el.value])[1]); if (st().id === p.id) st().status = el.value; ctx.render(); }).catch((er) => toast(er.message || 'Não consegui salvar')); return; }
+        if (el.value === 'ganha' && ctx.fechar) { ctx.render(); ctx.fechar(p); return; } const rec = Object.assign({}, p, { status: el.value }); delete rec.id; delete rec.local; REG.saveProposta(p.id, rec).then(() => { ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: el.value }] }); toast('Status: ' + (STATUS.find((x) => x[0] === el.value) || [0, el.value])[1]); if (st().id === p.id) st().status = el.value; ctx.render(); }).catch((er) => toast(er.message || 'Não consegui salvar')); return; }
       if (el.id === 'spImport') { importar(el.files[0], true); el.value = ''; return; }
       if (el.id === 'spAttach') { importar(el.files[0], false); el.value = ''; return; }
       if (el.id === 'docUp') { importar(el.files[0], false); el.value = ''; return; }
+      if (el.dataset && el.dataset.insdoc) { importar(el.files[0], false, { insumos: [el.dataset.insdoc] }); el.value = ''; return; }
       if (el.id === 'docT') { ctx.ui.docT = el.value; ctx.render(); }
     });
     let qT;
@@ -648,6 +680,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const t = e.target;
       const ns = t.closest('[data-spvnew]'); if (ns) { novoSpv(ns.dataset.spvnew); return; }
       if (t.closest('[data-seqnew]')) { ctx.newSeq(); return; }
+      const sf = t.closest('[data-seqfam]'); if (sf) { ctx.newSeq(sf.dataset.seqfam); return; }
       const hd = t.closest('[data-hdiv]'); if (hd) { ctx.ui.homeDiv = hd.dataset.hdiv; ctx.render(); return; }
       const ho = t.closest('[data-hopen]'); if (ho && !t.closest('select') && !t.closest('[data-hdup]')) { const p = (REG.listPropostas() || []).find((x) => x.id === ho.dataset.hopen); if (p) ctx.openProposta(p, false); return; }
       const hu = t.closest('[data-hdup]'); if (hu) { const p = (REG.listPropostas() || []).find((x) => x.id === hu.dataset.hdup); if (p) ctx.openProposta(p, true); return; }
@@ -673,7 +706,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     document.addEventListener('dragleave', (e) => { const d = e.target.closest && e.target.closest('#docDrop'); if (d) d.classList.remove('over'); });
     document.addEventListener('drop', (e) => { const d = e.target.closest && e.target.closest('#docDrop'); if (!d) return; e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) importar(f, false); });
 
-    return { vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
+    const docList2 = (list) => (list.length ? docList(list) : '<p class="sub" style="margin:0">Nenhum documento ligado.</p>');
+    return { docsDoInsumo: (id) => docList2(docs.filter((d) => (d.insumos || []).includes(id))), cfg, vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
   }
   window.PricerSPV = SPV;
 })();

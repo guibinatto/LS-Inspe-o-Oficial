@@ -118,6 +118,8 @@
       await ref.set(out || data);
     }
     const famDoc = (fam) => 'cadastro/f' + String(famCode(fam)).padStart(2, '0');
+    // registro de qualquer ação do app (propostas, baixas, documentos, pedidos, alertas): não exige acesso ao cadastro
+    R.log = async (entry) => { try { await log(entry); } catch (e) { /* sem permissão de gravar: segue */ } };
     R._mutate = mutate;
 
     // ---- histórico ----
