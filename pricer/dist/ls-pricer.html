@@ -384,17 +384,23 @@ table.porte td.ptxt{white-space:normal;min-width:110px;font-size:12.5px;line-hei
 /* etapas da proposta */
 tr.etrow td{padding-top:0;border-top:0}
 tr.click:has(+ tr.etrow) td{border-bottom:0}
-.etapas{display:flex;gap:0;flex-wrap:wrap;align-items:stretch}
-.etp{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:6px;align-items:center;text-align:left;border:0;background:none;padding:4px 14px 4px 0;cursor:pointer;color:var(--ink3);font-size:12.5px}
-.etp:not(:last-child)::after{content:"";position:absolute;right:4px;top:13px;width:6px;height:1px;background:var(--line2)}
-.etp .etc{grid-row:1/3;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--card)}
-.etp .etl{font-weight:600}
-.etp small{grid-column:2;font-size:11px;color:var(--ink3)}
+.etapas{display:grid;grid-template-columns:repeat(var(--n,7),minmax(0,1fr));padding:6px 0 4px}
+.etp{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;border:0;background:none;padding:0 4px;cursor:pointer;color:var(--ink3);font-size:12px;line-height:1.25;min-width:0}
+.etp::before{content:"";position:absolute;top:11px;right:50%;width:100%;height:2px;background:var(--line2)}
+.etp:first-child::before{display:none}
+.etp.ok::before,.etp.parcial::before{background:var(--ok)}
+.etp .etc{position:relative;z-index:1;width:24px;height:24px;border-radius:50%;border:2px solid var(--line2);display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--card)}
+.etp .etl{font-weight:600;overflow-wrap:normal;hyphens:auto}
+.etp small{font-size:10.5px;color:var(--ink3)}
 .etp.ok{color:var(--ink2)}.etp.ok .etc{background:var(--ok);border-color:var(--ok);color:#fff}
 .etp.parcial .etc{border-color:var(--warn);color:var(--warn)}.etp.parcial{color:var(--warn)}
-.etp.next .etc{border-color:var(--or);box-shadow:0 0 0 3px var(--or-soft)}.etp.next{color:var(--or-ink)}
+.etp.next .etc{border-color:var(--or);background:var(--or-soft);box-shadow:0 0 0 3px var(--or-soft)}.etp.next{color:var(--or-ink)}.etp.next .etl{text-decoration:underline;text-underline-offset:3px}
 .etp.off{opacity:.4;cursor:default}
 .etp:disabled{cursor:default}
+@media (max-width:640px){.etp{font-size:11px;padding:0 1px}.etp small{display:none}.etp:not(.next) .etl{display:none}.etp.next .etl{white-space:nowrap}.etapas{padding-bottom:16px}.etp.next .etl{position:absolute;top:28px}}
+@media (max-width:640px){.home .tw table.t{min-width:0}.home table.t,.home table.t tbody{display:block}.home table.t thead{display:none}
+.home table.t tr{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px}.home table.t td{border:0;padding:4px 6px}
+.home table.t tr.click{border-top:1px solid var(--line);padding-top:6px}.home table.t tr.click td:nth-child(2){flex:1 1 60%}.home table.t td.hacts,.home table.t tr.etrow td{width:100%;flex:1 1 100%}}
 .etp:not(:disabled):hover .etl{text-decoration:underline}
 .famtab td:first-child{font-family:var(--f-mono);font-size:12.5px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -1819,6 +1825,148 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
 })();
 
 </script>
+<script>/* leitor.js */
+/* LS Pricer — leitura de documentos no próprio navegador, sem serviço externo.
+ * NF-e em XML (exato), PDF com texto (DANFE, orçamentos), Excel/CSV e, para escaneados e fotos, OCR (tesseract.js).
+ * Devolve o mesmo formato que o resto do app usa:
+ * { fornecedor, documento, data, tipo, moeda, condicao_pagamento, validade, frete, total, itens: [{ codigo, descricao, ncm, unidade, quantidade, valor_unitario, ipi_percentual, icms_percentual }] }
+ */
+(function () {
+  'use strict';
+  const CDN = {
+    pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    pdfworker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+    exceljs: 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+    tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+  };
+  const loaded = {};
+  const load = (src) => loaded[src] || (loaded[src] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('Não consegui carregar ' + src.split('/').pop() + '. Verifique a internet.')); }; document.head.appendChild(s); }));
+
+  // número em pt-BR ("1.936,40") ou en ("1,936.40"); o último separador é o decimal
+  function numBR(s) {
+    if (typeof s === 'number') return s; s = String(s || '').replace(/[R$\sUSD€]/g, ''); if (!s) return null;
+    const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+    if (lc > ld) s = s.replace(/\./g, '').replace(',', '.'); else if (ld > lc && lc >= 0) s = s.replace(/,/g, '');
+    else if (ld >= 0 && /^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    const n = parseFloat(s); return isFinite(n) ? n : null;
+  }
+  const NUM = /^-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?$|^-?\d+(?:[.,]\d+)?$/;
+  const dataISO = (s) => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(s || ''); return m ? `${m[3]}-${m[2]}-${m[1]}` : (/^\d{4}-\d{2}-\d{2}/.test(s || '') ? s.slice(0, 10) : null); };
+  const vazio = () => ({ fornecedor: '', documento: '', data: null, tipo: 'outro', moeda: 'BRL', condicao_pagamento: null, validade: null, frete: null, total: null, itens: [] });
+
+  // ---------- NF-e XML ----------
+  function lerXml(txt) {
+    const d = new DOMParser().parseFromString(txt, 'application/xml');
+    const q = (el, tag) => { const x = el && el.getElementsByTagName(tag)[0]; return x ? x.textContent.trim() : ''; };
+    const out = vazio(); const emit = d.getElementsByTagName('emit')[0]; const ide = d.getElementsByTagName('ide')[0];
+    if (!emit && !d.getElementsByTagName('det').length) return null;
+    out.tipo = 'nota'; out.fornecedor = q(emit, 'xNome'); out.documento = q(ide, 'nNF'); out.data = dataISO(q(ide, 'dhEmi') || q(ide, 'dEmi'));
+    const tot = d.getElementsByTagName('ICMSTot')[0]; out.total = numBR(q(tot, 'vNF')); out.frete = numBR(q(tot, 'vFrete')) || null;
+    for (const det of d.getElementsByTagName('det')) {
+      const p = det.getElementsByTagName('prod')[0]; const imp = det.getElementsByTagName('imposto')[0];
+      const ipi = imp && imp.getElementsByTagName('IPITrib')[0]; const icms = imp && imp.getElementsByTagName('ICMS')[0];
+      out.itens.push({ codigo: q(p, 'cProd') || null, descricao: q(p, 'xProd'), ncm: q(p, 'NCM') || null, unidade: q(p, 'uCom') || null, quantidade: numBR(q(p, 'qCom')) || 1,
+        valor_unitario: numBR(q(p, 'vUnCom')) || 0, ipi_percentual: numBR(q(ipi, 'pIPI')) || 0, icms_percentual: numBR(q(icms, 'pICMS')) });
+    }
+    const pg = d.getElementsByTagName('detPag')[0]; if (pg) out.condicao_pagamento = null;
+    return out;
+  }
+
+  // ---------- PDF: linhas reconstruídas pela posição do texto ----------
+  async function pdfLinhas(file) {
+    await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const linhas = []; const pages = [];
+    for (let i = 1; i <= Math.min(pdf.numPages, 8); i++) {
+      const pg = await pdf.getPage(i); pages.push(pg); const tc = await pg.getTextContent();
+      const rows = [];
+      for (const it of tc.items) { if (!it.str || !it.str.trim()) continue; const y = it.transform[5], x = it.transform[4]; let r = rows.find((z) => Math.abs(z.y - y) < 2.5); if (!r) { r = { y, parts: [] }; rows.push(r); } r.parts.push({ x, s: it.str.trim() }); }
+      rows.sort((a, b) => b.y - a.y).forEach((r) => linhas.push(r.parts.sort((a, b) => a.x - b.x).map((p) => p.s).join(' ').replace(/\s+/g, ' ').trim()));
+    }
+    return { linhas, pages };
+  }
+  async function ocr(images, onStatus) {
+    await load(CDN.tesseract); const T = window.Tesseract; const linhas = [];
+    for (let i = 0; i < images.length; i++) {
+      onStatus && onStatus(`Lendo a imagem ${i + 1} de ${images.length} (reconhecimento de texto, pode levar ~30 s)…`);
+      const r = await T.recognize(images[i], 'por'); linhas.push(...String(r.data.text || '').split(/\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean));
+    }
+    return linhas;
+  }
+  async function pageImage(pg) { const vp = pg.getViewport({ scale: 2 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; return c; }
+
+  // ---------- texto → documento ----------
+  function lerTexto(linhas) {
+    const out = vazio(); const all = linhas.join('\n'); const up = all.toUpperCase();
+    out.tipo = /DANFE|NOTA FISCAL ELETR|NF-E/.test(up) ? 'nota' : /PEDIDO DE COMPRA|PEDIDO N/.test(up) ? 'pedido' : /OR[CÇ]AMENTO|COTA[CÇ][AÃ]O|PROPOSTA COMERCIAL/.test(up) ? 'orcamento' : 'outro';
+    out.moeda = /US\$|USD/.test(up) ? 'USD' : /€|EUR\b/.test(up) ? 'EUR' : 'BRL';
+    const rec = /RECEBEMOS DE (.+?) OS PRODUTOS/i.exec(all.replace(/\n/g, ' ')) || /(?:FORNECEDOR|RAZ[AÃ]O SOCIAL|EMPRESA)\s*:\s*(.+)/i.exec(all); if (rec) out.fornecedor = rec[1].split('\n')[0].trim();
+    if (!out.fornecedor) { const i = linhas.findIndex((l) => /IDENTIFICA[CÇ][AÃ]O DO EMITENTE/i.test(l)); const cand = (i >= 0 ? linhas.slice(i + 1, i + 4) : linhas.slice(0, 6)).find((l) => /[A-Z]{3,}/.test(l) && !/DANFE|DOCUMENTO|NOTA|P[AÁ]GINA|OR[CÇ]AMENTO|COTA[CÇ]|PEDIDO|^\d/i.test(l)); if (cand) out.fornecedor = cand.replace(/\s{2,}.*/, '').trim(); }
+    const nn = /N[ºo°]\.?\s*:?\s*([0-9][\w.\-/]*)/i.exec(all) || /(?:OR[CÇ]AMENTO|PEDIDO|COTA[CÇ][AÃ]O)\s*(?:N[ºo°.]*)?\s*:?\s*([A-Z0-9][\w\-/]{2,})/i.exec(all);
+    if (nn) out.documento = /^\d{3}\.\d{3}\.\d{3}$/.test(nn[1]) ? nn[1].replace(/\./g, '').replace(/^0+(?=\d)/, '') : nn[1];
+    const de = /(?:DATA (?:DA |DE )?EMISS[AÃ]O|EMISS[AÃ]O|DATA)\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i.exec(all) || /(\d{2}\/\d{2}\/\d{4})/.exec(all); if (de) out.data = dataISO(de[1]);
+    const vt = /VALOR TOTAL DA NOTA\s*:?\s*([\d.,]+)/i.exec(all) || /TOTAL GERAL\s*:?\s*R?\$?\s*([\d.,]+)/i.exec(all) || /\bTOTAL\s*:?\s*R\$\s*([\d.,]+)/i.exec(all); if (vt) out.total = numBR(vt[1]);
+    const fr = /VALOR DO FRETE\s*:?\s*([\d.,]+)/i.exec(all) || /\bFRETE\s*:?\s*R?\$?\s*([\d.,]+)/i.exec(all); if (fr) out.frete = numBR(fr[1]) || null;
+    const cp = /CONDI[CÇ][AÃ]O (?:DE )?PAGAMENTO\s*:?\s*(.+)/i.exec(all); if (cp) out.condicao_pagamento = cp[1].split('\n')[0].trim().slice(0, 80);
+    const va = /VALIDADE(?: DA PROPOSTA)?\s*:?\s*(.+)/i.exec(all); if (va) out.validade = va[1].split('\n')[0].trim().slice(0, 40);
+    // itens da DANFE: código, descrição, NCM (8 dígitos), CST, CFOP, unidade, quantidade, unitário, total…
+    const danfe = /^(\S+)\s+(.+?)\s+(\d{8})\s+(\d{3,4})\s+(\d{4})\s+([A-Za-zÇ²³]{1,6})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)((?:\s+[\d.,]+)*)\s*$/;
+    let last = null;
+    for (const l of linhas) {
+      const m = danfe.exec(l);
+      if (m) {
+        const resto = m[10].trim().split(/\s+/).filter(Boolean).map(numBR); // bc icms, v icms, v ipi, alíq icms, alíq ipi
+        const aliqs = resto.filter((v) => v !== null && v > 0 && v <= 30); const ipi = resto.length >= 5 ? resto[resto.length - 1] : 0;
+        last = { codigo: m[1], descricao: m[2].trim(), ncm: m[3], unidade: m[6].toUpperCase(), quantidade: numBR(m[7]) || 1, valor_unitario: numBR(m[8]) || 0, ipi_percentual: ipi && ipi <= 30 ? ipi : 0, icms_percentual: aliqs.length ? aliqs[resto.length >= 5 ? aliqs.length - 2 : aliqs.length - 1] || null : null };
+        out.itens.push(last); continue;
+      }
+      // continuação da descrição na linha de baixo (não as linhas de tributo aproximado)
+      if (last && !/TRIB\.? APROX|Fed\.?\s*R\$|^\d|^(DADOS|C[AÁ]LCULO|INFORMA|RESERVADO)|VALOR|TOTAL|IMPOSTO|BASE DE|TRANSPORTA|FATURA|DUPLICATA/i.test(l) && l.length < 90 && /[A-Z]{2,}/.test(l) && !/[\d.,]+\s+[\d.,]+\s+[\d.,]+$/.test(l)) { last.descricao += ' ' + l; continue; }
+      if (/DADOS ADICIONAIS|C[AÁ]LCULO DO ISSQN/i.test(l)) last = null;
+    }
+    if (!out.itens.length) {
+      // orçamento genérico: linha com descrição e três números em que qtd × unitário ≈ total
+      for (const l of linhas) {
+        const tk = l.split(' '); const nums = []; for (let i = tk.length - 1; i >= 0 && nums.length < 6; i--) { const t = tk[i].replace(/^R\$/, ''); if (NUM.test(t)) nums.unshift({ i, v: numBR(t) }); else if (nums.length) break; }
+        if (nums.length < 3) continue; let hit = null;
+        for (let a = 0; a < nums.length - 2 && !hit; a++) for (let b = a + 1; b < nums.length - 1 && !hit; b++) for (let c = b + 1; c < nums.length; c++) { const q = nums[a].v, u = nums[b].v, t = nums[c].v; if (q > 0 && u > 0 && t > 0 && Math.abs(q * u - t) <= Math.max(0.05, t * 0.005)) { hit = { q, u, i: nums[0].i }; break; } }
+        if (!hit) continue; let desc = tk.slice(0, hit.i).join(' ').trim(); let cod = null; const c0 = /^([A-Z0-9][\w.\-/]{2,})\s+(.+)$/.exec(desc); if (c0 && /\d/.test(c0[1]) && !/^\d{1,2}$/.test(c0[1])) { cod = c0[1]; desc = c0[2]; } desc = desc.replace(/^\d{1,3}\s+/, '');
+        const un = /\s(UN|UND|PC|P[CÇ]|KG|M|MT|CJ|JG|KIT|L|CX|PAR)$/i.exec(desc); if (un) desc = desc.slice(0, un.index);
+        if (desc.length >= 3) out.itens.push({ codigo: cod, descricao: desc, ncm: null, unidade: un ? un[1].toUpperCase() : null, quantidade: hit.q, valor_unitario: hit.u, ipi_percentual: 0, icms_percentual: null });
+      }
+    }
+    return out;
+  }
+
+  // ---------- Excel / CSV ----------
+  async function lerPlanilha(file) {
+    let rows = [];
+    if (/\.csv$|text\/csv/i.test(file.name + ' ' + file.type)) { const t = await file.text(); const sep = (t.split('\n')[0].match(/;/g) || []).length >= (t.split('\n')[0].match(/,/g) || []).length ? ';' : ','; rows = t.split(/\r?\n/).map((l) => l.split(sep).map((c) => c.replace(/^"|"$/g, '').trim())); }
+    else { await load(CDN.exceljs); const wb = new window.ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer()); const ws = wb.worksheets[0]; ws.eachRow((r) => { rows.push((r.values || []).slice(1).map((v) => (v && typeof v === 'object' ? (v.result !== undefined ? v.result : v.text || '') : v === undefined || v === null ? '' : v))); }); }
+    const out = vazio(); out.tipo = 'orcamento'; const norm = (s) => String(s).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const hi = rows.findIndex((r) => r.some((c) => /DESCRI/.test(norm(c))) && r.some((c) => /QTD|QUANT/.test(norm(c)))); if (hi < 0) return out;
+    const H = rows[hi].map(norm); const col = (re) => H.findIndex((h) => re.test(h));
+    const cD = col(/DESCRI/), cQ = col(/QTD|QUANT/), cU = col(/UNIT|PRECO UN|VALOR UN|V\. UN/), cC = col(/COD/), cN = col(/NCM/), cUn = col(/^UN|UNID/), cI = col(/IPI/);
+    for (const r of rows.slice(hi + 1)) { const d = String(r[cD] || '').trim(); const q = numBR(r[cQ]); const u = cU >= 0 ? numBR(r[cU]) : null; if (!d || !q) continue; out.itens.push({ codigo: cC >= 0 ? String(r[cC] || '') || null : null, descricao: d, ncm: cN >= 0 ? String(r[cN] || '') || null : null, unidade: cUn >= 0 && cUn !== cU ? String(r[cUn] || '') || null : null, quantidade: q, valor_unitario: u || 0, ipi_percentual: cI >= 0 ? (numBR(r[cI]) || 0) * (numBR(r[cI]) < 1 ? 100 : 1) : 0, icms_percentual: null }); }
+    return out;
+  }
+
+  async function ler(file, onStatus) {
+    const nm = (file.name || '').toLowerCase(); const ty = file.type || '';
+    if (/\.xml$/.test(nm) || /xml/.test(ty)) { onStatus && onStatus('Lendo o XML da nota…'); const r = lerXml(await file.text()); if (r) return Object.assign(r, { _via: 'xml' }); throw new Error('Esse XML não parece uma NF-e.'); }
+    if (/\.(xlsx|csv)$/.test(nm)) { onStatus && onStatus('Lendo a planilha…'); return Object.assign(await lerPlanilha(file), { _via: 'planilha' }); }
+    if (/pdf$/.test(ty) || /\.pdf$/.test(nm)) {
+      onStatus && onStatus('Lendo o PDF…'); const r = await pdfLinhas(file);
+      if (r.linhas.join('').replace(/\s/g, '').length >= 80) return Object.assign(lerTexto(r.linhas), { _via: 'pdf' });
+      const imgs = []; for (const pg of r.pages.slice(0, 3)) imgs.push(await pageImage(pg));
+      return Object.assign(lerTexto(await ocr(imgs, onStatus)), { _via: 'ocr' });
+    }
+    if (/^image\//.test(ty)) return Object.assign(lerTexto(await ocr([file], onStatus)), { _via: 'ocr' });
+    return Object.assign(lerTexto((await file.text()).split(/\r?\n/)), { _via: 'texto' });
+  }
+  window.PricerLeitor = { ler, lerTexto, lerXml, numBR };
+})();
+
+</script>
 <script>/* spv.js */
 /* LS Pricer — página inicial, formação de custo SPV (serviços e pós-venda) e documentos.
  * Lógica da planilha "PRECIFICAÇÃO SERVIÇOS MASTERDOC": custo da prestação (equipe e
@@ -2055,8 +2203,16 @@ Extraia os dados e responda SÓ com um objeto JSON neste formato:
 {"fornecedor": string, "documento": string (número do orçamento/pedido/nota), "data": "AAAA-MM-DD" ou null, "tipo": "orcamento"|"nota"|"pedido"|"outro", "moeda": "BRL"|"USD"|"EUR", "condicao_pagamento": string ou null, "validade": string ou null, "frete": número ou null, "total": número ou null,
  "itens": [{"codigo": string ou null, "descricao": string, "ncm": string ou null, "unidade": string ou null, "quantidade": número, "valor_unitario": número (sem IPI), "ipi_percentual": número (ex.: 3.25 para 3,25%) ou 0, "icms_percentual": número ou null}]}
 Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe null o que não estiver no documento. Ignore linhas de impostos aproximados ("Trib aprox").`;
+    // leitura no navegador primeiro (XML, PDF, planilha, OCR); o Claude só entra se a leitura local não achar itens e ele estiver disponível
     async function lerDocumento(file, onStatus) {
-      const sample = await getSample(); if (!sample) throw { code: 'unavailable' };
+      let local = null;
+      try { local = await window.PricerLeitor.ler(file, onStatus); } catch (e) { local = null; }
+      if (local && local.itens && local.itens.length) return local;
+      const sample = await getSample();
+      if (!sample) { if (local) return local; throw { code: 'unavailable' }; }
+      try { return await lerComClaude(sample, file, onStatus); } catch (e) { if (local) return local; throw e; }
+    }
+    async function lerComClaude(sample, file, onStatus) {
       let text = '', images;
       if (/pdf$/i.test(file.type) || /\.pdf$/i.test(file.name)) {
         onStatus && onStatus('Lendo o PDF…'); const r = await pdfText(file); text = r.text;
@@ -2069,7 +2225,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         images = images.filter((b) => b && b.size <= caps.images.maxInputBytes).slice(0, caps.images.maxCount);
         if (!images.length) throw { code: 'image_rejected' };
       }
-      onStatus && onStatus('Claude está lendo o documento…');
+      onStatus && onStatus('Lendo o documento com Claude…');
       const input = PROMPT + (text ? '\n\nTEXTO DO DOCUMENTO:\n' + text.slice(0, 28000) : '\n\nO documento está nas imagens anexas.');
       return sample.json(input, images && images.length ? { images } : {});
     }
@@ -2235,7 +2391,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           ${precoMudou ? `<div class="banner warn">Os preços de deslocamento mudaram no cadastro depois que esta proposta foi criada. <button class="restore" data-spprecos>Usar os preços atuais</button></div>` : ''}</section>` : ''}
         ${s.blocos.pecas ? `<section class="card"><h2>Peças e materiais <span class="sub">custo ${brl(r.custoPecas)} · venda ${brl(r.Vp)}</span></h2>
           <div class="tw"><table class="t reg pecas"><thead><tr><th>Incl.</th><th>Descrição</th><th>Qtd</th><th>Moeda</th><th>Unit.</th><th>IPI</th><th>Custo unit. R$</th><th>Fator</th><th>Venda</th><th></th></tr></thead><tbody>${pRows || '<tr><td colspan="10" class="sub">Nenhuma peça. Adicione à mão ou importe um orçamento de fornecedor.</td></tr>'}</tbody></table></div>
-          <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="pecas">+ Peça</button><label class="btn sm pri" for="spImport">📎 Importar orçamento (PDF ou foto)</label><input type="file" id="spImport" accept="application/pdf,image/*" hidden><span class="sub">Claude lê o documento e traz fornecedor, itens e preços.</span></div>${dl}</section>` : ''}
+          <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="pecas">+ Peça</button><label class="btn sm pri" for="spImport">📎 Importar orçamento (PDF, XML, Excel ou foto)</label><input type="file" id="spImport" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden><span class="sub">Claude lê o documento e traz fornecedor, itens e preços.</span></div>${dl}</section>` : ''}
         ${s.blocos.contrato ? `<section class="card"><h2>Contrato recorrente <span class="sub">o preço acima vale por visita</span></h2>
           <div class="hchips" style="margin-bottom:10px">${FREQ.map(([v, lb]) => `<button class="hchip${num(s.contrato.visitas) === v ? ' on' : ''}" data-spvis="${v}">${lb} · ${v}×/ano</button>`).join('')}</div>
           <div class="fields">${fld('Visitas por ano', inp('contrato.visitas', s.contrato.visitas))}${fld('Duração (meses)', inp('contrato.meses', s.contrato.meses))}${fld('Reajuste', inp('contrato.reajuste', s.contrato.reajuste, 'text'))}</div>
@@ -2281,7 +2437,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const up = canUpload();
       return `<div class="stack">
         <div class="flowhead"><div><h1>Documentos</h1><div class="sub">Orçamentos de fornecedores, notas, contratos e desenhos, ligados às propostas. ${shared() ? 'Visíveis para toda a equipe.' : 'Neste arquivo, ficam só neste navegador.'}</div></div></div>
-        ${up ? `<label class="drop" for="docUp" id="docDrop"><b>Solte aqui um orçamento, nota ou contrato</b><span class="sub">PDF ou foto. Claude lê e preenche fornecedor, número, valores e itens.</span><input type="file" id="docUp" accept="application/pdf,image/*,.csv,.txt" hidden></label>` : '<div class="banner warn">Para anexar arquivos é preciso acesso de Editor ao app. Você ainda pode consultar os documentos.</div>'}
+        ${up ? `<label class="drop" for="docUp" id="docDrop"><b>Solte aqui um orçamento, nota ou contrato</b><span class="sub">PDF, XML da NF-e, Excel ou foto. O app lê e preenche fornecedor, número, valores e itens.</span><input type="file" id="docUp" accept="application/pdf,image/*,.xml,.xlsx,.csv,.txt" hidden></label>` : '<div class="banner warn">Para anexar arquivos é preciso acesso de Editor ao app. Você ainda pode consultar os documentos.</div>'}
         <div class="sheetbar"><input id="docQ" type="search" placeholder="Buscar por fornecedor, peça, número…" value="${esc(ui.docQ || '')}" aria-label="Buscar documentos"><select id="docT" aria-label="Tipo"><option value="">Todos os tipos</option>${DOC_TIPOS.map(([k, l]) => `<option value="${k}"${t === k ? ' selected' : ''}>${l}</option>`).join('')}</select><span class="sub">${list.length} de ${docs.length}</span></div>
         ${list.length ? docList(list) : '<section class="card"><p class="sub" style="margin:0">Nenhum documento ainda.</p></section>'}
       </div>`;
@@ -2345,7 +2501,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       if (file.size > 20 * 1024 * 1024) return toast('Arquivo acima de 20 MB.');
       const base = Object.assign({ nome: file.name, tipo: 'orcamento', moeda: 'BRL', itens: [] }, extra || {});
       const st0 = st(); const link = st0.div === 'SPV' || toPecas;
-      docModal(base, file, { status: 'Claude está lendo o documento…', toPecas, linkCurrent: link });
+      docModal(base, file, { status: 'Lendo o documento…', toPecas, linkCurrent: link });
       try {
         const j = await lerDocumento(file, (m) => { const el = document.getElementById('mdStatus'); if (el) el.textContent = m; });
         const d = Object.assign(base, { tipo: j.tipo || 'orcamento', fornecedor: j.fornecedor || '', numero: j.documento || '', data: /^\d{4}-\d{2}-\d{2}$/.test(j.data || '') ? j.data : '', moeda: ['USD', 'EUR'].includes(j.moeda) ? j.moeda : 'BRL',
@@ -2354,7 +2510,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         docModal(d, file, { status: `Lido: ${d.itens.length} item(ns). Confira antes de salvar.`, toPecas, linkCurrent: link });
       } catch (e) {
         const el = document.getElementById('mdStatus');
-        if (el) el.textContent = e && e.code === 'unavailable' ? 'A leitura automática só funciona no app publicado no claude.ai. Preencha os dados à mão.' : e && e.code === 'not_granted' ? 'A leitura com Claude não foi permitida. Preencha os dados à mão.' : e && (e.code === 'images_unavailable' || e.code === 'image_rejected') ? 'Este documento é uma imagem e a leitura de imagens não está disponível aqui. Preencha os dados à mão.' : 'Não consegui ler este documento' + (e && e.code ? ' (' + e.code + ')' : '') + '. Preencha os dados à mão.';
+        if (el) el.textContent = e && e.code === 'unavailable' ? 'Não consegui ler esse arquivo. Preencha os dados à mão (XML da NF-e é o formato mais seguro).' : e && e.code === 'not_granted' ? 'A leitura com Claude não foi permitida. Preencha os dados à mão.' : e && (e.code === 'images_unavailable' || e.code === 'image_rejected') ? 'Este documento é uma imagem e a leitura de imagens não está disponível aqui. Preencha os dados à mão.' : 'Não consegui ler este documento' + (e && e.code ? ' (' + e.code + ')' : '') + '. Preencha os dados à mão.';
       }
     }
 
@@ -3181,7 +3337,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
           <div class="kpi"><span>Impostos e comissões</span><b>${brl(R.impostos + R.comissao)}</b><em>impostos ${brl(R.impostos)} · comissões ${brl(R.comissao)}</em></div>
           <div class="kpi"><span>Custo previsto × real</span><b>${brl(R.custoReal)}</b><em>previsto ${brl(R.custo)} (${R.custoReal - R.custo >= 0 ? '+' : '−'}${brl(Math.abs(R.custoReal - R.custo)).replace('R$ ', '')})</em></div>
           <div class="kpi"><span>Apontamento</span><b>${pct(R.cobertura, 0)}</b><em>${R.apontadas} de ${R.linhas} linhas com custo real</em></div></div>
-        <div class="docbar">${ed ? `<label class="btn pri" for="mgNf">📎 Ler NF ou pedido de compra com Claude</label><input type="file" id="mgNf" accept="application/pdf,image/*" hidden>` : ''}
+        <div class="docbar">${ed ? `<label class="btn pri" for="mgNf">📎 Ler NF ou pedido de compra com Claude</label><input type="file" id="mgNf" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden>` : ''}
           <button class="btn" data-mgxls="${esc(F0.id)}">Planilha do fechamento (Excel)</button>
           <label class="chk">Execução <select data-mgexec="${esc(F0.id)}"${ed ? '' : ' disabled'}>${['em andamento', 'fabricação concluída', 'entregue', 'encerrada'].map((x) => `<option${(F0.execucao || 'em andamento') === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
           ${REG.canEditCadastro || REG.mode === 'local' ? `<button class="btn" data-mgreopen="${esc(F0.id)}">Desfazer baixa</button>` : ''}</div>
@@ -3202,10 +3358,10 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     async function lerNf(id, file) {
       const F = fech.find((f) => f.id === id); if (!F || !file) return;
       const R = realizado(F); const linhas = R.itens.flatMap((it) => it.linhas.map((l) => ({ it, l })));
-      modal(`<h2>Lendo ${esc(file.name)}…</h2><p class="sub" id="nfSt">Claude está lendo o documento…</p><div><button class="btn" data-close>Cancelar</button></div>`);
+      modal(`<h2>Lendo ${esc(file.name)}…</h2><p class="sub" id="nfSt">Lendo o documento…</p><div><button class="btn" data-close>Cancelar</button></div>`);
       let j;
       try { j = await ctx.SPV.lerDocumento(file, (m) => { const el = document.getElementById('nfSt'); if (el) el.textContent = m; }); }
-      catch (e) { const el = document.getElementById('nfSt'); if (el) el.textContent = e && e.code === 'unavailable' ? 'A leitura automática só funciona no app publicado no claude.ai. Lance os valores à mão.' : 'Não consegui ler o documento' + (e && e.code ? ' (' + e.code + ')' : '') + '.'; return; }
+      catch (e) { const el = document.getElementById('nfSt'); if (el) el.textContent = e && e.code === 'unavailable' ? 'Não consegui ler esse arquivo. Lance os valores à mão (XML da NF-e é o formato mais seguro).' : 'Não consegui ler o documento' + (e && e.code ? ' (' + e.code + ')' : '') + '.'; return; }
       const its = (j.itens || []).filter((x) => x && x.descricao).map((x) => ({ x, v: num(x.quantidade || 1) * num(x.valor_unitario) * (1 + num(x.ipi_percentual) / 100) }));
       const best = its.map(({ x, v }) => { let b = null, bs = 0; for (const c of linhas) { const sc = Math.max(score(x.descricao, c.l.desc), score(x.descricao, c.l.rot) * 0.8); if (sc > bs) { bs = sc; b = c; } } return { x, v, alvo: bs >= 0.34 ? b : null, sc: bs }; });
       const opts = (sel) => `<option value="">— não lançar —</option>${linhas.map((c, i) => `<option value="${i}"${sel === c ? ' selected' : ''}>${esc((c.it.nome || '').slice(0, 24) + ' › ' + (c.l.desc || c.l.rot || '').slice(0, 60))}</option>`).join('')}<option value="extra">+ custo não previsto</option>`;
@@ -3452,7 +3608,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial'); };
     function etapasHtml(p) {
       const L = etapas(p); const prox = L.find((x) => x.s === 'pend' || x.s === 'parcial');
-      return `<div class="etapas">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
+      return `<div class="etapas" style="--n:${L.length}">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
         <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
     }
     async function salvarEtapa(p, k, val, desc) {
@@ -4911,7 +5067,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         <button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button>
       </div>
       ${!isNew ? ondeUsadoHtml(rec) : ''}
-      ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*" hidden></div>` : ''}
+      ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden></div>` : ''}
       ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
     (o, close) => {
       fillNames(o);

@@ -243,7 +243,7 @@
           <div class="kpi"><span>Impostos e comissões</span><b>${brl(R.impostos + R.comissao)}</b><em>impostos ${brl(R.impostos)} · comissões ${brl(R.comissao)}</em></div>
           <div class="kpi"><span>Custo previsto × real</span><b>${brl(R.custoReal)}</b><em>previsto ${brl(R.custo)} (${R.custoReal - R.custo >= 0 ? '+' : '−'}${brl(Math.abs(R.custoReal - R.custo)).replace('R$ ', '')})</em></div>
           <div class="kpi"><span>Apontamento</span><b>${pct(R.cobertura, 0)}</b><em>${R.apontadas} de ${R.linhas} linhas com custo real</em></div></div>
-        <div class="docbar">${ed ? `<label class="btn pri" for="mgNf">📎 Ler NF ou pedido de compra com Claude</label><input type="file" id="mgNf" accept="application/pdf,image/*" hidden>` : ''}
+        <div class="docbar">${ed ? `<label class="btn pri" for="mgNf">📎 Ler NF ou pedido de compra com Claude</label><input type="file" id="mgNf" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden>` : ''}
           <button class="btn" data-mgxls="${esc(F0.id)}">Planilha do fechamento (Excel)</button>
           <label class="chk">Execução <select data-mgexec="${esc(F0.id)}"${ed ? '' : ' disabled'}>${['em andamento', 'fabricação concluída', 'entregue', 'encerrada'].map((x) => `<option${(F0.execucao || 'em andamento') === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
           ${REG.canEditCadastro || REG.mode === 'local' ? `<button class="btn" data-mgreopen="${esc(F0.id)}">Desfazer baixa</button>` : ''}</div>
@@ -264,10 +264,10 @@
     async function lerNf(id, file) {
       const F = fech.find((f) => f.id === id); if (!F || !file) return;
       const R = realizado(F); const linhas = R.itens.flatMap((it) => it.linhas.map((l) => ({ it, l })));
-      modal(`<h2>Lendo ${esc(file.name)}…</h2><p class="sub" id="nfSt">Claude está lendo o documento…</p><div><button class="btn" data-close>Cancelar</button></div>`);
+      modal(`<h2>Lendo ${esc(file.name)}…</h2><p class="sub" id="nfSt">Lendo o documento…</p><div><button class="btn" data-close>Cancelar</button></div>`);
       let j;
       try { j = await ctx.SPV.lerDocumento(file, (m) => { const el = document.getElementById('nfSt'); if (el) el.textContent = m; }); }
-      catch (e) { const el = document.getElementById('nfSt'); if (el) el.textContent = e && e.code === 'unavailable' ? 'A leitura automática só funciona no app publicado no claude.ai. Lance os valores à mão.' : 'Não consegui ler o documento' + (e && e.code ? ' (' + e.code + ')' : '') + '.'; return; }
+      catch (e) { const el = document.getElementById('nfSt'); if (el) el.textContent = e && e.code === 'unavailable' ? 'Não consegui ler esse arquivo. Lance os valores à mão (XML da NF-e é o formato mais seguro).' : 'Não consegui ler o documento' + (e && e.code ? ' (' + e.code + ')' : '') + '.'; return; }
       const its = (j.itens || []).filter((x) => x && x.descricao).map((x) => ({ x, v: num(x.quantidade || 1) * num(x.valor_unitario) * (1 + num(x.ipi_percentual) / 100) }));
       const best = its.map(({ x, v }) => { let b = null, bs = 0; for (const c of linhas) { const sc = Math.max(score(x.descricao, c.l.desc), score(x.descricao, c.l.rot) * 0.8); if (sc > bs) { bs = sc; b = c; } } return { x, v, alvo: bs >= 0.34 ? b : null, sc: bs }; });
       const opts = (sel) => `<option value="">— não lançar —</option>${linhas.map((c, i) => `<option value="${i}"${sel === c ? ' selected' : ''}>${esc((c.it.nome || '').slice(0, 24) + ' › ' + (c.l.desc || c.l.rot || '').slice(0, 60))}</option>`).join('')}<option value="extra">+ custo não previsto</option>`;
@@ -514,7 +514,7 @@
     const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial'); };
     function etapasHtml(p) {
       const L = etapas(p); const prox = L.find((x) => x.s === 'pend' || x.s === 'parcial');
-      return `<div class="etapas">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
+      return `<div class="etapas" style="--n:${L.length}">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
         <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
     }
     async function salvarEtapa(p, k, val, desc) {

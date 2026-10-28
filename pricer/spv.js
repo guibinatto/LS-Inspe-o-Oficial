@@ -233,8 +233,16 @@ Extraia os dados e responda SÓ com um objeto JSON neste formato:
 {"fornecedor": string, "documento": string (número do orçamento/pedido/nota), "data": "AAAA-MM-DD" ou null, "tipo": "orcamento"|"nota"|"pedido"|"outro", "moeda": "BRL"|"USD"|"EUR", "condicao_pagamento": string ou null, "validade": string ou null, "frete": número ou null, "total": número ou null,
  "itens": [{"codigo": string ou null, "descricao": string, "ncm": string ou null, "unidade": string ou null, "quantidade": número, "valor_unitario": número (sem IPI), "ipi_percentual": número (ex.: 3.25 para 3,25%) ou 0, "icms_percentual": número ou null}]}
 Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe null o que não estiver no documento. Ignore linhas de impostos aproximados ("Trib aprox").`;
+    // leitura no navegador primeiro (XML, PDF, planilha, OCR); o Claude só entra se a leitura local não achar itens e ele estiver disponível
     async function lerDocumento(file, onStatus) {
-      const sample = await getSample(); if (!sample) throw { code: 'unavailable' };
+      let local = null;
+      try { local = await window.PricerLeitor.ler(file, onStatus); } catch (e) { local = null; }
+      if (local && local.itens && local.itens.length) return local;
+      const sample = await getSample();
+      if (!sample) { if (local) return local; throw { code: 'unavailable' }; }
+      try { return await lerComClaude(sample, file, onStatus); } catch (e) { if (local) return local; throw e; }
+    }
+    async function lerComClaude(sample, file, onStatus) {
       let text = '', images;
       if (/pdf$/i.test(file.type) || /\.pdf$/i.test(file.name)) {
         onStatus && onStatus('Lendo o PDF…'); const r = await pdfText(file); text = r.text;
@@ -247,7 +255,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         images = images.filter((b) => b && b.size <= caps.images.maxInputBytes).slice(0, caps.images.maxCount);
         if (!images.length) throw { code: 'image_rejected' };
       }
-      onStatus && onStatus('Claude está lendo o documento…');
+      onStatus && onStatus('Lendo o documento com Claude…');
       const input = PROMPT + (text ? '\n\nTEXTO DO DOCUMENTO:\n' + text.slice(0, 28000) : '\n\nO documento está nas imagens anexas.');
       return sample.json(input, images && images.length ? { images } : {});
     }
@@ -413,7 +421,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           ${precoMudou ? `<div class="banner warn">Os preços de deslocamento mudaram no cadastro depois que esta proposta foi criada. <button class="restore" data-spprecos>Usar os preços atuais</button></div>` : ''}</section>` : ''}
         ${s.blocos.pecas ? `<section class="card"><h2>Peças e materiais <span class="sub">custo ${brl(r.custoPecas)} · venda ${brl(r.Vp)}</span></h2>
           <div class="tw"><table class="t reg pecas"><thead><tr><th>Incl.</th><th>Descrição</th><th>Qtd</th><th>Moeda</th><th>Unit.</th><th>IPI</th><th>Custo unit. R$</th><th>Fator</th><th>Venda</th><th></th></tr></thead><tbody>${pRows || '<tr><td colspan="10" class="sub">Nenhuma peça. Adicione à mão ou importe um orçamento de fornecedor.</td></tr>'}</tbody></table></div>
-          <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="pecas">+ Peça</button><label class="btn sm pri" for="spImport">📎 Importar orçamento (PDF ou foto)</label><input type="file" id="spImport" accept="application/pdf,image/*" hidden><span class="sub">Claude lê o documento e traz fornecedor, itens e preços.</span></div>${dl}</section>` : ''}
+          <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="pecas">+ Peça</button><label class="btn sm pri" for="spImport">📎 Importar orçamento (PDF, XML, Excel ou foto)</label><input type="file" id="spImport" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden><span class="sub">Claude lê o documento e traz fornecedor, itens e preços.</span></div>${dl}</section>` : ''}
         ${s.blocos.contrato ? `<section class="card"><h2>Contrato recorrente <span class="sub">o preço acima vale por visita</span></h2>
           <div class="hchips" style="margin-bottom:10px">${FREQ.map(([v, lb]) => `<button class="hchip${num(s.contrato.visitas) === v ? ' on' : ''}" data-spvis="${v}">${lb} · ${v}×/ano</button>`).join('')}</div>
           <div class="fields">${fld('Visitas por ano', inp('contrato.visitas', s.contrato.visitas))}${fld('Duração (meses)', inp('contrato.meses', s.contrato.meses))}${fld('Reajuste', inp('contrato.reajuste', s.contrato.reajuste, 'text'))}</div>
@@ -459,7 +467,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const up = canUpload();
       return `<div class="stack">
         <div class="flowhead"><div><h1>Documentos</h1><div class="sub">Orçamentos de fornecedores, notas, contratos e desenhos, ligados às propostas. ${shared() ? 'Visíveis para toda a equipe.' : 'Neste arquivo, ficam só neste navegador.'}</div></div></div>
-        ${up ? `<label class="drop" for="docUp" id="docDrop"><b>Solte aqui um orçamento, nota ou contrato</b><span class="sub">PDF ou foto. Claude lê e preenche fornecedor, número, valores e itens.</span><input type="file" id="docUp" accept="application/pdf,image/*,.csv,.txt" hidden></label>` : '<div class="banner warn">Para anexar arquivos é preciso acesso de Editor ao app. Você ainda pode consultar os documentos.</div>'}
+        ${up ? `<label class="drop" for="docUp" id="docDrop"><b>Solte aqui um orçamento, nota ou contrato</b><span class="sub">PDF, XML da NF-e, Excel ou foto. O app lê e preenche fornecedor, número, valores e itens.</span><input type="file" id="docUp" accept="application/pdf,image/*,.xml,.xlsx,.csv,.txt" hidden></label>` : '<div class="banner warn">Para anexar arquivos é preciso acesso de Editor ao app. Você ainda pode consultar os documentos.</div>'}
         <div class="sheetbar"><input id="docQ" type="search" placeholder="Buscar por fornecedor, peça, número…" value="${esc(ui.docQ || '')}" aria-label="Buscar documentos"><select id="docT" aria-label="Tipo"><option value="">Todos os tipos</option>${DOC_TIPOS.map(([k, l]) => `<option value="${k}"${t === k ? ' selected' : ''}>${l}</option>`).join('')}</select><span class="sub">${list.length} de ${docs.length}</span></div>
         ${list.length ? docList(list) : '<section class="card"><p class="sub" style="margin:0">Nenhum documento ainda.</p></section>'}
       </div>`;
@@ -523,7 +531,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       if (file.size > 20 * 1024 * 1024) return toast('Arquivo acima de 20 MB.');
       const base = Object.assign({ nome: file.name, tipo: 'orcamento', moeda: 'BRL', itens: [] }, extra || {});
       const st0 = st(); const link = st0.div === 'SPV' || toPecas;
-      docModal(base, file, { status: 'Claude está lendo o documento…', toPecas, linkCurrent: link });
+      docModal(base, file, { status: 'Lendo o documento…', toPecas, linkCurrent: link });
       try {
         const j = await lerDocumento(file, (m) => { const el = document.getElementById('mdStatus'); if (el) el.textContent = m; });
         const d = Object.assign(base, { tipo: j.tipo || 'orcamento', fornecedor: j.fornecedor || '', numero: j.documento || '', data: /^\d{4}-\d{2}-\d{2}$/.test(j.data || '') ? j.data : '', moeda: ['USD', 'EUR'].includes(j.moeda) ? j.moeda : 'BRL',
@@ -532,7 +540,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         docModal(d, file, { status: `Lido: ${d.itens.length} item(ns). Confira antes de salvar.`, toPecas, linkCurrent: link });
       } catch (e) {
         const el = document.getElementById('mdStatus');
-        if (el) el.textContent = e && e.code === 'unavailable' ? 'A leitura automática só funciona no app publicado no claude.ai. Preencha os dados à mão.' : e && e.code === 'not_granted' ? 'A leitura com Claude não foi permitida. Preencha os dados à mão.' : e && (e.code === 'images_unavailable' || e.code === 'image_rejected') ? 'Este documento é uma imagem e a leitura de imagens não está disponível aqui. Preencha os dados à mão.' : 'Não consegui ler este documento' + (e && e.code ? ' (' + e.code + ')' : '') + '. Preencha os dados à mão.';
+        if (el) el.textContent = e && e.code === 'unavailable' ? 'Não consegui ler esse arquivo. Preencha os dados à mão (XML da NF-e é o formato mais seguro).' : e && e.code === 'not_granted' ? 'A leitura com Claude não foi permitida. Preencha os dados à mão.' : e && (e.code === 'images_unavailable' || e.code === 'image_rejected') ? 'Este documento é uma imagem e a leitura de imagens não está disponível aqui. Preencha os dados à mão.' : 'Não consegui ler este documento' + (e && e.code ? ' (' + e.code + ')' : '') + '. Preencha os dados à mão.';
       }
     }
 
