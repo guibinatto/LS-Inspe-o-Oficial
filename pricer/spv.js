@@ -322,7 +322,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       ensureDocs();
       const ui = ctx.ui; const all = REG.listPropostas() || []; const q = norm(ui.homeQ || ''); const f = ui.homeDiv || 'todas';
       const hay = (p) => norm([p.numero, p.cliente, p.name, p.status, divOf(p), p.tipo, p.spv && (p.spv.descricao + ' ' + p.spv.local + ' ' + (p.spv.pecas || []).map((x) => x.desc + ' ' + (x.forn || '')).join(' '))].join(' '));
-      const list = all.filter((p) => (f === 'todas' || divOf(p) === f || p.status === f) && (!q || hay(p).includes(q)));
+      const pend = { pend_fin: 'financeiro', pend_eng: 'engenharia', pend_real: 'real' };
+      const list = all.filter((p) => (f === 'todas' || divOf(p) === f || p.status === f || (pend[f] && ctx.etapaPendente && ctx.etapaPendente(p, pend[f]))) && (!q || hay(p).includes(q)));
       const sx = stats(all); const docsHit = q ? docs.filter((d) => norm([d.nome, d.fornecedor, d.numero, (d.itens || []).map((i) => i.descricao).join(' ')].join(' ')).includes(q)).slice(0, 6) : [];
       const pill = (s) => { const x = STATUS.find((y) => y[0] === s) || STATUS[0]; return `<span class="pill ${x[2]}">${x[1]}</span>`; };
       const rows = list.slice(0, 60).map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
@@ -331,8 +332,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
         <td><select data-hstatus="${esc(p.id)}" aria-label="Status">${STATUS.map(([k, lb]) => `<option value="${k}"${(p.status || 'rascunho') === k ? ' selected' : ''}>${lb}</option>`).join('')}</select></td>
         <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
-        <td><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${p.status === 'perdida' ? '' : p.status === 'ganha' ? ` <button class="btn sm pri" data-mgreal="${esc(p.id)}" title="Lançar o custo real de compras e fabricação">Custo real</button>` : ` <button class="btn sm" data-mgclose="${esc(p.id)}" title="Registrar como fechada e congelar a formação">Dar baixa</button>`}</td></tr>`).join('');
-      const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['enviada', 'Enviadas'], ['negociacao', 'Em negociação'], ['ganha', 'Ganhas']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
+        <td><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${p.status === 'perdida' ? '' : p.status === 'ganha' ? ` <button class="btn sm pri" data-mgreal="${esc(p.id)}" title="Lançar o custo real de compras e fabricação">Custo real</button>` : ` <button class="btn sm" data-mgclose="${esc(p.id)}" title="Registrar como fechada e congelar a formação">Dar baixa</button>`}</td></tr>${ctx.etapasHtml ? `<tr class="etrow"><td colspan="6">${ctx.etapasHtml(p)}</td></tr>` : ''}`).join('');
+      const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['enviada', 'Enviadas'], ['negociacao', 'Em negociação'], ['ganha', 'Ganhas'], ['pend_fin', 'Falta financeiro'], ['pend_eng', 'Falta engenharia'], ['pend_real', 'Falta custo real']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
       const tipos = spvTipos().map((t) => `<button class="tchip" data-spvnew="${t.abrev}" title="${esc(t.desc)}"><b>${esc((TIPO_INI[t.abrev] || {}).titulo || t.nome)}</b><small>${esc(t.abrev)}</small></button>`).join('');
       return `<div class="stack home">
         <div class="hero"><div><h1>Formação de preço</h1><div class="sub">Busque uma proposta antiga ou comece uma nova.</div></div>

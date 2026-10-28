@@ -18,7 +18,8 @@
     const $ = (s, el = document) => el.querySelector(s);
     const ui = ctx.ui;
     const shared = () => REG.mode === 'shared' && !!REG.db;
-    const canReal = () => REG.areaOk('custos');
+    // custo real: Engenharia (e Custos) preenchem
+    const canReal = () => REG.areaOk('engenharia') || REG.areaOk('custos');
     const fmtD = (d) => { try { return new Date(d).toLocaleDateString('pt-BR'); } catch (e) { return d || ''; } };
     const mi = (v) => (Math.abs(v) >= 1e6 ? 'R$ ' + NF[1].format(v / 1e6) + ' mi' : Math.abs(v) >= 1e3 ? 'R$ ' + NF[0].format(v / 1e3) + ' mil' : brl(v));
 
@@ -406,7 +407,59 @@
       const rd = t.closest('[data-rexdel]'); if (rd) { const [n, i] = rd.dataset.rexdel.split('|'); setReal(ui.mgId, (real) => { if (real[n] && real[n].extras) real[n].extras.splice(+i, 1); }); }
     });
 
-    return { vMargens, fecharModal, ensure, fechDe, excel };
+    // ---------- etapas da proposta (página inicial) ----------
+    const ETAPAS = [['formacao', 'Formação'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Enviada ao financeiro'], ['engenharia', 'Enviada à engenharia'], ['real', 'Custo real preenchido'], ['encerrada', 'Encerrada']];
+    const dt = (iso) => { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); } catch (e) { return ''; } };
+    function etapas(p) {
+      ensure(); const F = fechDe(p.id); const e = p.etapas || {}; const st = p.status || 'rascunho'; const perdida = st === 'perdida';
+      const R = F ? realizado(F) : null;
+      return ETAPAS.map(([k, lb]) => {
+        let s = 'pend', info = '', act = null;
+        if (k === 'formacao') { s = 'ok'; info = dt(p.at); }
+        else if (k === 'cliente') { if (['enviada', 'negociacao', 'ganha', 'perdida'].includes(st) || F) { s = 'ok'; info = e.cliente ? dt(e.cliente.at) : ''; } else act = 'cliente'; }
+        else if (perdida) { s = 'off'; info = k === 'baixa' ? 'perdida' : ''; }
+        else if (k === 'baixa') { if (F) { s = 'ok'; info = dt(F.fechadoEm); } else act = 'baixa'; }
+        else if (!F) s = 'off';
+        else if (k === 'real') { act = 'real'; if (R.cobertura >= 1 - 1e-9) { s = 'ok'; info = '100%'; } else if (R.apontadas) { s = 'parcial'; info = pct(R.cobertura, 0); } }
+        else if (k === 'encerrada') { act = 'marcar'; if (e.encerrada || F.execucao === 'encerrada') { s = 'ok'; info = e.encerrada ? dt(e.encerrada.at) : ''; } }
+        else { act = 'marcar'; if (e[k]) { s = 'ok'; info = dt(e[k].at); } }
+        return { k, lb, s, info, act, obs: e[k] && e[k].obs };
+      });
+    }
+    const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial'); };
+    function etapasHtml(p) {
+      const L = etapas(p); const prox = L.find((x) => x.s === 'pend' || x.s === 'parcial');
+      return `<div class="etapas">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
+        <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
+    }
+    async function salvarEtapa(p, k, val, desc) {
+      const rec = Object.assign({}, p); delete rec.id; delete rec.local; rec.etapas = Object.assign({}, p.etapas || {}); if (val) rec.etapas[k] = val; else delete rec.etapas[k];
+      await REG.saveProposta(p.id, rec);
+      ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — ' + desc, mudancas: [{ campo: (ETAPAS.find((x) => x[0] === k) || [0, k])[1], de: val ? null : 'feito', para: val ? 'feito' + (val.obs ? ' · ' + val.obs : '') : null }] });
+      ctx.render();
+    }
+    document.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-etp]'); if (!b || b.disabled) return;
+      const [pid, k] = b.dataset.etp.split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
+      const x = etapas(p).find((y) => y.k === k); if (!x) return;
+      if (x.act === 'baixa') { fecharModal(p); return; }
+      if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
+      if (x.act === 'cliente') { const rec = Object.assign({}, p, { status: 'enviada', etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }); delete rec.id; delete rec.local;
+        REG.saveProposta(p.id, rec).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
+      if (x.act !== 'marcar') return;
+      if (x.s === 'ok') { if (!window.confirm('Desmarcar "' + x.lb + '"?')) return; salvarEtapa(p, k, null, x.lb + ' desmarcada').catch((e) => toast(e.message || 'Não consegui salvar')); return; }
+      modal(`<h2>${esc(x.lb)}</h2><p class="sub" style="margin:0">${esc((p.numero || p.name || '') + ' · ' + (p.cliente || ''))}</p>
+        <div class="f"><label for="etObs">Observação (opcional)</label><input id="etObs" placeholder="${k === 'financeiro' ? 'ex.: enviado por e-mail para o financeiro com o pedido' : k === 'engenharia' ? 'ex.: enviado para a engenharia lançar o custo real' : 'ex.: projeto entregue e faturado'}"></div>
+        <div style="display:flex;gap:8px"><button class="btn pri" id="etOk">Marcar como feito</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+        $('#etObs', o).focus();
+        $('#etOk', o).onclick = async () => { const obs = $('#etObs', o).value.trim(); close();
+          try { await salvarEtapa(p, k, { at: new Date().toISOString(), by: REG.me || null, obs: obs || null }, x.lb + (obs ? ': ' + obs : ''));
+            if (k === 'encerrada') { const F = fechDe(p.id); if (F && F.execucao !== 'encerrada') await gravar(F.id, Object.assign({}, F, { execucao: 'encerrada' })); }
+            toast(x.lb + ': feito'); } catch (e) { toast(e.message || 'Não consegui salvar'); } };
+      });
+    });
+
+    return { vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente };
   }
   window.PricerMargens = Margens;
 })();

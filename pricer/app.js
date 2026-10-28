@@ -736,7 +736,7 @@
     const arr = cmb ? `${chip('D', 'Diesel', cmbOne && c.d === 1)}${chip('E', 'Elétrica', cmbOne && c.e === 1)}${chip('J', 'Jockey', cmbOne && c.j)}`
       : `${step('D', 'Diesel', c.d)}${step('E', 'Elétrica', c.e)}<label class="chk"><input type="checkbox" data-arrj${c.j ? ' checked' : ''}> Bomba jockey</label>`;
     const fromModel = (a) => !!txt(S, 'AR1') && (val(S, a) === null || val(S, a) === '') && !uiEdit.has(S + '|' + a);
-    const modelTxt = (a, label, value, o = {}) => `<div class="f fs ${o.cls || ''}"><label>${esc(label)}</label><div class="autov"><span>${esc(value) || '—'} <small class="sub">do modelo</small></span><button class="restore" data-edit="${esc(S)}|${a}" aria-label="Alterar ${esc(label)}">alterar</button></div></div>`;
+    const modelTxt = (a, label, value, o = {}) => `<div class="f fs ${o.cls || ''}"><label>${esc(label)} <small class="sub" style="font-weight:500">do modelo</small></label><div class="autov"><span>${esc(value) || '—'}</span><button class="restore" data-edit="${esc(S)}|${a}" aria-label="Alterar ${esc(label)}">alterar</button></div></div>`;
     const dieselMotor = fromModel('C19') && txt(S, 'C20') ? modelTxt('C19', 'Motor diesel', txt(S, 'C20'), { cls: 'span2' }) : `${f('C19', 'Potência (HP)')}${f('H19', 'Rotação (RPM)')}${f('F19', 'Arrefecimento')}${field(S, 'C20', 'Motor', { ro: true, cls: 'span2' })}`;
     const eletMotor = fromModel('I19') && txt(S, 'H20') ? modelTxt('I19', 'Motor elétrico', txt(S, 'H20'), { cls: 'span2' }) : `${f('I19', 'Potência (CV)')}${f('L19', 'Tensão do painel')}${field(S, 'H20', 'Motor', { ro: true, cls: 'span2' })}`;
     const arrNames = [c.d ? (c.d > 1 ? c.d + '× diesel' : 'diesel') : '', c.e ? (c.e > 1 ? c.e + '× elétrica' : 'elétrica') : '', c.j ? 'jockey' : ''].filter(Boolean).join(' + ');
@@ -1994,7 +1994,7 @@
     ui.step = 1; setView('proposta'); toast('Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
-  const SPV = window.PricerSPV({ famsHome: () => famsHome(), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });

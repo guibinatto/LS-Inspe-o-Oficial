@@ -83,7 +83,7 @@ h2{font-size:16px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
 .fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px 14px}
 .fields.wide{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
 .f{display:grid;gap:3px;min-width:0}
-.f > label{font-size:12px;font-weight:600;color:var(--ink2);letter-spacing:.02em;display:flex;justify-content:space-between;gap:6px}
+.f > label{min-height:17px;align-items:baseline;font-size:12px;font-weight:600;color:var(--ink2);letter-spacing:.02em;display:flex;justify-content:space-between;gap:6px}
 .f .ctl{display:flex;min-width:0}
 .f input,.f select,.cellin{width:100%;min-width:0;border:1px solid var(--entry-line);background:var(--entry);border-radius:6px;padding:6px 8px;font-size:14px}
 .f select{padding:5px 6px}
@@ -267,7 +267,9 @@ textarea.paste{width:100%;min-height:110px;font-family:var(--f-mono);font-size:1
 .alerts li.bad{background:var(--bad-bg);color:var(--bad)}.alerts li.warn{background:var(--warn-bg);color:var(--warn)}.alerts li.info{background:var(--card);color:var(--ink2);border:1px solid var(--line);border-left:4px solid var(--line2)}
 .alerts li b{white-space:nowrap}
 .alerts li .restore{margin-left:auto}
-.fs .autov{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:33px;padding:5px 0;border-bottom:1px dashed var(--line2)}
+.fs .autov{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;min-height:33px;padding:7px 0 6px;border-bottom:1px dashed var(--line2)}
+.fs .autov .restore{flex:none;margin-top:2px}
+.set .fields{align-items:start}
 .fs .autov span{font-weight:600;overflow-wrap:anywhere;min-width:0}
 .sep-or{display:flex;align-items:center;gap:10px;color:var(--ink3);font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin:14px 0 10px}
 .sep-or::before,.sep-or::after{content:"";flex:1;border-top:1px solid var(--line)}
@@ -368,6 +370,21 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 .seg label:focus-within{outline:2px solid var(--or);outline-offset:1px}
 .t.itens td{vertical-align:top}
 .t.itens tr.lowrow td{background:var(--bad-bg)}
+/* etapas da proposta */
+tr.etrow td{padding-top:0;border-top:0}
+tr.click:has(+ tr.etrow) td{border-bottom:0}
+.etapas{display:flex;gap:0;flex-wrap:wrap;align-items:stretch}
+.etp{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:6px;align-items:center;text-align:left;border:0;background:none;padding:4px 14px 4px 0;cursor:pointer;color:var(--ink3);font-size:12.5px}
+.etp:not(:last-child)::after{content:"";position:absolute;right:4px;top:13px;width:6px;height:1px;background:var(--line2)}
+.etp .etc{grid-row:1/3;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--card)}
+.etp .etl{font-weight:600}
+.etp small{grid-column:2;font-size:11px;color:var(--ink3)}
+.etp.ok{color:var(--ink2)}.etp.ok .etc{background:var(--ok);border-color:var(--ok);color:#fff}
+.etp.parcial .etc{border-color:var(--warn);color:var(--warn)}.etp.parcial{color:var(--warn)}
+.etp.next .etc{border-color:var(--or);box-shadow:0 0 0 3px var(--or-soft)}.etp.next{color:var(--or-ink)}
+.etp.off{opacity:.4;cursor:default}
+.etp:disabled{cursor:default}
+.etp:not(:disabled):hover .etl{text-decoration:underline}
 .famtab td:first-child{font-family:var(--f-mono);font-size:12.5px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
