@@ -373,6 +373,7 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 .f.miss input,.f.miss select,.f.miss .seg,.f.miss .autov{outline:2px solid var(--bad,#c0392b);outline-offset:1px;border-radius:7px}
 .cnpjrow{display:flex;gap:6px}
 input.rin.pend{color:var(--ink3);font-style:italic}.rok{all:unset;cursor:pointer;font-size:12px;font-weight:700;color:var(--ok);border:1px solid var(--ok);border-radius:999px;padding:2px 9px;white-space:nowrap}.rok:hover{background:var(--ok-bg)}.rok:disabled{opacity:.4;cursor:default}
+.mbc{display:flex;align-items:center;gap:4px}.mbc input{width:72px;text-align:right}table.mbt td{vertical-align:top}
 ul.uso{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
 table.porte td.ptxt{white-space:normal;min-width:110px;font-size:12.5px;line-height:1.3;vertical-align:top}
 .pedit{all:unset;cursor:pointer;display:block;border:1px dashed var(--line2);border-radius:6px;padding:4px 6px;word-break:break-word}.pedit:hover,.pedit:focus-visible{border-color:var(--or);background:var(--or-soft)}.cnpjrow input{flex:1 1 auto;min-width:0}
@@ -4992,7 +4993,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
   // cadastro por área: cada área tem um responsável e só ele edita o que é dela
   const AREAS = [
     ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação'], ['facts', 'FACTS (MECON)'], ['pedidos', 'Pedidos de cadastro']]],
-    ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['familias', 'Famílias'], ['codificacao', 'Codificação']]],
+    ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['mobase', 'Mão de obra e bases'], ['familias', 'Famílias'], ['codificacao', 'Codificação']]],
     ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado e FCI', [['fiscal', 'Impostos e NCM']]],
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
@@ -5029,7 +5030,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, mobase: vMoBase, facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -5537,6 +5538,78 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const pr = u.props.length ? `<p class="sub" style="margin:6px 0 0">Escolhido à parte em ${u.props.length} proposta(s): ${u.props.slice(0, 6).map((q) => esc(q.numero || q.name || '')).join(', ')}${u.props.length > 6 ? '…' : ''}</p>` : '';
     return `<h2>Onde é usado</h2>${est}${fx}${pr}`;
   }
+  // ---- mão de obra e bases por porte: nomes que se explicam e critério de preço ----
+  // o porte (tamanho) sai da potência do motor diesel; ele escolhe base, mão de obra e embalagem
+  const MB_NOMES = [
+    { k: 'base', lb: 'Base metálica', fam: '14.BASE', velho: (n) => 'BASE ' + n, novo: (n) => 'BASE METÁLICA PORTE ' + n, crit: 'kg', pre: ['BASE ', 'BASE METÁLICA PORTE '] },
+    { k: 'mocj', lb: 'MO montagem · conjunto', fam: '34.MAODEOBRA', velho: (n) => 'MO ' + n, novo: (n) => 'MO MONTAGEM CONJUNTO PORTE ' + n, crit: 'h', pre: ['MO ', 'MO MONTAGEM CONJUNTO PORTE '] },
+    { k: 'mosk', lb: 'MO montagem · skid', fam: '34.MAODEOBRA', velho: (n) => 'MO ' + n + ' SKID', novo: (n) => 'MO MONTAGEM SKID PORTE ' + n, crit: 'h', pre: ['MO ', 'MO MONTAGEM SKID PORTE '], suf: [' SKID', ''] },
+    { k: 'emb', lb: 'Embalagem', fam: '37.EMBALAGEM', velho: (n) => 'EMBALAGEM ' + n, novo: (n) => 'EMBALAGEM PORTE ' + n, crit: null, pre: ['EMBALAGEM ', 'EMBALAGEM PORTE '] },
+  ];
+  const MB_CONT = [10, 20, 40].map((pes) => ({ pes, velho: 'MO CONTAINER ' + pes + ' PÉS', novo: 'MO MONTAGEM CONTAINER ' + pes + ' PÉS' }));
+  const insPorNome = (...nomes) => REG.insumos.find((i) => nomes.includes(i.produto)) || null;
+  const critMB = () => Object.assign({ rh: null, rkg: null, p: {}, cont: {} }, ((REG.tabelas || {}).CRIT_MOBASE || {}));
+  const hpDoPorte = (n) => { const fx = []; for (let r = 157; r <= 166; r++) if (+val(MO, 'D' + r) === n) fx.push([val(MO, 'B' + r), val(MO, 'C' + r)]); if (!fx.length) return ''; return fmtPlain(fx[0][0]) + ' a ' + fmtPlain(fx[fx.length - 1][1]) + ' HP'; };
+  function mbPrecoNovo(def, n, C) { const c = (C.p[n] || {})[def.k]; if (typeof c !== 'number') return null; if (def.crit === 'h' && typeof C.rh === 'number') return Math.round(c * C.rh * 100) / 100; if (def.crit === 'kg' && typeof C.rkg === 'number') return Math.round(c * C.rkg * 100) / 100; return null; }
+  function vMoBase() {
+    const ed = canEd(); const C = critMB(); const pendNomes = MB_NOMES.some((d) => Array.from({ length: 10 }, (_, i) => i + 1).some((n) => insPorNome(d.velho(n)))) || MB_CONT.some((c) => insPorNome(c.velho));
+    const cel = (d, n) => { const ins = insPorNome(d.novo(n), d.velho(n)); if (!ins) return '<td class="sub">—</td>'; const nv = mbPrecoNovo(d, n, C); const cv = (C.p[n] || {})[d.k];
+      return `<td><div class="mbc">${d.crit ? `<input class="rin" data-mbcrit="${n}|${d.k}" value="${typeof cv === 'number' ? NF[1].format(cv) : ''}" placeholder="${d.crit}" inputmode="decimal"${ed ? '' : ' disabled'} aria-label="${esc(d.lb)} porte ${n} em ${d.crit}"><span class="sub">${d.crit}</span>` : ''}</div><small class="sub">atual ${brl(num0(ins.valor))}</small>${nv !== null && Math.abs(nv - num0(ins.valor)) > 0.005 ? `<br><small class="${nv > num0(ins.valor) ? 'bad-t' : 'ok-t'}">critério ${brl(nv)}</small>` : ''}</td>`; };
+    const rows = Array.from({ length: 10 }, (_, i) => i + 1).map((n) => `<tr><td><b>Porte ${n}</b><br><small class="sub">${esc(hpDoPorte(n) || 'sem faixa de motor')}</small></td>${MB_NOMES.map((d) => cel(d, n)).join('')}</tr>`).join('');
+    const cont = MB_CONT.map((c) => { const ins = insPorNome(c.novo, c.velho); const h = (C.cont || {})[c.pes]; const nv = typeof h === 'number' && typeof C.rh === 'number' ? h * C.rh : null;
+      return `<tr><td><b>Container ${c.pes} pés</b></td><td><div class="mbc"><input class="rin" data-mbcont="${c.pes}" value="${typeof h === 'number' ? NF[1].format(h) : ''}" placeholder="h" inputmode="decimal"${ed ? '' : ' disabled'}><span class="sub">h</span></div></td><td>${ins ? brl(num0(ins.valor)) : '—'}</td><td>${nv !== null ? brl(nv) : '—'}</td></tr>`; }).join('');
+    const muda = mbMudancas().length;
+    return `<div class="stack">
+      <section class="card"><h2>Mão de obra e bases por porte <span class="sub">critério de preço, não número solto</span></h2>
+        <div class="banner info" style="margin:0 0 10px"><b>Como funciona:</b> o <b>porte</b> de cada equipamento sai da potência do motor diesel (Estruturas → Tabelas por porte). O porte escolhe a base metálica, a mão de obra de montagem e a embalagem. Aqui cada preço vira critério: <b>mão de obra = horas × R$/hora</b> e <b>base = peso (kg) × R$/kg</b>. Preencha horas e peso de cada porte; o app mostra o preço pelo critério ao lado do atual e aplica com histórico.</div>
+        <div class="fields"><div class="f"><label for="mbRh">R$ por hora de montagem</label><input id="mbRh" data-mbtop="rh" value="${typeof C.rh === 'number' ? NF[2].format(C.rh) : ''}" inputmode="decimal"${ed ? '' : ' disabled'} placeholder="ex.: 75,00"></div><div class="f"><label for="mbRkg">R$ por kg de base (aço + fabricação)</label><input id="mbRkg" data-mbtop="rkg" value="${typeof C.rkg === 'number' ? NF[2].format(C.rkg) : ''}" inputmode="decimal"${ed ? '' : ' disabled'} placeholder="ex.: 28,00"></div></div>
+        <div class="tw" style="margin-top:10px"><table class="t mbt"><thead><tr><th>Porte</th>${MB_NOMES.map((d) => `<th>${esc(d.lb)}${d.crit ? ` <small>(${d.crit})</small>` : ''}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+        <h2 style="margin-top:14px">Containers</h2><div class="tw"><table class="t mbt"><thead><tr><th>Tamanho</th><th>Horas de montagem</th><th>Preço atual</th><th>Pelo critério</th></tr></thead><tbody>${cont}</tbody></table></div>
+        ${ed ? `<div class="docbar" style="margin-top:10px"><button class="btn pri" data-mbapply${muda ? '' : ' disabled'}>Aplicar ${muda || ''} preço(s) pelo critério</button>${pendNomes ? '<button class="btn" data-mbnomes>Padronizar os nomes (ex.: "MO 6 SKID" → "MO MONTAGEM SKID PORTE 6")</button>' : '<span class="pill ok">nomes padronizados</span>'}</div>` : ''}
+        <p class="sub" style="margin:8px 0 0">Padronizar os nomes ajusta junto as estruturas e as propostas antigas (o nome velho continua reconhecido). Cada insumo ganha no campo Tipo a faixa de motor do porte.</p></section></div>`;
+  }
+  function mbMudancas() {
+    const C = critMB(); const out = [];
+    for (const d of MB_NOMES) for (let n = 1; n <= 10; n++) { const ins = insPorNome(d.novo(n), d.velho(n)); const nv = ins && mbPrecoNovo(d, n, C); if (ins && nv !== null && Math.abs(nv - num0(ins.valor)) > 0.005) out.push({ id: ins.id, de: num0(ins.valor), para: nv }); }
+    for (const c of MB_CONT) { const ins = insPorNome(c.novo, c.velho); const h = (C.cont || {})[c.pes]; if (ins && typeof h === 'number' && typeof C.rh === 'number') { const nv = Math.round(h * C.rh * 100) / 100; if (Math.abs(nv - num0(ins.valor)) > 0.005) out.push({ id: ins.id, de: num0(ins.valor), para: nv }); } }
+    return out;
+  }
+  async function salvaCrit(mut, desc, mud) {
+    const C = JSON.parse(JSON.stringify(critMB())); mut(C);
+    try { await REG.setTable('CRIT_MOBASE', C, desc, mud || []); } catch (e) { toast(errMsg(e)); return; }
+    // redesenha já (o preço pelo critério aparece) e devolve o foco ao campo em que a pessoa estava
+    const ae = document.activeElement; const key = ae && ae.dataset ? Object.entries(ae.dataset).map(([k, v]) => `[data-${k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())}="${v}"]`)[0] : null;
+    render(); if (key) { const el = document.querySelector(key); if (el) el.focus(); }
+  }
+  document.addEventListener('change', (e) => {
+    const el = e.target; if (ui.view !== 'cadastro' || ui.cad !== 'mobase') return;
+    const pv = (t) => { t = t.trim(); if (!t) return null; const n = parseInput(t, 'num'); return typeof n === 'number' ? n : undefined; };
+    if (el.dataset.mbtop) { const v = pv(el.value); if (v === undefined) return toast('Número inválido'); salvaCrit((C) => { C[el.dataset.mbtop] = v; }, el.dataset.mbtop === 'rh' ? 'R$ por hora de montagem' : 'R$ por kg de base', [{ campo: el.dataset.mbtop === 'rh' ? 'R$/hora' : 'R$/kg', de: critMB()[el.dataset.mbtop], para: v }]); return; }
+    if (el.dataset.mbcrit) { const [n, k] = el.dataset.mbcrit.split('|'); const v = pv(el.value); if (v === undefined) return toast('Número inválido'); const d = MB_NOMES.find((x) => x.k === k); salvaCrit((C) => { C.p[n] = C.p[n] || {}; if (v === null) delete C.p[n][k]; else C.p[n][k] = v; }, d.lb + ' porte ' + n, [{ campo: d.lb + ' porte ' + n + ' (' + d.crit + ')', de: ((critMB().p[n] || {})[k]) ?? null, para: v }]); return; }
+    if (el.dataset.mbcont) { const v = pv(el.value); if (v === undefined) return toast('Número inválido'); salvaCrit((C) => { C.cont = C.cont || {}; if (v === null) delete C.cont[el.dataset.mbcont]; else C.cont[el.dataset.mbcont] = v; }, 'Horas container ' + el.dataset.mbcont + ' pés'); }
+  });
+  document.addEventListener('click', async (e) => {
+    if (ui.view !== 'cadastro' || ui.cad !== 'mobase') return;
+    if (e.target.closest('[data-mbapply]')) { const ch = mbMudancas(); if (!ch.length) return toast('Nada a aplicar'); try { const n = await REG.applyPrices(ch, 'Mão de obra e bases pelo critério'); toast(n + ' preço(s) atualizado(s)'); } catch (er) { toast(errMsg(er)); } return; }
+    if (e.target.closest('[data-mbnomes]')) {
+      const changes = [];
+      for (const d of MB_NOMES) for (let n = 1; n <= 10; n++) { const ins = insPorNome(d.velho(n)); if (ins) changes.push({ id: ins.id, de: ins.produto, produto: d.novo(n), tipo: hpDoPorte(n) ? 'MOTOR DIESEL ' + hpDoPorte(n) : undefined }); }
+      for (const c of MB_CONT) { const ins = insPorNome(c.velho); if (ins) changes.push({ id: ins.id, de: ins.produto, produto: c.novo }); }
+      if (!changes.length) return toast('Os nomes já estão padronizados');
+      try {
+        const ren = await REG.renameInsumos(changes, 'Mão de obra e bases: nomes por porte');
+        await REG.setTable('RENOMES', { map: Object.assign({}, renomes(), ren) }, 'Nomes antigos → novos (' + Object.keys(ren).length + ')', []);
+        // estruturas: prefixo/sufixo do porte e o container fixo
+        const ch = {};
+        for (const x of recLines()) {
+          if (x.tipo === 'TAMANHO') { const d = MB_NOMES.find((m) => m.fam === x.fam && m.pre[0] === x.pre && (m.suf ? m.suf[0] === x.suf : !x.suf)); if (d) { ch[REC_COLS.pre + x.r] = d.pre[1]; if (d.suf) ch[REC_COLS.suf + x.r] = d.suf[1] || null; } }
+          if (x.tipo === 'FIXO' && ren[x.campo]) ch[REC_COLS.campo + x.r] = ren[x.campo];
+        }
+        if (Object.keys(ch).length) await REG.setCells(MO, ch, 'Estruturas: nomes de mão de obra e bases por porte', baseOf(MO));
+        toast(changes.length + ' nome(s) padronizado(s)');
+      } catch (er) { toast(errMsg(er)); }
+    }
+  });
   function origemTxt(x, H) {
     const col = (k) => H[k][(+x.campo || 1) - 1] || ('coluna ' + x.campo);
     switch (x.tipo) {
