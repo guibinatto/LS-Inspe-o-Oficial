@@ -78,12 +78,14 @@
       if (user) {
         R.me = await user.id();
         R.canEditCadastro = await user.canEdit();
+        try { R.isOwner = !!(await user.isOwner()); } catch (e) { R.isOwner = false; }
         const w = await user.can('data.write'); R.canSaveShared = w !== false;
       } else R.canSaveShared = true;
       changed('mode');
       const err = (e) => { R.error = (e && e.code) || 'unavailable'; changed('error'); };
       let got = { meta: false, ins: false, km: false, kb: false };
       const maybeReady = () => { if (got.meta && got.ins && got.km && got.kb && !R.ready) { R.ready = true; changed('ready'); } };
+      db.doc('meta/acessos').onSnapshot((s) => { R.acessos = (s.exists && s.data().areas) || {}; changed('acessos'); }, () => {});
       db.doc('meta/cadastro').onSnapshot((s) => { R.seeded = !!(s.exists && s.data().seeded); got.meta = true; if (R._applyShared) R._applyShared(); maybeReady(); changed('meta'); }, err);
       // insumos: um documento por família (cadastro/fNN), com os itens por código
       let insDocs = null, kitDocs = null;
@@ -175,6 +177,29 @@
       await log({ tipo: 'Família', ref: oldFam, desc: 'Renomeada para ' + newFam + ' (' + n + ' insumos)', mudancas: [{ campo: 'Família', de: oldFam, para: newFam }] });
     };
 
+    // padronização: troca nome, fabricante e tipo de vários insumos de uma vez e acompanha os kits com o mesmo nome
+    R.renameInsumos = async (changes, desc, onProgress) => {
+      guard(); const at = new Date().toISOString(); const byFam = new Map(); const mud = []; const ren = {};
+      for (const c of changes) { const rec = R.insumos.find((x) => x.id === c.id); if (!rec) continue; if (!byFam.has(rec.fam)) byFam.set(rec.fam, []); byFam.get(rec.fam).push([c, rec]); }
+      let done = 0;
+      for (const [fam, list] of byFam) {
+        const upd = (it, c) => { if (c.produto) it.produto = c.produto; if (c.fab) it.fab = c.fab; if (c.tipo) it.tipo = c.tipo; if (c.obs !== undefined) it.obs = c.obs; it.upd = at; if (R.me) it.updBy = R.me; };
+        if (R.mode === 'shared') await mutate(famDoc(fam), (d) => { d.itens = d.itens || {}; for (const [c] of list) if (d.itens[c.id]) upd(d.itens[c.id], c); return d; });
+        else for (const [c, rec] of list) upd(rec, c);
+        for (const [c, rec] of list) { if (c.produto && c.produto !== c.de) ren[c.de] = c.produto; mud.push({ campo: c.id, de: c.de, para: c.produto + (c.fab ? ' · ' + c.fab : '') + (c.tipo ? ' · ' + c.tipo : '') }); }
+        done += list.length; onProgress && onProgress(done, changes.length);
+      }
+      // kits com a mesma descrição do insumo
+      for (const kind of ['motor', 'bomba']) {
+        const hit = kitList(kind).filter((k) => ren[k.desc]); if (!hit.length) continue;
+        if (R.mode === 'shared') await mutate('kits/' + kind, (d) => { for (const k of hit) if (d.itens && d.itens[k.id]) { d.itens[k.id].desc = ren[k.desc]; d.itens[k.id].upd = at; } return d; });
+        else { const nl = kitList(kind).map((k) => ren[k.desc] ? Object.assign({}, k, { desc: ren[k.desc], upd: at }) : k); if (kind === 'motor') R.kitMotor = nl; else R.kitBomba = nl; }
+      }
+      if (R.mode === 'local') { R.insumos = R.insumos.slice(); saveLocal(); changed('insumos'); }
+      await log({ tipo: 'Padronização de descrições', ref: 'padrao', desc: desc || changes.length + ' insumo(s)', mudancas: mud });
+      return ren;
+    };
+
     // ---- kits ----
     const kitList = (kind) => (kind === 'motor' ? R.kitMotor : R.kitBomba);
     R.saveKit = async (kind, rec, isNew) => {
@@ -255,6 +280,24 @@
       if (R.mode === 'local') { R.insumos = R.insumos.slice(); saveLocal(); changed('insumos'); }
       await log({ tipo: 'Importação de preços', ref: 'import', desc: fonte + ' — ' + ok.length + ' preço(s)', mudancas: ok });
       return ok.length;
+    };
+
+    // ---- áreas responsáveis: quem pode editar cada parte do cadastro ----
+    // Sem ninguém atribuído, vale a regra antiga (todo Editor edita tudo). O dono do app edita sempre.
+    R.acessos = {};
+    R.areasConfiguradas = () => Object.values(R.acessos || {}).some((l) => l && l.length);
+    R.areaOk = (area) => {
+      if (R.mode === 'local') return true;
+      if (!R.canEditCadastro) return false;
+      if (R.isOwner || !area || !R.areasConfiguradas()) return true;
+      return ((R.acessos || {})[area] || []).includes(R.me);
+    };
+    R.minhasAreas = () => Object.entries(R.acessos || {}).filter(([, l]) => (l || []).includes(R.me)).map(([a]) => a);
+    R.setAcessos = async (areas, desc) => {
+      if (R.mode !== 'shared') throw new Error('As áreas responsáveis valem só no app compartilhado.');
+      if (!R.isOwner) throw new Error('Só o dono do app define quem cuida de cada área.');
+      await R.db.doc('meta/acessos').set({ areas: JSON.parse(JSON.stringify(areas)), upd: new Date().toISOString(), by: R.me || null });
+      await log({ tipo: 'Acessos', ref: 'acessos', desc: desc || 'Áreas responsáveis alteradas', mudancas: [] });
     };
 
     // ---- propostas ----

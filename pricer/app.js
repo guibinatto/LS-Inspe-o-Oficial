@@ -71,7 +71,15 @@
   });
   document.addEventListener('focusout', () => { if (pendingRender) setTimeout(() => { const ae = document.activeElement; if (!(ae && ae.matches && ae.matches('#app input, #app select, #app textarea'))) { pendingRender = false; render(); } }, 0); });
 
-  function build() { wb = new Workbook(MODEL); REG.applyTo(wb); wb.applyDoc(state.doc || {}); listCache = new Map(); }
+  // nomes de insumo padronizados: propostas salvas com o nome antigo passam a usar o novo
+  const renomes = () => ((REG.tabelas || {}).RENOMES || {}).map || {};
+  function migrar(doc) {
+    const map = renomes(); if (!doc || !Object.keys(map).length) return 0; let n = 0;
+    const res = (v) => { let k = 0; while (typeof v === 'string' && map[v] && k++ < 6) v = map[v]; return v; };
+    for (const sh of Object.values(doc)) if (sh && typeof sh === 'object') for (const [a, v] of Object.entries(sh)) if (typeof v === 'string' && map[v]) { sh[a] = res(v); n++; }
+    return n;
+  }
+  function build() { if (migrar(state.doc)) store.set(SK.cur, state); wb = new Workbook(MODEL); REG.applyTo(wb); wb.applyDoc(state.doc || {}); listCache = new Map(); }
   function persist() { store.set(SK.cur, state); }
 
   // ---------- validações (listas) ----------
@@ -233,11 +241,11 @@
     for (const b of document.querySelectorAll('#nav button')) { b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false'); if ('seqonly' in b.dataset) b.hidden = spv; }
     const nm = spv ? state.spv.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
-    for (const id of ['bMode']) { const b = $('#' + id); if (b) b.hidden = spv || ui.view === 'inicio' || ui.view === 'documentos'; }
+    for (const id of ['bMode']) { const b = $('#' + id); if (b) b.hidden = spv || ['inicio', 'documentos', 'margens'].includes(ui.view); }
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
     const full = !spv && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
     const views = spv ? { proposta: SPV.vSpv } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
-    const html = Object.assign({ inicio: SPV.vHome, documentos: SPV.vDocs, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
+    const html = Object.assign({ inicio: SPV.vHome, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
     $('#app').innerHTML = (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
     const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
     if (ui.view === 'cadastro') bindCadastro();
@@ -895,7 +903,21 @@
 
   // ---------- cadastro: insumos, kits, importação, histórico e demais tabelas ----------
   const H = REG.helpers;
-  const CAD_TABS = [['insumos', 'Insumos'], ['familias', 'Famílias'], ['estruturas', 'Estruturas'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['parametros', 'Parâmetros'], ['politica', 'Política de preço'], ['codificacao', 'Codificação'], ['fci', 'FCI e válvulas'], ['spv', 'Serviços (SPV)'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Planilha (avançado)']];
+  // cadastro por área: cada área tem um responsável e só ele edita o que é dela
+  const AREAS = [
+    ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação']]],
+    ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['familias', 'Famílias'], ['codificacao', 'Codificação']]],
+    ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado e FCI', [['fiscal', 'Impostos e NCM']]],
+    ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
+    ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
+    ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições']]],
+    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis por área'], ['tabelas', 'Planilha (avançado)']]],
+  ];
+  const CAD_TABS = AREAS.flatMap((a) => a[3]);
+  const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
+  const areaOfTab = (t) => (AREAS.find((a) => a[3].some((x) => x[0] === t)) || AREAS[0])[0];
+  const areaName = (k) => (AREAS.find((a) => a[0] === k) || [0, k])[1];
+  const canEd = () => REG.areaOk(areaOfTab(ui.cad));
   const fmtAt = (s) => { try { return new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return s; } };
   const fmtVal = (v) => typeof v === 'number' ? NF[2].format(v) : v === null || v === undefined || v === '' ? '—' : String(v);
   const who = (id) => id ? `<span data-uid="${esc(id)}">…</span>` : (REG.mode === 'shared' ? 'alguém da equipe' : 'neste navegador');
@@ -910,21 +932,27 @@
     const chips = [];
     chips.push(shared ? '<span class="pill ok">Compartilhado com a equipe</span>' : '<span class="pill mute">Salvo só neste navegador</span>');
     if (shared && !REG.ready) chips.push('<span class="pill warn">Sincronizando…</span>');
-    chips.push(REG.canEditCadastro ? '<span class="pill ok">Você pode editar</span>' : '<span class="pill warn">Somente leitura — edição é para quem tem acesso de Editor</span>');
+    const ar = areaOfTab(ui.cad);
+    chips.push(canEd() ? `<span class="pill ok">Você pode editar ${esc(areaName(ar))}</span>` : !REG.canEditCadastro ? '<span class="pill warn">Somente leitura — edição é para quem tem acesso de Editor</span>' : `<span class="pill warn">Somente leitura — ${esc(areaName(ar))} é de outra área</span>`);
     let banner = '';
     if (shared && REG.ready && !REG.seeded) banner = '<div class="banner warn">O cadastro compartilhado ainda está vazio. Até ele ser carregado, o app usa os valores da planilha REV21 e a edição fica bloqueada.</div>';
     if (REG.error) banner += `<div class="banner bad">Não consegui falar com o banco compartilhado (${esc(REG.error)}). O app segue com a última versão que carregou; recarregue a página para tentar de novo.</div>`;
     return `<div class="legend" style="gap:8px">${chips.join('')}</div>${banner}`;
   }
   function vCadastro() {
-    const tab = ui.cad || 'insumos';
-    const body = { insumos: vInsumos, familias: vFamilias, parametros: () => vParamTab('parametros'), politica: () => vParamTab('politica'), codificacao: () => vParamTab('codificacao'), fci: () => vParamTab('fci'), spv: SPV.vCfg, estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
+    if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
+    const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
         <div><h1>Cadastro</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div></div>
         ${cadStatus()}
       </div>
-      <div class="subtabs" role="tablist">${CAD_TABS.map(([k, lb]) => `<button role="tab" data-cad="${k}" aria-selected="${k === tab}">${lb}</button>`).join('')}</div>
+      <div class="areatabs" role="tablist">${AREAS.map(([k, lb, d, tabs]) => `<button role="tab" data-cad="${tabs[0][0]}" aria-selected="${k === area[0]}" title="${esc(d)}">${lb}${mine && (mine.includes(k) || REG.isOwner) ? ' <span class="mydot" title="sua área"></span>' : ''}</button>`).join('')}</div>
+      <p class="sub" style="margin:0">${esc(area[2])}.${REG.mode === 'shared' && REG.areasConfiguradas() ? ` Responsável: <span data-areaown="${area[0]}">${esc((REG.acessos[area[0]] || []).length ? '…' : 'ninguém definido (só o dono edita)')}</span>.` : ''}</p>
+      ${area[3].length > 1 ? `<div class="subtabs" role="tablist">${area[3].map(([k, lb]) => `<button role="tab" data-cad="${k}" aria-selected="${k === tab}">${lb}</button>`).join('')}</div>` : ''}
       ${body}
     </div>`;
   }
@@ -955,7 +983,7 @@
           <label class="chk"><input type="checkbox" id="insSem"${sem ? ' checked' : ''}> Só sem preço</label>
           <span style="flex:1"></span>
           <button class="btn sm" id="insCsv">Exportar CSV</button>
-          ${REG.canEditCadastro ? '<button class="btn sm pri" id="insNew">+ Novo insumo</button>' : ''}
+          ${canEd() ? '<button class="btn sm pri" id="insNew">+ Novo insumo</button>' : ''}
         </div>
         <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + '; refine a busca' : ''}. Clique numa linha para ver ou editar.</p>
         <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr><th>Código</th><th>Família</th><th>Produto</th><th>Fabricante</th><th>Tipo/config.</th><th>Valor</th><th>Origem</th><th>Atualizado</th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="sub">Nenhum insumo com esse filtro.</td></tr>'}</tbody></table></div>
@@ -964,7 +992,7 @@
   function insumoModal(id, presetFam) {
     const isNew = !id; const rec = isNew ? { fam: presetFam || ui.insFam || famList()[0], origem: 'NAC' } : Object.assign({}, REG.insumos.find((x) => x.id === id));
     if (!rec) return;
-    const ro = !REG.canEditCadastro ? ' disabled' : '';
+    const ro = !canEd() ? ' disabled' : '';
     const fams = famList();
     const tipos = [...new Set(REG.insumos.filter((x) => x.fam === rec.fam && x.tipo).map((x) => x.tipo))];
     const code = isNew ? REG.nextCode(rec.fam) : { a: rec.a, b: rec.b };
@@ -972,7 +1000,7 @@
     const histHtml = hist.length ? `<div class="hist">${hist.map((h) => `<div><small>${fmtAt(h.at)} · ${who(h.by)}</small>${(h.mudancas || []).map((m) => `<div class="chg"><b>${esc(m.campo)}</b> ${esc(fmtVal(m.de))} → ${esc(fmtVal(m.para))}</div>`).join('')}</div>`).join('')}</div>` : '<p class="sub">Sem alterações registradas — valor da planilha REV21.</p>';
     modal(`<h2>${isNew ? 'Novo insumo' : 'Insumo ' + esc(rec.id)}</h2>
       <form id="insForm" class="fields" autocomplete="off">
-        <div class="f span2"><label for="fFam">Família</label><select id="fFam"${ro || (!isNew ? '' : '')}>${fams.map((f) => `<option${f === rec.fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}${REG.canEditCadastro ? '<option value="__nova">+ Nova família…</option>' : ''}</select></div>
+        <div class="f span2"><label for="fFam">Família</label><select id="fFam"${ro || (!isNew ? '' : '')}>${fams.map((f) => `<option${f === rec.fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}${canEd() ? '<option value="__nova">+ Nova família…</option>' : ''}</select></div>
         <div class="f" id="fNovaWrap" hidden><label for="fNova">Nova família (nn.NOME)</label><input id="fNova" placeholder="46.NOMEDAFAMILIA"></div>
         <div class="f"><label>Código</label><div class="ro code" id="fCode">${esc(String(code.a).padStart(2, '0') + '-' + code.b)}</div></div>
         <div class="f spanall"><label for="fProd">Produto (descrição)</label><input id="fProd" value="${esc(rec.produto || '')}" required${ro}></div>
@@ -986,9 +1014,9 @@
       <p class="sub" id="fHint"></p>
       <div id="fErr" class="bad-t"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${REG.canEditCadastro ? `<button class="btn pri" id="fSave">${isNew ? 'Cadastrar' : 'Salvar'}</button>` : ''}
-        ${REG.canEditCadastro && !isNew ? '<button class="btn" id="fDel">Excluir</button>' : ''}
-        <button class="btn" data-close>${REG.canEditCadastro ? 'Cancelar' : 'Fechar'}</button>
+        ${canEd() ? `<button class="btn pri" id="fSave">${isNew ? 'Cadastrar' : 'Salvar'}</button>` : ''}
+        ${canEd() && !isNew ? '<button class="btn" id="fDel">Excluir</button>' : ''}
+        <button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button>
       </div>
       ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
     (o, close) => {
@@ -1052,7 +1080,7 @@
       return `<tr class="click" data-kit="${esc(k.id)}"><td style="min-width:300px">${esc(k.desc)}</td><td>${esc(k.tipo || '')}</td><td>${esc(k.marca || '')}</td><td class="n">${brl(p.D || 0)}</td><td class="n">${brl(motor ? t.nbr : t.es)}</td><td class="n"><b>${brl(motor ? t.padrao : t.bp)}</b></td><td class="sub">${k.upd ? fmtAt(k.upd) : ''}</td></tr>`;
     }).join('');
     return `<section class="card">
-      <div class="sheetbar"><input id="kitQ" type="search" placeholder="Buscar kit…" value="${esc(ui.kitQ || '')}" aria-label="Buscar kit" style="flex:1 1 240px"><span class="sub">${list.length} de ${lim} linhas usadas</span><span style="flex:1"></span>${REG.canEditCadastro ? `<button class="btn sm pri" id="kitNew" data-kind="${kind}">+ Novo kit</button>` : ''}</div>
+      <div class="sheetbar"><input id="kitQ" type="search" placeholder="Buscar kit…" value="${esc(ui.kitQ || '')}" aria-label="Buscar kit" style="flex:1 1 240px"><span class="sub">${list.length} de ${lim} linhas usadas</span><span style="flex:1"></span>${canEd() ? `<button class="btn sm pri" id="kitNew" data-kind="${kind}">+ Novo kit</button>` : ''}</div>
       <p class="sub" style="margin:8px 0">${motor ? 'O montador lê daqui o custo total do conjunto do motor (peça, painel, base, tanque, escape, bateria…). "Total NBR 13714" usa o painel e o tanque NBR; o outro, o painel padrão.' : 'O montador lê daqui o custo da bomba com os acessórios. A bomba END SUCTION usa o total sem as válvulas; a SPLIT CASE (bipartida) usa o total completo — quem decide é o Tipo/config. do insumo no CADASTRO.'} A descrição tem de ser igual à do insumo no CADASTRO.</p>
       <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr><th>Descrição</th><th>Origem</th><th>Marca</th><th>${motor ? 'Motor' : 'Bomba'}</th><th>${motor ? 'Total NBR 13714' : 'Total end suction'}</th><th>${motor ? 'Total' : 'Total split case'}</th><th>Atualizado</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum kit.</td></tr>'}</tbody></table></div>
     </section>`;
@@ -1060,7 +1088,7 @@
   function kitModal(kind, id) {
     const motor = kind === 'motor'; const list = motor ? REG.kitMotor : REG.kitBomba;
     const isNew = !id; const rec = isNew ? { desc: '', tipo: 'NAC', marca: '', p: {} } : JSON.parse(JSON.stringify(list.find((x) => x.id === id)));
-    const labels = motor ? H.KMD_LABELS : H.KB_LABELS; const ro = REG.canEditCadastro ? '' : ' disabled';
+    const labels = motor ? H.KMD_LABELS : H.KB_LABELS; const ro = canEd() ? '' : ' disabled';
     const hist = REG.historico.filter((h) => h.ref === id).slice(0, 10);
     const parts = Object.entries(labels).map(([c, lb]) => `<div class="f"><label for="k${c}">${esc(lb)}</label><input id="k${c}" data-part="${c}" inputmode="decimal" value="${typeof rec.p[c] === 'number' ? esc(NF[2].format(rec.p[c])) : ''}"${ro}></div>`).join('');
     const prodList = REG.insumos.filter((x) => x.fam === (motor ? '01.MOTORDIESEL' : '11.BOMBAMANCAL')).map((x) => x.produto);
@@ -1075,7 +1103,7 @@
       <div class="fields" id="kParts">${parts}</div>
       <div class="kpis" id="kTot"></div>
       <div id="kErr" class="bad-t"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${REG.canEditCadastro ? `<button class="btn pri" id="kSave">${isNew ? 'Cadastrar kit' : 'Salvar'}</button>` : ''}${REG.canEditCadastro && !isNew ? '<button class="btn" id="kDel">Excluir</button>' : ''}<button class="btn" data-close>${REG.canEditCadastro ? 'Cancelar' : 'Fechar'}</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${canEd() ? `<button class="btn pri" id="kSave">${isNew ? 'Cadastrar kit' : 'Salvar'}</button>` : ''}${canEd() && !isNew ? '<button class="btn" id="kDel">Excluir</button>' : ''}<button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button></div>
       ${!isNew ? `<h2>Histórico deste kit</h2>${hist.length ? `<div class="hist">${hist.map((h) => `<div><small>${fmtAt(h.at)} · ${who(h.by)}</small>${(h.mudancas || []).map((m) => `<div class="chg"><b>${esc(m.campo)}</b> ${esc(fmtVal(m.de))} → ${esc(fmtVal(m.para))}</div>`).join('')}</div>`).join('')}</div>` : '<p class="sub">Sem alterações registradas — valores da planilha REV21.</p>'}` : ''}`,
     (o, close) => {
       fillNames(o);
@@ -1135,7 +1163,7 @@
     return out;
   }
   function vImportar() {
-    if (!REG.canEditCadastro) return `<section class="card"><p class="sub">Importar preços muda o cadastro de todos. Só quem tem acesso de Editor ao app pode fazer.</p></section>`;
+    if (!canEd()) return `<section class="card"><p class="sub">Importar preços muda o cadastro de todos. Só quem tem acesso de Editor ao app pode fazer.</p></section>`;
     let step2 = '';
     if (imp) {
       const cols = (imp.rows[0] || []).map((c, i) => `<option value="${i}">${esc(imp.header ? (c || 'Coluna ' + (i + 1)) : 'Coluna ' + numToCol(i + 1) + ' — ' + String(c).slice(0, 30))}</option>`).join('');
@@ -1188,6 +1216,130 @@
   }
 
   // ---- histórico ----
+  // ---- padronização de descrições (motores diesel, elétricos, bombas, motobombas e jockey) ----
+  const PADRAO = (window.PRICER_PADRAO || { itens: [] });
+  const FAM_PAD = { '01': 'Motores diesel', 10: 'Motores elétricos', 11: 'Bombas de eixo livre', 12: 'Motobombas', 13: 'Jockey' };
+  const PAD_REGRAS = { '01': '{MODELO} {HP}HP@{RPM}RPM {N}CIL {12|24}VCC {RADIADOR|TROCADOR DE CALOR} — marca no campo Fabricante', 10: 'MOTOR {CV}CV {2P|4P|6P} IP55 {TENSÃO} {MARCA} {MANCAL|MONOBLOCO}', 11: '{SÉRIE} {MODELO} na notação do catálogo do fabricante (TKF 65-250, SCE 150-315, IS 080X065X250, MEGANORM 250-500)', 12: '{MODELO DA BOMBA} C/ MOTOR {ELÉTRICO|DIESEL} {MARCA} {POT}HP @{RPM}RPM {CERTIFICAÇÃO}', 13: '{MODELO} {POT}CV {TRIF|MONO} {60HZ} {fases}' };
+  function padStatus(x) {
+    const it = REG.insumos.find((i) => i.id === x.id); if (!it) return { st: 'sumiu', it };
+    const okNome = it.produto === x.para, okFab = !x.fab || it.fab === x.fab, okTipo = !x.tipo || it.tipo === x.tipo;
+    if (okNome && okFab && okTipo) return { st: x.de === x.para && !x.fab && !x.tipo ? 'aviso' : 'feito', it };
+    if (it.produto !== x.de && it.produto !== x.para) return { st: 'mudou', it };
+    return { st: 'pendente', it };
+  }
+  // nome repetido: dois insumos (ou dois kits) com o mesmo nome e preço diferente fazem a fórmula pegar o primeiro
+  let colis = new Map();
+  function padColisoes() {
+    const cand = new Map(); for (const x of PADRAO.itens) { const s = padStatus(x); if (s.st === 'pendente' && x.confianca !== 'baixa' && x.para !== s.it.produto) cand.set(x.id, x); }
+    const final = new Map(); for (const it of REG.insumos) { const n = cand.has(it.id) ? cand.get(it.id).para : it.produto; if (!final.has(n)) final.set(n, []); final.get(n).push(it); }
+    const out = new Map();
+    for (const [n, list] of final) { if (list.length < 2) continue; const vs = list.map((i) => (typeof i.valor === 'number' ? i.valor : null)); const dif = vs.some((v) => v !== vs[0] && !(v !== null && vs[0] !== null && Math.abs(v - vs[0]) < 0.01));
+      if (dif) for (const i of list) if (cand.has(i.id)) out.set(i.id, `mesmo nome de ${list.filter((o) => o.id !== i.id).map((o) => o.id + ' (' + (typeof o.valor === 'number' ? brl(o.valor) : 'sem preço') + ')').join(', ')}`); }
+    const kits = REG.kitMotor.concat(REG.kitBomba); const kd = new Set(kits.map((k) => k.desc));
+    for (const [id, x] of cand) { const it = REG.insumos.find((i) => i.id === id); if (kits.some((k) => k.desc === it.produto) && kd.has(x.para)) out.set(id, (out.get(id) ? out.get(id) + '; ' : '') + 'já existe um kit com o nome novo'); }
+    colis = out; return out;
+  }
+  function padSel(x, st) {
+    if (!ui.padSel) ui.padSel = {};
+    if (x.id in ui.padSel) return ui.padSel[x.id];
+    if (st.st !== 'pendente' || x.confianca === 'baixa' || colis.has(x.id)) return false;
+    return true;
+  }
+  function vPadrao() {
+    padColisoes();
+    const ed = canEd(); const fam = ui.padFam || ''; const conf = ui.padConf || ''; const q = (ui.padQ || '').trim().toUpperCase(); const sts = ui.padSt || 'pendente';
+    const rows0 = PADRAO.itens.map((x) => ({ x, s: padStatus(x) }));
+    const cont = { pendente: 0, feito: 0, aviso: 0, mudou: 0 }; for (const r of rows0) cont[r.s.st] = (cont[r.s.st] || 0) + 1;
+    const rows = rows0.filter(({ x, s }) => (!fam || x.id.startsWith(fam + '-')) && (!conf || x.confianca === conf) && (sts === 'todos' || s.st === sts) && (!q || (x.de + ' ' + x.para + ' ' + x.id).toUpperCase().includes(q)));
+    const nSel = rows0.filter(({ x, s }) => s.st === 'pendente' && padSel(x, s)).length;
+    const pill = { alta: 'ok', media: 'warn', baixa: 'bad' };
+    const tr = rows.slice(0, 300).map(({ x, s }) => { const it = s.it || {}; const dup = x.duplicado_de && REG.insumos.find((i) => i.id === x.duplicado_de);
+      return `<tr${s.st === 'pendente' ? '' : ' class="ro"'}><td class="in">${s.st === 'pendente' && ed ? `<input type="checkbox" data-padsel="${esc(x.id)}"${padSel(x, s) ? ' checked' : ''} aria-label="Aplicar ${esc(x.id)}">` : ''}</td>
+        <td class="code">${esc(x.id)}</td><td style="min-width:240px"><span class="sub" style="text-decoration:${s.st === 'feito' ? 'line-through' : 'none'}">${esc(x.de)}</span><br><b>${esc(x.para)}</b>${x.fab || x.tipo ? `<br><small class="sub">${x.fab ? 'fabricante ' + esc(it.fab || '—') + ' → <b>' + esc(x.fab) + '</b>' : ''}${x.fab && x.tipo ? ' · ' : ''}${x.tipo ? 'tipo ' + esc(it.tipo || '—') + ' → <b>' + esc(x.tipo) + '</b>' : ''}</small>` : ''}
+          ${colis.has(x.id) && s.st === 'pendente' ? `<br><span class="pill bad">nome repetido com preço diferente</span> <small class="sub">${esc(colis.get(x.id))}</small>` : ''}
+          ${dup ? `<br><small class="sub">duplicado de ${esc(dup.id)} (${typeof dup.valor === 'number' ? brl(dup.valor) : 'sem preço'}; este: ${typeof it.valor === 'number' ? brl(it.valor) : 'sem preço'})</small>` : ''}</td>
+        <td><span class="pill ${pill[x.confianca] || 'mute'}">${esc(x.confianca)}</span>${s.st === 'feito' ? ' <span class="pill ok">aplicado</span>' : s.st === 'mudou' ? ' <span class="pill warn">alterado à mão depois</span>' : s.st === 'aviso' ? ' <span class="pill mute">só aviso</span>' : ''}</td>
+        <td class="sub" style="min-width:260px">${esc(x.motivo || '')}${x.fonte ? ` <a href="${esc(x.fonte)}" target="_blank" rel="noopener">fonte</a>` : ''}</td></tr>`; }).join('');
+    const famOpts = Object.entries(FAM_PAD).map(([k, l]) => `<option value="${String(k).padStart(2, '0')}"${fam === String(k).padStart(2, '0') ? ' selected' : ''}>${l}</option>`).join('');
+    return `<div class="stack">
+      <section class="card"><h2>Padrão de descrição por família</h2>
+        <div class="kv" style="grid-template-columns:minmax(0,1fr) minmax(0,3fr)">${Object.entries(PAD_REGRAS).map(([k, r]) => `<div>${FAM_PAD[k]}</div><div class="code" style="text-align:left;font-weight:500;white-space:normal;overflow-wrap:anywhere;min-width:0">${esc(r)}</div>`).join('')}</div>
+        <p class="sub" style="margin:10px 0 0">As fórmulas leem o nome (potência, rotação, tensão, arrefecimento, polos, série da bomba), por isso o padrão segue o formato que a planilha entende. Ao aplicar, o app troca o nome no insumo, nos kits com o mesmo nome e nas estruturas, e as propostas salvas passam a usar o nome novo quando forem abertas. Proposta de ${esc(PADRAO.gerado || '')}, feita a partir de catálogos e fichas de fabricantes (confiança alta = conferido na ficha; média = só formato e catálogo da série; baixa = há dúvida, confira antes).</p></section>
+      <div class="sheetbar"><select id="padFam" aria-label="Família"><option value="">Todas as famílias</option>${famOpts}</select>
+        <select id="padConf" aria-label="Confiança"><option value="">Toda confiança</option>${['alta', 'media', 'baixa'].map((c) => `<option${conf === c ? ' selected' : ''}>${c}</option>`).join('')}</select>
+        <select id="padSt" aria-label="Situação">${[['pendente', `Pendentes (${cont.pendente})`], ['feito', `Aplicados (${cont.feito})`], ['aviso', `Avisos (${cont.aviso})`], ['mudou', `Alterados à mão (${cont.mudou || 0})`], ['todos', 'Todos']].map(([k, l]) => `<option value="${k}"${sts === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
+        <input id="padQ" type="search" placeholder="Buscar nome ou código…" value="${esc(ui.padQ || '')}" aria-label="Buscar">
+        ${ed ? `<button class="btn sm" data-padall>Marcar visíveis</button><button class="btn sm" data-padnone>Desmarcar visíveis</button><button class="btn sm pri" data-padapply${nSel ? '' : ' disabled'}>Aplicar marcadas (${nSel})</button>` : ''}</div>
+      <p class="sub" id="padProg" style="margin:0">${rows.length} de ${PADRAO.itens.length} ${rows.length > 300 ? '· mostrando 300' : ''} · vêm desmarcados: confiança baixa e nomes que ficariam repetidos com preço diferente (a fórmula pegaria o primeiro).</p>
+      <div class="tw" style="max-width:calc(100vw - 32px)"><table class="t"><thead><tr><th></th><th>Código</th><th>Atual → padronizado</th><th>Confiança</th><th>Motivo e fonte</th></tr></thead><tbody>${tr || '<tr><td colspan="5" class="sub">Nada neste filtro.</td></tr>'}</tbody></table></div>
+    </div>`;
+  }
+  async function aplicarPadrao() {
+    padColisoes();
+    const list = PADRAO.itens.map((x) => ({ x, s: padStatus(x) })).filter(({ x, s }) => s.st === 'pendente' && padSel(x, s));
+    if (!list.length) return toast('Nada marcado');
+    const changes = list.map(({ x, s }) => ({ id: x.id, de: s.it.produto, produto: x.para, fab: x.fab || undefined, tipo: x.tipo || undefined }));
+    const prog = $('#padProg');
+    try {
+      const ren = await REG.renameInsumos(changes, 'Padronização de ' + changes.length + ' descrição(ões)', (d, t) => { if (prog) prog.textContent = d + ' de ' + t + ' gravados…'; });
+      if (Object.keys(ren).length) {
+        const map = Object.assign({}, renomes(), ren);
+        await REG.setTable('RENOMES', { map }, 'Nomes antigos → novos (' + Object.keys(ren).length + ')', []);
+        // estruturas e tabelas que citam o nome do insumo
+        for (const sh of ['MONTADOR', 'KIT HIDRÁULICA', 'KIT VÁLVULA ALÍVIO']) {
+          const base = baseSheets[sh]; if (!base) continue; const over = REG.tabelas[sh] || {}; const ch = {};
+          const cells = new Set([...Object.keys(base.cells), ...Object.keys(over)]);
+          for (const a of cells) { const v = a in over ? over[a] : base.cells[a]; if (typeof v === 'string' && ren[v]) ch[a] = ren[v]; }
+          if (Object.keys(ch).length) await REG.setCells(sh, ch, 'Padronização: ' + Object.keys(ch).length + ' referência(s) em ' + sh, baseOf(sh));
+        }
+      }
+      ui.padSel = {}; toast(changes.length + ' descrição(ões) padronizada(s)'); render();
+    } catch (e) { toast(errMsg(e)); }
+  }
+  document.addEventListener('change', (e) => {
+    if (ui.view !== 'cadastro' || ui.cad !== 'padrao') return; const el = e.target;
+    if (el.dataset.padsel) { ui.padSel = ui.padSel || {}; ui.padSel[el.dataset.padsel] = el.checked; render(); return; }
+    if (['padFam', 'padConf', 'padSt'].includes(el.id)) { ui[el.id] = el.value; render(); }
+  });
+  document.addEventListener('click', (e) => {
+    if (ui.view !== 'cadastro' || ui.cad !== 'padrao') return;
+    const all = e.target.closest('[data-padall]'), none = e.target.closest('[data-padnone]');
+    if (all || none) { ui.padSel = ui.padSel || {}; document.querySelectorAll('[data-padsel]').forEach((c) => { ui.padSel[c.dataset.padsel] = !!all; }); render(); return; }
+    const ap = e.target.closest('[data-padapply]'); if (ap) { if (!ap.dataset.sure) { ap.dataset.sure = 1; ap.textContent = 'Confirmar: renomear ' + ap.textContent.replace(/\D+/g, '') + ' insumo(s)'; return; } ap.disabled = true; aplicarPadrao(); }
+  });
+
+  // ---- responsáveis por área (só o dono do app define) ----
+  function vAcessos() {
+    if (REG.mode !== 'shared') return '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita tudo.</p></section>';
+    const own = REG.isOwner; const ac = REG.acessos || {};
+    const rows = AREAS.filter((a) => a[0] !== 'sistema').map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
+      <td>${(ac[k] || []).map((id) => `<span class="pchip"><span data-uid="${esc(id)}">…</span>${own ? `<button class="restore" data-acrm="${k}|${esc(id)}" aria-label="Remover">×</button>` : ''}</span>`).join(' ') || '<span class="sub">ninguém (só o dono edita)</span>'}</td>
+      <td>${own ? `<button class="btn sm" data-acadd="${k}">+ Pessoa</button>` : ''}</td></tr>`).join('');
+    return `<div class="stack">
+      <section class="card"><h2>Responsáveis por área</h2>
+        <p class="sub" style="margin:0 0 10px">Cada área do cadastro só pode ser alterada por quem está nela. ${REG.areasConfiguradas() ? '' : '<b>Ainda não há ninguém definido: hoje todo Editor altera tudo.</b> Ao incluir a primeira pessoa, a trava passa a valer.'} O dono do app altera tudo.</p>
+        <div class="tw"><table class="t"><thead><tr><th>Área</th><th>Pessoas</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+        ${own ? '' : '<p class="sub" style="margin:10px 0 0">Só o dono do app muda esta lista.</p>'}</section>
+      <section class="card"><h2>Como dar acesso</h2><div class="kv" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr)">
+        <div>Comercial e vendedores</div><div style="text-align:left;font-weight:400">Compartilhe o app como <b>Contribuidor</b>: fazem e salvam propostas, anexam documentos e não alteram nenhum cadastro (o banco bloqueia).</div>
+        <div>Custos, Engenharia, Fiscal, Precificação, Serviços</div><div style="text-align:left;font-weight:400">Compartilhe como <b>Editor</b> e inclua a pessoa na área acima. O app só libera a edição das áreas dela.</div>
+        <div>Leitura</div><div style="text-align:left;font-weight:400">Como <b>Leitor</b>, a pessoa consulta propostas, margens e cadastro sem alterar nada.</div></div></section>
+    </div>`;
+  }
+  async function acSave(mut, desc) { const a = JSON.parse(JSON.stringify(REG.acessos || {})); mut(a); try { await REG.setAcessos(a, desc); toast('Responsáveis atualizados'); } catch (e) { toast(errMsg(e)); } }
+  document.addEventListener('click', (e) => {
+    if (ui.view !== 'cadastro' || ui.cad !== 'acessos') return;
+    const rm = e.target.closest('[data-acrm]'); if (rm) { const [k, id] = rm.dataset.acrm.split('|'); acSave((a) => { a[k] = (a[k] || []).filter((x) => x !== id); }, 'Responsável removido de ' + areaName(k)); return; }
+    const ad = e.target.closest('[data-acadd]'); if (!ad) return; const k = ad.dataset.acadd;
+    modal(`<h2>Incluir em ${esc(areaName(k))}</h2><input type="search" id="acQ" placeholder="Nome ou e-mail de alguém da organização" aria-label="Buscar pessoa" autocomplete="off"><div class="list" id="acList"><p class="sub">Digite para buscar.</p></div><div><button class="btn" data-close>Fechar</button></div>`, (o, close) => {
+      let t; const q = $('#acQ', o);
+      const go = async () => { const L = $('#acList', o); let hits = []; try { hits = REG.user && REG.user.search ? await REG.user.search(q.value.trim()) : []; } catch (er) { hits = []; }
+        L.innerHTML = ''; if (!hits.length) { L.innerHTML = '<p class="sub">Ninguém encontrado.</p>'; return; }
+        for (const h of hits.slice(0, 12)) { const row = document.createElement('div'); row.className = 'row'; const nm = document.createElement('b'); nm.textContent = h.name || 'Sem nome'; const b = document.createElement('button'); b.className = 'btn sm pri'; b.textContent = 'Incluir'; b.onclick = () => { close(); acSave((a) => { a[k] = [...new Set([...(a[k] || []), h.id])]; }, 'Responsável incluído em ' + areaName(k)); }; row.append(nm, b); L.appendChild(row); } };
+      q.oninput = () => { clearTimeout(t); t = setTimeout(go, 250); }; q.onfocus = () => { if (!q.value) go(); }; q.focus();
+    });
+  });
+
   function vHistorico() {
     const q = (ui.histQ || '').trim().toLowerCase();
     const list = REG.historico.filter((h) => !q || [h.tipo, h.desc, h.ref, ...(h.mudancas || []).map((m) => m.campo)].join(' ').toLowerCase().includes(q)).slice(0, 250);
@@ -1262,7 +1414,7 @@
   function vEstruturas() {
     const est = estrList().includes(ui.estr) ? ui.estr : estrList()[0]; const H = heads(); const lines = recLines();
     const free = 151 - 91 - lines.length;
-    const tabs = ESTRSf().map(([k, lb]) => `<button role="tab" aria-selected="${k === est}" data-estr="${k}">${lb}</button>`).join('') + (REG.canEditCadastro && estrList().length < FAMS.length ? '<button data-estrnew>+ Nova estrutura</button>' : '');
+    const tabs = ESTRSf().map(([k, lb]) => `<button role="tab" aria-selected="${k === est}" data-estr="${k}">${lb}</button>`).join('') + (canEd() && estrList().length < FAMS.length ? '<button data-estrnew>+ Nova estrutura</button>' : '');
     const mine = lines.filter((x) => estrOf(x).includes(est));
     const groups = ACIONS.map(([k, lb]) => {
       const g = mine.filter((x) => (x.acion || 'TODOS') === k); if (!g.length) return '';
@@ -1278,11 +1430,11 @@
     return `<div class="stack">
       <p class="sub" style="margin:0">A estrutura padrão diz o que entra em cada equipamento montado: quais componentes, de onde sai o insumo (o que foi escolhido no item, a tabela por porte ou um insumo fixo), quantos por bomba e em que condição. Toda proposta nova monta o item por aqui. ${free} linha(s) livre(s) de 60.</p>
       <div class="subtabs" role="tablist" aria-label="Estrutura">${tabs}</div>
-      <div class="docbar"><button class="btn sm pri" data-recnew${REG.canEditCadastro && free > 0 ? '' : ' disabled'}>+ Novo componente</button>${changed ? `<span class="sub">${changed} alteração(ões) sobre a planilha</span><button class="btn sm" data-recreset>Voltar à estrutura da planilha</button>` : ''}</div>
+      <div class="docbar"><button class="btn sm pri" data-recnew${canEd() && free > 0 ? '' : ' disabled'}>+ Novo componente</button>${changed ? `<span class="sub">${changed} alteração(ões) sobre a planilha</span><button class="btn sm" data-recreset>Voltar à estrutura da planilha</button>` : ''}</div>
       <div class="tw"><table class="t"><thead><tr><th>Componente</th><th>De onde sai o insumo</th><th>Quantidade</th><th>Condição</th><th>Vale para</th><th></th></tr></thead><tbody>${groups || '<tr><td colspan="6" class="sub">Nenhum componente nesta estrutura.</td></tr>'}</tbody></table></div>
       <section class="card"><h2>Sugestões <span class="sub">marque o que quiser aplicar; opcionais não entram no preço até serem marcados no item</span></h2>
         <div class="sugs">${sug}</div>
-        <div class="docbar" style="margin-top:10px"><button class="btn sm pri" data-sugapply${REG.canEditCadastro ? '' : ' disabled'}>Aplicar as marcadas</button></div></section>
+        <div class="docbar" style="margin-top:10px"><button class="btn sm pri" data-sugapply${canEd() ? '' : ' disabled'}>Aplicar as marcadas</button></div></section>
       <section class="card"><h2>Tabelas por porte <span class="sub">o insumo de cada faixa; vale para todas as estruturas</span></h2>
         <div class="subtabs" role="tablist">${[['FAIXA', 'Potência do diesel (HP)'], ['CV', 'Potência elétrica (CV)'], ['VAZAO', 'Vazão (hidráulica)']].map(([k, lb]) => `<button role="tab" aria-selected="${(ui.porte || 'FAIXA') === k}" data-porte="${k}">${lb}</button>`).join('')}</div>
         ${porteGrid(ui.porte || 'FAIXA')}</section>
@@ -1292,7 +1444,7 @@
   function porteGrid(k) {
     const spec = { FAIXA: [MO, 156, 157, 166, 'B', 'M', ['B', 'C', 'D']], CV: [MO, 171, 172, 187, 'B', 'G', ['B', 'C']], VAZAO: ['KIT HIDRÁULICA', 3, 4, 32, 'A', 'Q', ['A']] }[k];
     const [sh, hr, r1, r2, c1, c2, numCols] = spec; const cols = []; for (let c = colToNum(c1); c <= colToNum(c2); c++) cols.push(numToCol(c));
-    const ed = REG.canEditCadastro; const chg = REG.tabelas[sh] || {};
+    const ed = canEd(); const chg = REG.tabelas[sh] || {};
     const head = cols.map((c) => `<th>${esc(String(val(sh, c + hr) || '').replace(/^\d+\s*·\s*/, ''))}</th>`).join('');
     let body = '';
     for (let r = r1; r <= r2; r++) {
@@ -1311,7 +1463,7 @@
     const opt = (list, cur) => list.map(([k, lb]) => `<option value="${esc(k)}"${String(cur) === String(k) ? ' selected' : ''}>${esc(lb)}</option>`).join('');
     const colOpts = (k) => H[k].map((h, i) => `<option value="${i + 1}"${String(x.campo) === String(i + 1) && x.tipo === k ? ' selected' : ''}>${esc(h)}</option>`).join('');
     const qIsNum = typeof x.qtd === 'number' || /^\d+$/.test(String(x.qtd));
-    const ro = REG.canEditCadastro ? '' : ' disabled';
+    const ro = canEd() ? '' : ' disabled';
     modal(`<h2>${isNew ? 'Novo componente' : 'Componente da estrutura'}</h2>
       <div class="fields">
         <div class="f spanall"><label for="rRot">Nome do componente</label><input id="rRot" value="${esc(x.rot || '')}"${ro}></div>
@@ -1331,7 +1483,7 @@
         <div class="f spanall"><label for="rRg">Condição</label><select id="rRg"${ro}>${opt(REGRAS, x.regra || '')}</select></div>
       </div>
       <p class="sub" id="rMsg" style="margin:0"></p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${REG.canEditCadastro ? `<button class="btn pri" id="rSave">Salvar</button>${isNew ? '' : '<button class="btn" id="rDel">Excluir da estrutura</button>'}` : ''}<button class="btn" data-close>Fechar</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${canEd() ? `<button class="btn pri" id="rSave">Salvar</button>${isNew ? '' : '<button class="btn" id="rDel">Excluir da estrutura</button>'}` : ''}<button class="btn" data-close>Fechar</button></div>
       ${datalists()}`, (o, close) => {
       const g = (s) => $(s, o);
       const sync = () => { const t = g('#rTipo').value; o.querySelectorAll('[data-tp]').forEach((el) => { el.hidden = !el.dataset.tp.split(' ').includes(t); }); g('[data-q]').hidden = g('#rQ').value !== 'FIX'; };
@@ -1405,7 +1557,8 @@
       { t: 'Tributos sobre a receita', rows: [['C5', 'PIS', 'pct'], ['C6', 'COFINS', 'pct'], ['C7', 'IRPJ / CSLL', 'pct'], ['C8', 'Alíquota interestadual de importados', 'pct'], ['C9', 'Limite de conteúdo importado (FCI)', 'pct']] },
       { t: 'Convênio ICMS 52/91', rows: [['C12', 'Aplicar automaticamente', ['SIM', 'NÃO']], ['C13', 'Carga efetiva — interestadual', 'pct'], ['C14', 'Carga efetiva — demais', 'pct']] },
       { t: 'Formação do preço', rows: [['C32', 'Modo padrão dos itens', ['FATOR (MARKUP)', 'MARGEM ALVO']], ['C33', 'Margem alvo padrão', 'pct'], ['C34', 'Margem mínima', 'pct'], ['C35', 'Fórmula da margem alvo', ['EXATA', 'ENCADEADA']], ['C17', 'Base da comissão', ['VENDA BRUTA', 'VENDA LÍQUIDA']], ['C23', 'Provisão de frete no resultado', 'pct']] },
-      { t: 'Frete e start-up', rows: [['C26', 'Fator de frete', 'pct'], ['C27', 'Fator de start-up', 'pct'], ['C28', 'Custo padrão por km (R$)', 'num'], ['C29', 'Valor padrão da diária (R$)', 'num'], ['C30', 'Folga de negociação padrão', 'pct'], ['C39', 'Aplicar encargo financeiro do pagamento', ['SIM', 'NÃO']]] },
+      { t: 'Fatores e negociação', rows: [['C26', 'Fator de frete', 'pct'], ['C27', 'Fator de start-up', 'pct'], ['C30', 'Folga de negociação padrão', 'pct'], ['C39', 'Aplicar encargo financeiro do pagamento', ['SIM', 'NÃO']]] },
+      { t: 'Start-up e visitas técnicas', rows: [['C28', 'Custo padrão por km (R$)', 'num'], ['C29', 'Valor padrão da diária (R$)', 'num']] },
       { t: 'Emitente', rows: [['C140', 'Razão social', 'text'], ['C141', 'CNPJ', 'text'], ['C142', 'Inscrição estadual', 'text'], ['C143', 'Regime tributário', 'text'], ['C144', 'Endereço', 'text'], ['C145', 'Contato', 'text']] },
     ],
     codificacao: [
@@ -1433,7 +1586,7 @@
   const SYS_LISTS = [['Cadastros fiscais', PA, 'C', 131, 133], ['Agentes', PA, 'D', 131, 133], ['Blocos', PA, 'E', 131, 133], ['Fretes', PA, 'F', 131, 133], ['Normas da proposta', PA, 'G', 131, 134], ['Segmentos da proposta', PA, 'B', 131, 136], ['Acionamentos', CO, 'T', 5, 15], ['Arrefecimentos', CO, 'V', 5, 14], ['Tipos de partida', CO, 'X', 5, 14], ['Tensões VCC', CO, 'Z', 5, 14]];
   const pctShow = (v) => typeof v === 'number' ? NF[2].format(v * 100).replace(/,00$/, '') : '';
   function cellCtl(sh, a, kind, label) {
-    const v = val(sh, a); const ed = REG.canEditCadastro; const ch = (REG.tabelas[sh] || {}); const over = a in ch;
+    const v = val(sh, a); const ed = canEd(); const ch = (REG.tabelas[sh] || {}); const over = a in ch;
     const shown = kind === 'pct' ? pctShow(v) : v === null || v === undefined ? '' : typeof v === 'number' ? fmtPlain(v) : String(v);
     if (!ed) return `<span class="${over ? 'chgv' : ''}">${esc(kind === 'pct' && shown ? shown + '%' : shown) || '—'}</span>`;
     const list = typeof kind === 'function' ? kind() : Array.isArray(kind) ? kind : null;
@@ -1451,7 +1604,7 @@
   const keyOf = (T) => T.key || T.cols[0][0];
   function tableRows(T) { const rows = []; for (let r = T.r1; r <= T.r2; r++) { const k = val(T.s, keyOf(T) + r); if (k !== null && k !== undefined && k !== '') rows.push(r); } return rows; }
   function tableCard(id) {
-    const T = TABLES[id]; const rows = tableRows(T); const ed = REG.canEditCadastro; const canAdd = ed && T.key && rows.length < T.r2 - T.r1 + 1;
+    const T = TABLES[id]; const rows = tableRows(T); const ed = canEd(); const canAdd = ed && T.key && rows.length < T.r2 - T.r1 + 1;
     const extra = ui.tblAdd === id && canAdd ? (() => { let r = T.r1; const used = new Set(rows); while (used.has(r)) r++; return r; })() : 0;
     const tr = (r, isNew) => `<tr${isNew ? ' class="newrow"' : ''}>${T.cols.map(([c, lb, kind, ro]) => { const a = c + r; if (ro || isFormulaBase(T.s, a)) { const v = val(T.s, a); return `<td class="n">${esc(kind === 'pct' ? (typeof v === 'number' ? pctShow(v) + '%' : '') : kind === 'num' && typeof v === 'number' ? fmtNum(v, '0.0000') : fmtPlain(v))}</td>`; } return `<td class="in">${cellCtl(T.s, a, kind, lb)}</td>`; }).join('')}${ed && T.key ? `<td>${isNew ? '<span class="sub">preencha a 1ª coluna</span>' : `<button class="restore" data-rowdel="${id}|${r}">excluir</button>`}</td>` : ''}</tr>`;
     return `<section class="card"><h2>${esc(T.t)} <span class="sub">${rows.length} de ${T.r2 - T.r1 + 1}</span></h2>${T.note ? `<p class="sub" style="margin:0 0 10px">${esc(T.note)}</p>` : ''}
@@ -1474,7 +1627,7 @@
     return [...m.values()].sort((a, b) => H.famCode(a.fam) - H.famCode(b.fam));
   }
   function vFamilias() {
-    const ed = REG.canEditCadastro; const lines = recLines();
+    const ed = canEd(); const lines = recLines();
     const ins = famInsumos().map((x) => { const code = H.famCode(x.fam); const nome = x.fam.replace(/^\d+\./, ''); const d = (famReg()[code] || {}).desc || ''; const inRec = lines.filter((l) => l.fam === x.fam).length;
       return `<tr><td class="n">${String(code).padStart(2, '0')}</td><td><b>${esc(nome)}</b>${d ? `<br><small class="sub">${esc(d)}</small>` : ''}</td><td class="n">${x.n}${x.semPreco ? ` <span class="pill warn">${x.semPreco} sem preço</span>` : ''}</td><td class="n">${inRec || ''}</td><td>${ed ? `<button class="btn sm" data-famedit="${esc(x.fam)}">Editar</button>` : ''} <button class="btn sm" data-famins="${esc(x.fam)}">Ver insumos</button></td></tr>`; }).join('');
     const eq = famsEquip().map(([k, lb, nome, r]) => { const core = CORE_FAMS.includes(nome); const pf = (() => { for (let q = 74; q <= 82; q++) if (val(CO, 'B' + q) === nome) return txt(CO, 'C' + q); return ''; })();
@@ -1537,16 +1690,18 @@
       };
     });
   }
+  const divh = (d, t) => `<h3 class="divh"><span class="divb ${d.toLowerCase()}">${d}</span> ${esc(t)}</h3>`;
+  const pcard = (t) => paramCard(PARAM_CARDS.parametros.find((c) => c.t === t));
   function vParamTab(tab) {
     const groups = {
-      parametros: () => PARAM_CARDS.parametros.map(paramCard).join('') + ['comissao', 'pagto', 'ncm', 'unid', 'uf'].map(tableCard).join(''),
-      politica: () => ['segdesc', 'polfam'].map(tableCard).join(''),
+      fiscal: () => divh('SEQ', 'Equipamentos') + pcard('Tributos sobre a receita') + pcard('Convênio ICMS 52/91') + ['ncm', 'uf', 'fciuf'].map(tableCard).join('') + divh('SPV', 'Serviços e pós-venda') + SPV.cfgSec('fiscal', canEd()),
+      preco: () => divh('SEQ', 'Equipamentos') + pcard('Formação do preço') + pcard('Fatores e negociação') + ['polfam', 'segdesc', 'comissao', 'pagto'].map(tableCard).join('') + divh('SPV', 'Serviços e pós-venda') + SPV.cfgSec('preco', canEd()),
+      servicos: () => divh('SPV', 'Serviços e pós-venda') + SPV.cfgSec('servicos', canEd()) + divh('SEQ', 'Start-up de equipamentos') + pcard('Start-up e visitas técnicas'),
+      geral: () => pcard('Emitente') + tableCard('unid') + SPV.cfgSec('geral', canEd()),
       codificacao: () => PARAM_CARDS.codificacao.map(paramCard).join('') + ['config', 'rot', 'norma', 'tensao', 'marca', 'segcod', 'modcfg'].map(tableCard).join('')
         + `<section class="card"><h2>Listas do sistema <span class="sub">só leitura: as fórmulas comparam estes nomes</span></h2><div class="syslists">${SYS_LISTS.map(([t, sh, c, a, b]) => `<div><b>${esc(t)}</b><div>${listOf(sh, c, a, b).map((x) => `<span class="pill mute">${esc(x)}</span>`).join(' ')}</div></div>`).join('')}</div></section>`,
-      fci: () => ['fciuf', 'valv'].map(tableCard).join(''),
     };
-    const intro = { parametros: 'Impostos, frete, formação do preço, condições de pagamento, NCM e unidades. Uma mudança aqui vale para todas as propostas.', politica: 'Fator de tabela e descontos máximos por família de produto, e desconto por segmento de cliente.', codificacao: 'Siglas e listas que montam o código e a descrição do item.', fci: 'Alíquotas da FCI por UF e o cadastro de kits de válvula de alívio.' }[tab];
-    return `<div class="stack"><p class="sub" style="margin:0">${intro}</p>${groups[tab]()}</div>`;
+    return `<div class="stack">${groups[tab]()}</div>`;
   }
   document.addEventListener('change', async (e) => {
     const el = e.target; if (!el.dataset || !el.dataset.pcell) return;
@@ -1569,7 +1724,7 @@
   // ---- demais tabelas (grade) ----
   function vTabelas() {
     const S = TABLE_SHEETS.includes(ui.table) ? ui.table : 'PARÂMETROS'; ui.table = S; const sh = baseSheets[S];
-    const readOnly = REGISTRY_SHEETS.has(S) || !REG.canEditCadastro;
+    const readOnly = REGISTRY_SHEETS.has(S) || !canEd();
     const m = /([A-Z]+)(\d+):([A-Z]+)(\d+)/.exec(sh.dim); const c2 = colToNum(m[3]);
     let r2 = 1; const w = wb.sheet(S);
     for (const a of w.cells.keys()) { const p = parseAddr(a); if (p && p.r > r2) r2 = p.r; }
@@ -1599,7 +1754,7 @@
         <select id="selTable" aria-label="Aba">${TABLE_SHEETS.map((t) => `<option${t === S ? ' selected' : ''}>${esc(t)}${REGISTRY_SHEETS.has(t) ? ' (consulta)' : ''}</option>`).join('')}</select>
         <input id="tblFilter" type="search" placeholder="Filtrar linhas…" value="${esc(ui.filter || '')}" aria-label="Filtrar linhas">
         <span class="sub">${nchg ? nchg + ' célula(s) diferente(s) da planilha REV21' : 'igual à planilha REV21'}</span>
-        ${nchg && REG.canEditCadastro ? '<button class="btn sm" id="bResetTable">Voltar aos valores da planilha</button>' : ''}
+        ${nchg && canEd() ? '<button class="btn sm" id="bResetTable">Voltar aos valores da planilha</button>' : ''}
       </div>
       <div class="gridwrap"><table class="grid"><thead><tr><th class="rh"></th>${cols.map((c) => `<th>${numToCol(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div></section>`;
   }
@@ -1632,10 +1787,12 @@
   }
   function bindCadastro() {
     const tab = ui.cad || 'insumos';
+    if (tab === 'acessos') fillNames($('#app'));
+    const ao = $('[data-areaown]'); if (ao && REG.areasConfiguradas()) { const ids = (REG.acessos || {})[ao.dataset.areaown] || []; if (ids.length) REG.names(ids).then((n) => { const el = $('[data-areaown]'); if (el) el.textContent = ids.map((i) => n[i] || 'alguém').join(', '); }); }
     if (tab === 'tabelas') bindGrid();
     if (tab === 'importar') bindImportar();
     const deb = (id, key) => { const el = $('#' + id); if (!el) return; let t; el.oninput = () => { clearTimeout(t); t = setTimeout(() => { ui[key] = el.value; render(); const f = $('#' + id); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }, 250); }; };
-    deb('insQ', 'insQ'); deb('kitQ', 'kitQ'); deb('histQ', 'histQ');
+    deb('insQ', 'insQ'); deb('kitQ', 'kitQ'); deb('histQ', 'histQ'); deb('padQ', 'padQ');
     const fam = $('#insFam'); if (fam) fam.onchange = () => { ui.insFam = fam.value; render(); };
     const sem = $('#insSem'); if (sem) sem.onchange = () => { ui.insSem = sem.checked; render(); };
     const csv = $('#insCsv'); if (csv) csv.onclick = exportInsumos;
@@ -1660,6 +1817,42 @@
     return `<div class="stack"><div><h1>Guia</h1><div class="sub">O manual da planilha original. No app, "aba" vira tela: PROPOSTA e ITEM são as telas Proposta e Itens; insumos, kits e as demais abas estão em Cadastro. Amarelo é entrada, verde é automático e laranja é o que você alterou à mão.</div></div>
       <section class="card"><div class="guide">${h}</div></section></div>`;
   }
+
+  // ---------- fotografia da formação (para margens e fechamento) ----------
+  const MEM_KEYS = { custoMat: 'Custo do conjunto de peças e materiais', custoFab: 'Custos dos serviços de fabricação', custoStartup: 'Custos de Startup', custoFrete: 'Custos dos fretes', custo: 'TOTAL CUSTOS',
+    icmsPct: 'ICMS', pisCofinsPct: 'PIS/COFINS', irPct: 'IR/CSLL', impostosPct: 'TOTAL IMPOSTOS (sem o IPI)', comissaoPct: 'TOTAL COMISSÃO', margemPct: 'Margem Liquida',
+    venda: 'Preço de venda com impostos — SEM IPI (total)', qtd: 'Quantidade', ipi: 'IPI (R$)', vendaIpi: 'Preço de venda com impostos e COM IPI (total)', impostos: 'Impostos', comissao: 'Comissão', margem: 'Margem líquida', ci: 'Conteúdo de importação (CI)' };
+  function memRows() { const m = {}; for (let r = 3; r <= 38; r++) { const lb = txt('MEMORIAL', 'B' + r); for (const [k, l] of Object.entries(MEM_KEYS)) if (lb === l && !m[k]) m[k] = r; } return m; }
+  function seqSnapshot() {
+    const rows = memRows(); const n = (x) => (typeof x === 'number' && isFinite(x) ? x : 0);
+    const pick = (col) => Object.fromEntries(Object.entries(rows).map(([k, r]) => [k, n(val('MEMORIAL', col + r))]));
+    const itens = [];
+    ITEMS.forEach((S, i) => {
+      if (!filled(S)) return;
+      const m = pick(numToCol(3 + i)); const fam = String(val(S, 'AR2') || 'CMB');
+      const linhas = [];
+      for (const x of montLines(S)) { const r = x.r; const c = n(val(S, 'H' + r)); if (!c && !txt(S, 'D' + r)) continue; linhas.push({ k: 'm' + r, grupo: x.acion, rot: x.rot, fam: txt(S, 'C' + r), desc: txt(S, 'D' + r), qtd: n(val(S, 'F' + r)), unit: n(val(S, 'G' + r)), custo: c }); }
+      for (const x of hiddenLines(S)) linhas.push({ k: 'h' + x.rot, grupo: x.acion, rot: x.rot, fam: '', desc: x.desc, qtd: n(x.qtd), unit: n(x.unit), custo: n(x.tot) });
+      for (let r = 68; r <= 112; r++) { if (!txt(S, 'D' + r) && !n(val(S, 'H' + r))) continue; linhas.push({ k: 'e' + r, grupo: 'ESCOPO', rot: txt(S, 'C' + r), fam: txt(S, 'C' + r), desc: txt(S, 'D' + r), qtd: n(val(S, 'F' + r)), unit: n(val(S, 'G' + r)), custo: n(val(S, 'H' + r)) }); }
+      const qtd = m.qtd || 1;
+      // as linhas são de uma unidade e já trazem a mão de obra de fabricação; start-up e frete entram como linhas próprias
+      if (m.custoStartup) linhas.push({ k: 'startup', grupo: 'SERVIÇOS', rot: 'Start-up', desc: 'Start-up', qtd: 1, unit: m.custoStartup / qtd, custo: m.custoStartup / qtd });
+      if (m.custoFrete) linhas.push({ k: 'frete', grupo: 'SERVIÇOS', rot: 'Frete', desc: 'Frete', qtd: 1, unit: m.custoFrete / qtd, custo: m.custoFrete / qtd });
+      itens.push(Object.assign({ n: S, nome: txt(S, 'C28') || txt('PROPOSTA', 'C' + (20 + i)) || S, codigo: txt(S, 'C27'), familia: fam, familiaNome: famLabel(fam), linhas }, m, { qtd }));
+    });
+    const T = pick('M');
+    return { div: 'SEQ', venda: T.venda, vendaIpi: T.vendaIpi, custo: T.custo, impostos: T.impostos, comissao: T.comissao, margem: T.margem, margemPct: T.margemPct, minimo: n(val(PA, 'C34')), itens };
+  }
+  // fotografia de qualquer proposta salva, sem mexer na que está aberta
+  function snapshotOf(p) {
+    if (p.div === 'SPV' && p.spv) return SPV.snapshot(p.spv);
+    const doc = JSON.parse(JSON.stringify(p.doc || {})); migrar(doc);
+    const keep = wb; const w2 = new Workbook(MODEL); REG.applyTo(w2); w2.applyDoc(doc);
+    wb = w2; listCache = new Map();
+    try { return seqSnapshot(); } finally { wb = keep; listCache = new Map(); }
+  }
+  const resumoOf = (snap) => ({ venda: snap.venda, custo: snap.custo, impostos: snap.impostos, comissao: snap.comissao, margem: snap.margem, margemPct: snap.margemPct, minimo: snap.minimo,
+    itens: snap.itens.map((x) => ({ nome: x.nome, familia: x.familia, familiaNome: x.familiaNome, qtd: x.qtd, venda: x.venda, custo: x.custo, margem: x.margem, margemPct: x.margemPct })) });
 
   // ---------- propostas: nova, salvar, abrir, exportar ----------
   function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
@@ -1686,8 +1879,9 @@
     dirty = !!dup; ui.step = 1; ui.propFull = false; setView('proposta');
     toast(dup ? 'Cópia criada: dê um número novo e salve' : 'Aberto: ' + (p.name || docTitle()));
   }
+  const MG = window.PricerMargens({ REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   function newSeq() { loadDoc({}, ''); ui.step = 1; ui.propFull = false; setView('proposta'); toast('Proposta SEQ em branco'); }
-  const SPV = window.PricerSPV({ REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render,
+  const SPV = window.PricerSPV({ REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p),
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
@@ -1703,6 +1897,7 @@
     const p = isSpv() ? Object.assign(base, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv })
       : Object.assign(base, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
     if (typeof p.total !== 'number') delete p.total;
+    try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
     try { const where = await REG.saveProposta(id, p); state.id = id; persist(); dirty = false; toast((where === 'shared' ? 'Salvo para a equipe: ' : 'Salvo neste navegador: ') + docTitle()); }
     catch (err) { toast(errMsg(err)); }
   };

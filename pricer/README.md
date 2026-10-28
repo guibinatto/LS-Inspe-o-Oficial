@@ -14,6 +14,11 @@ venda bruta e lucro líquido mínimo de 40%. **Documentos** guarda orçamentos, 
 contratos ligados às propostas; no app publicado, Claude lê o PDF ou a foto do orçamento
 e traz os itens para as peças.
 
+**Margens:** ao dar baixa numa proposta (status Ganha), a formação fica congelada por item e
+linha; Compras e Produção lançam o custo real e o painel compara previsto × realizado por
+divisão, família, pacote e item. **Cadastro** é dividido por área (Custos, Engenharia,
+Fiscal, Precificação, Serviços, Cadastro geral, Sistema), cada uma com seus responsáveis.
+
 ## Como usar
 - **Arquivo único:** abra `dist/ls-pricer.html` no navegador. Não precisa instalar nada.
 - **Gerar o arquivo único:** `python3 tools/build.py`
@@ -23,4 +28,6 @@ e traz os itens para as peças.
 - `engine.js` — motor de fórmulas · `model.js` — planilha REV21 (fórmulas, listas, exemplo COCAMAR)
 - `app.js` — telas · `cadastro.js` — cadastro compartilhado · `docs.js` — Memorial/FCI em PDF e Excel
 - `spv.js` — página inicial, formação de custo SPV, documentos e leitura de orçamentos
+- `margens.js` — registro de margens: baixa da proposta, painel de margens, previsto × realizado e Excel do fechamento
+- `padrao.js` / `docs/padroes-descricoes.md` — proposta de padronização das descrições de motores e bombas (revisão em Cadastro geral)
 - `fci-template.js` / `templates/Calculo_FCI.xlsx` — template oficial da FCI

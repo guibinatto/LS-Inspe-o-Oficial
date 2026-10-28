@@ -99,7 +99,7 @@ h2{font-size:16px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
 .legend .e{background:var(--entry);border-color:var(--entry-line)}.legend .a{background:var(--auto);border-color:var(--auto-line)}.legend .o{background:var(--entry);border-color:var(--or)}
 
 /* tabelas */
-.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.tw{min-width:0;overflow-x:auto;border:1px solid var(--line);border-radius:8px}
 table.t{border-collapse:collapse;width:100%;font-size:13.5px}
 .t th{position:sticky;top:0;background:var(--bar);color:var(--bar-ink);font-family:var(--f-cond);font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:12.5px;text-align:left;padding:7px 8px;white-space:nowrap}
 .t td{padding:5px 8px;border-top:1px solid var(--line);vertical-align:top}
@@ -327,6 +327,36 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 .mchip.on{border-color:var(--or);background:var(--or-soft);box-shadow:inset 3px 0 0 var(--or)}
 .mchip b{font-size:14px;font-weight:600}
 .mchip small{font-size:12px;color:var(--ink3)}
+.areatabs{display:flex;gap:0;flex-wrap:wrap;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--card);max-width:100%;justify-self:start}
+.areatabs button{border:0;border-right:1px solid var(--line);background:none;padding:9px 14px;font-family:var(--f-cond);font-weight:700;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.areatabs button:last-child{border-right:0}
+.areatabs button[aria-selected="true"]{background:var(--ink);color:var(--card)}
+.mydot{width:7px;height:7px;border-radius:50%;background:var(--or);display:inline-block}
+.divh{display:flex;align-items:center;gap:8px;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin:8px 0 -4px}
+.pchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:999px;padding:2px 10px;font-size:13.5px;margin:2px 0}
+/* gráficos de margem */
+:root{--s1:#2a78d6;--s2:#eb6834;--vz-grid:#e8e6e1}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--s1:#3987e5;--s2:#d95926;--vz-grid:#2c2b28}}
+:root[data-theme="dark"]{--s1:#3987e5;--s2:#d95926;--vz-grid:#2c2b28}
+.vzgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.vzgrid .span-all{grid-column:1/-1}
+@media (max-width:980px){.vzgrid{grid-template-columns:1fr}}
+.vz{width:100%;height:auto;display:block;overflow:visible}
+.vz .vz-s1{fill:var(--s1)}.vz .vz-s2{fill:var(--s2)}
+.vz .vz-grid{stroke:var(--vz-grid);stroke-width:1}
+.vz .vz-base{stroke:var(--ink3);stroke-width:1}
+.vz .vz-min{stroke:var(--ink2);stroke-width:1.5;stroke-dasharray:4 3}
+.vz text{font-family:var(--f-body)}
+.vz .vz-lb{fill:var(--ink);font-size:12px;font-weight:600}
+.vz .vz-ax{fill:var(--ink3);font-size:10.5px}
+.vz .vz-val{fill:var(--ink2);font-size:11.5px;font-variant-numeric:tabular-nums}
+.vz-legend{display:flex;gap:14px;font-size:12.5px;color:var(--ink2);margin:0 0 6px}
+.vz-legend span{display:inline-flex;align-items:center;gap:6px}
+.vz-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.vz-k1{background:var(--s1)}.vz-k2{background:var(--s2)}
+.vz-tip{position:fixed;z-index:60;pointer-events:none;background:var(--bar);color:var(--bar-ink);font-size:12.5px;padding:6px 9px;border-radius:6px;max-width:320px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.t td.in input.rin{min-width:110px;text-align:right}
+.t td.in input[data-robs]{text-align:left;min-width:160px}
 .famtab td:first-child{font-family:var(--f-mono);font-size:12.5px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -341,6 +371,7 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
       <button data-view="item" data-seqonly>Itens</button>
       <button data-view="memorial" data-seqonly>Memorial</button>
       <button data-view="documentos">Documentos</button>
+      <button data-view="margens">Margens</button>
       <button data-view="cadastro">Cadastro</button>
       <button data-view="guia">Guia</button>
     </nav>
@@ -358,7 +389,9 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 <script src="engine.js"></script>
 <script src="cadastro.js"></script>
 <script src="model.js"></script>
+<script src="padrao.js"></script>
 <script src="fci-template.js"></script>
 <script src="docs.js"></script>
 <script src="spv.js"></script>
+<script src="margens.js"></script>
 <script src="app.js"></script>

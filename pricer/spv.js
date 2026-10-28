@@ -39,6 +39,7 @@
     [18, 'PEÇAS DE REPOSIÇÃO E SOBRESSALENTES', 'SPV', 'PAR', 'Peças de reposição para bombas e motores, flanges, válvulas de alívio, waste cone, trocadores de calor etc.'],
     [19, 'INSPEÇÕES E CONTRATOS DE MANUTENÇÃO', 'SPV', 'ITM', 'Contratos de inspeções, testes periódicos e manutenção recorrente'],
     [20, 'LOCAÇÃO DE EQUIPAMENTOS (RENTALS)', 'SPV', 'REN', 'Locação de bombas, skids, containers, painéis e sistemas completos'],
+    [null, 'FACTS — TESTE AUTOMÁTICO DE BOMBAS (CHURN TEST)', 'SEQ', 'FAC', 'Sistema automático de teste e monitoramento de bombas de incêndio (FACTS, aprovado FM 1330 / NFPA 25)'],
     [21, 'SISTEMAS DE FILTRAGEM', 'SPV', 'SFL', 'Sistemas de filtragem de óleo diesel para tanques de combustível'],
   ];
   // como cada tipo de SPV começa: equipe/deslocamento, peças, contrato
@@ -81,6 +82,8 @@
       escopo: 'Start-up e comissionamento do sistema de bombeamento: verificação da instalação, primeira partida, ajuste dos pressostatos e do painel, testes de funcionamento e de vazão, orientação à equipe do cliente e relatório de comissionamento.', exclusoes: EXC },
     { id: 'trt-trein', tipo: 'TRT', nome: 'Treinamento de operação e manutenção (8 h)', equipe: [{ tec: 'João Mendes', dias: 1 }], prazo: '1 dia (8 horas)',
       escopo: 'Treinamento teórico e prático de 8 horas para a equipe do cliente: funcionamento do sistema, operação dos painéis, partida manual e automática, rotinas de inspeção semanal e mensal (NFPA 25) e cuidados de manutenção. Inclui material didático e certificado.', exclusoes: EXC },
+    { id: 'frc-ativacao', tipo: 'FRC', nome: 'Fireconnect — instalação e ativação', equipe: [{ tec: 'Roger', dias: 1 }, { tec: 'João Mendes', dias: 1 }], prazo: '1 dia em campo', pecas: [],
+      escopo: 'Instalação e ativação do monitoramento remoto Fireconnect na casa de bombas: montagem do gateway e dos sensores, ligação ao painel da bomba, configuração da conta e dos alarmes, teste de comunicação e treinamento rápido dos usuários. Cadastre aqui as peças padrão do kit Fireconnect para elas entrarem sozinhas na proposta.', exclusoes: EXC },
     { id: 'smf-revisao', tipo: 'SMF', nome: 'Revisão geral de bomba em fábrica', equipe: [{ tec: 'Yago', dias: 3 }], prazo: '15 dias úteis após a chegada do equipamento',
       escopo: 'Revisão geral da bomba em fábrica: desmontagem, limpeza, inspeção dimensional do rotor, eixo, buchas e mancais, troca de rolamentos, gaxetas ou selo mecânico e juntas, montagem, pintura e teste. Relatório com fotos e peças substituídas.', exclusoes: EXC },
   ]);
@@ -105,6 +108,12 @@
       const c = cfg();
       Object.assign(s, { tipo: m.tipo, modelo: m.id, descricao: m.escopo || '', exclusoes: m.exclusoes || '', prazo_exec: m.prazo || '' });
       if (m.equipe && m.equipe.length) { s.equipe = m.equipe.map((e) => { const t = c.tecnicos.find((x) => x.nome === e.tec); return { tec: e.tec, diaria: t ? t.diaria : num(e.diaria), dias: num(e.dias) || 1 }; }); s.blocos.equipe = true; }
+      if (m.pecas && m.pecas.length) {
+        const pb = pricebook(); const mk = Object.assign({}, c.mk, s.mk || {});
+        s.pecas = m.pecas.map((x) => { const h = !num(x.unit) && pb.get(norm(x.desc)); const last = h && h[0];
+          return { desc: x.desc, cod: x.cod || (last && last.cod) || '', forn: x.forn || (last && last.forn) || '', qtd: num(x.qtd) || 1, un: x.un || '', unit: num(x.unit) || (last ? last.unit : 0), moeda: x.moeda || (last && last.moeda) || 'BRL', ipi: num(x.ipi) || (last ? last.ipi : 0), fator: x.fator != null ? x.fator : mk.fator_pecas, incluso: true }; });
+        s.blocos.pecas = true;
+      }
       if (m.visitas) { s.contrato = Object.assign({}, s.contrato, { visitas: m.visitas, meses: m.meses || 12 }); s.blocos.contrato = true; }
       else s.blocos.contrato = false;
     }
@@ -142,10 +151,12 @@
       const pr = s.precos || {}; const preco = Object.fromEntries(PRECO_KEYS.map((x) => [x, num(pr[x] ?? ov[x] ?? k[x])]));
       const logLines = s.blocos.equipe ? [
         ['km', 'Deslocamento rodoviário', 'km', preco.rkm, 'rkm'], ['aereo_qtd', 'Passagens aéreas', 'trechos', preco.aereo, 'aereo'], ['carro_dias', 'Locação de automóvel', 'diárias', preco.carro, 'carro'],
-        ['hotel_noites', 'Hotel (quarto individual)', 'noites', preco.hotel, 'hotel'], ['alim_qtd', 'Alimentação', 'refeições-dia', preco.alim, 'alim'], ['art_qtd', 'ART', 'un.', preco.art, 'art'],
+        ['hotel_noites', 'Hotel (quarto individual)', 'noites', preco.hotel, 'hotel'], ['alim_qtd', 'Alimentação', 'refeições-dia', preco.alim, 'alim'], ['art_qtd', s.blocos.contrato ? 'ART (uma vez por contrato)' : 'ART (uma por serviço)', 'un.', preco.art, 'art'],
         ['frete', 'Frete de insumos / ferramentas', 'R$', 1, null], ['outros', 'Outros custos', 'R$', 1, null]] : [];
       const log = logLines.map(([f, lb, un, p, pk]) => ({ f, lb, un, qtd: L[f], auto: auto[f], over: typeof ov[f] === 'number', p, pk, tot: num(L[f]) * num(p) }));
-      const logTot = log.reduce((t, x) => t + x.tot, 0);
+      // ART: uma por serviço; no contrato, uma só para o contrato inteiro (fora do custo por visita)
+      const artLine = log.find((x) => x.f === 'art_qtd'); const artCusto = s.blocos.contrato && artLine ? artLine.tot : 0;
+      const logTot = log.reduce((t, x) => t + x.tot, 0) - artCusto;
       const custoServ = mo + logTot;
       const pecas = (s.blocos.pecas ? s.pecas : []).map((p) => {
         const cambio = p.moeda === 'USD' ? num(p.cambio ?? mk.cambio_usd) : p.moeda === 'EUR' ? num(p.cambio ?? mk.cambio_eur) : 1;
@@ -166,8 +177,34 @@
       const multMin = custoServ > 0 && den > 0 ? Math.max(0, (custoServ - Pnet + mk.lucro_min * Vp) / den) / custoServ : null;
       const ded = [['PIS', mk.pis, V * mk.pis], ['COFINS', mk.cofins, V * mk.cofins], ['IRPJ / CSLL (serviço)', mk.irpj, Vs * mk.irpj], ['ISS (serviço)', mk.iss, Vs * mk.iss], ['IRPJ / CSLL (peças)', mk.irpj_pecas, Vp * mk.irpj_pecas], ['ICMS (peças, ' + (s.uf || 'SC') + ')', icms, Vp * icms],
         ['Custo financeiro', mk.fin, V * mk.fin], ['Comissão representante', mk.com_rep, V * mk.com_rep], ['Comissão captador', mk.com_capt, V * mk.com_capt], ['Comissão orçamento', mk.com_orc, V * mk.com_orc], ['Pagamento a prazo', s.aprazo ? mk.prazo : 0, s.aprazo ? V * mk.prazo : 0]].filter((x) => x[2]);
-      const ct = s.blocos.contrato ? { porVisita: V, anual: V * num(s.contrato.visitas), mensal: V * num(s.contrato.visitas) / 12, total: V * num(s.contrato.visitas) / 12 * num(s.contrato.meses) } : null;
-      return { mk, pessoas, dias, mo, aereo, log, logTot, custoServ, pecas, custoPecas, Vs, Vp, V, dS, dP, custo, lucro, lucroPct, multMin, mult, ded, icms, ct, total: ct ? ct.total : V };
+      let ct = null;
+      if (s.blocos.contrato) {
+        const nV = num(s.contrato.visitas) * num(s.contrato.meses) / 12; const artV = artCusto * mult; const total = V * nV + artV;
+        const lucroCt = lucro * nV + artV * (1 - tS) - artCusto;
+        ct = { porVisita: V, nV, artCusto, artV, total, anual: num(s.contrato.meses) ? total / num(s.contrato.meses) * 12 : 0, mensal: num(s.contrato.meses) ? total / num(s.contrato.meses) : 0, lucro: lucroCt, lucroPct: total ? lucroCt / total : 0 };
+      }
+      return { mk, pessoas, dias, mo, aereo, log, logTot, custoServ, pecas, custoPecas, Vs, Vp, V, dS, dP, custo, lucro: ct ? ct.lucro : lucro, lucroPct: ct ? ct.lucroPct : lucroPct, lucroVisita: lucro, multMin, mult, ded, icms, ct, total: ct ? ct.total : V };
+    }
+
+    // fotografia para margens e fechamento: um item para o serviço e outro para as peças
+    function snapshot(s) {
+      const r = calc(s); const mk = r.mk; const ti = tipoInfo(s.tipo); const nV = r.ct ? r.ct.nV : 1;
+      const tx = num(mk.pis) + num(mk.cofins); const comPct = num(mk.com_rep) + num(mk.com_capt) + num(mk.com_orc) + num(mk.fin) + (s.aprazo ? num(mk.prazo) : 0);
+      const item = (k, nome, venda, custo, impPct, linhas) => { const impostos = venda * impPct, comissao = venda * comPct, margem = venda - impostos - comissao - custo;
+        return { n: k, nome, familia: s.tipo, familiaNome: ti.nome, qtd: 1, venda, custo, impostos, comissao, margem, margemPct: venda ? margem / venda : 0, impostosPct: impPct, comissaoPct: comPct, linhas }; };
+      const itens = [];
+      if (s.blocos.equipe && (r.custoServ || (r.ct && r.ct.artCusto))) {
+        const linhas = s.equipe.filter((e) => num(e.dias) > 0).map((e, i) => ({ k: 'eq' + i, grupo: 'EQUIPE', rot: e.tec, desc: e.tec + ' — diárias', qtd: num(e.dias) * nV, unit: num(e.diaria), custo: num(e.diaria) * num(e.dias) * nV }))
+          .concat(r.log.filter((x) => x.tot).map((x) => { const once = r.ct && x.f === 'art_qtd'; return { k: x.f, grupo: 'DESLOCAMENTO', rot: x.lb, desc: x.lb, qtd: num(x.qtd) * (once ? 1 : nV), unit: num(x.p), custo: x.tot * (once ? 1 : nV) }; }));
+        const venda = r.Vs * nV + (r.ct ? r.ct.artV : 0); const custo = r.custoServ * nV + (r.ct ? r.ct.artCusto : 0);
+        itens.push(item('servico', ((TIPO_INI[s.tipo] || {}).titulo || ti.nome) + (r.ct ? ' — contrato' : ''), venda, custo, tx + num(mk.irpj) + num(mk.iss), linhas));
+      }
+      if (s.blocos.pecas && r.Vp) {
+        const linhas = r.pecas.filter((p) => p.incluso !== false).map((p, i) => ({ k: 'pc' + i, grupo: 'PEÇAS', rot: p.forn || '', desc: p.desc, cod: p.cod || '', qtd: num(p.qtd) * nV, unit: p.unitBRL, custo: p.custo * nV }));
+        itens.push(item('pecas', 'Peças e materiais', r.Vp * nV, r.custoPecas * nV, tx + num(mk.irpj_pecas) + r.icms, linhas));
+      }
+      const sum = (k) => itens.reduce((t, x) => t + x[k], 0); const venda = sum('venda'), margem = sum('margem');
+      return { div: 'SPV', tipo: s.tipo, venda, vendaIpi: venda, custo: sum('custo'), impostos: sum('impostos'), comissao: sum('comissao'), margem, margemPct: venda ? margem / venda : 0, minimo: mk.lucro_min, itens };
     }
 
     // ---------- leitura com Claude ----------
@@ -278,7 +315,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
         <td><select data-hstatus="${esc(p.id)}" aria-label="Status">${STATUS.map(([k, lb]) => `<option value="${k}"${(p.status || 'rascunho') === k ? ' selected' : ''}>${lb}</option>`).join('')}</select></td>
         <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
-        <td><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button></td></tr>`).join('');
+        <td><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${p.status === 'ganha' || p.status === 'perdida' ? '' : ` <button class="btn sm" data-mgclose="${esc(p.id)}" title="Registrar como fechada e congelar a formação">Dar baixa</button>`}</td></tr>`).join('');
       const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['enviada', 'Enviadas'], ['negociacao', 'Em negociação'], ['ganha', 'Ganhas']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
       const tipos = spvTipos().map((t) => `<button class="tchip" data-spvnew="${t.abrev}" title="${esc(t.desc)}"><b>${esc((TIPO_INI[t.abrev] || {}).titulo || t.nome)}</b><small>${esc(t.abrev)}</small></button>`).join('');
       return `<div class="stack home">
@@ -336,8 +373,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="sumbar"><div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
         ${below && r.multMin ? `<div class="banner bad">Lucro líquido de ${pct(r.lucroPct, 1)}, abaixo do mínimo de ${pct(r.mk.lucro_min, 0)}. Para chegar lá, o multiplicador do serviço precisa ser ${fmt(r.multMin, 2)}. <button class="restore" data-spfix>aplicar ${fmt(Math.ceil(r.multMin * 100) / 100, 2)}</button></div>` : ''}
         <section class="card"><h2>Modelo <span class="sub">${mods.length ? 'escopo, equipe e frequência prontos; depois é só ajustar' : 'nenhum modelo cadastrado para este tipo'}</span></h2>
-          <div class="mchips">${mods.map((m) => `<button class="mchip${s.modelo === m.id ? ' on' : ''}" data-spmod="${esc(m.id)}"><b>${esc(m.nome)}</b>${m.equipe && m.equipe.length ? `<small>${esc(m.equipe.map((e) => e.tec + ' × ' + e.dias + 'd').join(' + '))}</small>` : ''}</button>`).join('')}</div>
-          <div class="docbar" style="margin-top:10px">${REG.canEditCadastro ? '<button class="btn sm" data-spsavemod>Salvar esta proposta como modelo</button>' : ''}<button class="restore" data-spcfg="modelos">ver todos os modelos</button></div></section>
+          <div class="mchips">${mods.map((m) => `<button class="mchip${s.modelo === m.id ? ' on' : ''}" data-spmod="${esc(m.id)}"><b>${esc(m.nome)}</b>${m.equipe && m.equipe.length ? `<small>${esc(m.equipe.map((e) => e.tec + ' × ' + e.dias + 'd').join(' + '))}${m.pecas && m.pecas.length ? ' · ' + m.pecas.length + ' peça(s)' : ''}</small>` : ''}</button>`).join('')}</div>
+          <div class="docbar" style="margin-top:10px">${REG.areaOk('servicos') ? '<button class="btn sm" data-spsavemod>Salvar esta proposta como modelo</button>' : ''}<button class="restore" data-spcfg="modelos">ver todos os modelos</button></div></section>
         <section class="card"><h2>Cliente e escopo</h2>
           <div class="fields">${fld('Cliente', inp('cliente', s.cliente, 'text', { lb: 'Cliente' }), 'span2')}${fld('Contato', inp('contato', s.contato, 'text'))}${fld('Nº da proposta', inp('numero', s.numero, 'text', { ph: 'ex.: 10.250' }))}
             ${fld('Local do serviço', inp('local', s.local, 'text', { ph: 'cidade / obra' }), 'span2')}${fld('UF', inp('uf', s.uf, 'text'))}${fld('Vendedor', inp('vendedor', s.vendedor, 'text'))}
@@ -350,7 +387,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="equipe">+ Técnico</button></div>
           <div class="fields" style="margin-top:14px">${fld('Distância até o local (só ida, km)', inp('dist', s.dist, 'num', { lb: 'Distância' }))}<div class="f span2"><label>&nbsp;</label><div class="sub">${r.aereo ? `Ida e volta passa de ${fmt(c.custos.limite_km, 0)} km: vai de avião, com carro locado no destino.` : `Saída: ${esc(c.custos.saida)}. Acima de ${fmt(c.custos.limite_km, 0)} km ida e volta, o app troca para avião.`} Hotel e alimentação seguem a equipe (${r.pessoas} pessoa(s), ${r.dias} dia(s)).</div></div></div>
           <div class="tw" style="margin-top:10px"><table class="t reg"><thead><tr><th>Custo</th><th>Quantidade</th><th></th><th>Preço (cadastro)</th><th>Total</th></tr></thead><tbody>${logRows}<tr class="tot"><td colspan="4">Custo da prestação do serviço</td><td class="n">${brl(r.custoServ)}</td></tr></tbody></table></div>
-          <p class="sub" style="margin:8px 0 0">Os preços de km, passagem, carro, hotel, alimentação e ART são cadastrados em <button class="restore" data-spcfg>Cadastro → Serviços (SPV)</button>. A proposta guarda os preços do dia em que foi criada.</p>
+          <p class="sub" style="margin:8px 0 0">Os preços de km, passagem, carro, hotel, alimentação e ART são cadastrados em <button class="restore" data-spcfg>Cadastro → Serviços</button>. A proposta guarda os preços do dia em que foi criada.</p>
           ${precoMudou ? `<div class="banner warn">Os preços de deslocamento mudaram no cadastro depois que esta proposta foi criada. <button class="restore" data-spprecos>Usar os preços atuais</button></div>` : ''}</section>` : ''}
         ${s.blocos.pecas ? `<section class="card"><h2>Peças e materiais <span class="sub">custo ${brl(r.custoPecas)} · venda ${brl(r.Vp)}</span></h2>
           <div class="tw"><table class="t reg pecas"><thead><tr><th>Incl.</th><th>Descrição</th><th>Qtd</th><th>Moeda</th><th>Unit.</th><th>IPI</th><th>Custo unit. R$</th><th>Fator</th><th>Venda</th><th></th></tr></thead><tbody>${pRows || '<tr><td colspan="10" class="sub">Nenhuma peça. Adicione à mão ou importe um orçamento de fornecedor.</td></tr>'}</tbody></table></div>
@@ -358,7 +395,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         ${s.blocos.contrato ? `<section class="card"><h2>Contrato recorrente <span class="sub">o preço acima vale por visita</span></h2>
           <div class="hchips" style="margin-bottom:10px">${FREQ.map(([v, lb]) => `<button class="hchip${num(s.contrato.visitas) === v ? ' on' : ''}" data-spvis="${v}">${lb} · ${v}×/ano</button>`).join('')}</div>
           <div class="fields">${fld('Visitas por ano', inp('contrato.visitas', s.contrato.visitas))}${fld('Duração (meses)', inp('contrato.meses', s.contrato.meses))}${fld('Reajuste', inp('contrato.reajuste', s.contrato.reajuste, 'text'))}</div>
-          <div class="kpis" style="margin-top:12px"><div class="kpi"><span>Por visita</span><b>${brl(r.ct.porVisita)}</b></div><div class="kpi lead"><span>Mensalidade</span><b>${brl(r.ct.mensal)}</b></div><div class="kpi"><span>Total do contrato</span><b>${brl(r.ct.total)}</b></div></div></section>` : ''}
+          <div class="kpis" style="margin-top:12px"><div class="kpi"><span>Por visita</span><b>${brl(r.ct.porVisita)}</b><em>${fmt(r.ct.nV, 0)} visitas no contrato</em></div>${r.ct.artV ? `<div class="kpi"><span>ART (uma vez)</span><b>${brl(r.ct.artV)}</b><em>custo ${brl(r.ct.artCusto)}</em></div>` : ''}<div class="kpi lead"><span>Mensalidade</span><b>${brl(r.ct.mensal)}</b></div><div class="kpi"><span>Total do contrato</span><b>${brl(r.ct.total)}</b></div></div></section>` : ''}
         <section class="card"><h2>Formação do preço</h2>
           <div class="split2">
             <div class="kv">
@@ -371,12 +408,13 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
               ${ded}
               <div>Custos (serviço + peças)</div><div>− ${brl(r.custo)}</div>
               <div class="sep"></div><div hidden></div>
-              <div><b>Lucro líquido</b></div><div class="${below ? 'bad-t' : 'ok-t'}"><b>${brl(r.lucro)} · ${pct(r.lucroPct, 1)}</b></div>
+              <div><b>Lucro líquido${r.ct ? ' por visita' : ''}</b></div><div class="${below && !r.ct ? 'bad-t' : 'ok-t'}"><b>${brl(r.lucroVisita)} · ${pct(r.V ? r.lucroVisita / r.V : 0, 1)}</b></div>
+              ${r.ct ? `<div>ART do contrato (uma vez)</div><div>${brl(r.ct.artV)}</div><div class="sep"></div><div hidden></div><div><b>Lucro líquido do contrato</b></div><div class="${below ? 'bad-t' : 'ok-t'}"><b>${brl(r.ct.lucro)} · ${pct(r.ct.lucroPct, 1)}</b></div>` : ''}
             </div>
             <div class="stack">
               <label class="chk"><input type="checkbox" data-sp="aprazo" data-k="bool"${s.aprazo ? ' checked' : ''}> Pagamento a prazo (+${pct(r.mk.prazo, 1)} de encargo)</label>
-              <p class="sub" style="margin:0">Impostos e comissões vêm de Cadastro → Serviços (SPV). Peças pagam ICMS de ${pct(r.icms, 1)} (${esc(s.uf || 'SC')}) e IRPJ/CSLL de produto; o serviço paga ISS. Meta: lucro líquido de ${pct(r.mk.lucro_min, 0)}.</p>
-              <div class="docbar"><button class="btn pri" data-sppdf="cliente">Proposta para o cliente (PDF)</button><button class="btn" data-sppdf="interno">Formação de custo (PDF interno)</button></div>
+              <p class="sub" style="margin:0">Impostos vêm de Cadastro → Fiscal; multiplicador, comissões e lucro mínimo, de Cadastro → Precificação. Peças pagam ICMS de ${pct(r.icms, 1)} (${esc(s.uf || 'SC')}) e IRPJ/CSLL de produto; o serviço paga ISS. Meta: lucro líquido de ${pct(r.mk.lucro_min, 0)}.</p>
+              <div class="docbar"><button class="btn pri" data-sppdf="interno">Formação de custo (PDF)</button></div>
             </div>
           </div></section>
         <section class="card"><h2>Documentos desta proposta <span class="sub">${pdocs.length}</span></h2>${pdocs.length ? docList(pdocs) : '<p class="sub" style="margin:0">Orçamentos, notas e desenhos ligados a esta proposta aparecem aqui.</p>'}
@@ -501,8 +539,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         r.pecas.length && r.pecas.forEach((p) => body.push(['Peça', p.desc + (p.forn ? ' (' + p.forn + ')' : ''), fmt(num(p.qtd), 2), bl(p.unitBRL), bl(p.custo), fmt(p.fator, 2), bl(p.venda)]));
         if (s.blocos.equipe) { s.equipe.filter((e) => num(e.dias) > 0).forEach((e) => body.push(['Equipe', e.tec, fmt(num(e.dias), 0) + ' d', bl(e.diaria), bl(num(e.diaria) * num(e.dias)), '', ''])); r.log.filter((x) => x.tot).forEach((x) => body.push(['Deslocamento', x.lb, fmt(num(x.qtd), 0), bl(x.p), bl(x.tot), '', ''])); }
         doc.autoTable(Object.assign({}, head, { startY: y, head: [['Grupo', 'Descrição', 'Qtd', 'Unit.', 'Custo', 'Fator', 'Venda']], body: body.map((x) => x.map(safe)), columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' }, 6: { halign: 'right' } } }));
-        const res = [['Custo da prestação do serviço', bl(r.custoServ)], ['Multiplicador do serviço', fmt(r.mult, 2)], ['Venda do serviço', bl(r.Vs)], ['Venda das peças', bl(r.Vp)], ['Venda bruta', bl(r.V)]].concat(r.ded.map(([lb, t, v]) => [lb + ' (' + NF[2].format(t * 100) + '%)', '- ' + bl(v)])).concat([['Custos', '- ' + bl(r.custo)], ['Lucro líquido', bl(r.lucro) + ' (' + NF[1].format(r.lucroPct * 100) + '%)']]);
-        if (r.ct) res.push(['Contrato: mensal / total', bl(r.ct.mensal) + ' / ' + bl(r.ct.total)]);
+        const res = [['Custo da prestação do serviço', bl(r.custoServ)], ['Multiplicador do serviço', fmt(r.mult, 2)], ['Venda do serviço', bl(r.Vs)], ['Venda das peças', bl(r.Vp)], ['Venda bruta', bl(r.V)]].concat(r.ded.map(([lb, t, v]) => [lb + ' (' + NF[2].format(t * 100) + '%)', '- ' + bl(v)])).concat([['Custos', '- ' + bl(r.custo)], [r.ct ? 'Lucro líquido do contrato' : 'Lucro líquido', bl(r.lucro) + ' (' + NF[1].format(r.lucroPct * 100) + '%)']]);
+        if (r.ct) res.push(['Contrato: ' + fmt(r.ct.nV, 0) + ' visitas + ART uma vez (' + bl(r.ct.artV) + ')', 'mensal ' + bl(r.ct.mensal) + ' / total ' + bl(r.ct.total)]);
         doc.autoTable(Object.assign({}, head, { startY: doc.lastAutoTable.finalY + 6, head: [['Formação do preço', '']], body: res.map((x) => x.map(safe)), columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } } }));
       }
       const pages = doc.getNumberOfPages(); const Hh = doc.internal.pageSize.getHeight(); const img = document.querySelector('.logo-plate img');
@@ -515,27 +553,31 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     }
 
     // ---------- configuração SPV (Cadastro → Serviços SPV) ----------
-    function vCfg() {
-      const c = cfg(); const ed = REG.canEditCadastro; const ro = ed ? '' : ' disabled';
+    // configuração SPV por área: cada área edita só a sua parte
+    function cfgSec(area, ed) {
+      const c = cfg(); const ro = ed ? '' : ' disabled';
       const ci = (path, v, kind = 'num', lb) => { const shown = kind === 'pct' ? NF[2].format(v * 100).replace(/,00$/, '') : kind === 'num' ? String(v).replace('.', ',') : v; return `<input data-cfg="${path}" data-k="${kind}" value="${esc(shown)}"${kind === 'text' ? '' : ' inputmode="decimal"'} aria-label="${esc(lb || path)}"${ro}>`; };
       const f = (lb, h, u) => `<div class="f"><label>${esc(lb)}</label><div class="ctl pctl">${h}${u ? `<span class="unit">${u}</span>` : ''}</div></div>`;
       const tec = c.tecnicos.map((t, i) => `<tr><td class="in">${ci(`tecnicos.${i}.nome`, t.nome, 'text', 'Nome')}</td><td class="in">${ci(`tecnicos.${i}.funcao`, t.funcao, 'text', 'Função')}</td><td class="in">${ci(`tecnicos.${i}.diaria`, t.diaria, 'num', 'Diária')}</td><td>${ed ? `<button class="restore" data-cfgrm="${i}">excluir</button>` : ''}</td></tr>`).join('');
       const m = c.mk, k = c.custos;
-      return `<div class="stack"><p class="sub" style="margin:0">Base da formação de custo de serviços e pós-venda (SPV), como na planilha MASTERDOC. Vale para todas as propostas SPV novas.</p>
+      if (area === 'servicos') return `
         <section class="card"><h2>Técnicos e diárias</h2><div class="tw"><table class="t reg"><thead><tr><th>Nome</th><th>Função</th><th>Diária (R$)</th><th></th></tr></thead><tbody>${tec}</tbody></table></div>${ed ? '<div class="docbar" style="margin-top:8px"><button class="btn sm" data-cfgadd>+ Técnico</button></div>' : ''}</section>
         <section class="card"><h2>Deslocamento e estadia <span class="sub">preços usados em todas as propostas SPV novas</span></h2><div class="fields">${f('R$ por km', ci('custos.rkm', k.rkm))}${f('Passagem aérea (trecho)', ci('custos.aereo', k.aereo), 'R$')}${f('Locação de automóvel (dia)', ci('custos.carro', k.carro), 'R$')}${f('Hotel (noite, quarto individual)', ci('custos.hotel', k.hotel), 'R$')}${f('Alimentação (dia)', ci('custos.alim', k.alim), 'R$')}${f('ART', ci('custos.art', k.art), 'R$')}${f('Acima disto vai de avião (km ida e volta)', ci('custos.limite_km', k.limite_km))}${f('Endereço de saída', ci('custos.saida', k.saida, 'text'))}</div></section>
-        <section class="card"><h2>Markup, impostos e comissões</h2><div class="fields">${f('Multiplicador padrão do serviço', ci('mk.mult', m.mult))}${f('Lucro líquido mínimo', ci('mk.lucro_min', m.lucro_min, 'pct'), '%')}${f('PIS', ci('mk.pis', m.pis, 'pct'), '%')}${f('COFINS', ci('mk.cofins', m.cofins, 'pct'), '%')}${f('IRPJ / CSLL do serviço', ci('mk.irpj', m.irpj, 'pct'), '%')}${f('ISS', ci('mk.iss', m.iss, 'pct'), '%')}${f('IRPJ / CSLL de peças', ci('mk.irpj_pecas', m.irpj_pecas, 'pct'), '%')}${f('Custo financeiro', ci('mk.fin', m.fin, 'pct'), '%')}${f('Comissão representante', ci('mk.com_rep', m.com_rep, 'pct'), '%')}${f('Comissão captador', ci('mk.com_capt', m.com_capt, 'pct'), '%')}${f('Comissão orçamento', ci('mk.com_orc', m.com_orc, 'pct'), '%')}${f('Encargo de pagamento a prazo', ci('mk.prazo', m.prazo, 'pct'), '%')}</div></section>
-        <section class="card"><h2>Peças e importação</h2><div class="fields">${f('Fator padrão de venda de peças', ci('mk.fator_pecas', m.fator_pecas))}${f('Câmbio do dólar', ci('mk.cambio_usd', m.cambio_usd), 'R$')}${f('Câmbio do euro', ci('mk.cambio_eur', m.cambio_eur), 'R$')}${f('Fator de importação (frete, impostos e despacho)', ci('mk.fimp', m.fimp))}</div></section>
         <section class="card" id="cfgModelos"><h2>Modelos de serviço e contrato <span class="sub">${c.modelos.length}</span></h2><p class="sub" style="margin:0 0 8px">Ao começar uma proposta SPV, o modelo preenche escopo, itens não inclusos, prazo, equipe e frequência das visitas.</p>
-          <div class="tw"><table class="t"><thead><tr><th>Modelo</th><th>Tipo</th><th>Visitas/ano</th><th>Equipe</th><th></th></tr></thead><tbody>${c.modelos.map((x, i) => `<tr><td><b>${esc(x.nome)}</b><br><small class="sub">${esc(String(x.escopo || '').slice(0, 110))}${String(x.escopo || '').length > 110 ? '…' : ''}</small></td><td>${esc(x.tipo)}</td><td class="n">${x.visitas || '—'}</td><td class="sub">${esc((x.equipe || []).map((e) => e.tec + ' × ' + e.dias + 'd').join(', '))}</td><td style="white-space:nowrap">${ed ? `<button class="btn sm" data-cfgmod="${i}">Editar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
-          ${ed ? '<div class="docbar" style="margin-top:8px"><button class="btn sm" data-cfgmod="novo">+ Modelo</button></div>' : ''}</section>
+          <div class="tw"><table class="t"><thead><tr><th>Modelo</th><th>Tipo</th><th>Visitas/ano</th><th>Equipe</th><th>Peças</th><th></th></tr></thead><tbody>${c.modelos.map((x, i) => `<tr><td><b>${esc(x.nome)}</b><br><small class="sub">${esc(String(x.escopo || '').slice(0, 110))}${String(x.escopo || '').length > 110 ? '…' : ''}</small></td><td>${esc(x.tipo)}</td><td class="n">${x.visitas || '—'}</td><td class="sub">${esc((x.equipe || []).map((e) => e.tec + ' × ' + e.dias + 'd').join(', '))}</td><td class="n">${(x.pecas || []).length || '—'}</td><td style="white-space:nowrap">${ed ? `<button class="btn sm" data-cfgmod="${i}">Editar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+          ${ed ? '<div class="docbar" style="margin-top:8px"><button class="btn sm" data-cfgmod="novo">+ Modelo</button></div>' : ''}</section>`;
+      if (area === 'fiscal') return `<section class="card"><h2>Impostos de serviços e peças</h2><div class="fields">${f('PIS', ci('mk.pis', m.pis, 'pct'), '%')}${f('COFINS', ci('mk.cofins', m.cofins, 'pct'), '%')}${f('IRPJ / CSLL do serviço', ci('mk.irpj', m.irpj, 'pct'), '%')}${f('ISS', ci('mk.iss', m.iss, 'pct'), '%')}${f('IRPJ / CSLL de peças', ci('mk.irpj_pecas', m.irpj_pecas, 'pct'), '%')}</div><p class="sub" style="margin:8px 0 0">O ICMS das peças vem da tabela ICMS por UF (acima), pela UF do cliente.</p></section>`;
+      if (area === 'preco') return `<section class="card"><h2>Margens, comissões e encargos</h2><div class="fields">${f('Multiplicador padrão do serviço', ci('mk.mult', m.mult))}${f('Lucro líquido mínimo', ci('mk.lucro_min', m.lucro_min, 'pct'), '%')}${f('Fator padrão de venda de peças', ci('mk.fator_pecas', m.fator_pecas))}${f('Custo financeiro', ci('mk.fin', m.fin, 'pct'), '%')}${f('Comissão representante', ci('mk.com_rep', m.com_rep, 'pct'), '%')}${f('Comissão captador', ci('mk.com_capt', m.com_capt, 'pct'), '%')}${f('Comissão orçamento', ci('mk.com_orc', m.com_orc, 'pct'), '%')}${f('Encargo de pagamento a prazo', ci('mk.prazo', m.prazo, 'pct'), '%')}</div></section>`;
+      if (area === 'custos') return `<section class="card"><h2>Câmbio e importação <span class="sub">usados nas peças importadas das propostas SPV</span></h2><div class="fields">${f('Câmbio do dólar', ci('mk.cambio_usd', m.cambio_usd), 'R$')}${f('Câmbio do euro', ci('mk.cambio_eur', m.cambio_eur), 'R$')}${f('Fator de importação (frete, impostos e despacho)', ci('mk.fimp', m.fimp))}</div></section>`;
+      if (area === 'geral') return `
         <section class="card"><h2>Famílias de produto por divisão</h2><p class="sub" style="margin:0 0 8px">Código do produto: NNN-XXX-XXXXX (família, abreviação, sequência). As famílias SPV aparecem como tipos na página inicial.</p>
-          <div class="tw"><table class="t famtab"><thead><tr><th>Código</th><th>Família</th><th>Divisão</th><th>Abrev.</th><th>Descrição</th></tr></thead><tbody>${famprod().map((x) => `<tr><td>${String(x.code).padStart(3, '0')}</td><td><b>${esc(x.nome)}</b></td><td><span class="divb ${x.div.toLowerCase()}">${x.div}</span></td><td>${esc(x.abrev)}</td><td class="sub">${esc(x.desc)}</td></tr>`).join('')}</tbody></table></div></section>
-      </div>`;
+          <div class="tw"><table class="t famtab"><thead><tr><th>Código</th><th>Família</th><th>Divisão</th><th>Abrev.</th><th>Descrição</th></tr></thead><tbody>${famprod().map((x) => `<tr><td>${x.code ? String(x.code).padStart(3, '0') : '<span class="pill warn">a definir</span>'}</td><td><b>${esc(x.nome)}</b></td><td><span class="divb ${x.div.toLowerCase()}">${x.div}</span></td><td>${esc(x.abrev)}</td><td class="sub">${esc(x.desc)}</td></tr>`).join('')}</tbody></table></div></section>`;
+      return '';
     }
     function modeloModal(i, base) {
       const c = cfg(); const m = base || (i === 'novo' ? { id: 'm' + Date.now().toString(36), tipo: 'SMC', nome: '', equipe: [], escopo: '', exclusoes: EXC } : c.modelos[+i]);
       const eqTxt = (m.equipe || []).map((e) => e.tec + '; ' + e.dias).join('\n');
+      const pcTxt = (m.pecas || []).map((x) => [x.desc, x.qtd || 1, num(x.unit) ? String(x.unit).replace('.', ',') : ''].join('; ').replace(/; $/, '')).join('\n');
       modal(`<h2>${i === 'novo' ? 'Novo modelo' : 'Modelo'}</h2>
         <div class="fields">
           <div class="f span2"><label for="moNome">Nome</label><input id="moNome" value="${esc(m.nome)}" placeholder="ex.: Contrato anual — 4 visitas"></div>
@@ -544,6 +586,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="f"><label for="moMeses">Duração (meses)</label><input id="moMeses" inputmode="decimal" value="${m.meses || ''}"></div>
           <div class="f span2"><label for="moPrazo">Prazo de execução</label><input id="moPrazo" value="${esc(m.prazo || '')}"></div>
           <div class="f spanall"><label for="moEq">Equipe — um técnico por linha: nome; dias</label><textarea id="moEq" rows="3" placeholder="Yago; 1">${esc(eqTxt)}</textarea><small class="sub">Técnicos cadastrados: ${esc(c.tecnicos.map((t) => t.nome).join(', '))}</small></div>
+          <div class="f spanall"><label for="moPc">Peças e materiais padrão (estrutura) — uma por linha: descrição; quantidade; valor unitário</label><textarea id="moPc" rows="4" placeholder="GATEWAY FIRECONNECT; 1; 4500">${esc(pcTxt)}</textarea><small class="sub">Sem valor, o app usa o último preço pago (orçamentos e propostas). Moeda, IPI e fornecedor ficam como no modelo salvo de uma proposta.</small></div>
           <div class="f spanall"><label for="moEsc">Escopo</label><textarea id="moEsc" rows="8">${esc(m.escopo || '')}</textarea></div>
           <div class="f spanall"><label for="moExc">Não incluso</label><textarea id="moExc" rows="3">${esc(m.exclusoes || '')}</textarea></div>
         </div>
@@ -554,7 +597,9 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           const nome = g('#moNome').value.trim(); if (!nome) { g('#moMsg').textContent = 'Dê um nome ao modelo.'; return; }
           const vis = parseInput(g('#moVis').value, 'num'); const meses = parseInput(g('#moMeses').value, 'num');
           const equipe = g('#moEq').value.split('\n').map((l) => l.split(';')).filter((x) => x[0].trim()).map(([t, d]) => ({ tec: t.trim(), dias: parseInput((d || '1').trim(), 'num') || 1 }));
-          const rec = { id: m.id, tipo: g('#moTipo').value, nome, equipe, escopo: g('#moEsc').value.trim(), exclusoes: g('#moExc').value.trim(), prazo: g('#moPrazo').value.trim() };
+          const antes = new Map((m.pecas || []).map((x) => [norm(x.desc), x]));
+          const pecas = g('#moPc').value.split('\n').map((l) => l.split(';')).filter((x) => x[0].trim()).map(([d, q, u]) => { const desc = d.trim(); const old = antes.get(norm(desc)) || {}; const unit = parseInput((u || '').trim(), 'num'); return Object.assign({}, old, { desc, qtd: parseInput((q || '1').trim(), 'num') || 1, unit: typeof unit === 'number' ? unit : 0 }); });
+          const rec = { id: m.id, tipo: g('#moTipo').value, nome, equipe, pecas, escopo: g('#moEsc').value.trim(), exclusoes: g('#moExc').value.trim(), prazo: g('#moPrazo').value.trim() };
           if (typeof vis === 'number' && vis > 0) { rec.visitas = vis; rec.meses = typeof meses === 'number' && meses > 0 ? meses : 12; }
           close();
           await saveCfg((cc) => { const k = cc.modelos.findIndex((x) => x.id === rec.id); if (k >= 0) cc.modelos[k] = rec; else cc.modelos.push(rec); }, null, (i === 'novo' ? 'Modelo incluído: ' : 'Modelo alterado: ') + nome) && toast('Modelo salvo: ' + nome);
@@ -587,7 +632,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       }
       if (el.dataset && el.dataset.spblk && S()) { S().blocos[el.dataset.spblk] = el.checked; ctx.persist(); ctx.render(); return; }
       if (el.dataset && el.dataset.cfg) { const v = parseV(el); if (v === undefined) return toast('Número inválido'); saveCfg((c) => setPath(c, el.dataset.cfg, v), el.dataset.cfg); return; }
-      if (el.dataset && el.dataset.hstatus) { const p = (REG.listPropostas() || []).find((x) => x.id === el.dataset.hstatus); if (!p) return; const rec = Object.assign({}, p, { status: el.value }); delete rec.id; delete rec.local; REG.saveProposta(p.id, rec).then(() => { toast('Status: ' + (STATUS.find((x) => x[0] === el.value) || [0, el.value])[1]); if (st().id === p.id) st().status = el.value; ctx.render(); }).catch((er) => toast(er.message || 'Não consegui salvar')); return; }
+      if (el.dataset && el.dataset.hstatus) { const p = (REG.listPropostas() || []).find((x) => x.id === el.dataset.hstatus); if (!p) return;
+        if (el.value === 'ganha' && ctx.fechar) { ctx.render(); ctx.fechar(p); return; } const rec = Object.assign({}, p, { status: el.value }); delete rec.id; delete rec.local; REG.saveProposta(p.id, rec).then(() => { toast('Status: ' + (STATUS.find((x) => x[0] === el.value) || [0, el.value])[1]); if (st().id === p.id) st().status = el.value; ctx.render(); }).catch((er) => toast(er.message || 'Não consegui salvar')); return; }
       if (el.id === 'spImport') { importar(el.files[0], true); el.value = ''; return; }
       if (el.id === 'spAttach') { importar(el.files[0], false); el.value = ''; return; }
       if (el.id === 'docUp') { importar(el.files[0], false); el.value = ''; return; }
@@ -610,8 +656,9 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const md = t.closest('[data-spmod]'); if (md && S()) { const m = cfg().modelos.find((x) => x.id === md.dataset.spmod); if (m) { aplicarModelo(S(), m); ctx.persist(); ctx.render(); toast('Modelo aplicado: ' + m.nome); } return; }
       const vs = t.closest('[data-spvis]'); if (vs && S()) { const v = +vs.dataset.spvis; S().contrato.visitas = v; if (/^\d+ visitas? por ano/.test(S().prazo_exec || '')) S().prazo_exec = S().prazo_exec.replace(/^\d+ visitas?/, v + (v > 1 ? ' visitas' : ' visita')); ctx.persist(); ctx.render(); return; }
       if (t.closest('[data-spprecos]') && S()) { S().precos = precosCad(); ctx.persist(); ctx.render(); toast('Preços de deslocamento atualizados'); return; }
-      const gc = t.closest('[data-spcfg]'); if (gc) { ctx.ui.view = 'cadastro'; ctx.ui.cad = 'spv'; ctx.render(); const el = gc.dataset.spcfg === 'modelos' && document.getElementById('cfgModelos'); if (el) el.scrollIntoView(); else window.scrollTo(0, 0); return; }
-      if (t.closest('[data-spsavemod]') && S()) { const s = S(); const ti = TIPO_INI[s.tipo] || {}; modeloModal('novo', { id: 'm' + Date.now().toString(36), tipo: s.tipo, nome: (ti.titulo || s.tipo) + (s.cliente ? ' — ' + s.cliente : ''), equipe: s.blocos.equipe ? s.equipe.filter((e) => e.tec).map((e) => ({ tec: e.tec, dias: num(e.dias) || 1 })) : [], escopo: s.descricao, exclusoes: s.exclusoes, prazo: s.prazo_exec, visitas: s.blocos.contrato ? s.contrato.visitas : undefined, meses: s.blocos.contrato ? s.contrato.meses : undefined }); return; }
+      const gc = t.closest('[data-spcfg]'); if (gc) { ctx.ui.view = 'cadastro'; ctx.ui.cad = 'servicos'; ctx.render(); const el = gc.dataset.spcfg === 'modelos' && document.getElementById('cfgModelos'); if (el) el.scrollIntoView(); else window.scrollTo(0, 0); return; }
+      if (t.closest('[data-spsavemod]') && S()) { const s = S(); const ti = TIPO_INI[s.tipo] || {}; modeloModal('novo', { id: 'm' + Date.now().toString(36), tipo: s.tipo, nome: (ti.titulo || s.tipo) + (s.cliente ? ' — ' + s.cliente : ''), equipe: s.blocos.equipe ? s.equipe.filter((e) => e.tec).map((e) => ({ tec: e.tec, dias: num(e.dias) || 1 })) : [], escopo: s.descricao, exclusoes: s.exclusoes, prazo: s.prazo_exec, visitas: s.blocos.contrato ? s.contrato.visitas : undefined, meses: s.blocos.contrato ? s.contrato.meses : undefined,
+        pecas: s.blocos.pecas ? s.pecas.filter((x) => x.desc).map((x) => ({ desc: x.desc, cod: x.cod || '', forn: x.forn || '', qtd: num(x.qtd) || 1, un: x.un || '', unit: num(x.unit), moeda: x.moeda || 'BRL', ipi: num(x.ipi), fator: x.fator })) : [] }); return; }
       const cm = t.closest('[data-cfgmod]'); if (cm) { modeloModal(cm.dataset.cfgmod); return; }
       const au = t.closest('[data-spauto]'); if (au && S()) { delete S().ov[au.dataset.spauto]; ctx.persist(); ctx.render(); return; }
       if (t.closest('[data-spfix]') && S()) { const r = calc(S()); if (r.multMin) { S().mk.mult = Math.ceil(r.multMin * 100) / 100; ctx.persist(); ctx.render(); toast('Multiplicador ajustado para a meta de lucro'); } return; }
@@ -626,7 +673,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     document.addEventListener('dragleave', (e) => { const d = e.target.closest && e.target.closest('#docDrop'); if (d) d.classList.remove('over'); });
     document.addEventListener('drop', (e) => { const d = e.target.closest && e.target.closest('#docDrop'); if (!d) return; e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) importar(f, false); });
 
-    return { vHome, vSpv, vDocs, vCfg, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
+    return { vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
   }
   window.PricerSPV = SPV;
 })();
