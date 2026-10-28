@@ -1992,7 +1992,8 @@
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false;
     if (fam) { commit('ITEM 01', 'C21', fam); ui.item = 0; ui.itemFull = false; ui.simple = true; setView('item'); toast('Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam)); return; }
     ui.step = 1; setView('proposta'); toast('Proposta SEQ em branco'); }
-  const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_SEQ_LB[fam] || lb }));
+  const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
+  const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
   const SPV = window.PricerSPV({ famsHome: () => famsHome(), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },

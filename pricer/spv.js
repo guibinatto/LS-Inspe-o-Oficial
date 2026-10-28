@@ -341,9 +341,9 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         ${ctx.home ? ctx.home() : ''}
         <div class="starts">
           <div class="start seq"><span class="tag">SEQ</span><b>Soluções e equipamentos</b><small>Escolha o que vai formar</small><div class="tchips">
-            ${(ctx.famsHome ? ctx.famsHome() : []).map((f) => { const [sg, ...rest] = f.lb.split(' · '); return `<button class="tchip" data-seqfam="${esc(f.fam)}"><b>${esc(rest.join(' · ') || f.lb)}</b><small>${esc(rest.length ? sg : '')}</small></button>`; }).join('')}
+            ${(ctx.famsHome ? ctx.famsHome() : []).map((f) => { const [sg, ...rest] = f.lb.split(' · '); return `<button class="tchip" data-seqfam="${esc(f.fam)}" title="${esc(f.titulo || f.lb)}"><b>${esc(rest.join(' · ') || f.lb)}</b><small>${esc(rest.length ? sg : '')}</small></button>`; }).join('')}
             <button class="tchip" data-seqnew><b>Em branco</b><small>escolher depois</small></button>
-            <button class="tchip" data-factsnew title="Fully Automatic Churn Testing System — MECON, FM 1330"><b>FACTS — teste automático de bombas</b><small>FAC</small></button></div></div>
+            <button class="tchip" data-factsnew title="Fully Automatic Churn Testing System — MECON, FM 1330"><b>FACTS</b><small>FAC</small></button></div></div>
           <div class="start spv"><span class="tag">SPV</span><b>Serviços e pós-venda</b><small>Escolha o tipo para começar</small><div class="tchips">${tipos}</div></div>
         </div>
         <div class="kpis">
