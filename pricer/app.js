@@ -802,12 +802,13 @@
           <div class="fields">${fieldS(P, 'C9', 'Desconto global (vazio = sem desconto)')}${fieldS(P, 'E13', 'Frete — R$ por km')}</div></details>
         <div class="flowbar"><span class="sub">${ui.reqShow && falta.size ? 'Falta: ' + esc(faltaCab().map((x) => x[1]).join(', ')) : ''}</span><button class="btn pri" data-cabnext>${famPend ? 'Próximo: equipamento →' : 'Próximo: itens →'}</button></div>`;
     } else if (step === 2) {
+      const fechada = !!(state.id && MG.fechDe(state.id));
       const cards = items.map((x) => {
         const S = x.s; const al = alertsFor(S); const ok = filled(S);
         return `<article class="icard"><header><span class="ino">${S.slice(5)}</span><div style="min-width:0"><b>${esc(txt(S, 'C28') || 'Equipamento ainda não escolhido')}</b><code>${esc(txt(S, 'C27'))}</code></div></header>
           ${ok ? `<div class="itotal"><span>Total c/ IPI</span><b>${brl(val(S, 'D15'))}</b></div><dl class="ifacts"><div><dt>Qtd</dt><dd>${show(S, 'P17')}</dd></div><div><dt>Margem</dt><dd class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</dd></div><div><dt>Origem</dt><dd>${esc(txt(S, 'P33').slice(0, 3))} ${pct(val(S, 'P32'), 0)}</dd></div></dl>` : '<p class="sub" style="margin:0">Abra para escolher o modelo pronto ou montar o equipamento.</p>'}
           <div>${ok ? countPills(al) : ''}</div>
-          <footer><button class="btn sm pri" data-goitem="${x.i}">Abrir</button><button class="btn sm" data-dup="${x.i}">Duplicar</button><button class="btn sm" data-rmitem="${x.i}">Remover</button></footer></article>`;
+          <footer>${fechada ? `<button class="btn sm pri" data-mgreal="${esc(state.id)}" data-mgitem="${S}">Lançar custo real</button><button class="btn sm" data-goitem="${x.i}">Abrir</button>` : `<button class="btn sm pri" data-goitem="${x.i}">Abrir</button>`}<button class="btn sm" data-dup="${x.i}">Duplicar</button><button class="btn sm" data-rmitem="${x.i}">Remover</button></footer></article>`;
       }).join('');
       const free = firstFree();
       body = `<div class="icards">${cards}${free >= 0 ? `<button class="icard add" data-additem>+ Adicionar item<small>modelo pronto ou montagem própria</small></button>` : ''}</div>

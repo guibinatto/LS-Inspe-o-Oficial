@@ -165,6 +165,7 @@
     function vMargens() {
       ensure();
       if (ui.mgId) return vDetalhe(ui.mgId);
+      if (!veComercial()) return vFilaReal();
       ensureA(); if ((ui.mgTab || 'painel') === 'aprovacoes' && ui.apId) return vAprovDetalhe(ui.apId);
       const nAp = aprov.filter((a) => estadoA(a) === 'pendente').length;
       const B = base(); const tab = ui.mgTab || 'painel';
@@ -184,7 +185,7 @@
         <div class="kpi"><span>Abaixo do mínimo</span><b>${baixo}</b><em>propostas em aberto</em></div></div>
         ${B.semResumo ? `<div class="banner info">${B.semResumo} proposta(s) em aberto foram salvas antes do registro de margens. <button class="restore" data-mgcalc>Calcular as margens delas agora</button></div>` : ''}`;
       const fila = B.fechadas.filter((f) => f.cobertura < 1).sort((a, b) => String(b.F.fechadoEm).localeCompare(String(a.F.fechadoEm))).slice(0, 6);
-      const filaHtml = fila.length ? `<section class="card"><h2>Custo real a lançar <span class="sub">fechadas com linhas sem custo real</span></h2><div class="tw"><table class="t"><tbody>${fila.map((f) => `<tr><td><span class="divb ${f.F.div.toLowerCase()}">${f.F.div}</span> <b>${esc(f.F.numero || '—')}</b> <span class="sub">${esc(f.F.cliente || '')} · fechada em ${fmtD(f.F.fechadoEm)}</span></td><td class="n">${pct(f.cobertura, 0)} apontado</td><td style="text-align:right"><button class="btn sm pri" data-mgopen="${esc(f.F.id)}">Lançar custo real</button></td></tr>`).join('')}</tbody></table></div></section>` : '';
+      const filaHtml = fila.length ? `<section class="card"><h2>Custo real a lançar <span class="sub">fechadas com linhas sem custo real</span></h2><div class="tw"><table class="t"><tbody>${fila.map((f) => `<tr><td><span class="divb ${f.F.div.toLowerCase()}">${f.F.div}</span> <b>${esc(f.F.numero || '—')}</b> <span class="sub">${esc(f.F.cliente || '')} · fechada em ${fmtD(f.F.fechadoEm)}</span></td><td class="n">${pct(f.cobertura, 0)} conferido</td><td style="text-align:right"><button class="btn sm pri" data-mgopen="${esc(f.F.id)}">Lançar custo real</button></td></tr>`).join('')}</tbody></table></div></section>` : '';
       let body = filaHtml;
       if (tab === 'aprovacoes') body = vAprovacoes(); else
       if (tab === 'painel') {
@@ -220,35 +221,65 @@
     }
 
     // ---------- detalhe de um fechamento: previsto × realizado por linha ----------
+    // quem vê preço, margem, impostos e comissões; quem só lança custo vê previsto × realizado
+    const veComercial = () => { if (REG.mode === 'local' || REG.isOwner) return true; const ac = REG.acessos || {}; const ks = ['precificacao', 'ap_financeiro', 'ap_diretoria'];
+      return ks.some((k) => (ac[k] || []).length) ? ks.some((k) => (ac[k] || []).includes(REG.me)) : !!REG.canEditCadastro; };
+    // tela de Margens para quem só confere custo: a fila de fechadas, sem preço nem margem
+    function vFilaReal() {
+      const L = fech.slice().sort((a, b) => String(b.fechadoEm).localeCompare(String(a.fechadoEm))).map((F) => ({ F, R: realizado(F) }));
+      return `<div class="stack"><h1>Custo real</h1><section class="card"><h2>Fechadas <span class="sub">confira o custo real de cada uma</span></h2><div class="tw"><table class="t"><tbody>${L.map(({ F, R }) => `<tr><td><span class="divb ${F.div.toLowerCase()}">${F.div}</span> <b>${esc(F.numero || '—')}</b> <span class="sub">${esc(F.cliente || '')} · fechada em ${fmtD(F.fechadoEm)} · ${esc(F.execucao || 'em andamento')}</span></td><td class="n">${R.apontadas} de ${R.linhas} conferidas</td><td style="text-align:right"><button class="btn sm${R.cobertura < 1 ? ' pri' : ''}" data-mgopen="${esc(F.id)}">${R.cobertura < 1 ? 'Lançar custo real' : 'Ver'}</button></td></tr>`).join('') || '<tr><td class="sub">Nenhuma proposta fechada ainda.</td></tr>'}</tbody></table></div></section></div>`;
+    }
+    const ehMO = (l) => /MAODEOBRA|MÃO DE OBRA|MAO DE OBRA/i.test((l.fam || '') + ' ' + (l.desc || '') + ' ' + (l.rot || ''));
     function vDetalhe(id) {
       const F0 = fech.find((f) => f.id === id); if (!F0) { ui.mgId = null; return '<p class="sub">Fechamento não encontrado.</p>'; }
-      const R = realizado(F0); const ed = canReal();
-      const cell = (it, l) => ed ? `<input class="rin" data-real="${esc(it.n)}|${esc(l.k)}" inputmode="decimal" value="${typeof l.real === 'number' ? NF[2].format(l.real) : ''}" placeholder="${NF[2].format(l.prev)}" aria-label="Custo real de ${esc(l.desc)}">` : (typeof l.real === 'number' ? brl(l.real) : '<span class="sub">—</span>');
+      const R = realizado(F0); const ed = canReal(); const com = veComercial();
+      const dif = (d) => (Math.abs(d) < 0.005 ? '<span class="sub">0,00</span>' : `<b class="${d > 0 ? 'bad-t' : 'ok-t'}">${d > 0 ? '+' : '−'}${brl(Math.abs(d)).replace('R$ ', '')}</b>`);
+      const linha = (it, l) => {
+        const has = typeof l.real === 'number'; const v = has ? l.real : l.prev; const d = v - l.prev; const igual = has && Math.abs(d) < 0.005;
+        const st = !has ? `<button class="rok" data-rok="${esc(it.n)}|${esc(l.k)}" title="Confere: o custo real é igual ao previsto"${ed ? '' : ' disabled'}>✓ igual</button>` : igual ? '<span class="pill ok">✓ conferido</span>' : '<span class="pill warn">alterado</span>';
+        return `<tr class="${has ? 'rdone' : 'rpend'}"><td>${esc(l.desc || l.rot || '')}<br><small class="sub">${esc([ehMO(l) ? 'MÃO DE OBRA' : l.grupo, l.fam].filter(Boolean).join(' · '))}</small></td><td class="n">${NF[2].format(num(l.qtd) * (it.qtd || 1))}</td><td class="n">${brl(l.prev)}</td>
+          <td class="in">${ed ? `<input class="rin${has ? '' : ' pend'}" data-real="${esc(it.n)}|${esc(l.k)}" inputmode="decimal" value="${NF[2].format(v)}" aria-label="Custo real de ${esc(l.desc || l.rot || '')}">` : brl(v)}</td><td class="n">${dif(d)}</td><td>${st}</td>
+          <td class="in">${ed ? `<input class="rin" data-robs="${esc(it.n)}|${esc(l.k)}" value="${esc(l.obs || '')}" placeholder="NF, OS, fornecedor…" aria-label="Observação">` : esc(l.obs || '')}</td></tr>`;
+      };
       const itens = R.itens.map((it) => {
-        const rows = it.linhas.map((l) => { const d = typeof l.real === 'number' ? l.real - l.prev : null;
-          return `<tr><td class="sub">${esc(l.grupo || '')}</td><td>${esc(l.desc || l.rot || '')}${l.fam ? `<br><small class="sub">${esc(l.fam)}</small>` : ''}</td><td class="n">${NF[2].format(num(l.qtd) * (it.qtd || 1))}</td><td class="n">${brl(l.prev)}</td><td class="in">${cell(it, l)}</td><td class="n ${d === null ? '' : d > 0.005 ? 'bad-t' : 'ok-t'}">${d === null ? '' : (d > 0 ? '+' : '−') + brl(Math.abs(d)).replace('R$ ', '')}</td>
-          <td class="in">${ed ? `<input class="rin" data-robs="${esc(it.n)}|${esc(l.k)}" value="${esc(l.obs || '')}" placeholder="NF, OS, fornecedor…" aria-label="Observação">` : esc(l.obs || '')}</td></tr>`; }).join('');
-        const ex = it.extras.map((e, i) => `<tr class="newrow"><td class="sub">NÃO PREVISTO</td><td>${esc(e.desc)}</td><td></td><td class="n">—</td><td class="n">${brl(e.v)}</td><td class="n bad-t">+${brl(e.v).replace('R$ ', '')}</td><td>${ed ? `<button class="restore" data-rexdel="${esc(it.n)}|${i}">remover</button>` : ''}</td></tr>`).join('');
-        return `<section class="card"><h2>${esc(it.nome)} <span class="sub">${esc(it.familiaNome || it.familia || '')} · ${NF[0].format(it.qtd || 1)} un. · venda ${brl(it.venda)}</span></h2>
-          <div class="kpis" style="margin-bottom:10px"><div class="kpi"><span>Custo previsto</span><b>${brl(it.custo)}</b></div><div class="kpi"><span>Custo real</span><b>${brl(it.custoReal)}</b><em>${it.apont} de ${it.linhas.length} linhas apontadas</em></div><div class="kpi"><span>Margem prevista</span><b>${pct(it.margemPct, 1)}</b></div><div class="kpi lead"><span>Margem realizada</span><b class="${it.margemRealPct < it.margemPct - 0.005 ? 'bad-t' : ''}">${pct(it.margemRealPct, 1)}</b></div></div>
-          <div class="tw"><table class="t reg"><thead><tr><th>Grupo</th><th>Componente</th><th>Qtd</th><th>Previsto</th><th>Real (R$)</th><th>Diferença</th><th>Observação</th></tr></thead><tbody>${rows}${ex}
-          ${it.resto > 0.5 ? `<tr><td class="sub">OUTROS</td><td class="sub">Custos sem linha (arredondamentos, itens além da planilha)</td><td></td><td class="n">${brl(it.resto)}</td><td class="n sub">igual ao previsto</td><td></td><td></td></tr>` : ''}</tbody></table></div>
-          ${ed ? `<div class="docbar" style="margin-top:8px"><button class="btn sm" data-rexadd="${esc(it.n)}">+ Custo não previsto</button></div>` : ''}</section>`;
+        // mão de obra num bloco próprio, depois dos materiais
+        const mat = it.linhas.filter((l) => !ehMO(l)), mo = it.linhas.filter(ehMO);
+        const ex = it.extras.map((e, i) => `<tr class="newrow"><td>${esc(e.desc)}<br><small class="sub">NÃO PREVISTO</small></td><td></td><td class="n">—</td><td class="n">${brl(e.v)}</td><td class="n">${dif(e.v)}</td><td></td><td>${ed ? `<button class="restore" data-rexdel="${esc(it.n)}|${i}">remover</button>` : ''}</td></tr>`).join('');
+        const pend = it.linhas.length - it.apont; const prev = it.custo; const real = it.custoReal;
+        return `<section class="card" id="cr_${esc(it.n)}"><h2>${esc(it.nome)} <span class="sub">${esc(it.familiaNome || it.familia || '')} · ${NF[0].format(it.qtd || 1)} un.</span></h2>
+          <div class="kpis" style="margin-bottom:10px"><div class="kpi"><span>Custo previsto</span><b>${brl(prev)}</b></div><div class="kpi lead"><span>Custo realizado</span><b>${brl(real)}</b></div><div class="kpi"><span>Diferença</span><b class="${real - prev > 0.005 ? 'bad-t' : 'ok-t'}">${real - prev >= 0 ? '+' : '−'}${brl(Math.abs(real - prev)).replace('R$ ', '')}</b><em>${prev ? pct((real - prev) / prev, 1) : ''}</em></div><div class="kpi"><span>Conferência</span><b>${it.apont} de ${it.linhas.length}</b><em>${pend ? pend + ' linha(s) a conferir' : 'tudo conferido'}</em></div></div>
+          <div class="tw"><table class="t reg"><thead><tr><th>Componente</th><th>Qtd</th><th>Previsto</th><th>Realizado (R$)</th><th>Diferença</th><th></th><th>Observação</th></tr></thead><tbody>
+          ${mat.length ? '<tr class="grp"><td colspan="7">Materiais e componentes</td></tr>' + mat.map((l) => linha(it, l)).join('') : ''}
+          <tr class="grp"><td colspan="7">Mão de obra</td></tr>${mo.length ? mo.map((l) => linha(it, l)).join('') : '<tr><td colspan="7" class="sub">Sem linha de mão de obra na formação. Lance horas extras ou serviços como "custo não previsto".</td></tr>'}
+          ${ex ? '<tr class="grp"><td colspan="7">Não previsto</td></tr>' + ex : ''}
+          ${it.resto > 0.5 ? `<tr><td class="sub">Outros custos sem linha (arredondamentos)</td><td></td><td class="n">${brl(it.resto)}</td><td class="n sub">${brl(it.resto)}</td><td></td><td></td><td></td></tr>` : ''}
+          <tr class="tot"><td>Total do item</td><td></td><td class="n">${brl(prev)}</td><td class="n">${brl(real)}</td><td class="n">${dif(real - prev)}</td><td></td><td></td></tr></tbody></table></div>
+          ${ed ? `<div class="docbar" style="margin-top:8px">${pend ? `<button class="btn sm" data-rokall="${esc(it.n)}">✓ Conferir as ${pend} restantes como iguais ao previsto</button>` : ''}<button class="btn sm" data-rexadd="${esc(it.n)}">+ Custo não previsto</button></div>` : ''}</section>`;
       }).join('');
+      const exec = F0.execucao || 'em andamento'; const concluida = exec !== 'em andamento';
       return `<div class="stack">
-        <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-mgback>← Margens</button><h1 style="margin-top:8px"><span class="divb ${F0.div.toLowerCase()}">${F0.div}</span> ${esc(F0.numero || F0.nome || 'Fechamento')}</h1><div class="sub">${esc(F0.cliente || '')} · fechada em ${fmtD(F0.fechadoEm)}${F0.pedido ? ' · pedido ' + esc(F0.pedido) : ''}${F0.obs ? ' · ' + esc(F0.obs) : ''}</div></div>
-          <div class="sumbar"><div><span>Venda fechada</span><b>${brl(R.venda)}</b></div><div><span>Margem fechada</span><b>${pct(R.margemPct, 1)}</b></div><div><span>Realizada</span><b class="${R.margemRealPct < R.margemPct - 0.005 ? 'bad-t' : 'ok-t'}">${pct(R.margemRealPct, 1)}</b></div></div></div>
-        ${ui.mgNova === id ? `<div class="banner ok"><b>Baixa registrada.</b> É aqui que Compras e Produção lançam o custo real: digite na coluna "Real (R$)" de cada linha ou use "Ler NF ou pedido de compra". A margem realizada recalcula na hora. Esta tela fica em Margens → Fechadas, e na página inicial pelo botão "Custo real".</div>` : ''}
-        <div class="kpis"><div class="kpi"><span>Proposto × fechado</span><b>${brl(F0.vendaProposta)}</b><em>fechado ${brl(R.venda)}${Math.abs(R.k - 1) > 1e-6 ? ' (' + (R.k < 1 ? '−' : '+') + pct(Math.abs(1 - R.k), 1) + ')' : ''}</em></div>
-          <div class="kpi"><span>Impostos e comissões</span><b>${brl(R.impostos + R.comissao)}</b><em>impostos ${brl(R.impostos)} · comissões ${brl(R.comissao)}</em></div>
-          <div class="kpi"><span>Custo previsto × real</span><b>${brl(R.custoReal)}</b><em>previsto ${brl(R.custo)} (${R.custoReal - R.custo >= 0 ? '+' : '−'}${brl(Math.abs(R.custoReal - R.custo)).replace('R$ ', '')})</em></div>
-          <div class="kpi"><span>Apontamento</span><b>${pct(R.cobertura, 0)}</b><em>${R.apontadas} de ${R.linhas} linhas com custo real</em></div></div>
-        <div class="docbar">${ed ? `<label class="btn pri" for="mgNf">📎 Ler NF ou pedido de compra com Claude</label><input type="file" id="mgNf" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden>` : ''}
-          <button class="btn" data-mgxls="${esc(F0.id)}">Planilha do fechamento (Excel)</button>
-          <label class="chk">Execução <select data-mgexec="${esc(F0.id)}"${ed ? '' : ' disabled'}>${['em andamento', 'fabricação concluída', 'entregue', 'encerrada'].map((x) => `<option${(F0.execucao || 'em andamento') === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
-          ${REG.canEditCadastro || REG.mode === 'local' ? `<button class="btn" data-mgreopen="${esc(F0.id)}">Desfazer baixa</button>` : ''}</div>
-        ${ed ? '<p class="sub" style="margin:0">Lance o custo real total de cada linha (todas as unidades). Linha em branco conta como previsto. Claude lê a nota fiscal ou o pedido e sugere em qual linha cada item entra.</p>' : '<p class="sub" style="margin:0">O custo real é lançado pela área de Custos.</p>'}
+        <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-mgback>← Margens</button><h1 style="margin-top:8px"><span class="divb ${F0.div.toLowerCase()}">${F0.div}</span> Custo real · ${esc(F0.numero || F0.nome || 'Fechamento')}</h1><div class="sub">${esc(F0.cliente || '')} · fechada em ${fmtD(F0.fechadoEm)}${F0.pedido ? ' · pedido ' + esc(F0.pedido) : ''}</div></div>
+          <div class="sumbar"><div><span>Previsto</span><b>${brl(R.custo)}</b></div><div><span>Realizado</span><b>${brl(R.custoReal)}</b></div><div><span>Diferença</span><b class="${R.custoReal - R.custo > 0.005 ? 'bad-t' : 'ok-t'}">${R.custoReal - R.custo >= 0 ? '+' : '−'}${brl(Math.abs(R.custoReal - R.custo)).replace('R$ ', '')}</b></div><div><span>Conferido</span><b>${pct(R.cobertura, 0)}</b></div></div></div>
+        ${ui.mgNova === id ? '<div class="banner ok"><b>Baixa registrada.</b> Compras e Produção conferem aqui o custo real: cada linha já vem com o valor previsto; clique em "✓ igual" quando confere ou digite o valor real quando for diferente.</div>' : ''}
+        ${com ? `<div class="kpis"><div class="kpi"><span>Venda fechada</span><b>${brl(R.venda)}</b><em>proposto ${brl(F0.vendaProposta)}</em></div><div class="kpi"><span>Margem fechada</span><b>${pct(R.margemPct, 1)}</b></div><div class="kpi lead"><span>Margem com o custo real</span><b class="${R.margemRealPct < R.margemPct - 0.005 ? 'bad-t' : 'ok-t'}">${pct(R.margemRealPct, 1)}</b><em>visível só para Precificação, Financeiro e Diretoria</em></div></div>` : ''}
+        <div class="docbar">${ed ? `<label class="btn" for="mgNf">📎 Ler NF ou pedido (PDF, XML, Excel ou foto)</label><input type="file" id="mgNf" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden>` : ''}
+          ${com ? `<button class="btn" data-mgxls="${esc(F0.id)}">Relatório previsto × realizado (Excel)</button>` : ''}
+          ${ed && !concluida ? `<button class="btn pri" data-mgconcl="${esc(F0.id)}">Fabricação concluída → enviar ao Financeiro</button>` : `<span class="pill ${concluida ? 'ok' : 'mute'}">${esc(exec)}</span>${ed && concluida ? ` <button class="restore" data-mgconcl="${esc(F0.id)}">reenviar ao Financeiro</button>` : ''}`}
+          ${com && (REG.canEditCadastro || REG.mode === 'local') ? `<button class="btn" data-mgreopen="${esc(F0.id)}">Desfazer baixa</button>` : ''}</div>
+        ${ed ? '' : '<p class="sub" style="margin:0">O custo real é conferido por Engenharia e Custos.</p>'}
         ${itens}</div>`;
+    }
+    // fabricação concluída: marca a execução e manda ao Financeiro o relatório completo
+    function concluirFab(id) {
+      const F = fech.find((f) => f.id === id); if (!F) return; const R = realizado(F); const cfg = avisosCfg(); const n = F.numero || F.nome || '';
+      const pend = R.linhas - R.apontadas;
+      const corpo = () => [`Olá,`, ``, `A fabricação da proposta ${n} — ${F.cliente || ''} foi concluída.`, ``, `Custo previsto: ${brl(R.custo)}`, `Custo realizado: ${brl(R.custoReal)}`, `Diferença: ${R.custoReal - R.custo >= 0 ? '+' : '−'}${brl(Math.abs(R.custoReal - R.custo))} (${R.custo ? pct((R.custoReal - R.custo) / R.custo, 1) : '—'})`, `Linhas conferidas: ${R.apontadas} de ${R.linhas}${pend ? ' (as demais contam como previsto)' : ''}.`, ``, `Por item:`]
+        .concat(R.itens.map((x) => `• ${x.nome}: previsto ${brl(x.custo)} · realizado ${brl(x.custoReal)}`))
+        .concat(['', 'O relatório completo previsto × realizado está no Excel (baixe e anexe) e no app: Margens → Fechadas → ' + n + '.', `LS Pricer: ${cfg.link}`]).join('\n');
+      emailModal({ titulo: 'Fabricação concluída · enviar ao Financeiro', intro: pend ? `Atenção: ${pend} linha(s) ainda não conferida(s) contam como iguais ao previsto.` : 'Todas as linhas conferidas.',
+        grupos: [{ k: 'financeiro', lb: 'Financeiro', emails: cfg.financeiro, on: true }], cc: cfg.cc, assunto: `Fabricação concluída · previsto × realizado · ${n}${F.cliente ? ' · ' + F.cliente : ''}`, corpo,
+        excel: () => excel(F), soMarcar: 'Só marcar como concluída',
+        onDone: async (a, obs) => { const F2 = fech.find((f) => f.id === id) || F; await gravar(id, Object.assign({}, F2, { execucao: 'fabricação concluída', concluidaEm: new Date().toISOString() })); ctx.log && ctx.log({ tipo: 'Execução', ref: id, desc: n + ' — fabricação concluída; ' + obs, mudancas: [{ campo: 'Execução', de: F2.execucao || 'em andamento', para: 'fabricação concluída' }, { campo: 'Custo realizado', de: R.custo, para: R.custoReal }] }); if (!shared()) ctx.render(); } });
     }
     async function setReal(id, mut, desc) {
       const F = fech.find((f) => f.id === id); if (!F) return; const real = JSON.parse(JSON.stringify(F.real || {})); const antes = realizado(F); mut(real);
@@ -474,7 +505,12 @@
     });
     document.addEventListener('click', (e) => {
       const t = e.target;
-      const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!fechDe(id)) { toast('Esta proposta ainda não tem baixa: use "Dar baixa" primeiro.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
+      const ok1 = t.closest('[data-rok]'); if (ok1) { const [n, k] = ok1.dataset.rok.split('|'); const F = fech.find((f) => f.id === ui.mgId); const it = F && realizado(F).itens.find((x) => x.n === n); const l = it && it.linhas.find((x) => x.k === k); if (!l) return;
+        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; real[n].l[k] = Object.assign(real[n].l[k] || {}, { v: l.prev, ok: true }); }, 'linha ' + (l.desc || k) + ' conferida = previsto'); return; }
+      const oka = t.closest('[data-rokall]'); if (oka) { const n = oka.dataset.rokall; const F = fech.find((f) => f.id === ui.mgId); const it = F && realizado(F).itens.find((x) => x.n === n); if (!it) return; const falta = it.linhas.filter((l) => typeof l.real !== 'number');
+        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; for (const l of falta) real[n].l[l.k] = Object.assign(real[n].l[l.k] || {}, { v: l.prev, ok: true }); }, falta.length + ' linha(s) de ' + (it.nome || n) + ' conferidas = previsto'); return; }
+      const cf = t.closest('[data-mgconcl]'); if (cf) { concluirFab(cf.dataset.mgconcl); return; }
+      const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!fechDe(id)) { toast('Esta proposta ainda não tem baixa: use "Dar baixa" primeiro.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); const it = rl.dataset.mgitem; if (it) setTimeout(() => { const el = document.getElementById('cr_' + it); if (el) el.scrollIntoView({ block: 'start' }); }, 60); return; }
       const cl = t.closest('[data-mgclose]'); if (cl) { const p = (REG.listPropostas() || []).find((x) => x.id === cl.dataset.mgclose); if (p) fecharModal(p); return; }
       if (ui.view !== 'margens') return;
       const tb = t.closest('[data-mgtab]'); if (tb) { ui.mgTab = tb.dataset.mgtab; ui.apId = null; ctx.render(); return; }
