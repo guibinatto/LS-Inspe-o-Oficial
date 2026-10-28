@@ -1212,6 +1212,7 @@
         ${canEd() && !isNew ? '<button class="btn" id="fDel">Excluir</button>' : ''}
         <button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button>
       </div>
+      ${!isNew ? ondeUsadoHtml(rec) : ''}
       ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*" hidden></div>` : ''}
       ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
     (o, close) => {
@@ -1618,6 +1619,32 @@
     return out;
   }
   const estrOf = (x) => x.estr === 'TODOS' || x.estr === '' ? estrList() : String(x.estr).split('+');
+  // onde o insumo entra: estruturas (fixo, por porte, tamanho), formações fechadas e propostas
+  function ondeUsado(ins) {
+    const p = ins.produto; const out = []; const lines = recLines();
+    const TB = { FAIXA: [MO, 157, 166, 'D', 'B', 'C', 'motor diesel de', ' HP'], CV: [MO, 172, 187, 'D', 'B', 'C', 'motor elétrico de', ' CV'], VAZAO: ['KIT HIDRÁULICA', 4, 32, 'J', 'A', null, 'vazão de', ''] };
+    const faixas = (k, pred) => { const [sh, r1, r2, , a, b] = TB[k]; const fx = []; for (let r = r1; r <= r2; r++) { if (val(sh, a + r) === null) continue; if (pred(r)) fx.push(b ? fmtPlain(val(sh, a + r)) + ' a ' + fmtPlain(val(sh, b + r)) : fmtPlain(val(sh, a + r))); } return fx; };
+    const nome = (x, cell) => String(x.pre || '') + cell + String(x.suf || '');
+    for (const x of lines) {
+      const est = estrOf(x).join(', '); const op = x.regra === 'OPCIONAL' ? ' · opcional' : '';
+      if ((x.tipo === 'FIXO' || x.tipo === 'SPLIT') && x.campo === p) out.push([x.rot, `sempre${x.tipo === 'SPLIT' ? ', só split case' : ''}${op}`, est]);
+      else if (x.tipo === 'TAMANHO' && x.fam === ins.fam) { const fx = faixas('FAIXA', (r) => nome(x, fmtPlain(val(MO, 'D' + r))) === p); if (fx.length) out.push([x.rot, 'motor diesel de ' + fx.join(' · ') + ' HP' + op, est]); }
+      else if (TB[x.tipo]) { const t = TB[x.tipo]; const col = numToCol(colToNum(t[3]) + (+x.campo || 1) - 1); const fx = faixas(x.tipo, (r) => { const v = val(t[0], col + r); return v !== null && v !== '' && nome(x, String(v)) === p; }); if (fx.length) out.push([x.rot, t[6] + ' ' + fx.join(' · ') + t[7] + op, est]); }
+      else if (['MOTOR', 'BOMBA', 'JOCKEY'].includes(x.tipo) && x.fam === ins.fam) out.push([x.rot, 'quando escolhido no item' + op, est]);
+    }
+    const fech = (MG.lista ? MG.lista() : []).filter((F) => ((F.snap || {}).itens || []).some((it) => (it.linhas || []).some((l) => l.desc === p)));
+    const props = (REG.listPropostas() || []).filter((q) => q.doc && Object.entries(q.doc).some(([sh, cells]) => /^ITEM/.test(sh) && Object.values(cells || {}).includes(p)));
+    const seen = new Set(); const est = out.filter((y) => { const k = y.join('|'); if (seen.has(k)) return false; seen.add(k); return true; });
+    return { est, fech, props };
+  }
+  function ondeUsadoHtml(ins) {
+    const u = ondeUsado(ins);
+    const est = u.est.length ? `<ul class="uso">${u.est.map(([rot, quando, e]) => `<li><b>${esc(rot)}</b> — ${esc(quando)}<br><small class="sub">estruturas: ${esc(e)}</small></li>`).join('')}</ul>`
+      : '<p class="sub" style="margin:0">Nenhuma estrutura usa este insumo. Para ele entrar nos equipamentos, inclua-o numa estrutura (Engenharia → Estruturas) ou numa tabela por porte.</p>';
+    const fx = u.fech.length ? `<p class="sub" style="margin:6px 0 0">Em ${u.fech.length} formação(ões) fechada(s): ${u.fech.slice(0, 6).map((F) => esc(F.numero || F.nome || '')).join(', ')}${u.fech.length > 6 ? '…' : ''}</p>` : '';
+    const pr = u.props.length ? `<p class="sub" style="margin:6px 0 0">Escolhido à parte em ${u.props.length} proposta(s): ${u.props.slice(0, 6).map((q) => esc(q.numero || q.name || '')).join(', ')}${u.props.length > 6 ? '…' : ''}</p>` : '';
+    return `<h2>Onde é usado</h2>${est}${fx}${pr}`;
+  }
   function origemTxt(x, H) {
     const col = (k) => H[k][(+x.campo || 1) - 1] || ('coluna ' + x.campo);
     switch (x.tipo) {
@@ -1662,7 +1689,7 @@
         <td>${x.estr === 'TODOS' ? '<span class="pill mute">todas</span>' : estrOf(x).map((e) => `<span class="pill mute">${esc(e)}</span>`).join(' ')}</td>
         <td><button class="btn sm" data-recedit="${x.r}">Editar</button></td></tr>`).join('');
     }).join('');
-    const sug = SUGESTOES.map((sg) => { const done = sugFeita(sg, lines); return `<label class="sugrow${done ? ' done' : ''}"><input type="checkbox" data-sug="${sg.id}"${done ? ' disabled checked' : ''}><span><b>${esc(sg.t)}</b>${done ? ' <span class="pill ok">aplicada</span>' : ''}<br><small class="sub">${esc(sg.d)}</small></span></label>`; }).join('');
+    const sug = SUGESTOES.map((sg) => { const done = sugFeita(sg, lines); return `<label class="sugrow${done ? ' done' : ''}"><input type="checkbox" data-sug="${sg.id}" data-done="${done ? 1 : 0}"${done ? ' checked' : ''}${canEd() ? '' : ' disabled'}><span><b>${esc(sg.t)}</b>${done ? ' <span class="pill ok">aplicada</span> <small class="sub">desmarque para desfazer</small>' : ''}<br><small class="sub">${esc(sg.d)}</small></span></label>`; }).join('');
     const changed = Object.keys(REG.tabelas[MO] || {}).length + Object.keys(REG.tabelas['KIT HIDRÁULICA'] || {}).length;
     return `<div class="stack">
       <p class="sub" style="margin:0">A estrutura padrão diz o que entra em cada equipamento montado: quais componentes, de onde sai o insumo (o que foi escolhido no item, a tabela por porte ou um insumo fixo), quantos por bomba e em que condição. Toda proposta nova monta o item por aqui. ${free} linha(s) livre(s) de 60.</p>
@@ -1671,12 +1698,22 @@
       <div class="tw"><table class="t"><thead><tr><th>Componente</th><th>De onde sai o insumo</th><th>Quantidade</th><th>Condição</th><th>Vale para</th><th></th></tr></thead><tbody>${groups || '<tr><td colspan="6" class="sub">Nenhum componente nesta estrutura.</td></tr>'}</tbody></table></div>
       <section class="card"><h2>Sugestões <span class="sub">marque o que quiser aplicar; opcionais não entram no preço até serem marcados no item</span></h2>
         <div class="sugs">${sug}</div>
-        <div class="docbar" style="margin-top:10px"><button class="btn sm pri" data-sugapply${canEd() ? '' : ' disabled'}>Aplicar as marcadas</button></div></section>
-      <section class="card"><h2>Tabelas por porte <span class="sub">o insumo de cada faixa; vale para todas as estruturas</span></h2>
+        <div class="docbar" style="margin-top:10px"><button class="btn sm pri" data-sugapply${canEd() ? '' : ' disabled'}>Aplicar mudanças</button></div></section>
+      <section class="card"><h2>Tabelas por porte <span class="sub">os componentes que mudam com o tamanho do equipamento</span></h2>
+        ${porteExplica(ui.porte || 'FAIXA')}
         <div class="subtabs" role="tablist">${[['FAIXA', 'Potência do diesel (HP)'], ['CV', 'Potência elétrica (CV)'], ['VAZAO', 'Vazão (hidráulica)']].map(([k, lb]) => `<button role="tab" aria-selected="${(ui.porte || 'FAIXA') === k}" data-porte="${k}">${lb}</button>`).join('')}</div>
         ${porteGrid(ui.porte || 'FAIXA')}</section>
       ${datalists()}
     </div>`;
+  }
+  function porteExplica(k) {
+    const spec = { FAIXA: [MO, 156, 157, 166, 'B', 'M', 'HP do motor diesel'], CV: [MO, 171, 172, 187, 'B', 'G', 'CV do motor elétrico'], VAZAO: ['KIT HIDRÁULICA', 3, 4, 32, 'A', 'Q', 'vazão da bomba'] }[k];
+    const [sh, hr, r1, r2, c1, c2, oque] = spec; const rows = []; for (let r = r1; r <= r2; r++) if (val(sh, c1 + r) !== null) rows.push(r);
+    const ex = rows[Math.floor(rows.length / 2)]; const cols = []; for (let c = colToNum(c1); c <= colToNum(c2); c++) cols.push(numToCol(c));
+    const hd = (c) => String(val(sh, c + hr) || '').replace(/^\d+\s*·\s*/, ''); const v = (c) => { const x = val(sh, c + ex); return x === null || x === undefined ? '' : String(x); };
+    const itens = cols.slice(k === 'VAZAO' ? 1 : k === 'CV' ? 2 : 3).filter((c) => v(c)).slice(0, 4).map((c) => `${hd(c).toLowerCase()} = <b>${esc(v(c))}</b>`).join('; ');
+    const faixa = k === 'VAZAO' ? `vazão ${esc(v(cols[0]))}` : `de ${esc(v(cols[0]))} a ${esc(v(cols[1]))}`;
+    return `<div class="banner info" style="margin:0 0 10px"><b>Para que serve:</b> cada linha é uma faixa de ${oque}. Quando um item é montado, o app acha a linha da faixa e coloca esses componentes sozinho, nas estruturas que usam "tabela por porte". Mudou a potência, eles mudam junto, sem ninguém escolher à mão.${ex ? `<br><b>Exemplo:</b> ${oque} ${faixa} → ${itens}.` : ''}<br>Para trocar um componente de uma faixa, clique nele e escolha o insumo do cadastro.</div>`;
   }
   function porteGrid(k) {
     const spec = { FAIXA: [MO, 156, 157, 166, 'B', 'M', ['B', 'C', 'D']], CV: [MO, 171, 172, 187, 'B', 'G', ['B', 'C']], VAZAO: ['KIT HIDRÁULICA', 3, 4, 32, 'A', 'Q', ['A']] }[k];
@@ -1688,8 +1725,10 @@
       if (val(sh, cols[0] + r) === null && val(sh, cols[1] + r) === null) continue;
       body += '<tr>' + cols.map((c) => {
         const a = c + r; const f = isFormulaBase(sh, a); const v = val(sh, a); const shown = v === null || v === undefined ? '' : typeof v === 'number' ? fmtPlain(v) : String(v);
-        if (f || !ed) return `<td class="${a in chg ? 'chg' : ''}">${esc(shown)}</td>`;
-        return `<td class="in ${a in chg ? 'over' : ''}"><input data-tcell="${esc(sh)}|${a}" data-num="${numCols.includes(c) ? 1 : ''}" value="${esc(shown)}"${numCols.includes(c) ? ' inputmode="decimal"' : ' list="dl_all"'} aria-label="${esc(sh)} ${a}"></td>`;
+        if (f || !ed) return `<td class="ptxt ${a in chg ? 'chg' : ''}">${esc(shown)}</td>`;
+        // faixas: número digitado; insumos: texto inteiro, e a troca escolhe do cadastro
+        if (numCols.includes(c)) return `<td class="in ${a in chg ? 'over' : ''}"><input data-tcell="${esc(sh)}|${a}" data-num="1" value="${esc(shown)}" inputmode="decimal" aria-label="${esc(sh)} ${a}"></td>`;
+        return `<td class="ptxt ${a in chg ? 'over' : ''}"><button class="pedit" data-pedit="${esc(sh)}|${a}|${esc(String(val(sh, c + hr) || '').replace(/^\d+\s*·\s*/, ''))}">${esc(shown) || '<span class="sub">—</span>'}</button></td>`;
       }).join('') + '</tr>';
     }
     return `<div class="tw" style="margin-top:10px"><table class="t porte"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${k === 'VAZAO' ? '<p class="sub" style="margin:8px 0 0">Nesta tabela você muda as bitolas (colunas à esquerda); os nomes dos insumos à direita saem delas.</p>' : ''}`;
@@ -1769,16 +1808,36 @@
     if (Object.keys(ch).length) await REG.setCells(MO, ch, 'Sugestões aplicadas: ' + nomes.join('; '), baseOf(MO));
     toast(nomes.length + ' sugestão(ões) aplicada(s)');
   }
+  // desfaz: nomes voltam ao da planilha; linhas opcionais saem da estrutura (o insumo criado fica no cadastro)
+  async function undoSugs(ids) {
+    const lines = recLines(); const ch = {}; const nomes = []; const b = baseOf(MO);
+    for (const sg of SUGESTOES.filter((x) => ids.includes(x.id))) {
+      if (sg.ren) for (const r of Object.keys(sg.ren)) ch[REC_COLS.rot + r] = b(REC_COLS.rot + r);
+      if (sg.add) for (const x of lines.filter((l) => l.rot === sg.add.rot)) for (const c of Object.values(REC_COLS)) ch[c + x.r] = null;
+      nomes.push(sg.t);
+    }
+    if (Object.keys(ch).length) await REG.setCells(MO, ch, 'Sugestões desfeitas: ' + nomes.join('; '), b);
+    toast(nomes.length + ' sugestão(ões) desfeita(s)');
+  }
   document.addEventListener('click', async (e) => {
     if (ui.view !== 'cadastro' || ui.cad !== 'estruturas') return;
     const t = e.target.closest('[data-estr]'); if (t) { ui.estr = t.dataset.estr; store.set(SK.view, ui); render(); return; }
     const pt = e.target.closest('[data-porte]'); if (pt) { ui.porte = pt.dataset.porte; render(); return; }
+    const pe = e.target.closest('[data-pedit]'); if (pe) { const [sh, a, lb] = pe.dataset.pedit.split('|'); const cur = txt(sh, a);
+      modal(`<h2>${esc(lb)}</h2><p class="sub" style="margin:0">Faixa da linha ${esc(a.replace(/\D/g, ''))}. Escolha o insumo do cadastro (a lista filtra enquanto você digita).</p><div class="f"><label for="peIn">Insumo</label><input id="peIn" list="dl_all" value="${esc(cur)}" autocomplete="off"></div><p class="sub" id="peMsg" style="margin:0"></p><div style="display:flex;gap:8px"><button class="btn pri" id="peOk">Salvar</button><button class="btn" id="peClr">Deixar sem</button><button class="btn" data-close>Cancelar</button></div>${datalists()}`, (o, close) => {
+        const inp = $('#peIn', o); inp.focus(); inp.select();
+        const go = async (v) => { close(); try { await REG.setCells(sh, { [a]: v || null }, 'Tabela por porte ' + lb + ' (linha ' + a.replace(/\D/g, '') + ')', baseOf(sh)); toast('Salvo'); } catch (err) { toast(errMsg(err)); } };
+        $('#peOk', o).onclick = () => go(inp.value.trim()); $('#peClr', o).onclick = () => go('');
+      }); return; }
     const ed = e.target.closest('[data-recedit]'); if (ed) { recModal(+ed.dataset.recedit); return; }
     if (e.target.closest('[data-estrnew]')) { estrNewModal(); return; }
     if (e.target.closest('[data-recnew]')) { const used = new Set(recLines().map((x) => x.r)); let r = 92; while (used.has(r)) r++; if (r > 151) return toast('A receita já tem 60 linhas'); recModal(r, { r, rot: '', estr: ui.estr || 'CMB', acion: 'TODOS', bloco: 'TERCEIROS', fam: '', tipo: 'FIXO', campo: '', qtd: 'N', regra: '' }); return; }
     const rs = e.target.closest('[data-recreset]');
     if (rs) { if (!rs.dataset.sure) { rs.dataset.sure = 1; rs.textContent = 'Confirmar: desfazer todas as alterações da estrutura'; rs.classList.add('pri'); return; } try { await REG.resetSheet(MO); await REG.resetSheet('KIT HIDRÁULICA'); toast('Estrutura de volta à planilha'); } catch (err) { toast(errMsg(err)); } return; }
-    if (e.target.closest('[data-sugapply]')) { const ids = [...document.querySelectorAll('[data-sug]:checked:not(:disabled)')].map((x) => x.dataset.sug); if (!ids.length) return toast('Marque ao menos uma sugestão'); try { await applySugs(ids); } catch (err) { toast(errMsg(err)); } }
+    if (e.target.closest('[data-sugapply]')) {
+      const box = [...document.querySelectorAll('[data-sug]')]; const ids = box.filter((x) => x.checked && x.dataset.done !== '1').map((x) => x.dataset.sug); const undo = box.filter((x) => !x.checked && x.dataset.done === '1').map((x) => x.dataset.sug);
+      if (!ids.length && !undo.length) return toast('Nada mudou: marque para aplicar ou desmarque para desfazer');
+      try { if (undo.length) await undoSugs(undo); if (ids.length) await applySugs(ids); } catch (err) { toast(errMsg(err)); } }
   });
   document.addEventListener('change', async (e) => {
     const el = e.target; if (!el.dataset || !el.dataset.tcell) return;
