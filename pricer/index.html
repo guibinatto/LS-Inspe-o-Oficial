@@ -321,6 +321,12 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 .drop{display:grid;gap:4px;justify-items:center;text-align:center;border:2px dashed var(--line2);border-radius:12px;padding:26px 16px;background:var(--card);cursor:pointer}
 .drop:hover,.drop.over{border-color:var(--or);background:var(--or-soft)}
 .drop b{font-family:var(--f-cond);font-size:20px;letter-spacing:.02em}
+.mchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.mchip{display:grid;gap:2px;text-align:left;border:1px solid var(--line2);background:var(--bg);border-radius:9px;padding:9px 11px;cursor:pointer}
+.mchip:hover{border-color:var(--or)}
+.mchip.on{border-color:var(--or);background:var(--or-soft);box-shadow:inset 3px 0 0 var(--or)}
+.mchip b{font-size:14px;font-weight:600}
+.mchip small{font-size:12px;color:var(--ink3)}
 .famtab td:first-child{font-family:var(--f-mono);font-size:12.5px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
