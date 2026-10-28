@@ -45,11 +45,16 @@
 
     // ---------- contas: fechado (com o valor negociado) e realizado ----------
     // o valor fechado pode diferir do proposto: venda, impostos e comissões acompanham; o custo não muda
+    // a margem líquida da formação é sobre a receita líquida (preço − impostos), não sobre o preço:
+    // a base de cada fotografia sai dela mesma (margem ÷ margem %), proporcional ao preço
+    const baseFrac = (x) => { const b = x.venda && x.margemPct && Math.abs(x.margemPct) > 1e-6 ? (num(x.margem) / x.margemPct) / x.venda : NaN; return isFinite(b) && b > 0.3 && b <= 1.0001 ? b : (x.venda ? (x.venda - num(x.impostos)) / x.venda : 1); };
+    const mPct = (margem, venda, bf) => (venda ? margem / (venda * bf) : 0);
     function fechado(F) {
       const s = F.snap; const k = s.venda ? num(F.valorFechado || s.venda) / s.venda : 1;
-      const itens = s.itens.map((x) => { const venda = x.venda * k, impostos = x.impostos * k, comissao = x.comissao * k, margem = venda - impostos - comissao - x.custo; return Object.assign({}, x, { venda, impostos, comissao, margem, margemPct: venda ? margem / venda : 0 }); });
+      const itens = s.itens.map((x) => { const venda = x.venda * k, impostos = x.impostos * k, comissao = x.comissao * k, margem = venda - impostos - comissao - x.custo, bf = baseFrac(x); return Object.assign({}, x, { bf, venda, impostos, comissao, margem, margemPct: mPct(margem, venda, bf) }); });
       const sum = (f) => itens.reduce((t, x) => t + num(x[f]), 0); const venda = sum('venda'), margem = sum('margem');
-      return { k, itens, venda, impostos: sum('impostos'), comissao: sum('comissao'), custo: sum('custo'), margem, margemPct: venda ? margem / venda : 0 };
+      const base = itens.reduce((t, x) => t + x.venda * x.bf, 0);
+      return { k, itens, venda, base, impostos: sum('impostos'), comissao: sum('comissao'), custo: sum('custo'), margem, margemPct: base ? margem / base : 0 };
     }
     function realizado(F) {
       const P = fechado(F); const R = F.real || {}; let lin = 0, ap = 0;
@@ -60,10 +65,10 @@
         const resto = Math.max(0, x.custo - custoPrev); custoReal += resto;
         const extras = (r.extras || []).filter((e) => typeof e.v === 'number'); custoReal += extras.reduce((t, e) => t + e.v, 0);
         const margem = x.venda - x.impostos - x.comissao - custoReal;
-        return Object.assign({}, x, { linhas, extras, resto, custoReal, apont, margemReal: margem, margemRealPct: x.venda ? margem / x.venda : 0 });
+        return Object.assign({}, x, { linhas, extras, resto, custoReal, apont, margemReal: margem, margemRealPct: mPct(margem, x.venda, x.bf) });
       });
       const custoReal = itens.reduce((t, x) => t + x.custoReal, 0); const margem = P.venda - P.impostos - P.comissao - custoReal;
-      return Object.assign({}, P, { itens, custoReal, margemReal: margem, margemRealPct: P.venda ? margem / P.venda : 0, linhas: lin, apontadas: ap, cobertura: lin ? ap / lin : 0 });
+      return Object.assign({}, P, { itens, custoReal, margemReal: margem, margemRealPct: P.base ? margem / P.base : 0, linhas: lin, apontadas: ap, cobertura: lin ? ap / lin : 0 });
     }
 
     // ---------- dar baixa ----------
@@ -412,7 +417,7 @@
       hfsSheets(wbx, F, R);
       // pedido de aprovação: o preço ainda é o proposto, não o fechado
       if (F.modo === 'aprovacao') {
-        const TR = [[/Preço total fechado/g, 'Preço total proposto'], [/fechado com o cliente/g, 'proposto ao cliente'], [/Preço fechado com impostos/g, 'Preço proposto com impostos'], [/preço fechado ×/g, 'preço proposto ×'], [/como fechado/g, 'como proposto'], [/no fechamento de/g, 'no pedido de aprovação de'], [/do fechamento/g, 'da proposta'], [/^Fechamento de /, 'Pedido de aprovação de '], [/ e fechado .*? sem IPI/, ' sem IPI']];
+        const TR = [[/Preço total fechado/g, 'Preço total proposto'], [/fechado com o cliente/g, 'proposto ao cliente'], [/Preço fechado com impostos/g, 'Preço proposto com impostos'], [/preço fechado ×/g, 'preço proposto ×'], [/como fechado/g, 'como proposto'], [/no fechamento de/g, 'no pedido de aprovação de'], [/do fechamento/g, 'da proposta'], [/^Fechamento de /, 'Pedido de aprovação de '], [/valor proposto (.*?) e fechado (.*?) sem IPI/, 'valor atual $1 e valor target $2 sem IPI']];
         ['Base', 'Reunião'].forEach((nm) => { const ws = wbx.getWorksheet(nm); if (ws) ws.eachRow((row) => row.eachCell((c) => { if (typeof c.value === 'string') { let v = c.value; TR.forEach(([a, b]) => { v = v.replace(a, b); }); if (v !== c.value) c.value = v; } })); });
       }
       const OR = 'FFE8570A', INK = 'FF1E1F21', SOFT = 'FFFFF1E8', GRAY = 'FFF4F3F0';
@@ -674,6 +679,19 @@
     const estadoA = (a) => { if (!a) return null; const d = a.decisoes || {}; if (PAPEIS.some(([k]) => d[k] && d[k].decisao === 'reprovada')) return 'reprovada'; if (PAPEIS.every(([k]) => d[k] && d[k].decisao === 'aprovada')) return 'aprovada'; return 'pendente'; };
     // sem aprovador definido, qualquer Editor decide; o dono sempre pode
     const podeDecidir = (papel) => { if (REG.mode === 'local' || REG.isOwner) return true; const l = (REG.acessos || {})['ap_' + papel] || []; return l.length ? l.includes(REG.me) : !!REG.canEditCadastro; };
+    // proposta inteira levada ao valor target: preços, impostos e comissões acompanham; o custo fica
+    function escala(snap, k) {
+      if (!k || Math.abs(k - 1) < 1e-9) return snap;
+      // tudo o que não é custo (impostos, comissões e demais deduções da formação) acompanha o preço
+      const itens = snap.itens.map((x) => { const ded = x.venda - num(x.margem) - x.custo; const bf = baseFrac(x); const venda = x.venda * k, impostos = num(x.impostos) * k, comissao = num(x.comissao) * k, margem = venda - ded * k - x.custo;
+        return Object.assign({}, x, { bf, venda, ipi: num(x.ipi) * k, impostos, comissao, margem, margemPct: mPct(margem, venda, bf), fatorAplicado: x.fatorAplicado ? x.fatorAplicado * k : x.fatorAplicado }); });
+      const sum = (f) => itens.reduce((t, x) => t + num(x[f]), 0); const venda = snap.venda * k, margem = sum('margem'), base = itens.reduce((t, x) => t + x.venda * x.bf, 0);
+      return Object.assign({}, snap, { itens, venda, vendaIpi: snap.vendaIpi ? snap.vendaIpi * k : snap.vendaIpi, impostos: sum('impostos'), comissao: sum('comissao'), margem, margemPct: base ? margem / base : 0 });
+    }
+    const kAlvo = (a) => (a && a.alvo && a.snap.venda ? a.alvo.vendaSem / a.snap.venda : 1);
+    const ipiRatio = (snap) => (snap.vendaIpi && snap.venda ? snap.vendaIpi / snap.venda : 1);
+    // preço mínimo da proposta pela margem mínima (sem IPI)
+    const minPelaMargem = (snap) => { if (!snap.venda) return null; const t = (snap.venda - num(snap.margem) - snap.custo) / snap.venda; const bf = snap.itens.reduce((a, x) => a + x.venda * baseFrac(x), 0) / snap.venda; const d = 1 - t - num(snap.minimo) * bf; return d > 0 ? snap.custo / d : null; };
     // análise no formato da planilha (Reunião): fator mínimo × fator que o preço suporta, por item
     function analise(snap) {
       return snap.itens.map((x) => {
@@ -684,26 +702,41 @@
         return { nome: x.nome, n: x.n, aq, fre, sta, div, fmin, fatorAplicado: x.fatorAplicado, suporta, necessario, preco, dif: necessario != null ? necessario - preco : null, margemPct: x.margemPct, ok: necessario == null || preco >= necessario - 0.01 };
       });
     }
-    function textoAprov(p, snap, mot, cfg) {
-      const A = analise(snap); const n = p.numero || p.name || 'sem número';
-      const l = [`Olá,`, ``, `Peço aprovação para a proposta ${n} — ${p.cliente || ''}, que está fora da política de preço.`, `Valor proposto: ${brl(snap.venda)} sem IPI · margem líquida: ${pct(snap.margemPct, 1)} (mínimo ${pct(snap.minimo || 0, 0)}).`, ``, `Justificativa: ${mot || '—'}`, ``, `Itens:`]
+    function textoAprov(p, snap0, mot, cfg, alvo) {
+      const k = alvo && snap0.venda ? alvo.vendaSem / snap0.venda : 1; const snap = escala(snap0, k); const A = analise(snap); const n = p.numero || p.name || 'sem número'; const ri = ipiRatio(snap0);
+      const cab = alvo ? [`Peço aprovação para fechar a proposta ${n} — ${p.cliente || ''} pelo valor target de ${brl(alvo.vendaSem * ri)} com IPI (${brl(alvo.vendaSem)} sem IPI).`,
+        `Valor atual: ${brl(snap0.venda * ri)} com IPI · desconto pedido: ${pct(1 - k, 1)}.`, `Margem líquida no target: ${pct(snap.margemPct, 1)} (atual ${pct(snap0.margemPct, 1)}; mínimo ${pct(snap0.minimo || 0, 0)}).`]
+        : [`Peço aprovação para a proposta ${n} — ${p.cliente || ''}, que está fora da política de preço.`, `Valor proposto: ${brl(snap.venda)} sem IPI · margem líquida: ${pct(snap.margemPct, 1)} (mínimo ${pct(snap.minimo || 0, 0)}).`];
+      const l = [`Olá,`, ``].concat(cab, [``, `Justificativa: ${mot || '—'}`, ``, alvo ? `Itens no valor target:` : `Itens:`])
         .concat(A.map((x) => `• ${x.nome}: margem ${pct(x.margemPct, 1)}; fator aplicado ${x.fatorAplicado ? NF[4].format(x.fatorAplicado) : '—'} × mínimo ${x.fmin ? NF[4].format(x.fmin) : '—'}${x.dif != null && x.dif > 0.01 ? '; faltam ' + brl(x.dif) + ' para a política' : ''}.`))
         .concat(['', `Para analisar e aprovar: LS Pricer → Margens → Aprovações → ${n}. A análise está no formato da planilha (Reunião e Base), com o Excel para baixar.`, `LS Pricer: ${cfg.link}`]);
-      return { assunto: `Aprovação de desconto · proposta ${n}${p.cliente ? ' · ' + p.cliente : ''}`, corpo: l.join('\n') };
+      return { assunto: `Aprovação de desconto · proposta ${n}${alvo ? ' · target ' + brl(alvo.vendaSem * ri) : ''}${p.cliente ? ' · ' + p.cliente : ''}`, corpo: l.join('\n') };
     }
-    const fAprov = (p, a) => ({ id: p.id, propId: p.id, div: p.div || 'SEQ', tipo: p.tipo || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', fechadoEm: (a && a.at || new Date().toISOString()).slice(0, 10), pedido: '', obs: 'Análise para aprovação de desconto', modo: 'aprovacao', vendaProposta: a.snap.venda, valorFechado: a.snap.venda, snap: a.snap, real: {}, execucao: '' });
+    const fAprov = (p, a) => ({ id: p.id, propId: p.id, div: p.div || 'SEQ', tipo: p.tipo || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', fechadoEm: (a && a.at || new Date().toISOString()).slice(0, 10), pedido: '', obs: 'Análise para aprovação de desconto', modo: 'aprovacao', vendaProposta: a.snap.venda, valorFechado: a.alvo ? a.alvo.vendaSem : a.snap.venda, snap: a.snap, real: {}, execucao: '' });
     function pedirAprovacao(p, snap) {
-      ensureA(); const cfg = avisosCfg();
-      modal(`<h2>Pedir aprovação</h2><p class="sub" style="margin:0">O desconto passa da política. Explique o motivo; Diretoria e Financeiro analisam e aprovam no app.</p>
-        <div class="f"><label for="apMot">Justificativa</label><textarea id="apMot" rows="3" placeholder="ex.: cliente estratégico, concorrência com preço X, volume do contrato anual…"></textarea></div>
+      ensureA(); const cfg = avisosCfg(); const ri = ipiRatio(snap); const minS = minPelaMargem(snap);
+      const ant = aprovDe(p.id); const ini = ant && ant.alvo ? ant.alvo : null;
+      modal(`<h2>Pedir aprovação da proposta</h2><p class="sub" style="margin:0">${esc((p.numero || p.name || '') + (p.cliente ? ' · ' + p.cliente : ''))}. Diga por quanto quer fechar; Diretoria e Financeiro analisam esse valor e aprovam no app.</p>
+        <div class="kpis"><div class="kpi"><span>Valor atual (com IPI)</span><b>${brl(snap.venda * ri)}</b><em>${brl(snap.venda)} sem IPI</em></div><div class="kpi"><span>Margem atual</span><b>${pct(snap.margemPct, 1)}</b><em>mínimo ${pct(snap.minimo || 0, 0)}</em></div><div class="kpi"><span>Menor preço pela margem mínima</span><b>${minS ? brl(minS * ri) : '—'}</b><em>com IPI</em></div></div>
+        <div class="fields"><div class="f span2 req"><label for="apAlvo">Valor target</label><input id="apAlvo" inputmode="decimal" placeholder="ex.: 4.000.000,00" value="${ini ? esc(NF[2].format(ini.base === 'sem' ? ini.vendaSem : ini.vendaSem * ri)) : ''}"></div>
+          <div class="f span2"><label>O valor é</label><div class="seg" role="radiogroup"><label><input type="radio" name="apBase" value="com"${!ini || ini.base !== 'sem' ? ' checked' : ''}>com IPI</label><label><input type="radio" name="apBase" value="sem"${ini && ini.base === 'sem' ? ' checked' : ''}>sem IPI</label></div></div></div>
+        <div id="apPrev" class="banner info" style="margin:0">Digite o valor target para ver desconto e margem.</div>
+        <div class="f req"><label for="apMot">Justificativa</label><textarea id="apMot" rows="3" placeholder="ex.: cliente estratégico, concorrente fechou por R$ X, volume do contrato anual…"></textarea></div>
         <div style="display:flex;gap:8px"><button class="btn pri" id="apOk">Continuar para o e-mail</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
-        $('#apMot', o).focus();
+        const ler = () => { const v = parseInput($('#apAlvo', o).value.trim(), 'num'); if (typeof v !== 'number' || v <= 0) return null; const base = (o.querySelector('input[name="apBase"]:checked') || {}).value || 'com'; return { valor: v, base, vendaSem: base === 'com' ? v / ri : v }; };
+        const prev = () => { const al = ler(); const el = $('#apPrev', o); if (!al) { el.className = 'banner info'; el.textContent = 'Digite o valor target para ver desconto e margem.'; return; }
+          const k = al.vendaSem / snap.venda; const sc = escala(snap, k); const abaixo = analise(sc).filter((x) => !x.ok).length; const ruim = sc.margemPct < num(snap.minimo) - 5e-4;
+          el.className = 'banner ' + (ruim || abaixo ? 'warn' : 'ok');
+          el.innerHTML = `Target ${brl(al.vendaSem * ri)} com IPI · <b>${k <= 1 ? 'desconto de ' + pct(1 - k, 1) : 'acréscimo de ' + pct(k - 1, 1)}</b> sobre o atual · margem líquida no target <b>${pct(sc.margemPct, 1)}</b> (mínimo ${pct(snap.minimo || 0, 0)})${abaixo ? ` · ${abaixo} item(ns) abaixo do fator mínimo` : ''}.`; };
+        $('#apAlvo', o).oninput = prev; o.querySelectorAll('input[name="apBase"]').forEach((x) => { x.onchange = prev; }); prev(); $('#apAlvo', o).focus();
         $('#apOk', o).onclick = async () => {
+          const alvo = ler(); if (!alvo) { toast('Informe o valor target'); $('#apAlvo', o).focus(); return; }
           const mot = $('#apMot', o).value.trim(); if (!mot) { toast('Escreva a justificativa'); return; } close();
-          const rec = { propId: p.id, uid: p.uid || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', div: p.div || 'SEQ', at: new Date().toISOString(), by: REG.me || null, motivo: mot, snap, decisoes: {} };
-          try { await gravarA(p.id, rec); ctx.log && ctx.log({ tipo: 'Aprovação solicitada', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — ' + mot, mudancas: [{ campo: 'Margem', de: null, para: snap.margemPct }, { campo: 'Valor', de: null, para: snap.venda }] }); }
+          const k = alvo.vendaSem / snap.venda; const sc = escala(snap, k);
+          const rec = { propId: p.id, uid: p.uid || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', div: p.div || 'SEQ', at: new Date().toISOString(), by: REG.me || null, motivo: mot, snap, alvo: Object.assign(alvo, { k, margemPct: sc.margemPct }), decisoes: {} };
+          try { await gravarA(p.id, rec); ctx.log && ctx.log({ tipo: 'Aprovação solicitada', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — target ' + brl(alvo.vendaSem * ri) + ' — ' + mot, mudancas: [{ campo: 'Valor atual (sem IPI)', de: null, para: snap.venda }, { campo: 'Valor target (sem IPI)', de: null, para: alvo.vendaSem }, { campo: 'Margem no target', de: snap.margemPct, para: sc.margemPct }] }); }
           catch (e) { toast((e && e.message) || 'Não consegui registrar o pedido'); return; }
-          const t = textoAprov(p, snap, mot, cfg);
+          const t = textoAprov(p, snap, mot, cfg, rec.alvo);
           emailModal({ titulo: 'Pedir aprovação à Diretoria e ao Financeiro', intro: 'O pedido já está no app (Margens → Aprovações). Envie o aviso por e-mail.',
             grupos: [{ k: 'diretoria', lb: 'Diretoria', emails: cfg.diretoria, on: true }, { k: 'financeiro', lb: 'Financeiro', emails: cfg.financeiro, on: true }], cc: cfg.cc, assunto: t.assunto, corpo: () => t.corpo,
             excel: () => excel(fAprov(p, rec), true), onDone: async (a, obs) => { ctx.log && ctx.log({ tipo: 'Aprovação solicitada', ref: p.id, desc: 'aviso: ' + obs, mudancas: [] }); } });
@@ -715,26 +748,26 @@
       ensureA();
       if (ui.apId) return vAprovDetalhe(ui.apId);
       const rows = aprov.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).map((a) => { const e = estadoA(a); const pill = { pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e];
-        return `<tr class="click" data-apopen="${esc(a.id)}"><td>${esc(fmtD(a.at))}</td><td><span class="divb ${String(a.div || 'SEQ').toLowerCase()}">${esc(a.div || 'SEQ')}</span> <b>${esc(a.numero || '—')}</b><br><small class="sub">${esc(a.cliente || a.nome || '')}</small></td><td class="n">${brl(a.snap.venda)}</td><td class="n">${pct(a.snap.margemPct, 1)}</td>
+        return `<tr class="click" data-apopen="${esc(a.id)}"><td>${esc(fmtD(a.at))}</td><td><span class="divb ${String(a.div || 'SEQ').toLowerCase()}">${esc(a.div || 'SEQ')}</span> <b>${esc(a.numero || '—')}</b><br><small class="sub">${esc(a.cliente || a.nome || '')}</small></td><td class="n">${a.alvo ? `${brl(a.alvo.vendaSem * ipiRatio(a.snap))}<br><small class="sub">atual ${brl(a.snap.venda * ipiRatio(a.snap))}</small>` : brl(a.snap.venda)}</td><td class="n">${pct(escala(a.snap, kAlvo(a)).margemPct, 1)}</td>
           <td>${PAPEIS.map(([k, lb]) => { const d = (a.decisoes || {})[k]; return `<span class="pill ${d ? (d.decisao === 'aprovada' ? 'ok' : 'bad') : 'mute'}">${lb}: ${d ? d.decisao : 'pendente'}</span>`; }).join(' ')}</td><td><span class="pill ${pill}">${e}</span></td><td><button class="btn sm pri" data-apopen="${esc(a.id)}">Analisar</button></td></tr>`; }).join('');
-      return `<section class="card"><h2>Aprovações de desconto <span class="sub">propostas fora da política</span></h2><div class="tw"><table class="t"><thead><tr><th>Pedido</th><th>Proposta</th><th>Valor</th><th>Margem</th><th>Decisões</th><th>Situação</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum pedido de aprovação.</td></tr>'}</tbody></table></div></section>`;
+      return `<section class="card"><h2>Aprovações de desconto <span class="sub">propostas fora da política</span></h2><div class="tw"><table class="t"><thead><tr><th>Pedido</th><th>Proposta</th><th>Valor target</th><th>Margem no target</th><th>Decisões</th><th>Situação</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum pedido de aprovação.</td></tr>'}</tbody></table></div></section>`;
     }
     function vAprovDetalhe(id) {
       const a = aprov.find((x) => x.id === id); if (!a) { ui.apId = null; return '<p class="sub">Pedido não encontrado.</p>'; }
-      const A = analise(a.snap); const e = estadoA(a); const d = a.decisoes || {};
+      const k = kAlvo(a); const sc = escala(a.snap, k); const A = analise(sc); const A0 = analise(a.snap); const e = estadoA(a); const d = a.decisoes || {}; const ri = ipiRatio(a.snap);
       const fx = (v) => (typeof v === 'number' && isFinite(v) ? NF[4].format(v) + 'x' : '—');
       const linha = (lb, f, cls = '') => `<tr class="${cls}"><td>${lb}</td>${A.map((x) => `<td class="n">${f(x)}</td>`).join('')}</tr>`;
       const tabela = `<div class="tw"><table class="t"><thead><tr><th>Etapa</th>${A.map((x) => `<th>${esc(x.n && /^ITEM/.test(x.n) ? x.n : x.nome.slice(0, 24))}</th>`).join('')}</tr></thead><tbody>
         ${linha('Custo de aquisição', (x) => brl(x.aq))}${linha('(+) Frete embutido', (x) => brl(x.fre))}${linha('(+) Start-up embutido', (x) => brl(x.sta))}${linha('Divisor dos tributos (antes do IPI)', (x) => NF[4].format(x.div))}
         ${linha('Fator aplicado na proposta', (x) => fx(x.fatorAplicado))}${linha('Fator mínimo aprovado (política)', (x) => fx(x.fmin))}${linha('<b>Fator que o preço suporta</b>', (x) => `<b class="${x.fmin && x.suporta < x.fmin - 1e-4 ? 'bad-t' : 'ok-t'}">${fx(x.suporta)}</b>`, 'tot')}
-        ${linha('Preço necessário pela política', (x) => (x.necessario != null ? brl(x.necessario) : '—'))}${linha('Preço proposto (com IPI)', (x) => brl(x.preco))}${linha('<b>Diferença até a política</b>', (x) => (x.dif != null ? `<b class="${x.dif > 0.01 ? 'bad-t' : 'ok-t'}">${brl(x.dif)}</b>` : '—'), 'tot')}
-        ${linha('Margem líquida', (x) => pct(x.margemPct, 1))}${linha('Conclusão', (x) => `<span class="pill ${x.ok ? 'ok' : 'bad'}">${x.ok ? 'atende à política' : 'abaixo da política'}</span>`)}</tbody></table></div>`;
+        ${linha('Preço necessário pela política', (x) => (x.necessario != null ? brl(x.necessario) : '—'))}${a.alvo ? linha('Preço atual da proposta (com IPI)', (x) => brl(A0[A.indexOf(x)].preco)) : ''}${linha(a.alvo ? '<b>Preço no valor target (com IPI)</b>' : 'Preço proposto (com IPI)', (x) => brl(x.preco))}${linha('<b>Diferença até a política</b>', (x) => (x.dif != null ? `<b class="${x.dif > 0.01 ? 'bad-t' : 'ok-t'}">${brl(x.dif)}</b>` : '—'), 'tot')}
+        ${linha(a.alvo ? 'Margem líquida no target' : 'Margem líquida', (x) => pct(x.margemPct, 1))}${linha('Conclusão', (x) => `<span class="pill ${x.ok ? 'ok' : 'bad'}">${x.ok ? 'atende à política' : 'abaixo da política'}</span>`)}</tbody></table></div>`;
       const dec = PAPEIS.map(([k, lb]) => { const x = d[k]; const pode = podeDecidir(k);
         return `<div class="kpi"><span>${lb}</span>${x ? `<b class="${x.decisao === 'aprovada' ? 'ok-t' : 'bad-t'}">${x.decisao}</b><em>${esc(fmtD(x.at))} · <span data-uid="${esc(x.by || '')}">${x.by ? '…' : ''}</span>${x.comentario ? ' · ' + esc(x.comentario) : ''}</em>` : `<b>pendente</b><em>${pode ? `<button class="btn sm pri" data-apdec="${esc(a.id)}|${k}|aprovada">Aprovar</button> <button class="btn sm" data-apdec="${esc(a.id)}|${k}|reprovada">Reprovar</button>` : 'aguardando quem cuida desta aprovação'}</em>`}</div>`; }).join('');
       return `<div class="stack"><div class="flowhead"><div><button class="btn sm" data-apback>← Aprovações</button><h1 style="margin-top:8px">Aprovação · ${esc(a.numero || a.nome || '')}</h1><div class="sub">${esc(a.cliente || '')} · pedido em ${esc(fmtD(a.at))} por <span data-uid="${esc(a.by || '')}">${a.by ? '…' : 'alguém da equipe'}</span></div></div>
-        <div class="sumbar"><div><span>Valor proposto</span><b>${brl(a.snap.venda)}</b></div><div><span>Margem líquida</span><b class="bad-t">${pct(a.snap.margemPct, 1)}</b></div><div><span class="pill ${{ pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e]}">${e}</span></div></div></div>
+        <div class="sumbar">${a.alvo ? `<div><span>Valor atual</span><b>${brl(a.snap.venda * ri)}</b></div><div><span>Valor target</span><b>${brl(a.alvo.vendaSem * ri)}</b></div><div><span>Desconto</span><b>${pct(1 - k, 1)}</b></div>` : `<div><span>Valor proposto</span><b>${brl(a.snap.venda)}</b></div>`}<div><span>${a.alvo ? 'Margem no target' : 'Margem líquida'}</span><b class="${sc.margemPct < num(a.snap.minimo) - 5e-4 ? 'bad-t' : 'ok-t'}">${pct(sc.margemPct, 1)}</b></div><div><span class="pill ${{ pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e]}">${e}</span></div></div></div>
         <section class="card"><h2>Justificativa</h2><p style="margin:0">${esc(a.motivo || '')}</p></section>
-        <section class="card"><h2>Análise no formato da planilha <span class="sub">fator mínimo × fator que o preço suporta</span></h2>${tabela}<div class="docbar" style="margin-top:10px"><button class="btn" data-apxls="${esc(a.id)}">Baixar a planilha (Reunião e Base)</button></div></section>
+        <section class="card"><h2>Análise no formato da planilha <span class="sub">${a.alvo ? 'no valor target · ' : ''}fator mínimo × fator que o preço suporta · valores com IPI</span></h2>${tabela}<div class="docbar" style="margin-top:10px"><button class="btn" data-apxls="${esc(a.id)}">Baixar a planilha (Reunião e Base)</button></div></section>
         <div class="kpis">${dec}</div></div>`;
     }
     document.addEventListener('click', (ev) => {
@@ -787,7 +820,7 @@
         }); }
     });
 
-    return { lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
+    return { escala, ipiRatio, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();

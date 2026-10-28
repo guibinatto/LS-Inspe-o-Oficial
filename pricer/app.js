@@ -653,20 +653,28 @@
     return out;
   }
   // situação do pedido de aprovação desta proposta; a aprovação vale enquanto a margem não cair abaixo da aprovada
+  // com valor target: vale enquanto a proposta não ficar abaixo do valor aprovado; sem target (pedidos antigos): pela margem
   function aprovInfo() {
     const ap = state.id ? MG.aprovDe(state.id) : null; if (!ap) return { estado: null };
+    let estado = MG.estadoA(ap); const base = { id: ap.id, at: ap.at, margem: ap.snap.margemPct, decisoes: ap.decisoes || {} };
+    if (ap.alvo) {
+      const atualIpi = isSpv() ? SPV.total() : isFacts() ? FX.total() : val('PROPOSTA', 'P43'); const alvoIpi = ap.alvo.vendaSem * MG.ipiRatio(ap.snap);
+      if (estado === 'aprovada' && typeof atualIpi === 'number' && atualIpi < alvoIpi - 1) estado = 'vencida';
+      return Object.assign(base, { estado, alvoIpi, atualIpi, desc: 1 - ap.alvo.k, margemAlvo: ap.alvo.margemPct, aplicar: estado === 'aprovada' && !isSpv() && !isFacts() && typeof atualIpi === 'number' && atualIpi > alvoIpi + 1 });
+    }
     const atual = isSpv() ? SPV.snapshot(state.spv).margemPct : isFacts() ? FX.snapshot(state.facts).margemPct : val('PROPOSTA', 'J16');
-    let estado = MG.estadoA(ap); if (estado === 'aprovada' && typeof atual === 'number' && atual < num0(ap.snap.margemPct) - 5e-4) estado = 'vencida';
-    return { estado, id: ap.id, at: ap.at, margem: ap.snap.margemPct, decisoes: ap.decisoes || {} };
+    if (estado === 'aprovada' && typeof atual === 'number' && atual < num0(ap.snap.margemPct) - 5e-4) estado = 'vencida';
+    return Object.assign(base, { estado });
   }
   function aprovLinha(x) {
     const a = x.aprov; if (!a || !a.estado) return '';
     const d = Object.values(a.decisoes).filter((y) => y.comentario).map((y) => y.comentario).join(' · ');
-    const t = a.estado === 'pendente' ? `Aprovação pedida em ${new Date(a.at).toLocaleDateString('pt-BR')}: aguardando ${['diretoria', 'financeiro'].filter((k) => !a.decisoes[k]).map((k) => (k === 'diretoria' ? 'Diretoria' : 'Financeiro')).join(' e ')}.`
-      : a.estado === 'aprovada' ? `Aprovado pela Diretoria e pelo Financeiro com margem de ${pct(a.margem)}${d ? ' · ' + d : ''}.`
-      : a.estado === 'vencida' ? `A aprovação foi para margem de ${pct(a.margem)}; a margem caiu depois disso. Peça de novo.`
+    const alvo = a.alvoIpi ? ` o valor target de ${brl(a.alvoIpi)} (desconto de ${pct(a.desc, 1)}, margem ${pct(a.margemAlvo, 1)})` : '';
+    const t = a.estado === 'pendente' ? `Aprovação${alvo ? ' d' + alvo.trim().replace(/^o /, 'o ') : ''} pedida em ${new Date(a.at).toLocaleDateString('pt-BR')}: aguardando ${['diretoria', 'financeiro'].filter((k) => !a.decisoes[k]).map((k) => (k === 'diretoria' ? 'Diretoria' : 'Financeiro')).join(' e ')}.`
+      : a.estado === 'aprovada' ? (alvo ? `Diretoria e Financeiro aprovaram${alvo}.` : `Aprovado pela Diretoria e pelo Financeiro com margem de ${pct(a.margem)}.`) + (d ? ' ' + d : '')
+      : a.estado === 'vencida' ? (alvo ? `Aprovado${alvo}, mas a proposta está em ${brl(a.atualIpi)}, abaixo do aprovado. Peça de novo.` : `A aprovação foi para margem de ${pct(a.margem)}; a margem caiu depois disso. Peça de novo.`)
       : `Desconto reprovado${d ? ': ' + d : ''}.`;
-    return `<br><small class="sub">${esc(t)} <button class="restore" data-apopen="${esc(a.id)}">ver aprovação</button></small>`;
+    return `<br><small class="sub">${esc(t)} ${a.aplicar ? '<button class="btn sm pri" data-apaplica>Aplicar o valor aprovado na proposta</button> ' : ''}<button class="restore" data-apopen="${esc(a.id)}">ver aprovação</button></small>`;
   }
   // cada alerta: corrigir agora (quando dá) ou seguir assim, com a justificativa no histórico
   const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => { const key = esc(JSON.stringify([x.S, x.msg]));
@@ -677,6 +685,14 @@
 
   // ações dos alertas
   document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-apaplica]')) {
+      const ai = aprovInfo(); if (!ai.aplicar) return; const P = 'PROPOSTA'; const d0 = num0(val(P, 'C9'));
+      const setq = (v) => { const tg = target(P); tg[P] = tg[P] || {}; tg[P].C9 = v; wb.setRaw(P, 'C9', v); };
+      for (let k = 0; k < 10; k++) { const cur = val(P, 'P43'); if (typeof cur !== 'number' || Math.abs(cur - ai.alvoIpi) < 0.5) break; const d = num0(val(P, 'C9')); setq(Math.min(0.95, 1 - (1 - d) * ai.alvoIpi / cur)); }
+      listCache = new Map(); dirty = true; persist(); render();
+      logEv({ tipo: 'Aprovação — valor aplicado', ref: state.id, desc: docTitle() + ': proposta levada ao valor aprovado de ' + brl(ai.alvoIpi), mudancas: [{ campo: 'Desconto global', de: d0, para: val(P, 'C9') }, { campo: 'Total com IPI', de: ai.atualIpi, para: val(P, 'P43') }] });
+      toast('Proposta no valor aprovado: ' + brl(val(P, 'P43')) + '. Salve para guardar.'); return;
+    }
     if (e.target.closest('[data-alaprov]')) {
       // a aprovação fica ligada à proposta salva: salva antes, se preciso
       if (!state.id || dirty) { await $('#bSave').onclick(); if (!state.id) return; }
@@ -821,6 +837,7 @@
           <div class="kpi"><span>Custo total</span><b>${brl(val(P, 'G16'))}</b></div>
           <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
           <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
+        ${(() => { const ai = aprovInfo(); return `<section class="card"><h2>Aprovação da proposta <span class="sub">desconto além da política: peça pela proposta toda, com o valor target</span></h2><div class="aprovbox">${ai.estado ? aprovLinha({ aprov: ai }).replace(/^<br>/, '') : '<small class="sub">Nenhum pedido de aprovação para esta proposta.</small>'}<button class="btn${ai.estado === 'pendente' || ai.estado === 'aprovada' ? '' : ' pri'}" data-alaprov>${ai.estado ? 'Pedir de novo (novo valor target)' : 'Pedir aprovação (valor target)'}</button></div></section>`; })()}
         <section class="card"><h2>Alertas</h2>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta: preços dentro da política, conferências fechando e FCI pronta.</p>'}${memoOk ? '' : `<ul class="alerts" style="margin-top:6px"><li class="bad"><span>A proposta não bate com o memorial: diferença de ${brl(memo)}.</span></li></ul>`}</section>
         <section class="card"><h2>Itens</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
         <section class="card"><h2>Documentos</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-savebtn>Salvar proposta</button><button class="btn" data-propfull>Ver todas as colunas</button></div></section>
