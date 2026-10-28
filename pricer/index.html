@@ -199,6 +199,16 @@ textarea.paste{width:100%;min-height:110px;font-family:var(--f-mono);font-size:1
 .modal input,.modal select{border:1px solid var(--line2);background:var(--card);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
 .modal .card{width:min(820px,100%)}
 /* modo simples */
+.famgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.famcard{display:grid;gap:4px;text-align:left;padding:14px;border:1px solid var(--line2);border-radius:10px;background:var(--card);cursor:pointer}
+.famcard b{font-family:var(--f-cond);font-size:18px;letter-spacing:.03em}
+.famcard small{color:var(--ink3);font-size:12.5px}
+.famcard:hover{border-color:var(--or);box-shadow:inset 0 -3px 0 var(--or)}
+.famcard.off b{color:var(--ink2)}
+.mlist{display:grid;gap:8px}
+.mcard{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:8px;flex-wrap:wrap}
+.mcard b{display:block}.mcard small{display:block}
+.banner.ok{background:var(--ok-bg);color:var(--ok)}
 .sugs{display:grid;gap:8px}
 .sugrow{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
 .sugrow.done{opacity:.7;cursor:default}
