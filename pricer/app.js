@@ -51,9 +51,15 @@
     get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
   };
+  const newUid = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   let state = store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
-  let ui = Object.assign({ view: 'proposta', item: 0, simple: true, step: 1, table: 'PARÂMETROS', filter: '', cad: 'insumos' }, store.get(SK.view, {}));
+  if (!state.uid) state.uid = newUid();
+  if (!state.div) state.div = 'SEQ';
+  const isSpv = () => state.div === 'SPV' && !!state.spv;
+  let ui = Object.assign({ view: 'inicio', item: 0, simple: true, step: 1, table: 'PARÂMETROS', filter: '', cad: 'insumos' }, store.get(SK.view, {}));
   if (ui.view === 'tabelas') { ui.view = 'cadastro'; ui.cad = 'tabelas'; }
+  // o app sempre abre na página inicial (busca, histórico e os botões SEQ / SPV)
+  ui.view = 'inicio';
   let wb;
   // cadastro compartilhado (claude.ai) ou local (arquivo)
   let pendingRender = false;
@@ -65,7 +71,7 @@
   });
   document.addEventListener('focusout', () => { if (pendingRender) setTimeout(() => { const ae = document.activeElement; if (!(ae && ae.matches && ae.matches('#app input, #app select, #app textarea'))) { pendingRender = false; render(); } }, 0); });
 
-  function build() { wb = new Workbook(MODEL); REG.applyTo(wb); wb.applyDoc(state.doc); listCache = new Map(); }
+  function build() { wb = new Workbook(MODEL); REG.applyTo(wb); wb.applyDoc(state.doc || {}); listCache = new Map(); }
   function persist() { store.set(SK.cur, state); }
 
   // ---------- validações (listas) ----------
@@ -222,18 +228,21 @@
   // ---------- visões ----------
   function setView(v) { ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
-    for (const b of document.querySelectorAll('#nav button')) b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false');
-    const nm = txt('PROPOSTA', 'C5'), cli = txt('PROPOSTA', 'F5');
-    $('#docName').innerHTML = (nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>';
+    const spv = isSpv();
+    if (spv && (ui.view === 'item' || ui.view === 'memorial')) ui.view = 'proposta';
+    for (const b of document.querySelectorAll('#nav button')) { b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false'); if ('seqonly' in b.dataset) b.hidden = spv; }
+    const nm = spv ? state.spv.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : txt('PROPOSTA', 'F5');
+    $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
+    for (const id of ['bMode']) { const b = $('#' + id); if (b) b.hidden = spv || ui.view === 'inicio' || ui.view === 'documentos'; }
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
-    const full = ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
-    const views = ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
-    const html = Object.assign({ memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
+    const full = !spv && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
+    const views = spv ? { proposta: SPV.vSpv } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
+    const html = Object.assign({ inicio: SPV.vHome, documentos: SPV.vDocs, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
     $('#app').innerHTML = (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
     const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
     if (ui.view === 'cadastro') bindCadastro();
     window.scrollTo(0, scroll);
-    if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') f.focus(); }
+    if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') { f.focus(); if (f.type === 'search') f.setSelectionRange(f.value.length, f.value.length); } }
   }
   const filled = (sh) => { const v = val(sh, 'H114'); return typeof v === 'number' && v !== 0; };
 
@@ -886,7 +895,7 @@
 
   // ---------- cadastro: insumos, kits, importação, histórico e demais tabelas ----------
   const H = REG.helpers;
-  const CAD_TABS = [['insumos', 'Insumos'], ['familias', 'Famílias'], ['estruturas', 'Estruturas'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['parametros', 'Parâmetros'], ['politica', 'Política de preço'], ['codificacao', 'Codificação'], ['fci', 'FCI e válvulas'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Planilha (avançado)']];
+  const CAD_TABS = [['insumos', 'Insumos'], ['familias', 'Famílias'], ['estruturas', 'Estruturas'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['parametros', 'Parâmetros'], ['politica', 'Política de preço'], ['codificacao', 'Codificação'], ['fci', 'FCI e válvulas'], ['spv', 'Serviços (SPV)'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Planilha (avançado)']];
   const fmtAt = (s) => { try { return new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return s; } };
   const fmtVal = (v) => typeof v === 'number' ? NF[2].format(v) : v === null || v === undefined || v === '' ? '—' : String(v);
   const who = (id) => id ? `<span data-uid="${esc(id)}">…</span>` : (REG.mode === 'shared' ? 'alguém da equipe' : 'neste navegador');
@@ -909,7 +918,7 @@
   }
   function vCadastro() {
     const tab = ui.cad || 'insumos';
-    const body = { insumos: vInsumos, familias: vFamilias, parametros: () => vParamTab('parametros'), politica: () => vParamTab('politica'), codificacao: () => vParamTab('codificacao'), fci: () => vParamTab('fci'), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, parametros: () => vParamTab('parametros'), politica: () => vParamTab('politica'), codificacao: () => vParamTab('codificacao'), fci: () => vParamTab('fci'), spv: SPV.vCfg, estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
         <div><h1>Cadastro</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div></div>
@@ -1660,17 +1669,39 @@
     o.querySelector('.modal').addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close(); });
     bind && bind(o, close);
   }
-  function loadDoc(doc, name, id) { state = { id: id || null, doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }; build(); persist(); dlMap = null; ui.item = 0; render(); }
-  function docTitle() { const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return [n, c].filter(Boolean).join(' · ') || 'Proposta sem nome'; }
+  function loadDoc(doc, name, id, extra) { state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); }
+  function docTitle() {
+    if (isSpv()) return [state.spv.numero, state.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome';
+    const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return [n, c].filter(Boolean).join(' · ') || 'Proposta sem nome';
+  }
+  // abre (ou duplica) uma proposta salva, SEQ ou SPV
+  function openProposta(p, dup) {
+    const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho') };
+    if (p.div === 'SPV' && p.spv) {
+      const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
+      loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
+    } else loadDoc(p.doc, p.name, keepId, extra);
+    if (dup && !isSpv()) { if (state.doc.PROPOSTA) delete state.doc.PROPOSTA.C5; build(); persist(); }
+    dirty = !!dup; ui.step = 1; ui.propFull = false; setView('proposta');
+    toast(dup ? 'Cópia criada: dê um número novo e salve' : 'Aberto: ' + (p.name || docTitle()));
+  }
+  function newSeq() { loadDoc({}, ''); ui.step = 1; ui.propFull = false; setView('proposta'); toast('Proposta SEQ em branco'); }
+  const SPV = window.PricerSPV({ REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render,
+    getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
+    persist: () => { persist(); dirty = true; },
+    current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
 
   $('#bMode').onclick = () => { ui.simple = !ui.simple; ui.propFull = false; ui.itemFull = false; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
   $('#bNew').onclick = () => modal(`<h2>Nova proposta</h2><p class="sub">A proposta atual continua salva se você já clicou em Salvar. Alterações não salvas se perdem.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">Proposta em branco</button><button class="btn" id="mExample">Abrir o exemplo (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
-    (o, close) => { $('#mBlank', o).onclick = () => { close(); loadDoc({}, ''); ui.step = 1; setView('proposta'); toast('Proposta em branco'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">SEQ em branco</button><button class="btn pri" id="mSpv">SPV (serviço, peças, contrato)</button><button class="btn" id="mExample">Exemplo SEQ (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
+    (o, close) => { $('#mBlank', o).onclick = () => { close(); newSeq(); }; $('#mSpv', o).onclick = () => { close(); setView('inicio'); const t = document.querySelector('.tchips'); if (t) t.scrollIntoView({ block: 'center' }); toast('Escolha o tipo de SPV'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
 
   $('#bSave').onclick = async () => {
     const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
-    const p = { name: docTitle(), numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), at: new Date().toISOString(), total: val('PROPOSTA', 'P43'), doc: state.doc || {} };
+    const base = { name: docTitle(), at: new Date().toISOString(), uid: state.uid, status: state.status || 'rascunho' };
+    const p = isSpv() ? Object.assign(base, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv })
+      : Object.assign(base, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
     if (typeof p.total !== 'number') delete p.total;
     try { const where = await REG.saveProposta(id, p); state.id = id; persist(); dirty = false; toast((where === 'shared' ? 'Salvo para a equipe: ' : 'Salvo neste navegador: ') + docTitle()); }
     catch (err) { toast(errMsg(err)); }
@@ -1679,7 +1710,7 @@
   $('#bOpen').onclick = () => {
     const list = REG.listPropostas();
     const shared = REG.mode === 'shared';
-    const rows = list.map((p) => `<div class="row"><div style="min-width:0"><b>${esc(p.name)}</b><br><small>${fmtAt(p.at)} · ${typeof p.total === 'number' ? brl(p.total) : '—'}${shared && !p.local ? ' · ' + who(p.by) : ''}${p.local ? ' · <span class="pill mute">neste navegador</span>' : ''}</small></div><div style="display:flex;gap:6px"><button class="btn sm pri" data-open="${esc(p.id)}">Abrir</button><button class="btn sm" data-del="${esc(p.id)}">Excluir</button></div></div>`).join('')
+    const rows = list.map((p) => `<div class="row"><div style="min-width:0"><span class="divb ${p.div === 'SPV' ? 'spv' : 'seq'}">${p.div || 'SEQ'}</span> <b>${esc(p.name)}</b><br><small>${fmtAt(p.at)} · ${typeof p.total === 'number' ? brl(p.total) : '—'}${shared && !p.local ? ' · ' + who(p.by) : ''}${p.local ? ' · <span class="pill mute">neste navegador</span>' : ''}</small></div><div style="display:flex;gap:6px"><button class="btn sm pri" data-open="${esc(p.id)}">Abrir</button><button class="btn sm" data-del="${esc(p.id)}">Excluir</button></div></div>`).join('')
       || `<p class="sub">Nenhuma proposta salva ${shared ? 'pela equipe' : 'neste navegador'} ainda.</p>`;
     modal(`<h2>Propostas salvas</h2>
       ${shared ? '<p class="sub">Propostas da equipe: quem tem acesso ao app vê e abre todas. Salvar de novo atualiza a mesma proposta.</p>' : '<p class="sub">Este arquivo guarda as propostas só neste navegador.</p>'}
@@ -1694,17 +1725,17 @@
       fillNames(o);
       const byId = Object.fromEntries(list.map((p) => [p.id, p]));
       $('#mQ', o).oninput = (e) => { const q = e.target.value.toLowerCase(); o.querySelectorAll('#mList .row').forEach((r) => { r.hidden = q && !r.textContent.toLowerCase().includes(q); }); };
-      o.querySelectorAll('[data-open]').forEach((b) => b.onclick = () => { const p = byId[b.dataset.open]; close(); loadDoc(p.doc, p.name, p.local && shared ? null : p.id); setView('proposta'); toast('Aberto: ' + p.name); });
+      o.querySelectorAll('[data-open]').forEach((b) => b.onclick = () => { close(); openProposta(byId[b.dataset.open], false); });
       o.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => {
         if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar'; b.classList.add('pri'); return; }
         const p = byId[b.dataset.del];
         try { await REG.deleteProposta(p.id, !!p.local); b.closest('.row').remove(); if (state.id === p.id) { state.id = null; persist(); } } catch (err) { toast(errMsg(err)); }
       });
-      const payload = () => JSON.stringify({ app: 'ls-pricer', rev: MODEL.source, name: docTitle(), doc: state.doc }, null, 1);
+      const payload = () => JSON.stringify(Object.assign({ app: 'ls-pricer', rev: MODEL.source, name: docTitle(), doc: state.doc }, isSpv() ? { div: 'SPV', spv: state.spv } : {}), null, 1);
       $('#mCopy', o).onclick = () => { const t = payload(); $('#mTxt', o).value = t; navigator.clipboard.writeText(t).then(() => toast('Copiado'), () => { $('#mTxt', o).select(); toast('Selecionado — use Ctrl+C'); }); };
       $('#mDown', o).onclick = async () => { const ok = await REG.save((docTitle().replace(/[^\w\-. ]+/g, '_') || 'proposta') + '.json', payload(), 'application/json'); if (!ok) toast('Download cancelado'); };
       $('#mFile', o).onchange = (e) => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $('#mTxt', o).value = rd.result; }; rd.readAsText(f); };
-      $('#mImp', o).onclick = () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc) throw 0; close(); loadDoc(j.doc, j.name); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
+      $('#mImp', o).onclick = () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc && !j.spv) throw 0; close(); if (j.div === 'SPV' && j.spv) loadDoc({}, j.name, null, { div: 'SPV', spv: j.spv }); else loadDoc(j.doc, j.name); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
     });
   };
 

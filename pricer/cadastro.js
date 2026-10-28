@@ -226,6 +226,13 @@
       await log({ tipo: 'Estrutura', ref: sheet, desc, mudancas: mud });
       return true;
     };
+    // tabela própria do app (configuração SPV, famílias de produto): grava o conteúdo inteiro e registra só o que mudou
+    R.setTable = async (sheet, cells, desc, mudancas) => {
+      guard();
+      if (R.mode === 'shared') await R.db.doc('tabelas/' + slug(sheet)).set(JSON.parse(JSON.stringify({ sheet, cells })));
+      else { R.tabelas = Object.assign({}, R.tabelas, { [sheet]: cells }); saveLocal(); changed('tabelas'); }
+      await log({ tipo: 'Cadastro ' + sheet, ref: sheet, desc, mudancas: mudancas || [] });
+    };
     R.resetSheet = async (sheet) => {
       guard();
       if (R.mode === 'shared') await R.db.doc('tabelas/' + slug(sheet)).set({ sheet, cells: {} });

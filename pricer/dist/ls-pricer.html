@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LS Pricer</title>
-<meta name="description" content="Formação de preço de conjuntos motobomba LS Fire — proposta, itens, memorial e tabelas.">
+<meta name="description" content="Formação de preço LS Fire: equipamentos (SEQ), serviços e pós-venda (SPV), documentos de fornecedores e cadastros.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -285,6 +285,48 @@ textarea.paste{width:100%;min-height:110px;font-family:var(--f-mono);font-size:1
 .t.comp td.in input[data-addr^="D"]{min-width:260px}
 .t.comp tr.grp td{background:var(--bg);font-family:var(--f-cond);font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:12.5px;color:var(--ink2)}
 details.card > summary .sub{font-family:var(--f-body);text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px}
+/* início, SPV e documentos */
+.home .hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.home .hero h1{font-size:30px}
+.hsearch{flex:1 1 360px;max-width:620px}
+.hsearch input{width:100%;border:1px solid var(--line2);background:var(--card);border-radius:10px;padding:12px 14px;font-size:16px;box-shadow:var(--shadow)}
+.hsearch input:focus{border-color:var(--or);outline:none}
+.starts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:14px}
+@media (max-width:820px){.starts{grid-template-columns:1fr}}
+.start{display:grid;align-content:start;gap:4px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.start::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--or)}
+.start.spv::before{background:var(--ink)}
+button.start{cursor:pointer}
+button.start:hover{border-color:var(--or)}
+.start b{font-family:var(--f-cond);font-size:22px;font-weight:700;letter-spacing:.02em}
+.start small{color:var(--ink3);font-size:13.5px}
+.start .tag,.divb{display:inline-block;font-family:var(--f-cond);font-weight:700;letter-spacing:.08em;font-size:12.5px;padding:1px 8px;border-radius:5px;background:var(--or);color:#fff;justify-self:start}
+.start.spv .tag,.divb.spv{background:var(--ink);color:var(--card)}
+.tchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.tchip{display:grid;gap:1px;text-align:left;border:1px solid var(--line2);background:var(--bg);border-radius:9px;padding:8px 10px;cursor:pointer}
+.tchip:hover{border-color:var(--or);background:var(--or-soft)}
+.tchip b{font-size:14px;font-family:var(--f-body);font-weight:600;letter-spacing:0}
+.tchip small{font-size:11.5px;letter-spacing:.08em;color:var(--ink3)}
+.hchips{display:flex;gap:6px;flex-wrap:wrap}
+.hchip{border:1px solid var(--line2);background:var(--card);border-radius:999px;padding:4px 12px;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--ink2)}
+.hchip.on{border-color:var(--or);background:var(--or-soft);color:var(--or-ink)}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--or-soft)}
+.t td select{border:1px solid var(--line2);background:var(--card);border-radius:6px;padding:3px 6px;font-size:13px}
+.contcard{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;border:1px dashed var(--or-line);background:var(--or-soft);border-radius:10px;padding:10px 14px}
+.split2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px 28px}
+@media (max-width:900px){.split2{grid-template-columns:1fr}}
+.kv .in input{width:96px;text-align:right;border:1px solid var(--entry-line);background:var(--entry);border-radius:6px;padding:3px 8px}
+.ok-t{color:var(--ok)}.bad-t{color:var(--bad)}
+.f.spanall{grid-column:1/-1}
+.f textarea,.modal textarea{width:100%;border:1px solid var(--entry-line);background:var(--entry);border-radius:6px;padding:6px 8px;font-size:14px;resize:vertical}
+.t.pecas td.in.wide{min-width:250px}
+.t.reg td small{display:block;margin-top:2px}
+small.hist{color:var(--auto-ink);font-size:11.5px}
+.drop{display:grid;gap:4px;justify-items:center;text-align:center;border:2px dashed var(--line2);border-radius:12px;padding:26px 16px;background:var(--card);cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--or);background:var(--or-soft)}
+.drop b{font-family:var(--f-cond);font-size:20px;letter-spacing:.02em}
+.famtab td:first-child{font-family:var(--f-mono);font-size:12.5px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -296,9 +338,11 @@ details.card > summary .sub{font-family:var(--f-body);text-transform:none;letter
     <div class="brand"><span class="logo-plate"><img src="data:image/png;base64,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" alt="LS Fire — Sistemas de Combate a Incêndio" width="130" height="48"></span><span>Pricer</span> <small>REV21</small></div>
     <div class="doc-name" id="docName"></div>
     <nav class="nav" id="nav" aria-label="Seções">
+      <button data-view="inicio">Início</button>
       <button data-view="proposta">Proposta</button>
-      <button data-view="item">Itens</button>
-      <button data-view="memorial">Memorial</button>
+      <button data-view="item" data-seqonly>Itens</button>
+      <button data-view="memorial" data-seqonly>Memorial</button>
+      <button data-view="documentos">Documentos</button>
       <button data-view="cadastro">Cadastro</button>
       <button data-view="guia">Guia</button>
     </nav>
@@ -1215,6 +1259,13 @@ details.card > summary .sub{font-family:var(--f-body);text-transform:none;letter
       await log({ tipo: 'Estrutura', ref: sheet, desc, mudancas: mud });
       return true;
     };
+    // tabela própria do app (configuração SPV, famílias de produto): grava o conteúdo inteiro e registra só o que mudou
+    R.setTable = async (sheet, cells, desc, mudancas) => {
+      guard();
+      if (R.mode === 'shared') await R.db.doc('tabelas/' + slug(sheet)).set(JSON.parse(JSON.stringify({ sheet, cells })));
+      else { R.tabelas = Object.assign({}, R.tabelas, { [sheet]: cells }); saveLocal(); changed('tabelas'); }
+      await log({ tipo: 'Cadastro ' + sheet, ref: sheet, desc, mudancas: mudancas || [] });
+    };
     R.resetSheet = async (sheet) => {
       guard();
       if (R.mode === 'shared') await R.db.doc('tabelas/' + slug(sheet)).set({ sheet, cells: {} });
@@ -1634,6 +1685,556 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
 })();
 
 </script>
+<script>/* spv.js */
+/* LS Pricer — página inicial, formação de custo SPV (serviços e pós-venda) e documentos.
+ * Lógica da planilha "PRECIFICAÇÃO SERVIÇOS MASTERDOC": custo da prestação (equipe e
+ * deslocamento) × multiplicador, impostos e comissões sobre a venda bruta, lucro líquido
+ * mínimo de 40%; peças com fator próprio. Documentos ficam no banco da equipe (assets + db).
+ */
+(function () {
+  'use strict';
+  const CDN = {
+    pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    pdfworker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+    jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    autotable: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
+  };
+  const loaded = {};
+  function load(src) {
+    if (loaded[src]) return loaded[src];
+    loaded[src] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('Não consegui carregar a biblioteca. Verifique a internet e tente de novo.')); }; document.head.appendChild(s); });
+    return loaded[src];
+  }
+
+  // famílias de produto por divisão (tabela de famílias da LS Fire)
+  const FAMPROD = [
+    [1, 'BOMBAS DE EIXO LIVRE', 'SEQ', 'BBA', 'Bombas centrífugas de eixo livre para aplicações em geral (água, efluentes, processos industriais)'],
+    [2, 'BOMBAS MONOBLOCO', 'SEQ', 'BMB', 'Bombas centrífugas monobloco para aplicações em geral (água, efluentes, processos industriais)'],
+    [3, 'CONJUNTOS MOTOBOMBA – APLICAÇÕES GERAIS', 'SEQ', 'CBL', 'Conjuntos motobomba (bomba + motor em base com luva de acoplamento) para aplicações em geral'],
+    [4, 'CONJUNTOS MOTOBOMBA – SISTEMAS DE INCÊNDIO', 'SEQ', 'CMB', 'Conjuntos motobomba diesel, elétricos e jockey para sistemas de combate a incêndio'],
+    [5, 'TREINAMENTOS E START-UP', 'SPV', 'TRT', 'Treinamentos de operação e manutenção, aplicação, produtos, etc.'],
+    [6, 'BOMBAS SUBMERSÍVEIS', 'SEQ', 'BBS', 'Bombas submersíveis para água limpa, esgoto, drenagem e efluentes em geral'],
+    [7, 'MOTORES INDUSTRIAIS E MARÍTIMOS', 'SEQ', 'MOT', 'Motores industriais e marítimos para acionamento de bombas e equipamentos'],
+    [8, 'SKIDS DE MOTOBOMBAS – SISTEMAS DE INCÊNDIO', 'SEQ', 'SKD', 'Skids completos de motobombas com base, tubulação, válvulas e acessórios para combate a incêndio'],
+    [9, 'TANQUES DE COMBUSTÍVEL', 'SPV', 'TAQ', 'Tanques de combustível (diesel) para conjuntos motobomba e sistemas de bombeamento'],
+    [10, 'PAINÉIS DE COMANDO E CONTROLE', 'SPV', 'PAN', 'Painéis de comando e controle de bombas (SVE, Tornatech e equivalentes)'],
+    [11, 'SERVIÇOS E MANUTENÇÕES EM CAMPO', 'SPV', 'SMC', 'Manutenções corretivas e preventivas, inspeção pontual (SPOT), testes de casa de bombas, alinhamentos, montagem'],
+    [12, 'SERVIÇOS E MANUTENÇÕES EM FABRICA', 'SPV', 'SMF', 'Manutenções corretivas e preventivas realizadas em fábrica'],
+    [14, 'PRODUTOS ENGENHEIRADOS E SOLUÇÕES ESPECIAIS', 'SEQ', 'ESP', 'Soluções engenheiradas, conjuntos especiais, bombas e skids customizados'],
+    [15, 'MOTOBOMBAS PORTÁTEIS – LINHA KUBE', 'SEQ', 'KUB', 'Motobombas portáteis Kube (linha Turquia e similares)'],
+    [16, 'SOLUÇÕES FIRECONNECT', 'SPV', 'FRC', 'Serviços de instalação, integração e suporte de sistemas Fireconnect'],
+    [17, 'CONTAINERS / CASAS DE BOMBAS – SISTEMAS DE INCÊNDIO', 'SEQ', 'CON', 'Containers e casas de bombas completas para sistemas de combate a incêndio'],
+    [18, 'PEÇAS DE REPOSIÇÃO E SOBRESSALENTES', 'SPV', 'PAR', 'Peças de reposição para bombas e motores, flanges, válvulas de alívio, waste cone, trocadores de calor etc.'],
+    [19, 'INSPEÇÕES E CONTRATOS DE MANUTENÇÃO', 'SPV', 'ITM', 'Contratos de inspeções, testes periódicos e manutenção recorrente'],
+    [20, 'LOCAÇÃO DE EQUIPAMENTOS (RENTALS)', 'SPV', 'REN', 'Locação de bombas, skids, containers, painéis e sistemas completos'],
+    [21, 'SISTEMAS DE FILTRAGEM', 'SPV', 'SFL', 'Sistemas de filtragem de óleo diesel para tanques de combustível'],
+  ];
+  // como cada tipo de SPV começa: equipe/deslocamento, peças, contrato
+  const TIPO_INI = {
+    SMC: { equipe: 1, pecas: 1, titulo: 'Serviço em campo' }, SMF: { equipe: 1, pecas: 1, campo: 0, titulo: 'Serviço em fábrica' },
+    PAR: { equipe: 0, pecas: 1, titulo: 'Peças e sobressalentes' }, ITM: { equipe: 1, pecas: 0, contrato: 1, titulo: 'Inspeção / contrato' },
+    TRT: { equipe: 1, pecas: 0, titulo: 'Treinamento / start-up' }, REN: { equipe: 0, pecas: 1, locacao: 1, titulo: 'Locação' },
+    PAN: { equipe: 1, pecas: 1, titulo: 'Painéis' }, TAQ: { equipe: 1, pecas: 1, titulo: 'Tanques' }, FRC: { equipe: 1, pecas: 1, titulo: 'Fireconnect' }, SFL: { equipe: 1, pecas: 1, titulo: 'Filtragem' },
+  };
+  const STATUS = [['rascunho', 'Rascunho', 'mute'], ['enviada', 'Enviada', 'warn'], ['negociacao', 'Em negociação', 'warn'], ['ganha', 'Ganha', 'ok'], ['perdida', 'Perdida', 'bad']];
+  const DOC_TIPOS = [['orcamento', 'Orçamento de fornecedor'], ['nota', 'Nota fiscal'], ['pedido', 'Pedido de compra'], ['contrato', 'Contrato'], ['tecnico', 'Desenho / data sheet'], ['proposta', 'Proposta enviada'], ['outro', 'Outro']];
+  // valores padrão, tirados da planilha MASTERDOC (diárias de 21/02/2025)
+  const DEF = {
+    tecnicos: [{ nome: 'João Mendes', funcao: 'Consultoria / inspeção', diaria: 1500 }, { nome: 'Juarez Lucas', funcao: 'Técnico', diaria: 550 }, { nome: 'Yago', funcao: 'Mecânico', diaria: 580 }, { nome: 'Roger', funcao: 'Eletricista', diaria: 390 }, { nome: 'Alessandro', funcao: 'Ajudante', diaria: 380 },
+      { nome: 'Diária mecânico (terceiro)', funcao: 'Mecânico', diaria: 450 }, { nome: 'Diária automação (terceiro)', funcao: 'Automação', diaria: 2450 }, { nome: 'Diária elétrica (terceiro)', funcao: 'Elétrica', diaria: 750 }, { nome: 'Diária consultoria', funcao: 'Consultoria', diaria: 3000 }, { nome: 'Diária inspetor', funcao: 'Inspetor', diaria: 1500 }],
+    custos: { rkm: 2.7, aereo: 2500, carro: 300, hotel: 250, alim: 150, art: 275, limite_km: 1000, saida: 'Rua Guilherme Boldt, 124 — Joinville/SC' },
+    mk: { mult: 3, pis: 0.0065, cofins: 0.03, irpj: 0.048, iss: 0.05, fin: 0, com_rep: 0, com_capt: 0, com_orc: 0.025, prazo: 0.035, lucro_min: 0.4, fator_pecas: 1.5, cambio_usd: 5.5, cambio_eur: 6, fimp: 1.8, irpj_pecas: 0.0308 },
+  };
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const uid = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const norm = (s) => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const num = (x) => (typeof x === 'number' && isFinite(x) ? x : 0);
+
+  function SPV(ctx) {
+    const { REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput } = ctx;
+    const $ = (s, el = document) => el.querySelector(s);
+    const cfg = () => { const c = (REG.tabelas.SPV || {}).cfg || {}; return { tecnicos: c.tecnicos || DEF.tecnicos, custos: Object.assign({}, DEF.custos, c.custos || {}), mk: Object.assign({}, DEF.mk, c.mk || {}) }; };
+    const famprod = () => { const ov = (REG.tabelas.FAMPROD || {}); return FAMPROD.map(([code, nome, div, abrev, desc]) => Object.assign({ code, nome, div, abrev, desc }, ov[abrev] || {})); };
+    const spvTipos = () => famprod().filter((f) => f.div === 'SPV');
+    const tipoInfo = (ab) => famprod().find((f) => f.abrev === ab) || { abrev: ab, nome: ab, desc: '' };
+    const st = () => ctx.getState();
+    const S = () => st().spv;
+
+    // ---------- novo SPV ----------
+    function novoSpv(tipo) {
+      const c = cfg(); const ini = TIPO_INI[tipo] || { equipe: 1, pecas: 1 };
+      const spv = { tipo, cliente: '', contato: '', local: '', uf: 'SC', numero: '', revisao: '0', data: new Date().toISOString().slice(0, 10), validade: 15, vendedor: '', descricao: '', escopo: '', exclusoes: '', pagamento: '30 DDL', prazo_exec: '',
+        blocos: { equipe: !!ini.equipe, pecas: !!ini.pecas, contrato: !!ini.contrato },
+        equipe: ini.equipe ? [{ tec: c.tecnicos[2] ? c.tecnicos[2].nome : '', diaria: c.tecnicos[2] ? c.tecnicos[2].diaria : 0, dias: 1 }] : [],
+        dist: 0, ov: {}, campo: ini.campo !== 0, pecas: [], contrato: { visitas: 12, meses: 12, reajuste: 'IPCA' }, mk: { mult: c.mk.mult }, status: 'rascunho' };
+      ctx.setState({ id: null, uid: uid(), div: 'SPV', name: '', spv, status: 'rascunho' });
+      ctx.ui.view = 'proposta'; ctx.render(); window.scrollTo(0, 0);
+    }
+
+    // ---------- contas ----------
+    function icmsPecas(s) {
+      if (typeof (s.mk || {}).icms === 'number') return s.mk.icms;
+      const uf = String(s.uf || 'SC').toUpperCase();
+      for (let r = 79; r <= 105; r++) if (ctx.txt('PARÂMETROS', 'D' + r) === uf) { const v = ctx.val('PARÂMETROS', uf === 'SC' ? 'E' + r : 'F' + r); if (typeof v === 'number') return v; }
+      return 0.12;
+    }
+    function calc(s) {
+      const c = cfg(); const mk = Object.assign({}, c.mk, s.mk || {}); const k = c.custos;
+      const eq = s.blocos.equipe ? s.equipe.filter((e) => num(e.dias) > 0) : [];
+      const pessoas = eq.length; const dias = eq.reduce((m, e) => Math.max(m, num(e.dias)), 0);
+      const mo = eq.reduce((t, e) => t + num(e.diaria) * num(e.dias), 0);
+      const ida = num(s.dist); const aereo = s.blocos.equipe && ida * 2 > k.limite_km;
+      const auto = {
+        km: s.blocos.equipe && !aereo ? ida * 2 : 0, aereo_qtd: aereo ? pessoas * 2 : 0, carro_dias: aereo ? Math.max(dias - 1, 0) : 0,
+        hotel_noites: s.campo === false ? 0 : Math.max(dias - 1, 0) * pessoas, alim_qtd: dias * pessoas, art_qtd: s.blocos.equipe && pessoas ? 1 : 0, frete: 0, outros: 0,
+      };
+      const ov = s.ov || {}; const L = {}; for (const f of Object.keys(auto)) L[f] = typeof ov[f] === 'number' ? ov[f] : auto[f];
+      const preco = { rkm: num(ov.rkm ?? k.rkm), aereo: num(ov.aereo ?? k.aereo), carro: num(ov.carro ?? k.carro), hotel: num(ov.hotel ?? k.hotel), alim: num(ov.alim ?? k.alim), art: num(ov.art ?? k.art) };
+      const logLines = s.blocos.equipe ? [
+        ['km', 'Deslocamento rodoviário', 'km', preco.rkm, 'rkm'], ['aereo_qtd', 'Passagens aéreas', 'trechos', preco.aereo, 'aereo'], ['carro_dias', 'Locação de automóvel', 'diárias', preco.carro, 'carro'],
+        ['hotel_noites', 'Hotel (quarto individual)', 'noites', preco.hotel, 'hotel'], ['alim_qtd', 'Alimentação', 'refeições-dia', preco.alim, 'alim'], ['art_qtd', 'ART', 'un.', preco.art, 'art'],
+        ['frete', 'Frete de insumos / ferramentas', 'R$', 1, null], ['outros', 'Outros custos', 'R$', 1, null]] : [];
+      const log = logLines.map(([f, lb, un, p, pk]) => ({ f, lb, un, qtd: L[f], auto: auto[f], over: typeof ov[f] === 'number', p, pk, tot: num(L[f]) * num(p) }));
+      const logTot = log.reduce((t, x) => t + x.tot, 0);
+      const custoServ = mo + logTot;
+      const pecas = (s.blocos.pecas ? s.pecas : []).map((p) => {
+        const cambio = p.moeda === 'USD' ? num(p.cambio ?? mk.cambio_usd) : p.moeda === 'EUR' ? num(p.cambio ?? mk.cambio_eur) : 1;
+        const fimp = p.moeda && p.moeda !== 'BRL' ? num(p.fimp ?? mk.fimp) : 1;
+        const unitBRL = num(p.unit) * cambio * fimp * (1 + num(p.ipi));
+        const custo = num(p.qtd) * unitBRL; const fator = num(p.fator ?? mk.fator_pecas);
+        return Object.assign({}, p, { unitBRL, custo, fator, venda: p.incluso === false ? 0 : custo * fator, custoConta: p.incluso === false ? 0 : custo });
+      });
+      const custoPecas = pecas.reduce((t, x) => t + x.custoConta, 0); const Vp = pecas.reduce((t, x) => t + x.venda, 0);
+      const mult = num(s.mk && s.mk.mult != null ? s.mk.mult : mk.mult);
+      const Vs = custoServ * mult;
+      const comuns = num(mk.fin) + num(mk.com_rep) + num(mk.com_capt) + num(mk.com_orc) + (s.aprazo ? num(mk.prazo) : 0);
+      const tS = num(mk.pis) + num(mk.cofins) + num(mk.irpj) + num(mk.iss) + comuns;
+      const icms = icmsPecas(s); const tP = icms + num(mk.pis) + num(mk.cofins) + num(mk.irpj_pecas) + comuns;
+      const V = Vs + Vp; const dS = Vs * tS, dP = Vp * tP; const custo = custoServ + custoPecas;
+      const lucro = V - dS - dP - custo; const lucroPct = V ? lucro / V : 0;
+      const Pnet = Vp * (1 - tP) - custoPecas; const den = 1 - tS - mk.lucro_min;
+      const multMin = custoServ > 0 && den > 0 ? Math.max(0, (custoServ - Pnet + mk.lucro_min * Vp) / den) / custoServ : null;
+      const ded = [['PIS', mk.pis, V * mk.pis], ['COFINS', mk.cofins, V * mk.cofins], ['IRPJ / CSLL (serviço)', mk.irpj, Vs * mk.irpj], ['ISS (serviço)', mk.iss, Vs * mk.iss], ['IRPJ / CSLL (peças)', mk.irpj_pecas, Vp * mk.irpj_pecas], ['ICMS (peças, ' + (s.uf || 'SC') + ')', icms, Vp * icms],
+        ['Custo financeiro', mk.fin, V * mk.fin], ['Comissão representante', mk.com_rep, V * mk.com_rep], ['Comissão captador', mk.com_capt, V * mk.com_capt], ['Comissão orçamento', mk.com_orc, V * mk.com_orc], ['Pagamento a prazo', s.aprazo ? mk.prazo : 0, s.aprazo ? V * mk.prazo : 0]].filter((x) => x[2]);
+      const ct = s.blocos.contrato ? { porVisita: V, anual: V * num(s.contrato.visitas), mensal: V * num(s.contrato.visitas) / 12, total: V * num(s.contrato.visitas) / 12 * num(s.contrato.meses) } : null;
+      return { mk, pessoas, dias, mo, aereo, log, logTot, custoServ, pecas, custoPecas, Vs, Vp, V, dS, dP, custo, lucro, lucroPct, multMin, mult, ded, icms, ct, total: ct ? ct.total : V };
+    }
+
+    // ---------- leitura com Claude ----------
+    let sampleFn;
+    const getSample = async () => { if (sampleFn !== undefined) return sampleFn; try { sampleFn = window.claude && window.claude.use ? await window.claude.use('sample') : null; } catch (e) { sampleFn = null; } return sampleFn; };
+    async function pdfText(file) {
+      await load(CDN.pdfworker); await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
+      const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; let text = ''; const pages = [];
+      for (let i = 1; i <= Math.min(pdf.numPages, 6); i++) { const pg = await pdf.getPage(i); const tc = await pg.getTextContent(); text += tc.items.map((x) => x.str + (x.hasEOL ? '\n' : ' ')).join('') + '\n'; pages.push(pg); }
+      return { text: text.trim(), pages };
+    }
+    async function pageImage(pg) { const vp = pg.getViewport({ scale: 1.6 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; return new Promise((r) => c.toBlob(r, 'image/png')); }
+    const PROMPT = `Você lê documentos de compra da LS Fire (empresa que compra peças e serviços): orçamentos de fornecedor, pedidos e notas fiscais.
+Extraia os dados e responda SÓ com um objeto JSON neste formato:
+{"fornecedor": string, "documento": string (número do orçamento/pedido/nota), "data": "AAAA-MM-DD" ou null, "tipo": "orcamento"|"nota"|"pedido"|"outro", "moeda": "BRL"|"USD"|"EUR", "condicao_pagamento": string ou null, "validade": string ou null, "frete": número ou null, "total": número ou null,
+ "itens": [{"codigo": string ou null, "descricao": string, "ncm": string ou null, "unidade": string ou null, "quantidade": número, "valor_unitario": número (sem IPI), "ipi_percentual": número (ex.: 3.25 para 3,25%) ou 0, "icms_percentual": número ou null}]}
+Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe null o que não estiver no documento. Ignore linhas de impostos aproximados ("Trib aprox").`;
+    async function lerDocumento(file, onStatus) {
+      const sample = await getSample(); if (!sample) throw { code: 'unavailable' };
+      let text = '', images;
+      if (/pdf$/i.test(file.type) || /\.pdf$/i.test(file.name)) {
+        onStatus && onStatus('Lendo o PDF…'); const r = await pdfText(file); text = r.text;
+        if (text.replace(/\s/g, '').length < 80) { onStatus && onStatus('PDF escaneado: lendo a imagem…'); images = []; for (const pg of r.pages.slice(0, 2)) images.push(await pageImage(pg)); }
+      } else if (/^image\//.test(file.type)) images = [file];
+      else text = await file.text();
+      if (images && images.length) {
+        const caps = await sample.limits().catch(() => null);
+        if (!caps || !caps.images) throw { code: 'images_unavailable' };
+        images = images.filter((b) => b && b.size <= caps.images.maxInputBytes).slice(0, caps.images.maxCount);
+        if (!images.length) throw { code: 'image_rejected' };
+      }
+      onStatus && onStatus('Claude está lendo o documento…');
+      const input = PROMPT + (text ? '\n\nTEXTO DO DOCUMENTO:\n' + text.slice(0, 28000) : '\n\nO documento está nas imagens anexas.');
+      return sample.json(input, images && images.length ? { images } : {});
+    }
+
+    // ---------- documentos: banco da equipe (db + assets) ou navegador ----------
+    let docs = []; let docSub = false; let assetsNs;
+    const LSK = 'lspricer.docs.v1';
+    const lsGet = () => { try { return JSON.parse(localStorage.getItem(LSK) || '[]'); } catch (e) { return []; } };
+    const lsSet = (v) => { try { localStorage.setItem(LSK, JSON.stringify(v)); return true; } catch (e) { return false; } };
+    function idb() { return new Promise((res, rej) => { const r = indexedDB.open('lspricer-docs', 1); r.onupgradeneeded = () => r.result.createObjectStore('files'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+    async function idbPut(k, blob) { const d = await idb(); return new Promise((res, rej) => { const t = d.transaction('files', 'readwrite'); t.objectStore('files').put(blob, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+    async function idbGet(k) { const d = await idb(); return new Promise((res, rej) => { const t = d.transaction('files'); const q = t.objectStore('files').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+    function ensureDocs() {
+      if (docSub) return; docSub = true;
+      if (REG.mode === 'shared' && REG.db) {
+        REG.db.collection('documentos').orderBy('at', 'desc').limit(500).onSnapshot((s) => { docs = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
+        window.claude.use('assets').then((a) => { assetsNs = a; ctx.render(); }).catch(() => { assetsNs = null; });
+      } else { docs = lsGet(); assetsNs = null; }
+    }
+    const shared = () => REG.mode === 'shared' && !!REG.db;
+    const canUpload = () => !shared() || !!assetsNs;
+    async function salvarDoc(meta, file) {
+      const id = meta.id || ('d' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
+      const rec = Object.assign({}, meta, { at: meta.at || new Date().toISOString() }); delete rec.id;
+      if (file) { rec.nome = rec.nome || file.name; rec.contentType = file.type || 'application/octet-stream'; rec.size = file.size; }
+      if (shared()) {
+        if (file) { if (!assetsNs) throw new Error('Só quem tem acesso de Editor pode anexar arquivos. Peça acesso a quem publicou o app.'); const up = await assetsNs.upload(file, /pdf$/i.test(file.name) && !file.type ? { type: 'application/pdf' } : undefined); rec.assetId = up.id; }
+        if (REG.me) rec.by = REG.me;
+        await REG.db.doc('documentos/' + id).set(JSON.parse(JSON.stringify(rec)));
+      } else {
+        if (file) { await idbPut(id, file); rec.local = true; }
+        docs = [Object.assign({ id }, rec)].concat(docs.filter((d) => d.id !== id)); lsSet(docs);
+      }
+      ctx.render(); return id;
+    }
+    async function excluirDoc(d) {
+      if (shared()) { await REG.db.doc('documentos/' + d.id).delete(); if (d.assetId && assetsNs) await assetsNs.delete(d.assetId).catch(() => {}); }
+      else { docs = docs.filter((x) => x.id !== d.id); lsSet(docs); }
+      ctx.render();
+    }
+    async function abrirDoc(d, baixar) {
+      let blob;
+      try { if (d.assetId) blob = await (await fetch('/_blob/' + d.assetId)).blob(); else blob = await idbGet(d.id); } catch (e) { blob = null; }
+      if (!blob) return toast('Não encontrei o arquivo deste documento.');
+      if (!baixar) { const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return; }
+      const ok = await REG.save(d.nome || 'documento', blob, blob.type); if (!ok) toast('Download cancelado');
+    }
+    const docsDaProposta = (u) => docs.filter((d) => d.propUid && d.propUid === u);
+
+    // ---------- histórico de preços (documentos + SPV salvos) ----------
+    function pricebook() {
+      const m = new Map(); const add = (desc, x) => { const k = norm(desc); if (!k || !(x.unit > 0)) return; const arr = m.get(k) || []; arr.push(Object.assign({ desc }, x)); m.set(k, arr); };
+      for (const d of docs) for (const it of d.itens || []) add(it.descricao, { unit: num(it.valor_unitario), moeda: d.moeda || 'BRL', forn: d.fornecedor, data: d.data || (d.at || '').slice(0, 10), cod: it.codigo, ipi: num(it.ipi_percentual) / 100, src: 'doc' });
+      for (const p of REG.listPropostas() || []) if (p.div === 'SPV' && p.spv) for (const x of p.spv.pecas || []) add(x.desc, { unit: num(x.unit), moeda: x.moeda || 'BRL', forn: x.forn, data: (p.at || '').slice(0, 10), cod: x.cod, ipi: num(x.ipi), src: 'prop' });
+      for (const arr of m.values()) arr.sort((a, b) => String(b.data).localeCompare(String(a.data)));
+      return m;
+    }
+
+    // ---------- página inicial ----------
+    const divOf = (p) => p.div || 'SEQ';
+    function stats(list) {
+      const aberto = list.filter((p) => ['enviada', 'negociacao'].includes(p.status));
+      const d90 = Date.now() - 90 * 864e5; const fech = list.filter((p) => ['ganha', 'perdida'].includes(p.status) && Date.parse(p.at) > d90);
+      return { aberto: aberto.reduce((t, p) => t + num(p.total), 0), nAberto: aberto.length, ganhas: fech.filter((p) => p.status === 'ganha').length, fechadas: fech.length };
+    }
+    function vHome() {
+      ensureDocs();
+      const ui = ctx.ui; const all = REG.listPropostas() || []; const q = norm(ui.homeQ || ''); const f = ui.homeDiv || 'todas';
+      const hay = (p) => norm([p.numero, p.cliente, p.name, p.status, divOf(p), p.tipo, p.spv && (p.spv.descricao + ' ' + p.spv.local + ' ' + (p.spv.pecas || []).map((x) => x.desc + ' ' + (x.forn || '')).join(' '))].join(' '));
+      const list = all.filter((p) => (f === 'todas' || divOf(p) === f || p.status === f) && (!q || hay(p).includes(q)));
+      const sx = stats(all); const docsHit = q ? docs.filter((d) => norm([d.nome, d.fornecedor, d.numero, (d.itens || []).map((i) => i.descricao).join(' ')].join(' ')).includes(q)).slice(0, 6) : [];
+      const pill = (s) => { const x = STATUS.find((y) => y[0] === s) || STATUS[0]; return `<span class="pill ${x[2]}">${x[1]}</span>`; };
+      const rows = list.slice(0, 60).map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
+        <td><span class="divb ${divOf(p).toLowerCase()}">${divOf(p)}</span>${p.tipo ? ` <small class="sub">${esc(p.tipo)}</small>` : ''}</td>
+        <td><b>${esc(p.numero || '—')}</b><br><small class="sub">${esc(p.cliente || p.name || '')}</small></td>
+        <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
+        <td><select data-hstatus="${esc(p.id)}" aria-label="Status">${STATUS.map(([k, lb]) => `<option value="${k}"${(p.status || 'rascunho') === k ? ' selected' : ''}>${lb}</option>`).join('')}</select></td>
+        <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
+        <td><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button></td></tr>`).join('');
+      const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['enviada', 'Enviadas'], ['negociacao', 'Em negociação'], ['ganha', 'Ganhas']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
+      const tipos = spvTipos().map((t) => `<button class="tchip" data-spvnew="${t.abrev}" title="${esc(t.desc)}"><b>${esc((TIPO_INI[t.abrev] || {}).titulo || t.nome)}</b><small>${esc(t.abrev)}</small></button>`).join('');
+      return `<div class="stack home">
+        <div class="hero"><div><h1>Formação de preço</h1><div class="sub">Busque uma proposta antiga ou comece uma nova.</div></div>
+          <div class="hsearch"><input id="homeQ" type="search" placeholder="Buscar por cliente, número, peça, fornecedor…" value="${esc(ui.homeQ || '')}" aria-label="Buscar propostas e documentos" autocomplete="off"></div></div>
+        ${(() => { const c = ctx.current && ctx.current(); return c ? `<div class="contcard"><div><span class="divb ${c.div.toLowerCase()}">${c.div}</span> <b>Continuar: ${esc(c.label)}</b>${typeof c.total === 'number' && c.total ? ` <span class="sub">· ${brl(c.total)}</span>` : ''}</div><button class="btn sm pri" data-view="proposta">Continuar editando →</button></div>` : ''; })()}
+        <div class="starts">
+          <button class="start seq" data-seqnew><span class="tag">SEQ</span><b>Soluções e equipamentos</b><small>Conjuntos motobomba, skids, containers, bombas e motores</small></button>
+          <div class="start spv"><span class="tag">SPV</span><b>Serviços e pós-venda</b><small>Escolha o tipo para começar</small><div class="tchips">${tipos}</div></div>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><span>Em aberto</span><b>${brl(sx.aberto)}</b><em>${sx.nAberto} proposta(s) enviadas ou em negociação</em></div>
+          <div class="kpi"><span>Ganhas em 90 dias</span><b>${sx.ganhas} de ${sx.fechadas}</b><em>${sx.fechadas ? pct(sx.ganhas / sx.fechadas, 0) + ' de conversão' : 'marque o status nas propostas'}</em></div>
+          <div class="kpi"><span>Propostas salvas</span><b>${all.length}</b><em>${all.filter((p) => divOf(p) === 'SPV').length} SPV · ${all.filter((p) => divOf(p) === 'SEQ').length} SEQ</em></div>
+          <div class="kpi"><span>Documentos</span><b>${docs.length}</b><em><button class="restore" data-view="documentos">abrir a biblioteca</button></em></div>
+        </div>
+        <section class="card"><h2>Propostas <span class="sub">${list.length} encontrada(s)</span></h2><div class="hchips">${chips}</div>
+          <div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th>Divisão</th><th>Número / cliente</th><th>Total</th><th>Status</th><th>Data</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="sub">${all.length ? 'Nada encontrado com essa busca.' : 'Nenhuma proposta salva ainda. Comece uma nova acima e clique em Salvar.'}</td></tr>`}</tbody></table></div></section>
+        ${docsHit.length ? `<section class="card"><h2>Documentos encontrados</h2>${docList(docsHit)}</section>` : ''}
+      </div>`;
+    }
+
+    // ---------- editor SPV ----------
+    const fmt = (v, d = 2) => (typeof v === 'number' && isFinite(v) ? NF[d].format(v) : '');
+    const inp = (path, v, kind = 'num', opt = {}) => {
+      const shown = kind === 'pct' ? (typeof v === 'number' ? NF[2].format(v * 100).replace(/,00$/, '') : '') : kind === 'num' ? (typeof v === 'number' ? String(+v.toFixed(6)).replace('.', ',') : '') : (v ?? '');
+      return `<input data-sp="${path}" data-k="${kind}" value="${esc(shown)}"${kind === 'text' ? '' : ' inputmode="decimal"'}${opt.ph ? ` placeholder="${esc(opt.ph)}"` : ''}${opt.list ? ` list="${opt.list}"` : ''}${opt.cls ? ` class="${opt.cls}"` : ''} aria-label="${esc(opt.lb || path)}">`;
+    };
+    const sel = (path, v, opts, lb) => `<select data-sp="${path}" data-k="text" aria-label="${esc(lb || path)}">${opts.map((o) => { const [k, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(k)}"${String(v) === String(k) ? ' selected' : ''}>${esc(l)}</option>`; }).join('')}</select>`;
+    const fld = (lb, html, cls = '') => `<div class="f ${cls}"><label>${esc(lb)}</label><div class="ctl">${html}</div></div>`;
+    function vSpv() {
+      ensureDocs();
+      const s = S(); const c = cfg(); const r = calc(s); const ti = tipoInfo(s.tipo); const pb = pricebook(); const ui = ctx.ui;
+      const below = r.V > 0 && r.lucroPct < r.mk.lucro_min - 1e-6;
+      const tecOpts = c.tecnicos.map((t) => [t.nome, `${t.nome} — ${t.funcao} (${brl(t.diaria)})`]);
+      const eqRows = s.equipe.map((e, i) => `<tr><td class="in">${sel(`equipe.${i}.tec`, e.tec, [['', 'Escolha…']].concat(tecOpts).concat(e.tec && !c.tecnicos.some((t) => t.nome === e.tec) ? [[e.tec, e.tec]] : []), 'Técnico')}</td>
+        <td class="in">${inp(`equipe.${i}.diaria`, e.diaria, 'num', { lb: 'Diária' })}</td><td class="in">${inp(`equipe.${i}.dias`, e.dias, 'num', { lb: 'Dias' })}</td><td class="n">${brl(num(e.diaria) * num(e.dias))}</td><td><button class="restore" data-sprm="equipe.${i}">remover</button></td></tr>`).join('');
+      const logRows = r.log.map((x) => `<tr><td>${esc(x.lb)}</td><td class="in ${x.over ? 'over' : 'auto'}">${inp(`ov.${x.f}`, x.qtd, 'num', { lb: x.lb })}</td><td class="sub">${esc(x.un)}${x.over ? ` <button class="restore" data-spauto="${x.f}">↺ auto (${fmt(x.auto, 0)})</button>` : ''}</td>
+        <td class="in">${x.pk ? inp(`ov.${x.pk}`, x.p, 'num', { lb: 'Preço ' + x.lb }) : ''}</td><td class="n">${brl(x.tot)}</td></tr>`).join('');
+      const pRows = r.pecas.map((p, i) => { const hist = pb.get(norm(p.desc)); const last = hist && hist.find((h) => Math.abs(h.unit - num(p.unit)) > 1e-9);
+        return `<tr${p.incluso === false ? ' class="ro"' : ''}><td class="in"><input type="checkbox" data-sp="pecas.${i}.incluso" data-k="bool"${p.incluso === false ? '' : ' checked'} aria-label="Incluso"></td>
+        <td class="in wide">${inp(`pecas.${i}.desc`, p.desc, 'text', { lb: 'Descrição', list: 'dl_pb' })}${p.cod || p.forn ? `<small class="sub">${esc([p.cod, p.forn].filter(Boolean).join(' · '))}${p.docId ? ' · 📎' : ''}</small>` : ''}${last ? `<small class="hist">outra cotação: ${esc(last.moeda !== 'BRL' ? last.moeda + ' ' + fmt(last.unit) : brl(last.unit))} · ${esc(last.forn || '')} · ${esc(last.data ? new Date(last.data).toLocaleDateString('pt-BR') : '')}</small>` : ''}</td>
+        <td class="in">${inp(`pecas.${i}.qtd`, p.qtd, 'num', { lb: 'Qtd' })}</td><td class="in">${sel(`pecas.${i}.moeda`, p.moeda || 'BRL', ['BRL', 'USD', 'EUR'], 'Moeda')}</td>
+        <td class="in">${inp(`pecas.${i}.unit`, p.unit, 'num', { lb: 'Valor unitário' })}</td><td class="in">${inp(`pecas.${i}.ipi`, p.ipi || 0, 'pct', { lb: 'IPI' })}</td>
+        <td class="n">${brl(p.unitBRL)}${p.moeda && p.moeda !== 'BRL' ? `<small class="sub">câmbio ${fmt(p.cambio ?? r.mk['cambio_' + p.moeda.toLowerCase()])} × imp. ${fmt(p.fimp ?? r.mk.fimp)}</small>` : ''}</td>
+        <td class="in">${inp(`pecas.${i}.fator`, p.fator, 'num', { lb: 'Fator' })}</td><td class="n"><b>${brl(p.venda)}</b></td><td><button class="restore" data-sprm="pecas.${i}">remover</button></td></tr>`; }).join('');
+      const dl = `<datalist id="dl_pb">${[...pb.values()].map((a) => `<option value="${esc(a[0].desc)}"></option>`).join('')}</datalist>`;
+      const ded = r.ded.map(([lb, t, v]) => `<div>${esc(lb)} <small class="sub">${pct(t, 2)}</small></div><div>− ${brl(v)}</div>`).join('');
+      const pdocs = docsDaProposta(st().uid);
+      const blk = (k, lb) => `<label class="chip"><input type="checkbox" data-spblk="${k}"${s.blocos[k] ? ' checked' : ''}> ${lb}</label>`;
+      return `<div class="stack">
+        <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-view="inicio">← Início</button><h1 style="margin-top:8px"><span class="divb spv">SPV</span> ${esc((TIPO_INI[s.tipo] || {}).titulo || ti.nome)} ${s.numero ? '· ' + esc(s.numero) : ''}</h1><div class="sub">${esc(ti.nome)} · ${esc(s.cliente || 'cliente a definir')}</div></div>
+          <div class="sumbar"><div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
+        ${below && r.multMin ? `<div class="banner bad">Lucro líquido de ${pct(r.lucroPct, 1)}, abaixo do mínimo de ${pct(r.mk.lucro_min, 0)}. Para chegar lá, o multiplicador do serviço precisa ser ${fmt(r.multMin, 2)}. <button class="restore" data-spfix>aplicar ${fmt(Math.ceil(r.multMin * 100) / 100, 2)}</button></div>` : ''}
+        <section class="card"><h2>Cliente e escopo</h2>
+          <div class="fields">${fld('Cliente', inp('cliente', s.cliente, 'text', { lb: 'Cliente' }), 'span2')}${fld('Contato', inp('contato', s.contato, 'text'))}${fld('Nº da proposta', inp('numero', s.numero, 'text', { ph: 'ex.: 10.250' }))}
+            ${fld('Local do serviço', inp('local', s.local, 'text', { ph: 'cidade / obra' }), 'span2')}${fld('UF', inp('uf', s.uf, 'text'))}${fld('Vendedor', inp('vendedor', s.vendedor, 'text'))}
+            ${fld('Tipo', sel('tipo', s.tipo, spvTipos().map((t) => [t.abrev, t.abrev + ' — ' + t.nome])), 'span2')}${fld('Pagamento', inp('pagamento', s.pagamento, 'text'))}${fld('Validade (dias)', inp('validade', s.validade, 'num'))}
+            ${fld('Resumo do serviço (vai na proposta)', `<textarea data-sp="descricao" data-k="text" rows="3" placeholder="Ex.: pré-montagem e manutenção de 2 bombas verticais turbina com motor diesel…">${esc(s.descricao)}</textarea>`, 'spanall')}</div>
+          <div class="docbar" style="margin-top:10px"><span class="sub">Blocos:</span>${blk('equipe', 'Equipe e deslocamento')}${blk('pecas', 'Peças e materiais')}${blk('contrato', 'Contrato recorrente')}</div></section>
+        ${s.blocos.equipe ? `<section class="card"><h2>Equipe e deslocamento <span class="sub">mão de obra ${brl(r.mo)} · deslocamento ${brl(r.logTot)}</span></h2>
+          <div class="tw"><table class="t reg"><thead><tr><th>Técnico</th><th>Diária (R$)</th><th>Dias</th><th>Total</th><th></th></tr></thead><tbody>${eqRows}</tbody></table></div>
+          <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="equipe">+ Técnico</button></div>
+          <div class="fields" style="margin-top:14px">${fld('Distância até o local (só ida, km)', inp('dist', s.dist, 'num', { lb: 'Distância' }))}<div class="f span2"><label>&nbsp;</label><div class="sub">${r.aereo ? `Ida e volta passa de ${fmt(c.custos.limite_km, 0)} km: vai de avião, com carro locado no destino.` : `Saída: ${esc(c.custos.saida)}. Acima de ${fmt(c.custos.limite_km, 0)} km ida e volta, o app troca para avião.`} Hotel e alimentação seguem a equipe (${r.pessoas} pessoa(s), ${r.dias} dia(s)).</div></div></div>
+          <div class="tw" style="margin-top:10px"><table class="t reg"><thead><tr><th>Custo</th><th>Quantidade</th><th></th><th>Preço (R$)</th><th>Total</th></tr></thead><tbody>${logRows}<tr class="tot"><td colspan="4">Custo da prestação do serviço</td><td class="n">${brl(r.custoServ)}</td></tr></tbody></table></div></section>` : ''}
+        ${s.blocos.pecas ? `<section class="card"><h2>Peças e materiais <span class="sub">custo ${brl(r.custoPecas)} · venda ${brl(r.Vp)}</span></h2>
+          <div class="tw"><table class="t reg pecas"><thead><tr><th>Incl.</th><th>Descrição</th><th>Qtd</th><th>Moeda</th><th>Unit.</th><th>IPI</th><th>Custo unit. R$</th><th>Fator</th><th>Venda</th><th></th></tr></thead><tbody>${pRows || '<tr><td colspan="10" class="sub">Nenhuma peça. Adicione à mão ou importe um orçamento de fornecedor.</td></tr>'}</tbody></table></div>
+          <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="pecas">+ Peça</button><label class="btn sm pri" for="spImport">📎 Importar orçamento (PDF ou foto)</label><input type="file" id="spImport" accept="application/pdf,image/*" hidden><span class="sub">Claude lê o documento e traz fornecedor, itens e preços.</span></div>${dl}</section>` : ''}
+        ${s.blocos.contrato ? `<section class="card"><h2>Contrato recorrente <span class="sub">o preço acima vale por visita</span></h2>
+          <div class="fields">${fld('Visitas por ano', inp('contrato.visitas', s.contrato.visitas))}${fld('Duração (meses)', inp('contrato.meses', s.contrato.meses))}${fld('Reajuste', inp('contrato.reajuste', s.contrato.reajuste, 'text'))}</div>
+          <div class="kpis" style="margin-top:12px"><div class="kpi"><span>Por visita</span><b>${brl(r.ct.porVisita)}</b></div><div class="kpi lead"><span>Mensalidade</span><b>${brl(r.ct.mensal)}</b></div><div class="kpi"><span>Total do contrato</span><b>${brl(r.ct.total)}</b></div></div></section>` : ''}
+        <section class="card"><h2>Formação do preço</h2>
+          <div class="split2">
+            <div class="kv">
+              <div>Custo da prestação do serviço</div><div>${brl(r.custoServ)}</div>
+              <div>Multiplicador do serviço <small class="sub">(${fmt(r.mult, 2)} = margem bruta de ${pct(r.mult - 1, 0)})</small></div><div class="in">${inp('mk.mult', r.mult, 'num', { lb: 'Multiplicador', cls: 'mini' })}</div>
+              <div><b>Venda do serviço</b></div><div><b>${brl(r.Vs)}</b></div>
+              <div>Venda das peças</div><div>${brl(r.Vp)}</div>
+              <div class="sep"></div><div hidden></div>
+              <div><b>Venda bruta (valor da proposta)</b></div><div><b>${brl(r.V)}</b></div>
+              ${ded}
+              <div>Custos (serviço + peças)</div><div>− ${brl(r.custo)}</div>
+              <div class="sep"></div><div hidden></div>
+              <div><b>Lucro líquido</b></div><div class="${below ? 'bad-t' : 'ok-t'}"><b>${brl(r.lucro)} · ${pct(r.lucroPct, 1)}</b></div>
+            </div>
+            <div class="stack">
+              <label class="chk"><input type="checkbox" data-sp="aprazo" data-k="bool"${s.aprazo ? ' checked' : ''}> Pagamento a prazo (+${pct(r.mk.prazo, 1)} de encargo)</label>
+              <p class="sub" style="margin:0">Impostos e comissões vêm de Cadastro → Serviços (SPV). Peças pagam ICMS de ${pct(r.icms, 1)} (${esc(s.uf || 'SC')}) e IRPJ/CSLL de produto; o serviço paga ISS. Meta: lucro líquido de ${pct(r.mk.lucro_min, 0)}.</p>
+              <div class="docbar"><button class="btn pri" data-sppdf="cliente">Proposta para o cliente (PDF)</button><button class="btn" data-sppdf="interno">Formação de custo (PDF interno)</button></div>
+            </div>
+          </div></section>
+        <section class="card"><h2>Documentos desta proposta <span class="sub">${pdocs.length}</span></h2>${pdocs.length ? docList(pdocs) : '<p class="sub" style="margin:0">Orçamentos, notas e desenhos ligados a esta proposta aparecem aqui.</p>'}
+          <div class="docbar" style="margin-top:10px"><label class="btn sm" for="spAttach">+ Anexar documento</label><input type="file" id="spAttach" hidden></div></section>
+      </div>`;
+    }
+    function docList(list) {
+      return `<div class="tw"><table class="t"><thead><tr><th>Documento</th><th>Tipo</th><th>Fornecedor</th><th>Valor</th><th>Proposta</th><th></th></tr></thead><tbody>${list.map((d) => `<tr>
+        <td><b>${esc(d.nome || '—')}</b>${d.numero ? `<br><small class="sub">nº ${esc(d.numero)}${d.data ? ' · ' + esc(new Date(d.data).toLocaleDateString('pt-BR')) : ''}</small>` : ''}${(d.itens || []).length ? ` <span class="pill mute">${d.itens.length} itens</span>` : ''}</td>
+        <td>${esc((DOC_TIPOS.find((t) => t[0] === d.tipo) || [0, d.tipo || '—'])[1])}</td><td>${esc(d.fornecedor || '—')}</td><td class="n">${typeof d.total === 'number' ? (d.moeda && d.moeda !== 'BRL' ? d.moeda + ' ' + fmt(d.total) : brl(d.total)) : '—'}</td>
+        <td>${esc(d.propNome || '—')}</td>
+        <td style="white-space:nowrap">${d.assetId || d.local ? `<button class="btn sm" data-dopen="${esc(d.id)}">Abrir</button> <button class="btn sm" data-ddown="${esc(d.id)}">Baixar</button>` : ''} <button class="btn sm" data-dedit="${esc(d.id)}">Detalhes</button></td></tr>`).join('')}</tbody></table></div>`;
+    }
+
+    // ---------- biblioteca de documentos ----------
+    function vDocs() {
+      ensureDocs();
+      const ui = ctx.ui; const q = norm(ui.docQ || ''); const t = ui.docT || '';
+      const list = docs.filter((d) => (!t || d.tipo === t) && (!q || norm([d.nome, d.fornecedor, d.numero, d.propNome, d.notas, (d.itens || []).map((i) => i.descricao + ' ' + (i.codigo || '')).join(' ')].join(' ')).includes(q)));
+      const up = canUpload();
+      return `<div class="stack">
+        <div class="flowhead"><div><h1>Documentos</h1><div class="sub">Orçamentos de fornecedores, notas, contratos e desenhos, ligados às propostas. ${shared() ? 'Visíveis para toda a equipe.' : 'Neste arquivo, ficam só neste navegador.'}</div></div></div>
+        ${up ? `<label class="drop" for="docUp" id="docDrop"><b>Solte aqui um orçamento, nota ou contrato</b><span class="sub">PDF ou foto. Claude lê e preenche fornecedor, número, valores e itens.</span><input type="file" id="docUp" accept="application/pdf,image/*,.csv,.txt" hidden></label>` : '<div class="banner warn">Para anexar arquivos é preciso acesso de Editor ao app. Você ainda pode consultar os documentos.</div>'}
+        <div class="sheetbar"><input id="docQ" type="search" placeholder="Buscar por fornecedor, peça, número…" value="${esc(ui.docQ || '')}" aria-label="Buscar documentos"><select id="docT" aria-label="Tipo"><option value="">Todos os tipos</option>${DOC_TIPOS.map(([k, l]) => `<option value="${k}"${t === k ? ' selected' : ''}>${l}</option>`).join('')}</select><span class="sub">${list.length} de ${docs.length}</span></div>
+        ${list.length ? docList(list) : '<section class="card"><p class="sub" style="margin:0">Nenhum documento ainda.</p></section>'}
+      </div>`;
+    }
+    // modal de documento (novo, lido por Claude ou detalhes)
+    function docModal(d, file, opts = {}) {
+      d = Object.assign({ tipo: 'orcamento', moeda: 'BRL', itens: [] }, d || {});
+      const props = (REG.listPropostas() || []).slice(0, 200);
+      const cur = st(); const curUid = cur.uid; const curNome = cur.div === 'SPV' ? (cur.spv.numero || 'SPV em edição') + ' · ' + (cur.spv.cliente || '') : ctx.docTitle();
+      const itRows = () => d.itens.map((it, i) => `<tr><td class="in"><input type="checkbox" data-mit="${i}" checked aria-label="Usar item"></td><td>${esc(it.codigo || '')}</td><td>${esc(it.descricao || '')}</td><td class="n">${fmt(num(it.quantidade), 2)}</td><td class="n">${fmt(num(it.valor_unitario))}</td><td class="n">${fmt(num(it.ipi_percentual), 2)}%</td></tr>`).join('');
+      modal(`<h2>${d.id ? 'Documento' : 'Novo documento'}${file ? ' · ' + esc(file.name) : ''}</h2>
+        <p class="sub" id="mdStatus" style="margin:0">${esc(opts.status || '')}</p>
+        <div class="fields">
+          <div class="f"><label for="mdTipo">Tipo</label><select id="mdTipo">${DOC_TIPOS.map(([k, l]) => `<option value="${k}"${d.tipo === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+          <div class="f span2"><label for="mdForn">Fornecedor / emitente</label><input id="mdForn" value="${esc(d.fornecedor || '')}"></div>
+          <div class="f"><label for="mdNum">Número</label><input id="mdNum" value="${esc(d.numero || '')}"></div>
+          <div class="f"><label for="mdData">Data</label><input id="mdData" type="date" value="${esc(d.data || '')}"></div>
+          <div class="f"><label for="mdMoeda">Moeda</label><select id="mdMoeda">${['BRL', 'USD', 'EUR'].map((m) => `<option${d.moeda === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
+          <div class="f"><label for="mdTot">Total</label><input id="mdTot" inputmode="decimal" value="${typeof d.total === 'number' ? String(d.total).replace('.', ',') : ''}"></div>
+          <div class="f span2"><label for="mdProp">Proposta</label><select id="mdProp"><option value="">— nenhuma —</option>${curUid ? `<option value="${esc(curUid)}"${d.propUid === curUid || (!d.id && opts.linkCurrent) ? ' selected' : ''}>Atual: ${esc(curNome)}</option>` : ''}${props.filter((p) => p.uid && p.uid !== curUid).map((p) => `<option value="${esc(p.uid)}"${d.propUid === p.uid ? ' selected' : ''}>${esc((p.div || 'SEQ') + ' · ' + (p.numero || '') + ' · ' + (p.cliente || p.name || ''))}</option>`).join('')}</select></div>
+          <div class="f spanall"><label for="mdNotas">Observações</label><input id="mdNotas" value="${esc(d.notas || [d.condicao_pagamento && 'Pagamento: ' + d.condicao_pagamento, d.validade && 'Validade: ' + d.validade].filter(Boolean).join(' · '))}"></div>
+        </div>
+        ${d.itens.length ? `<div class="tw"><table class="t"><thead><tr><th></th><th>Código</th><th>Descrição</th><th>Qtd</th><th>Unit.</th><th>IPI</th></tr></thead><tbody>${itRows()}</tbody></table></div>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn pri" id="mdSave">${opts.toPecas && d.itens.length ? 'Salvar e adicionar os itens marcados às peças' : 'Salvar documento'}</button>
+          ${d.id ? '<button class="btn" id="mdDel">Excluir</button>' : ''}<button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+        const g = (x) => $(x, o);
+        g('#mdSave').onclick = async () => {
+          const tot = parseInput(g('#mdTot').value, 'num'); const pu = g('#mdProp').value;
+          const pn = pu === curUid ? curNome : ((props.find((p) => p.uid === pu) || {}).numero || '') + ' · ' + ((props.find((p) => p.uid === pu) || {}).cliente || '');
+          const usados = [...o.querySelectorAll('[data-mit]')].filter((x) => x.checked).map((x) => d.itens[+x.dataset.mit]);
+          const rec = { id: d.id, tipo: g('#mdTipo').value, fornecedor: g('#mdForn').value.trim(), numero: g('#mdNum').value.trim(), data: g('#mdData').value || null, moeda: g('#mdMoeda').value, total: typeof tot === 'number' ? tot : null,
+            propUid: pu || null, propNome: pu ? pn : null, notas: g('#mdNotas').value.trim(), itens: d.itens, nome: d.nome, assetId: d.assetId, local: d.local, contentType: d.contentType, size: d.size, at: d.at };
+          g('#mdSave').disabled = true; g('#mdStatus').textContent = 'Salvando…';
+          try {
+            const id = await salvarDoc(rec, file);
+            if (opts.toPecas && usados.length) addPecas(usados, rec, id);
+            close(); toast(opts.toPecas && usados.length ? `${usados.length} itens adicionados às peças` : 'Documento salvo');
+          } catch (e) { g('#mdSave').disabled = false; g('#mdStatus').textContent = (e && e.message) || 'Não consegui salvar o documento.'; }
+        };
+        const del = g('#mdDel'); if (del) del.onclick = async () => { if (!del.dataset.sure) { del.dataset.sure = 1; del.textContent = 'Confirmar exclusão'; del.classList.add('pri'); return; } await excluirDoc(d); close(); toast('Documento excluído'); };
+      });
+    }
+    function addPecas(itens, doc, docId) {
+      const s = S(); if (!s) return; const mk = Object.assign({}, cfg().mk, s.mk || {});
+      for (const it of itens) s.pecas.push({ desc: it.descricao || '', cod: it.codigo || '', forn: doc.fornecedor || '', qtd: num(it.quantidade) || 1, un: it.unidade || '', unit: num(it.valor_unitario), ipi: num(it.ipi_percentual) / 100, moeda: doc.moeda || 'BRL', fator: mk.fator_pecas, incluso: true, docId });
+      s.blocos.pecas = true; ctx.persist(); ctx.render();
+    }
+    async function importar(file, toPecas) {
+      if (!file) return;
+      if (file.size > 20 * 1024 * 1024) return toast('Arquivo acima de 20 MB.');
+      const base = { nome: file.name, tipo: 'orcamento', moeda: 'BRL', itens: [] };
+      const st0 = st(); const link = st0.div === 'SPV' || toPecas;
+      docModal(base, file, { status: 'Claude está lendo o documento…', toPecas, linkCurrent: link });
+      try {
+        const j = await lerDocumento(file, (m) => { const el = document.getElementById('mdStatus'); if (el) el.textContent = m; });
+        const d = Object.assign(base, { tipo: j.tipo || 'orcamento', fornecedor: j.fornecedor || '', numero: j.documento || '', data: /^\d{4}-\d{2}-\d{2}$/.test(j.data || '') ? j.data : '', moeda: ['USD', 'EUR'].includes(j.moeda) ? j.moeda : 'BRL',
+          total: typeof j.total === 'number' ? j.total : null, condicao_pagamento: j.condicao_pagamento, validade: j.validade, itens: Array.isArray(j.itens) ? j.itens.filter((x) => x && x.descricao) : [] });
+        document.getElementById('overlay').innerHTML = '';
+        docModal(d, file, { status: `Lido: ${d.itens.length} item(ns). Confira antes de salvar.`, toPecas, linkCurrent: link });
+      } catch (e) {
+        const el = document.getElementById('mdStatus');
+        if (el) el.textContent = e && e.code === 'unavailable' ? 'A leitura automática só funciona no app publicado no claude.ai. Preencha os dados à mão.' : e && e.code === 'not_granted' ? 'A leitura com Claude não foi permitida. Preencha os dados à mão.' : e && (e.code === 'images_unavailable' || e.code === 'image_rejected') ? 'Este documento é uma imagem e a leitura de imagens não está disponível aqui. Preencha os dados à mão.' : 'Não consegui ler este documento' + (e && e.code ? ' (' + e.code + ')' : '') + '. Preencha os dados à mão.';
+      }
+    }
+
+    // ---------- PDF ----------
+    async function pdf(kind) {
+      if (!(window.jspdf && window.jspdf.jsPDF)) await load(CDN.jspdf); if (!window.jspdf.jsPDF.API.autoTable) await load(CDN.autotable);
+      const s = S(); const r = calc(s); const ti = tipoInfo(s.tipo); const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+      const W = doc.internal.pageSize.getWidth(); const OR = [232, 87, 10], INK = [27, 28, 30], MUTE = [110, 112, 118];
+      const safe = (x) => String(x ?? '').replace(/[‑‒–]/g, '-').replace(/[^\x00-\xFF—’“”•…]/g, '');
+      const bl = (x) => 'R$ ' + NF[2].format(x || 0);
+      let y = 34; doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...INK);
+      doc.text(safe(kind === 'cliente' ? 'Proposta de serviço' + (s.numero ? ' nº ' + s.numero : '') : 'Formação de custo — SPV' + (s.numero ? ' ' + s.numero : '')), 12, y); y += 6;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTE); doc.text(safe(ti.abrev + ' · ' + ti.nome), 12, y); y += 8;
+      const kv = [['Cliente', s.cliente], ['Contato', s.contato], ['Local do serviço', s.local + (s.uf ? ' / ' + s.uf : '')], ['Data', new Date(s.data || Date.now()).toLocaleDateString('pt-BR')], ['Validade', (s.validade || 15) + ' dias'], ['Vendedor', s.vendedor]];
+      doc.setFontSize(8.5); kv.forEach(([k, v], i) => { const x = 12 + (i % 3) * 62; const yy = y + Math.floor(i / 3) * 10; doc.setTextColor(...MUTE); doc.setFont('helvetica', 'normal'); doc.text(safe(k).toUpperCase(), x, yy); doc.setTextColor(...INK); doc.setFont('helvetica', 'bold'); doc.text(safe(v || '—'), x, yy + 4.2); });
+      y += 24;
+      const head = { styles: { font: 'helvetica', fontSize: 8.2, cellPadding: 1.8, textColor: INK }, headStyles: { fillColor: [30, 31, 33], textColor: [255, 255, 255] }, alternateRowStyles: { fillColor: [248, 246, 243] }, margin: { left: 12, right: 12, top: 30, bottom: 16 } };
+      if (s.descricao) { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('Escopo', 12, y); y += 5; doc.setFont('helvetica', 'normal'); doc.setFontSize(9); const lines = doc.splitTextToSize(safe(s.descricao), W - 24); doc.text(lines, 12, y); y += lines.length * 4.4 + 4; }
+      if (kind === 'cliente') {
+        const body = [];
+        if (s.blocos.equipe && r.pessoas) body.push(['Mão de obra técnica', `${r.pessoas} técnico(s), ${r.dias} dia(s) de trabalho`]);
+        if (s.blocos.equipe && r.logTot) body.push(['Mobilização', r.aereo ? 'Passagens aéreas, hospedagem, alimentação e locação de veículo' : 'Deslocamento, hospedagem e alimentação']);
+        for (const p of r.pecas.filter((x) => x.incluso !== false)) body.push([p.desc, `${fmt(num(p.qtd), 0)} ${p.un || 'un.'}`]);
+        if (body.length) doc.autoTable(Object.assign({}, head, { startY: y, head: [['Incluso no fornecimento', 'Quantidade']], body: body.map((x) => x.map(safe)), columnStyles: { 1: { cellWidth: 60 } } }));
+        y = (doc.lastAutoTable ? doc.lastAutoTable.finalY : y) + 8;
+        doc.setFillColor(255, 241, 232); doc.rect(12, y, W - 24, r.ct ? 24 : 16, 'F'); doc.setTextColor(...MUTE); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+        doc.text('INVESTIMENTO', 16, y + 6); doc.setTextColor(...OR); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+        if (r.ct) { doc.text(safe(bl(r.ct.mensal) + ' por mês'), 16, y + 13.5); doc.setFontSize(9); doc.setTextColor(...INK); doc.text(safe(`${s.contrato.visitas} visitas por ano · contrato de ${s.contrato.meses} meses · total ${bl(r.ct.total)} · reajuste ${s.contrato.reajuste || '—'}`), 16, y + 20); y += 30; }
+        else { doc.text(safe(bl(r.V)), 16, y + 13); y += 22; }
+        doc.setTextColor(...INK); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+        const cond = [['Condição de pagamento', s.pagamento + (s.aprazo ? ' (a prazo)' : '')], ['Prazo de execução', s.prazo_exec || 'a combinar'], ['Validade da proposta', (s.validade || 15) + ' dias'], ['Impostos', 'Inclusos']];
+        cond.forEach(([k, v]) => { doc.setFont('helvetica', 'bold'); doc.text(safe(k + ':'), 12, y); doc.setFont('helvetica', 'normal'); doc.text(safe(v), 60, y); y += 5; });
+        if (s.exclusoes) { y += 3; doc.setFont('helvetica', 'bold'); doc.text('Não incluso', 12, y); y += 5; doc.setFont('helvetica', 'normal'); const l = doc.splitTextToSize(safe(s.exclusoes), W - 24); doc.text(l, 12, y); }
+      } else {
+        const body = [];
+        r.pecas.length && r.pecas.forEach((p) => body.push(['Peça', p.desc + (p.forn ? ' (' + p.forn + ')' : ''), fmt(num(p.qtd), 2), bl(p.unitBRL), bl(p.custo), fmt(p.fator, 2), bl(p.venda)]));
+        if (s.blocos.equipe) { s.equipe.filter((e) => num(e.dias) > 0).forEach((e) => body.push(['Equipe', e.tec, fmt(num(e.dias), 0) + ' d', bl(e.diaria), bl(num(e.diaria) * num(e.dias)), '', ''])); r.log.filter((x) => x.tot).forEach((x) => body.push(['Deslocamento', x.lb, fmt(num(x.qtd), 0), bl(x.p), bl(x.tot), '', ''])); }
+        doc.autoTable(Object.assign({}, head, { startY: y, head: [['Grupo', 'Descrição', 'Qtd', 'Unit.', 'Custo', 'Fator', 'Venda']], body: body.map((x) => x.map(safe)), columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' }, 6: { halign: 'right' } } }));
+        const res = [['Custo da prestação do serviço', bl(r.custoServ)], ['Multiplicador do serviço', fmt(r.mult, 2)], ['Venda do serviço', bl(r.Vs)], ['Venda das peças', bl(r.Vp)], ['Venda bruta', bl(r.V)]].concat(r.ded.map(([lb, t, v]) => [lb + ' (' + NF[2].format(t * 100) + '%)', '- ' + bl(v)])).concat([['Custos', '- ' + bl(r.custo)], ['Lucro líquido', bl(r.lucro) + ' (' + NF[1].format(r.lucroPct * 100) + '%)']]);
+        if (r.ct) res.push(['Contrato: mensal / total', bl(r.ct.mensal) + ' / ' + bl(r.ct.total)]);
+        doc.autoTable(Object.assign({}, head, { startY: doc.lastAutoTable.finalY + 6, head: [['Formação do preço', '']], body: res.map((x) => x.map(safe)), columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } } }));
+      }
+      const pages = doc.getNumberOfPages(); const Hh = doc.internal.pageSize.getHeight(); const img = document.querySelector('.logo-plate img');
+      let logo = null; try { if (img && img.naturalWidth) { const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight; cv.getContext('2d').drawImage(img, 0, 0); logo = { url: cv.toDataURL('image/png'), r: img.naturalHeight / img.naturalWidth }; } } catch (e) { logo = null; }
+      for (let i = 1; i <= pages; i++) { doc.setPage(i); doc.setFillColor(...OR); doc.rect(0, 0, W, 3, 'F'); if (logo) doc.addImage(logo.url, 'PNG', 12, 7, 38, 38 * logo.r); doc.setDrawColor(215, 212, 206); doc.line(12, 24, W - 12, 24);
+        doc.setFillColor(...OR); doc.rect(0, Hh - 10, W, 10, 'F'); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.text('A FORÇA DA ÁGUA É A NOSSA FORÇA', 12, Hh - 3.8);
+        doc.setFont('helvetica', 'normal'); doc.text(safe('LS Fire · ' + (kind === 'cliente' ? 'proposta' : 'uso interno') + ' · página ' + i + ' de ' + pages), W - 12, Hh - 3.8, { align: 'right' }); }
+      const name = ((kind === 'cliente' ? 'Proposta SPV ' : 'Formação SPV ') + (s.numero || '') + ' ' + (s.cliente || '')).trim().replace(/[\\/:*?"<>|]+/g, '_') + '.pdf';
+      const ok = await REG.save(name, doc.output('arraybuffer'), 'application/pdf'); if (!ok) toast('Download cancelado');
+    }
+
+    // ---------- configuração SPV (Cadastro → Serviços SPV) ----------
+    function vCfg() {
+      const c = cfg(); const ed = REG.canEditCadastro; const ro = ed ? '' : ' disabled';
+      const ci = (path, v, kind = 'num', lb) => { const shown = kind === 'pct' ? NF[2].format(v * 100).replace(/,00$/, '') : kind === 'num' ? String(v).replace('.', ',') : v; return `<input data-cfg="${path}" data-k="${kind}" value="${esc(shown)}"${kind === 'text' ? '' : ' inputmode="decimal"'} aria-label="${esc(lb || path)}"${ro}>`; };
+      const f = (lb, h, u) => `<div class="f"><label>${esc(lb)}</label><div class="ctl pctl">${h}${u ? `<span class="unit">${u}</span>` : ''}</div></div>`;
+      const tec = c.tecnicos.map((t, i) => `<tr><td class="in">${ci(`tecnicos.${i}.nome`, t.nome, 'text', 'Nome')}</td><td class="in">${ci(`tecnicos.${i}.funcao`, t.funcao, 'text', 'Função')}</td><td class="in">${ci(`tecnicos.${i}.diaria`, t.diaria, 'num', 'Diária')}</td><td>${ed ? `<button class="restore" data-cfgrm="${i}">excluir</button>` : ''}</td></tr>`).join('');
+      const m = c.mk, k = c.custos;
+      return `<div class="stack"><p class="sub" style="margin:0">Base da formação de custo de serviços e pós-venda (SPV), como na planilha MASTERDOC. Vale para todas as propostas SPV novas.</p>
+        <section class="card"><h2>Técnicos e diárias</h2><div class="tw"><table class="t reg"><thead><tr><th>Nome</th><th>Função</th><th>Diária (R$)</th><th></th></tr></thead><tbody>${tec}</tbody></table></div>${ed ? '<div class="docbar" style="margin-top:8px"><button class="btn sm" data-cfgadd>+ Técnico</button></div>' : ''}</section>
+        <section class="card"><h2>Deslocamento e estadia</h2><div class="fields">${f('R$ por km', ci('custos.rkm', k.rkm))}${f('Passagem aérea (trecho)', ci('custos.aereo', k.aereo), 'R$')}${f('Locação de automóvel (dia)', ci('custos.carro', k.carro), 'R$')}${f('Hotel (noite, quarto individual)', ci('custos.hotel', k.hotel), 'R$')}${f('Alimentação (dia)', ci('custos.alim', k.alim), 'R$')}${f('ART', ci('custos.art', k.art), 'R$')}${f('Acima disto vai de avião (km ida e volta)', ci('custos.limite_km', k.limite_km))}${f('Endereço de saída', ci('custos.saida', k.saida, 'text'))}</div></section>
+        <section class="card"><h2>Markup, impostos e comissões</h2><div class="fields">${f('Multiplicador padrão do serviço', ci('mk.mult', m.mult))}${f('Lucro líquido mínimo', ci('mk.lucro_min', m.lucro_min, 'pct'), '%')}${f('PIS', ci('mk.pis', m.pis, 'pct'), '%')}${f('COFINS', ci('mk.cofins', m.cofins, 'pct'), '%')}${f('IRPJ / CSLL do serviço', ci('mk.irpj', m.irpj, 'pct'), '%')}${f('ISS', ci('mk.iss', m.iss, 'pct'), '%')}${f('IRPJ / CSLL de peças', ci('mk.irpj_pecas', m.irpj_pecas, 'pct'), '%')}${f('Custo financeiro', ci('mk.fin', m.fin, 'pct'), '%')}${f('Comissão representante', ci('mk.com_rep', m.com_rep, 'pct'), '%')}${f('Comissão captador', ci('mk.com_capt', m.com_capt, 'pct'), '%')}${f('Comissão orçamento', ci('mk.com_orc', m.com_orc, 'pct'), '%')}${f('Encargo de pagamento a prazo', ci('mk.prazo', m.prazo, 'pct'), '%')}</div></section>
+        <section class="card"><h2>Peças e importação</h2><div class="fields">${f('Fator padrão de venda de peças', ci('mk.fator_pecas', m.fator_pecas))}${f('Câmbio do dólar', ci('mk.cambio_usd', m.cambio_usd), 'R$')}${f('Câmbio do euro', ci('mk.cambio_eur', m.cambio_eur), 'R$')}${f('Fator de importação (frete, impostos e despacho)', ci('mk.fimp', m.fimp))}</div></section>
+        <section class="card"><h2>Famílias de produto por divisão</h2><p class="sub" style="margin:0 0 8px">Código do produto: NNN-XXX-XXXXX (família, abreviação, sequência). As famílias SPV aparecem como tipos na página inicial.</p>
+          <div class="tw"><table class="t famtab"><thead><tr><th>Código</th><th>Família</th><th>Divisão</th><th>Abrev.</th><th>Descrição</th></tr></thead><tbody>${famprod().map((x) => `<tr><td>${String(x.code).padStart(3, '0')}</td><td><b>${esc(x.nome)}</b></td><td><span class="divb ${x.div.toLowerCase()}">${x.div}</span></td><td>${esc(x.abrev)}</td><td class="sub">${esc(x.desc)}</td></tr>`).join('')}</tbody></table></div></section>
+      </div>`;
+    }
+    const getPath = (o, path) => path.split('.').reduce((x, k) => (x == null ? x : x[/^\d+$/.test(k) ? +k : k]), o);
+    async function saveCfg(mut, path, desc) {
+      const c = clone(cfg()); const de = path ? getPath(c, path) : null; mut(c); const para = path ? getPath(c, path) : null;
+      if (path && de === para) return;
+      try { await REG.setTable('SPV', { cfg: c }, desc || 'Configuração de serviços (SPV)', path ? [{ campo: path, de: de ?? null, para: para ?? null }] : []); }
+      catch (e) { toast(e.message || 'Não consegui salvar'); }
+    }
+
+    // ---------- eventos ----------
+    const setPath = (o, path, v) => { const ks = path.split('.'); let x = o; for (let i = 0; i < ks.length - 1; i++) { const k = /^\d+$/.test(ks[i]) ? +ks[i] : ks[i]; if (x[k] == null) x[k] = {}; x = x[k]; } x[ks[ks.length - 1]] = v; };
+    const parseV = (el) => { const k = el.dataset.k; if (k === 'bool') return el.checked; const t = el.value.trim(); if (k === 'text') return t; if (t === '') return null; const n = parseInput(t, 'num'); if (typeof n !== 'number') return undefined; return k === 'pct' ? n / 100 : n; };
+    document.addEventListener('change', (e) => {
+      const el = e.target;
+      if (el.dataset && el.dataset.sp && S()) {
+        const v = parseV(el); if (v === undefined) { toast('Número inválido'); return ctx.render(); }
+        const s = S(); const p = el.dataset.sp;
+        if (p.startsWith('ov.')) { s.ov = s.ov || {}; if (v === null) delete s.ov[p.slice(3)]; else s.ov[p.slice(3)] = v; }
+        else setPath(s, p, v);
+        const m = /^equipe\.(\d+)\.tec$/.exec(p); if (m) { const t = cfg().tecnicos.find((x) => x.nome === v); if (t) s.equipe[+m[1]].diaria = t.diaria; }
+        const pm = /^pecas\.(\d+)\.desc$/.exec(p); if (pm) { const row = s.pecas[+pm[1]]; const h = pricebook().get(norm(v)); if (h && !num(row.unit)) { const x = h[0]; Object.assign(row, { unit: x.unit, moeda: x.moeda, forn: row.forn || x.forn, cod: row.cod || x.cod, ipi: x.ipi || 0 }); toast('Preço da última compra: ' + (x.forn || '')); } }
+        if (p === 'tipo') { const ini = TIPO_INI[v]; if (ini) s.blocos = { equipe: !!ini.equipe || s.equipe.length > 0, pecas: !!ini.pecas || s.pecas.length > 0, contrato: !!ini.contrato }; }
+        ctx.persist(); ctx.render(); return;
+      }
+      if (el.dataset && el.dataset.spblk && S()) { S().blocos[el.dataset.spblk] = el.checked; ctx.persist(); ctx.render(); return; }
+      if (el.dataset && el.dataset.cfg) { const v = parseV(el); if (v === undefined) return toast('Número inválido'); saveCfg((c) => setPath(c, el.dataset.cfg, v), el.dataset.cfg); return; }
+      if (el.dataset && el.dataset.hstatus) { const p = (REG.listPropostas() || []).find((x) => x.id === el.dataset.hstatus); if (!p) return; const rec = Object.assign({}, p, { status: el.value }); delete rec.id; delete rec.local; REG.saveProposta(p.id, rec).then(() => { toast('Status: ' + (STATUS.find((x) => x[0] === el.value) || [0, el.value])[1]); if (st().id === p.id) st().status = el.value; ctx.render(); }).catch((er) => toast(er.message || 'Não consegui salvar')); return; }
+      if (el.id === 'spImport') { importar(el.files[0], true); el.value = ''; return; }
+      if (el.id === 'spAttach') { importar(el.files[0], false); el.value = ''; return; }
+      if (el.id === 'docUp') { importar(el.files[0], false); el.value = ''; return; }
+      if (el.id === 'docT') { ctx.ui.docT = el.value; ctx.render(); }
+    });
+    let qT;
+    document.addEventListener('input', (e) => {
+      const id = e.target.id; if (id !== 'homeQ' && id !== 'docQ') return;
+      clearTimeout(qT); qT = setTimeout(() => { ctx.ui[id] = e.target.value; ctx.render(); const f = document.getElementById(id); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }, 200);
+    });
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      const ns = t.closest('[data-spvnew]'); if (ns) { novoSpv(ns.dataset.spvnew); return; }
+      if (t.closest('[data-seqnew]')) { ctx.newSeq(); return; }
+      const hd = t.closest('[data-hdiv]'); if (hd) { ctx.ui.homeDiv = hd.dataset.hdiv; ctx.render(); return; }
+      const ho = t.closest('[data-hopen]'); if (ho && !t.closest('select') && !t.closest('[data-hdup]')) { const p = (REG.listPropostas() || []).find((x) => x.id === ho.dataset.hopen); if (p) ctx.openProposta(p, false); return; }
+      const hu = t.closest('[data-hdup]'); if (hu) { const p = (REG.listPropostas() || []).find((x) => x.id === hu.dataset.hdup); if (p) ctx.openProposta(p, true); return; }
+      const ad = t.closest('[data-spadd]'); if (ad && S()) { const s = S(); if (ad.dataset.spadd === 'equipe') s.equipe.push({ tec: '', diaria: 0, dias: s.equipe[0] ? s.equipe[0].dias : 1 }); else s.pecas.push({ desc: '', qtd: 1, unit: 0, ipi: 0, moeda: 'BRL', incluso: true }); ctx.persist(); ctx.render(); return; }
+      const rm = t.closest('[data-sprm]'); if (rm && S()) { const [k, i] = rm.dataset.sprm.split('.'); S()[k].splice(+i, 1); ctx.persist(); ctx.render(); return; }
+      const au = t.closest('[data-spauto]'); if (au && S()) { delete S().ov[au.dataset.spauto]; ctx.persist(); ctx.render(); return; }
+      if (t.closest('[data-spfix]') && S()) { const r = calc(S()); if (r.multMin) { S().mk.mult = Math.ceil(r.multMin * 100) / 100; ctx.persist(); ctx.render(); toast('Multiplicador ajustado para a meta de lucro'); } return; }
+      const pp = t.closest('[data-sppdf]'); if (pp && S()) { pdf(pp.dataset.sppdf).catch((er) => toast(er.message || 'Não consegui gerar o PDF')); return; }
+      const dop = t.closest('[data-dopen]'); if (dop) { const d = docs.find((x) => x.id === dop.dataset.dopen); if (d) abrirDoc(d, false); return; }
+      const ddw = t.closest('[data-ddown]'); if (ddw) { const d = docs.find((x) => x.id === ddw.dataset.ddown); if (d) abrirDoc(d, true); return; }
+      const dde = t.closest('[data-dedit]'); if (dde) { const d = docs.find((x) => x.id === dde.dataset.dedit); if (d) docModal(d, null, { toPecas: !!S() && st().div === 'SPV' }); return; }
+      if (t.closest('[data-cfgadd]')) { saveCfg((c) => c.tecnicos.push({ nome: 'Novo técnico', funcao: '', diaria: 0 }), null, 'Técnico incluído'); return; }
+      const cr = t.closest('[data-cfgrm]'); if (cr) { if (!cr.dataset.sure) { cr.dataset.sure = 1; cr.textContent = 'confirmar'; return; } const nm = (cfg().tecnicos[+cr.dataset.cfgrm] || {}).nome; saveCfg((c) => c.tecnicos.splice(+cr.dataset.cfgrm, 1), null, 'Técnico excluído: ' + (nm || '')); }
+    });
+    document.addEventListener('dragover', (e) => { if (e.target.closest && e.target.closest('#docDrop')) { e.preventDefault(); e.target.closest('#docDrop').classList.add('over'); } });
+    document.addEventListener('dragleave', (e) => { const d = e.target.closest && e.target.closest('#docDrop'); if (d) d.classList.remove('over'); });
+    document.addEventListener('drop', (e) => { const d = e.target.closest && e.target.closest('#docDrop'); if (!d) return; e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) importar(f, false); });
+
+    return { vHome, vSpv, vDocs, vCfg, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
+  }
+  window.PricerSPV = SPV;
+})();
+
+</script>
 <script>/* app.js */
 /* LS Pricer — interface. As contas são as da planilha, executadas pelo engine.js. */
 (function () {
@@ -1688,9 +2289,15 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
   };
+  const newUid = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   let state = store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
-  let ui = Object.assign({ view: 'proposta', item: 0, simple: true, step: 1, table: 'PARÂMETROS', filter: '', cad: 'insumos' }, store.get(SK.view, {}));
+  if (!state.uid) state.uid = newUid();
+  if (!state.div) state.div = 'SEQ';
+  const isSpv = () => state.div === 'SPV' && !!state.spv;
+  let ui = Object.assign({ view: 'inicio', item: 0, simple: true, step: 1, table: 'PARÂMETROS', filter: '', cad: 'insumos' }, store.get(SK.view, {}));
   if (ui.view === 'tabelas') { ui.view = 'cadastro'; ui.cad = 'tabelas'; }
+  // o app sempre abre na página inicial (busca, histórico e os botões SEQ / SPV)
+  ui.view = 'inicio';
   let wb;
   // cadastro compartilhado (claude.ai) ou local (arquivo)
   let pendingRender = false;
@@ -1702,7 +2309,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   });
   document.addEventListener('focusout', () => { if (pendingRender) setTimeout(() => { const ae = document.activeElement; if (!(ae && ae.matches && ae.matches('#app input, #app select, #app textarea'))) { pendingRender = false; render(); } }, 0); });
 
-  function build() { wb = new Workbook(MODEL); REG.applyTo(wb); wb.applyDoc(state.doc); listCache = new Map(); }
+  function build() { wb = new Workbook(MODEL); REG.applyTo(wb); wb.applyDoc(state.doc || {}); listCache = new Map(); }
   function persist() { store.set(SK.cur, state); }
 
   // ---------- validações (listas) ----------
@@ -1859,18 +2466,21 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   // ---------- visões ----------
   function setView(v) { ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
-    for (const b of document.querySelectorAll('#nav button')) b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false');
-    const nm = txt('PROPOSTA', 'C5'), cli = txt('PROPOSTA', 'F5');
-    $('#docName').innerHTML = (nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>';
+    const spv = isSpv();
+    if (spv && (ui.view === 'item' || ui.view === 'memorial')) ui.view = 'proposta';
+    for (const b of document.querySelectorAll('#nav button')) { b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false'); if ('seqonly' in b.dataset) b.hidden = spv; }
+    const nm = spv ? state.spv.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : txt('PROPOSTA', 'F5');
+    $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
+    for (const id of ['bMode']) { const b = $('#' + id); if (b) b.hidden = spv || ui.view === 'inicio' || ui.view === 'documentos'; }
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
-    const full = ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
-    const views = ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
-    const html = Object.assign({ memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
+    const full = !spv && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
+    const views = spv ? { proposta: SPV.vSpv } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
+    const html = Object.assign({ inicio: SPV.vHome, documentos: SPV.vDocs, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
     $('#app').innerHTML = (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
     const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
     if (ui.view === 'cadastro') bindCadastro();
     window.scrollTo(0, scroll);
-    if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') f.focus(); }
+    if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') { f.focus(); if (f.type === 'search') f.setSelectionRange(f.value.length, f.value.length); } }
   }
   const filled = (sh) => { const v = val(sh, 'H114'); return typeof v === 'number' && v !== 0; };
 
@@ -2523,7 +3133,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
 
   // ---------- cadastro: insumos, kits, importação, histórico e demais tabelas ----------
   const H = REG.helpers;
-  const CAD_TABS = [['insumos', 'Insumos'], ['familias', 'Famílias'], ['estruturas', 'Estruturas'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['parametros', 'Parâmetros'], ['politica', 'Política de preço'], ['codificacao', 'Codificação'], ['fci', 'FCI e válvulas'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Planilha (avançado)']];
+  const CAD_TABS = [['insumos', 'Insumos'], ['familias', 'Famílias'], ['estruturas', 'Estruturas'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['parametros', 'Parâmetros'], ['politica', 'Política de preço'], ['codificacao', 'Codificação'], ['fci', 'FCI e válvulas'], ['spv', 'Serviços (SPV)'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Planilha (avançado)']];
   const fmtAt = (s) => { try { return new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return s; } };
   const fmtVal = (v) => typeof v === 'number' ? NF[2].format(v) : v === null || v === undefined || v === '' ? '—' : String(v);
   const who = (id) => id ? `<span data-uid="${esc(id)}">…</span>` : (REG.mode === 'shared' ? 'alguém da equipe' : 'neste navegador');
@@ -2546,7 +3156,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   }
   function vCadastro() {
     const tab = ui.cad || 'insumos';
-    const body = { insumos: vInsumos, familias: vFamilias, parametros: () => vParamTab('parametros'), politica: () => vParamTab('politica'), codificacao: () => vParamTab('codificacao'), fci: () => vParamTab('fci'), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, parametros: () => vParamTab('parametros'), politica: () => vParamTab('politica'), codificacao: () => vParamTab('codificacao'), fci: () => vParamTab('fci'), spv: SPV.vCfg, estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
         <div><h1>Cadastro</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div></div>
@@ -3297,17 +3907,39 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     o.querySelector('.modal').addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close(); });
     bind && bind(o, close);
   }
-  function loadDoc(doc, name, id) { state = { id: id || null, doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }; build(); persist(); dlMap = null; ui.item = 0; render(); }
-  function docTitle() { const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return [n, c].filter(Boolean).join(' · ') || 'Proposta sem nome'; }
+  function loadDoc(doc, name, id, extra) { state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); }
+  function docTitle() {
+    if (isSpv()) return [state.spv.numero, state.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome';
+    const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return [n, c].filter(Boolean).join(' · ') || 'Proposta sem nome';
+  }
+  // abre (ou duplica) uma proposta salva, SEQ ou SPV
+  function openProposta(p, dup) {
+    const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho') };
+    if (p.div === 'SPV' && p.spv) {
+      const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
+      loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
+    } else loadDoc(p.doc, p.name, keepId, extra);
+    if (dup && !isSpv()) { if (state.doc.PROPOSTA) delete state.doc.PROPOSTA.C5; build(); persist(); }
+    dirty = !!dup; ui.step = 1; ui.propFull = false; setView('proposta');
+    toast(dup ? 'Cópia criada: dê um número novo e salve' : 'Aberto: ' + (p.name || docTitle()));
+  }
+  function newSeq() { loadDoc({}, ''); ui.step = 1; ui.propFull = false; setView('proposta'); toast('Proposta SEQ em branco'); }
+  const SPV = window.PricerSPV({ REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render,
+    getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
+    persist: () => { persist(); dirty = true; },
+    current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
 
   $('#bMode').onclick = () => { ui.simple = !ui.simple; ui.propFull = false; ui.itemFull = false; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
   $('#bNew').onclick = () => modal(`<h2>Nova proposta</h2><p class="sub">A proposta atual continua salva se você já clicou em Salvar. Alterações não salvas se perdem.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">Proposta em branco</button><button class="btn" id="mExample">Abrir o exemplo (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
-    (o, close) => { $('#mBlank', o).onclick = () => { close(); loadDoc({}, ''); ui.step = 1; setView('proposta'); toast('Proposta em branco'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">SEQ em branco</button><button class="btn pri" id="mSpv">SPV (serviço, peças, contrato)</button><button class="btn" id="mExample">Exemplo SEQ (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
+    (o, close) => { $('#mBlank', o).onclick = () => { close(); newSeq(); }; $('#mSpv', o).onclick = () => { close(); setView('inicio'); const t = document.querySelector('.tchips'); if (t) t.scrollIntoView({ block: 'center' }); toast('Escolha o tipo de SPV'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
 
   $('#bSave').onclick = async () => {
     const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
-    const p = { name: docTitle(), numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), at: new Date().toISOString(), total: val('PROPOSTA', 'P43'), doc: state.doc || {} };
+    const base = { name: docTitle(), at: new Date().toISOString(), uid: state.uid, status: state.status || 'rascunho' };
+    const p = isSpv() ? Object.assign(base, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv })
+      : Object.assign(base, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
     if (typeof p.total !== 'number') delete p.total;
     try { const where = await REG.saveProposta(id, p); state.id = id; persist(); dirty = false; toast((where === 'shared' ? 'Salvo para a equipe: ' : 'Salvo neste navegador: ') + docTitle()); }
     catch (err) { toast(errMsg(err)); }
@@ -3316,7 +3948,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   $('#bOpen').onclick = () => {
     const list = REG.listPropostas();
     const shared = REG.mode === 'shared';
-    const rows = list.map((p) => `<div class="row"><div style="min-width:0"><b>${esc(p.name)}</b><br><small>${fmtAt(p.at)} · ${typeof p.total === 'number' ? brl(p.total) : '—'}${shared && !p.local ? ' · ' + who(p.by) : ''}${p.local ? ' · <span class="pill mute">neste navegador</span>' : ''}</small></div><div style="display:flex;gap:6px"><button class="btn sm pri" data-open="${esc(p.id)}">Abrir</button><button class="btn sm" data-del="${esc(p.id)}">Excluir</button></div></div>`).join('')
+    const rows = list.map((p) => `<div class="row"><div style="min-width:0"><span class="divb ${p.div === 'SPV' ? 'spv' : 'seq'}">${p.div || 'SEQ'}</span> <b>${esc(p.name)}</b><br><small>${fmtAt(p.at)} · ${typeof p.total === 'number' ? brl(p.total) : '—'}${shared && !p.local ? ' · ' + who(p.by) : ''}${p.local ? ' · <span class="pill mute">neste navegador</span>' : ''}</small></div><div style="display:flex;gap:6px"><button class="btn sm pri" data-open="${esc(p.id)}">Abrir</button><button class="btn sm" data-del="${esc(p.id)}">Excluir</button></div></div>`).join('')
       || `<p class="sub">Nenhuma proposta salva ${shared ? 'pela equipe' : 'neste navegador'} ainda.</p>`;
     modal(`<h2>Propostas salvas</h2>
       ${shared ? '<p class="sub">Propostas da equipe: quem tem acesso ao app vê e abre todas. Salvar de novo atualiza a mesma proposta.</p>' : '<p class="sub">Este arquivo guarda as propostas só neste navegador.</p>'}
@@ -3331,17 +3963,17 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
       fillNames(o);
       const byId = Object.fromEntries(list.map((p) => [p.id, p]));
       $('#mQ', o).oninput = (e) => { const q = e.target.value.toLowerCase(); o.querySelectorAll('#mList .row').forEach((r) => { r.hidden = q && !r.textContent.toLowerCase().includes(q); }); };
-      o.querySelectorAll('[data-open]').forEach((b) => b.onclick = () => { const p = byId[b.dataset.open]; close(); loadDoc(p.doc, p.name, p.local && shared ? null : p.id); setView('proposta'); toast('Aberto: ' + p.name); });
+      o.querySelectorAll('[data-open]').forEach((b) => b.onclick = () => { close(); openProposta(byId[b.dataset.open], false); });
       o.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => {
         if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar'; b.classList.add('pri'); return; }
         const p = byId[b.dataset.del];
         try { await REG.deleteProposta(p.id, !!p.local); b.closest('.row').remove(); if (state.id === p.id) { state.id = null; persist(); } } catch (err) { toast(errMsg(err)); }
       });
-      const payload = () => JSON.stringify({ app: 'ls-pricer', rev: MODEL.source, name: docTitle(), doc: state.doc }, null, 1);
+      const payload = () => JSON.stringify(Object.assign({ app: 'ls-pricer', rev: MODEL.source, name: docTitle(), doc: state.doc }, isSpv() ? { div: 'SPV', spv: state.spv } : {}), null, 1);
       $('#mCopy', o).onclick = () => { const t = payload(); $('#mTxt', o).value = t; navigator.clipboard.writeText(t).then(() => toast('Copiado'), () => { $('#mTxt', o).select(); toast('Selecionado — use Ctrl+C'); }); };
       $('#mDown', o).onclick = async () => { const ok = await REG.save((docTitle().replace(/[^\w\-. ]+/g, '_') || 'proposta') + '.json', payload(), 'application/json'); if (!ok) toast('Download cancelado'); };
       $('#mFile', o).onchange = (e) => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $('#mTxt', o).value = rd.result; }; rd.readAsText(f); };
-      $('#mImp', o).onclick = () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc) throw 0; close(); loadDoc(j.doc, j.name); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
+      $('#mImp', o).onclick = () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc && !j.spv) throw 0; close(); if (j.div === 'SPV' && j.spv) loadDoc({}, j.name, null, { div: 'SPV', spv: j.spv }); else loadDoc(j.doc, j.name); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
     });
   };
 
