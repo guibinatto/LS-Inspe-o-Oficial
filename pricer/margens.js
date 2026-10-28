@@ -105,6 +105,7 @@
             if (querXls) excel(Object.assign({ id: p.id }, F)).catch((e) => toast(e.message || 'Não consegui gerar o Excel'));
             // vai direto para a tela do custo real desta proposta
             ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = p.id; onDone && onDone(); ctx.render(); window.scrollTo(0, 0);
+            setTimeout(() => { const p2 = (REG.listPropostas() || []).find((x) => x.id === p.id) || Object.assign({}, p, { status: 'ganha' }); avisarModal(p2, ['financeiro', 'engenharia']); }, 400);
           } catch (e) { $('#fcOk', o).disabled = false; toast((e && e.message) || 'Não consegui registrar a baixa'); }
         };
       });
@@ -164,6 +165,8 @@
     function vMargens() {
       ensure();
       if (ui.mgId) return vDetalhe(ui.mgId);
+      ensureA(); if ((ui.mgTab || 'painel') === 'aprovacoes' && ui.apId) return vAprovDetalhe(ui.apId);
+      const nAp = aprov.filter((a) => estadoA(a) === 'pendente').length;
       const B = base(); const tab = ui.mgTab || 'painel';
       const itAb = B.abertas.flatMap((p) => (p.resumo.itens || []).map((x) => ({ div: p.div || 'SEQ', fam: x.familia, famNome: x.familiaNome || x.familia, nome: x.nome, venda: num(x.venda), margem: num(x.margem), min: num(p.resumo.minimo), pac: p })));
       const itFe = B.fechadas.flatMap((f) => f.itens.map((x) => ({ div: f.F.div, fam: x.familia, famNome: x.familiaNome || x.familia, nome: x.nome, venda: x.venda, margem: x.margem, margemReal: x.margemReal, min: num(f.F.snap.minimo), pac: f })));
@@ -173,7 +176,7 @@
       const baixo = B.abertas.filter((p) => p.resumo.minimo && p.resumo.margemPct < p.resumo.minimo).length;
       const sel = (id, v, opts) => `<select id="${id}" aria-label="${id}">${opts.map(([k, l]) => `<option value="${k}"${v === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
       const filtros = `<div class="sheetbar">${sel('mgPer', ui.mgPer || '12m', [['12m', 'Últimos 12 meses'], ['ano', 'Este ano'], ['tudo', 'Tudo']])}${sel('mgDiv', ui.mgDiv || 'todas', [['todas', 'SEQ e SPV'], ['SEQ', 'Só SEQ'], ['SPV', 'Só SPV']])}
-        <div class="hchips" style="margin-left:auto">${[['painel', 'Painel'], ['fechadas', `Fechadas (${B.fechadas.length})`], ['abertas', `Em aberto (${B.abertas.length})`]].map(([k, l]) => `<button class="hchip${tab === k ? ' on' : ''}" data-mgtab="${k}">${l}</button>`).join('')}</div></div>`;
+        <div class="hchips" style="margin-left:auto">${[['painel', 'Painel'], ['fechadas', `Fechadas (${B.fechadas.length})`], ['abertas', `Em aberto (${B.abertas.length})`], ['aprovacoes', `Aprovações${nAp ? ' (' + nAp + ' pendente' + (nAp > 1 ? 's' : '') + ')' : ''}`]].map(([k, l]) => `<button class="hchip${tab === k ? ' on' : ''}" data-mgtab="${k}">${l}</button>`).join('')}</div></div>`;
       const kpis = `<div class="kpis">
         <div class="kpi"><span>Em aberto</span><b>${mi(vAb)}</b><em>${B.abertas.length} proposta(s) · margem ${mAb === null ? '—' : pct(mAb, 1)}</em></div>
         <div class="kpi"><span>Fechadas</span><b>${mi(vFe)}</b><em>${B.fechadas.length} pacote(s) · margem fechada ${mFe === null ? '—' : pct(mFe, 1)}</em></div>
@@ -183,6 +186,7 @@
       const fila = B.fechadas.filter((f) => f.cobertura < 1).sort((a, b) => String(b.F.fechadoEm).localeCompare(String(a.F.fechadoEm))).slice(0, 6);
       const filaHtml = fila.length ? `<section class="card"><h2>Custo real a lançar <span class="sub">fechadas com linhas sem custo real</span></h2><div class="tw"><table class="t"><tbody>${fila.map((f) => `<tr><td><span class="divb ${f.F.div.toLowerCase()}">${f.F.div}</span> <b>${esc(f.F.numero || '—')}</b> <span class="sub">${esc(f.F.cliente || '')} · fechada em ${fmtD(f.F.fechadoEm)}</span></td><td class="n">${pct(f.cobertura, 0)} apontado</td><td style="text-align:right"><button class="btn sm pri" data-mgopen="${esc(f.F.id)}">Lançar custo real</button></td></tr>`).join('')}</tbody></table></div></section>` : '';
       let body = filaHtml;
+      if (tab === 'aprovacoes') body = vAprovacoes(); else
       if (tab === 'painel') {
         const divs = ['SEQ', 'SPV'].map((d) => { const a = itAb.filter((x) => x.div === d), f = itFe.filter((x) => x.div === d); const pa = wavg(a, (x) => x.venda, (x) => x.margem), pf = wavg(f, (x) => x.venda, (x) => x.margem);
           return { label: d, sub: `${mi(a.reduce((t, x) => t + x.venda, 0))} · ${mi(f.reduce((t, x) => t + x.venda, 0))}`, vals: [pa, pf], tips: [`${d} em aberto: margem ${pa === null ? '—' : pct(pa, 1)} sobre ${brl(a.reduce((t, x) => t + x.venda, 0))}`, `${d} fechadas: margem ${pf === null ? '—' : pct(pf, 1)} sobre ${brl(f.reduce((t, x) => t + x.venda, 0))}`] }; }).filter((r) => r.vals.some((v) => v !== null));
@@ -287,13 +291,103 @@
       });
     }
 
+    // ---------- abas no padrão do Markup HFS (Reunião + Base), com fórmulas vivas ----------
+    function hfsSheets(wbx, F, R) {
+      const its = R.itens; const n = its.length; const L = (c) => { let s = ''; while (c > 0) { const m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = Math.floor((c - 1) / 26); } return s; };
+      const IC = (i) => L(3 + i); const TC = L(3 + n); const NC = 5 + n; const first = IC(0), last = IC(n - 1);
+      const NAVY = 'FF243649', INK = 'FF202B36', HEAD = 'FFEDF1F5', KEY = 'FFDCE8F0', INPF = 'FFFFF1C2', INPC = 'FF1657AE', TOPF = 'FFE9F0F5';
+      const RS = '"R$ "#,##0.00;\\("R$ "#,##0.00\\);"R$ -"', FX = '0.0000"x"', PC = '0.00%';
+      const nomeCurto = (x, i) => (x.n && /^ITEM/.test(x.n) ? x.n.replace('ITEM ', 'Item ') : 'Item ' + String(i + 1).padStart(2, '0')) + (x.familia ? ' · ' + x.familia : '');
+      const mk = (title) => { const ws = wbx.addWorksheet(title, { views: [{ showGridLines: false }] }); ws.getColumn(1).width = 3; ws.getColumn(2).width = title === 'Reunião' ? 62 : 46; for (let i = 0; i < n; i++) ws.getColumn(3 + i).width = 21; ws.getColumn(3 + n).width = 22; ws.getColumn(4 + n).width = 3; ws.getColumn(NC).width = 62; return ws; };
+      const put = (ws, a, v, st = {}) => { const c = ws.getCell(a); c.value = v; if (st.fmt) c.numFmt = st.fmt; c.font = { name: 'Arial', size: st.size || 11, bold: !!st.b, color: { argb: st.color || INK } }; if (st.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: st.fill } }; if (st.wrap) c.alignment = { wrapText: true, vertical: 'top' }; return c; };
+      const inp = (ws, a, v, fmt) => put(ws, a, v, { fmt, fill: INPF, color: INPC });
+      const sec = (ws, r, t) => { put(ws, 'B' + r, t, { b: true, color: 'FFFFFFFF', fill: NAVY }); for (let i = 0; i <= n; i++) put(ws, L(3 + i) + r, null, { fill: NAVY }); };
+      const head = (ws, r, lb, tot = 'Total') => { put(ws, 'B' + r, lb, { b: true, fill: HEAD }); its.forEach((x, i) => put(ws, IC(i) + r, nomeCurto(x, i), { b: true, fill: HEAD })); if (tot) put(ws, TC + r, tot, { b: true, fill: HEAD }); };
+      const linhaF = (ws, r, lb, f, fmt, st = {}) => { put(ws, 'B' + r, lb, st); its.forEach((x, i) => put(ws, IC(i) + r, { formula: f(IC(i), i) }, Object.assign({ fmt }, st))); if (st.tot !== false) put(ws, TC + r, { formula: st.totF || `SUM(${first}${r}:${last}${r})` }, Object.assign({ fmt }, st)); };
+      const nota = (ws, r, t) => put(ws, L(NC) + r, t, { size: 10, color: 'FF52514E', wrap: true });
+      // ---- Base ----
+      const B = mk('Base');
+      put(B, 'B2', 'Base da formação | ' + (F.numero || F.nome || ''), { b: true, size: 20, color: NAVY }); put(B, 'B3', 'Valores extraídos do LS Pricer no fechamento de ' + fmtD(F.fechadoEm) + '; amarelo = entrada editável.');
+      sec(B, 5, 'CUSTOS LANÇADOS NA FORMAÇÃO'); head(B, 6, 'Componente');
+      const grupos = new Map();
+      its.forEach((x, i) => (x.linhas || []).forEach((l) => { if (l.k === 'startup' || l.k === 'frete') return; const ori = l.ori === 'IMP' ? 'importado' : 'nacional'; const g = String(l.fam || (l.grupo === 'ESCOPO' ? 'Escopo sem família' : l.grupo) || 'Outros').replace(/^\d+\./, '') + ' | ' + ori; if (!grupos.has(g)) grupos.set(g, { ori, v: its.map(() => 0) }); grupos.get(g).v[i] += l.prev; }));
+      its.forEach((x, i) => { const base = x.custo - num(x.custoStartup) - num(x.custoFrete); const soma = [...grupos.values()].reduce((t, g) => t + g.v[i], 0); const d = base - soma; if (Math.abs(d) > 0.5) { const g = 'Outros e ajustes | nacional'; if (!grupos.has(g)) grupos.set(g, { ori: 'nacional', v: its.map(() => 0) }); grupos.get(g).v[i] += d; } });
+      const ord = [...grupos.entries()].sort((a, b) => (a[1].ori === b[1].ori ? b[1].v.reduce((q, z) => q + z, 0) - a[1].v.reduce((q, z) => q + z, 0) : a[1].ori === 'importado' ? -1 : 1));
+      let r = 7; const r0 = r; let ri0 = null, ri1 = null, rn0 = null, rn1 = null;
+      for (const [g, o] of ord) { put(B, 'B' + r, g); o.v.forEach((v, i) => inp(B, IC(i) + r, Math.round(v * 100) / 100, RS)); put(B, TC + r, { formula: `SUM(${first}${r}:${last}${r})` }, { fmt: RS }); if (o.ori === 'importado') { ri0 = ri0 || r; ri1 = r; } else { rn0 = rn0 || r; rn1 = r; } r++; }
+      r++; const rImp = r, rNac = r + 1, rCus = r + 2;
+      linhaF(B, rImp, 'Total importado', (c) => (ri0 ? `SUM(${c}${ri0}:${c}${ri1})` : '0'), RS); linhaF(B, rNac, 'Total nacional', (c) => (rn0 ? `SUM(${c}${rn0}:${c}${rn1})` : '0'), RS); linhaF(B, rCus, 'Custo de aquisição original', (c) => `SUM(${c}${rImp}:${c}${rNac})`, RS, { b: true });
+      r = rCus + 2; sec(B, r, 'VALORES ADICIONADOS AO PREÇO'); head(B, r + 1, 'Componente');
+      const rFre = r + 2, rSta = r + 3;
+      put(B, 'B' + rFre, 'Frete embutido no preço'); put(B, 'B' + rSta, 'Start-up embutido no preço');
+      its.forEach((x, i) => { inp(B, IC(i) + rFre, num(x.custoFrete), RS); inp(B, IC(i) + rSta, num(x.custoStartup), RS); }); [rFre, rSta].forEach((q) => put(B, TC + q, { formula: `SUM(${first}${q}:${last}${q})` }, { fmt: RS }));
+      r = rSta + 2; sec(B, r, 'TRIBUTOS CADASTRADOS NO PRICER'); head(B, r + 1, 'Parâmetro', null);
+      const rIcms = r + 2, rPis = r + 3, rCof = r + 4, rIr = r + 5, rIpi = r + 6, rDiv = r + 7;
+      [[rIcms, 'ICMS', (x) => (x.icmsPct != null ? x.icmsPct : Math.max(0, (x.venda ? x.impostos / x.venda : 0) - num(x.pisPct || 0.0065) - num(x.cofinsPct || 0.03) - num(x.irPct)))], [rPis, 'PIS | base sem ICMS', (x) => (x.pisPct != null ? x.pisPct : 0.0065)], [rCof, 'COFINS | base sem ICMS', (x) => (x.cofinsPct != null ? x.cofinsPct : 0.03)], [rIr, 'IRPJ / CSLL', (x) => num(x.irPct)], [rIpi, 'IPI | por fora', (x) => num(x.ipiPct)]]
+        .forEach(([q, lb, f]) => { put(B, 'B' + q, lb); its.forEach((x, i) => inp(B, IC(i) + q, f(x), PC)); });
+      linhaF(B, rDiv, 'Divisor fiscal | antes do IPI', (c) => `1-(${c}${rIcms}+${c}${rIr}+(${c}${rPis}+${c}${rCof})*(1-${c}${rIcms}))`, '0.00000', { tot: false });
+      r = rDiv + 2; sec(B, r, 'PREÇO FECHADO E POLÍTICA'); put(B, TC + r, 'TOTAL', { b: true, color: 'FFFFFFFF', fill: NAVY });
+      const rPre = r + 1, rTab = r + 2, rDes = r + 3, rMin = r + 4;
+      put(B, 'B' + rPre, 'Preço fechado com impostos (com IPI)'); its.forEach((x, i) => inp(B, IC(i) + rPre, Math.round((x.venda + num(x.ipi) * R.k) * 100) / 100, RS)); put(B, TC + rPre, { formula: `SUM(${first}${rPre}:${last}${rPre})` }, { fmt: RS });
+      put(B, 'B' + rTab, 'Fator de tabela'); its.forEach((x, i) => inp(B, IC(i) + rTab, x.fatorTabela || null, FX)); nota(B, rTab, 'Fator de tabela da família de produto do item (POLÍTICA).');
+      put(B, 'B' + rDes, 'Desconto máximo da política'); its.forEach((x, i) => inp(B, IC(i) + rDes, x.descMax != null ? x.descMax : null, PC)); nota(B, rDes, 'Desconto máximo sobre o preço de tabela, pela origem do conjunto (nacional ou importado).');
+      linhaF(B, rMin, 'Fator mínimo aprovado', (c) => `IF(${c}${rTab}="","",${c}${rTab}*(1-${c}${rDes}))`, FX, { tot: false }); nota(B, rMin, 'Fator mínimo = fator de tabela × (1 − desconto máximo): cobre custo fixo, financeiro e o resultado desejado.');
+      r = rMin + 3; put(B, 'B' + r, 'Fontes e premissas', { b: true });
+      [`LS Pricer: ${its.map((x, i) => nomeCurto(x, i)).join(', ')} — custos, frete, start-up e tributos do fechamento.`, `Fechamento de ${fmtD(F.fechadoEm)}${F.pedido ? ', pedido ' + F.pedido : ''}: valor proposto ${brl(F.vendaProposta)} e fechado ${brl(R.venda)} sem IPI.`, 'A origem (importado/nacional) de cada componente vem do cadastro de insumos.', 'Atualização proporcional do importado é uma estimativa; conferir nacionalização e créditos.', 'Frete e start-up cobrados foram mantidos como na origem; sem novo encargo financeiro.']
+        .forEach((t, j) => put(B, 'B' + (r + 1 + j), t, { size: 10, color: 'FF52514E' }));
+      // ---- Reunião ----
+      const W = mk('Reunião'); const cambio = num(((ctx.SPV && ctx.SPV.cfg && ctx.SPV.cfg().mk) || {}).cambio_usd) || 5.5;
+      put(W, 'B2', 'Markup da negociação | ' + (F.cliente || ''), { b: true, size: 20, color: NAVY }); put(W, 'B3', (F.numero || F.nome || '') + ' • preço fechado × custo atualizado pelo câmbio');
+      put(W, 'B5', 'Preço necessário pelo fator aprovado', { fill: TOPF }); put(W, TC + '5', { formula: TC + '31' }, { b: true, size: 19, color: NAVY, fill: TOPF, fmt: RS });
+      put(W, 'B6', 'Preço fechado com o cliente'); put(W, TC + '6', { formula: 'C10' }, { fmt: RS }); nota(W, 6, 'Preço com impostos e IPI, como fechado.');
+      put(W, 'B7', 'Ajuste para atender à política'); put(W, TC + '7', { formula: `${TC}5-${TC}6` }, { fmt: RS }); nota(W, 7, 'Entre parênteses: sobrando. Sem parênteses: faltando.');
+      put(W, 'B9', 'Câmbio "atual" (estimativa)'); inp(W, 'C9', cambio, '"R$ "0.00'); nota(W, 9, 'Cenário para a reunião; não é cotação verificada.');
+      put(W, 'B10', 'Preço total fechado'); put(W, 'C10', { formula: `Base!${TC}${rPre}` }, { fmt: RS });
+      put(W, 'B11', 'Câmbio usado no custo original (nacionalização)'); inp(W, 'C11', cambio, '"R$ "0.00'); nota(W, 11, 'Confirmar com Compras o câmbio da formação.');
+      put(W, 'B12', 'Fator mínimo aprovado (por item na linha 36)'); put(W, 'C12', { formula: `IFERROR(AVERAGE(${first}36:${last}36),"")` }, { fmt: FX });
+      sec(W, 14, '1. ATUALIZAR O CUSTO DE AQUISIÇÃO'); head(W, 15, 'Etapa');
+      linhaF(W, 16, 'Importado no custo original', (c) => `Base!${c}${rImp}`, RS); linhaF(W, 17, 'Nacional no custo original', (c) => `Base!${c}${rNac}`, RS); linhaF(W, 18, 'Custo total original', (c) => `SUM(${c}16:${c}17)`, RS);
+      linhaF(W, 19, 'Variação do câmbio | compra ÷ formação', () => '$C$9/$C$11', '0.0000', { tot: false });
+      linhaF(W, 20, 'Importado com o novo câmbio', (c) => `${c}16*${c}19`, RS); nota(W, 20, 'Somente a parcela importada varia; o custo nacional permanece fixo.');
+      linhaF(W, 21, 'CUSTO DE AQUISIÇÃO ATUALIZADO', (c) => `SUM(${c}17,${c}20)`, RS, { b: true, fill: HEAD }); nota(W, 21, 'A classificação e os valores de origem permanecem como no Pricer.');
+      sec(W, 23, '2. FORMAR O PREÇO E CONFERIR A CONDIÇÃO DO CLIENTE'); head(W, 23, '2. FORMAR O PREÇO E CONFERIR A CONDIÇÃO DO CLIENTE'); put(W, 'B23', '2. FORMAR O PREÇO E CONFERIR A CONDIÇÃO DO CLIENTE', { b: true, color: 'FFFFFFFF', fill: NAVY });
+      linhaF(W, 24, 'Custo atualizado × fator mínimo', (c) => `IF(${c}36="",0,${c}21*${c}36)`, RS); nota(W, 24, 'O fator é aplicado ao custo, antes dos impostos de venda.');
+      linhaF(W, 25, '(+) Frete embutido no preço', (c) => `Base!${c}${rFre}`, RS); linhaF(W, 26, '(+) Start-up embutido no preço', (c) => `Base!${c}${rSta}`, RS);
+      linhaF(W, 27, '(=) Base do preço antes dos tributos', (c) => `SUM(${c}24:${c}26)`, RS);
+      linhaF(W, 28, 'Divisor dos tributos | antes do IPI', (c) => `Base!${c}${rDiv}`, '0.00000', { tot: false });
+      linhaF(W, 29, 'Preço com tributos | antes do IPI', (c) => `${c}27/${c}28`, RS); linhaF(W, 30, '(+) IPI', (c) => `${c}29*Base!${c}${rIpi}`, RS);
+      linhaF(W, 31, 'PREÇO NECESSÁRIO PELA POLÍTICA', (c) => `SUM(${c}29:${c}30)`, RS, { b: true, fill: KEY });
+      linhaF(W, 32, 'Preço fechado com o cliente', (c) => `Base!${c}${rPre}`, RS);
+      linhaF(W, 33, 'Preço do cliente após tributos', (c) => `${c}32/(1+Base!${c}${rIpi})*${c}28`, RS);
+      linhaF(W, 34, 'Base disponível para o produto', (c) => `${c}33-${c}25-${c}26`, RS);
+      linhaF(W, 35, 'FATOR QUE O PREÇO DO CLIENTE SUPORTA', (c) => `IFERROR(${c}34/${c}21,"")`, FX, { b: true, fill: HEAD, totF: `IFERROR(SUM(${first}34:${last}34)/${TC}21,"")` });
+      linhaF(W, 36, 'Fator mínimo aprovado', (c) => `Base!${c}${rMin}`, FX, { totF: 'C12' });
+      linhaF(W, 37, 'Diferença até o preço da política', (c) => `${c}31-${c}32`, RS);
+      put(W, 'B38', 'Conclusão sobre o fator aprovado', { fill: HEAD }); put(W, 'C38', { formula: `IF(${TC}32<${TC}31-0.01,"ABAIXO DA POLÍTICA","ATENDE À POLÍTICA")` }, { fill: HEAD, b: true });
+      sec(W, 40, '3. IDENTIFICAR SE A VENDA COBRE TODOS OS CUSTOS');
+      put(W, 'B41', 'Fator de equilíbrio validado pelo Financeiro'); inp(W, 'C41', null, FX); nota(W, 41, 'Preencher somente se conhecido; vazio não significa zero.');
+      linhaF(W, 42, 'Preço de equilíbrio | sem resultado desejado', (c) => `IF(COUNT($C$41)=0,"",(${c}21*$C$41+${c}25+${c}26)/${c}28*(1+Base!${c}${rIpi}))`, RS, { totF: `IF(COUNT($C$41)=0,"",SUM(${first}42:${last}42))` });
+      linhaF(W, 43, 'Diferença de preço até o equilíbrio', (c) => `IF(COUNT($C$41)=0,"",${c}42-${c}32)`, RS, { totF: `IF(COUNT($C$41)=0,"",${TC}42-${TC}32)` });
+      put(W, 'B44', 'Conclusão sobre a cobertura dos custos'); put(W, 'C44', { formula: `IF(COUNT(C41)=0,"EQUILÍBRIO NÃO INFORMADO",IF(${TC}32<${TC}42-0.01,"NÃO COBRE TODOS OS CUSTOS",IF(ABS(${TC}32-${TC}42)<=0.01,"NO EQUILÍBRIO","COBRE O EQUILÍBRIO")))` }, { b: true });
+      put(W, 'B46', 'Como explicar na reunião', { b: true });
+      ['1. O fator mínimo cobre estrutura, financeiro e resultado desejado.', '2. O câmbio aumenta o custo importado; o preço fixo passa a suportar um fator menor.', '3. Abaixo do mínimo: não atinge a política. Abaixo do equilíbrio: não cobre os custos.', 'O fator de equilíbrio deve usar a mesma base do fator praticado, sem duplicar os adicionais.']
+        .forEach((t, j) => put(W, 'B' + (47 + j), t));
+      wbx.views = [{ activeTab: 0 }];
+    }
+
     // ---------- Excel do fechamento: resumo no formato do Memorial (um item por coluna) ----------
-    async function excel(F) {
+    async function excel(F, aprovacao) {
       const ExcelJS = await excelLib(); const R = realizado(F); const k = R.k; const wbx = new ExcelJS.Workbook(); wbx.creator = 'LS Pricer';
+      hfsSheets(wbx, F, R);
+      // pedido de aprovação: o preço ainda é o proposto, não o fechado
+      if (F.modo === 'aprovacao') {
+        const TR = [[/Preço total fechado/g, 'Preço total proposto'], [/fechado com o cliente/g, 'proposto ao cliente'], [/Preço fechado com impostos/g, 'Preço proposto com impostos'], [/preço fechado ×/g, 'preço proposto ×'], [/como fechado/g, 'como proposto'], [/no fechamento de/g, 'no pedido de aprovação de'], [/do fechamento/g, 'da proposta'], [/^Fechamento de /, 'Pedido de aprovação de '], [/ e fechado .*? sem IPI/, ' sem IPI']];
+        ['Base', 'Reunião'].forEach((nm) => { const ws = wbx.getWorksheet(nm); if (ws) ws.eachRow((row) => row.eachCell((c) => { if (typeof c.value === 'string') { let v = c.value; TR.forEach(([a, b]) => { v = v.replace(a, b); }); if (v !== c.value) c.value = v; } })); });
+      }
       const OR = 'FFE8570A', INK = 'FF1E1F21', SOFT = 'FFFFF1E8', GRAY = 'FFF4F3F0';
       const money = '#,##0.00;[Red]-#,##0.00', perc = '0.00%;[Red]-0.00%', fat = '0.0000';
       const its = R.itens; const n = its.length; const colT = n + 2;
-      const ws = wbx.addWorksheet('Fechamento', { views: [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 8 }] });
+      const ws = wbx.addWorksheet('Memorial', { views: [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 8 }] });
       ws.columns = [{ width: 46 }].concat(its.map(() => ({ width: 17 }))).concat([{ width: 19 }]);
       const t = ws.addRow(['LS FIRE — FECHAMENTO DA PROPOSTA']); t.font = { bold: true, size: 14, color: { argb: OR } };
       ws.addRow([`${F.div}${F.tipo ? ' · ' + F.tipo : ''} · ${F.numero || F.nome || ''} · ${F.cliente || ''}`]).font = { bold: true };
@@ -349,15 +443,6 @@
         row('Custo real', (x) => x.custoReal, money); row('Diferença de custo (real − previsto)', (x) => x.custoReal - x.custo, money);
         row('Margem líquida realizada (R$)', (x) => x.margemReal, money, { bold: true }); row('Margem líquida realizada (%)', (x) => x.margemRealPct, perc, { lead: true, total: R.margemRealPct });
       }
-      // composição resumida, como a aba Base da análise de markup
-      const wc = wbx.addWorksheet('Composição', { views: [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 2 }] });
-      wc.columns = [{ width: 46 }].concat(its.map(() => ({ width: 17 }))).concat([{ width: 19 }]);
-      wc.addRow(['CUSTOS LANÇADOS NA FORMAÇÃO']).font = { bold: true, color: { argb: OR } };
-      const h2 = wc.addRow(['Componente'].concat(its.map((x, i) => 'ITEM ' + String(i + 1).padStart(2, '0'))).concat(['TOTAL'])); h2.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INK } }; });
-      const grupos = new Map();
-      its.forEach((x, i) => lin(x).forEach((l) => { const g = (String(l.fam || (l.grupo === 'ESCOPO' ? 'ESCOPO SEM FAMÍLIA' : l.grupo) || 'OUTROS').replace(/^\d+\./, '') || 'OUTROS') + (l.ori ? ' | ' + (l.ori === 'IMP' ? 'importado' : 'nacional') : ''); if (!grupos.has(g)) grupos.set(g, its.map(() => 0)); grupos.get(g)[i] += l.prev; }));
-      for (const [g, v] of [...grupos.entries()].sort((a2, b2) => b2[1].reduce((q, z) => q + z, 0) - a2[1].reduce((q, z) => q + z, 0))) { const r = wc.addRow([g].concat(v).concat([v.reduce((q, z) => q + z, 0)])); r.eachCell((c, ci) => { if (ci > 1) c.numFmt = money; }); }
-      const tr = wc.addRow(['TOTAL'].concat(its.map((x) => x.custo)).concat([R.custo])); tr.eachCell((c, ci) => { c.font = { bold: true }; if (ci > 1) c.numFmt = money; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } }; });
       // custo real por linha, só quando houver apontamento
       if (R.apontadas || its.some((x) => x.extras.length)) {
         const wr = wbx.addWorksheet('Custo real'); wr.columns = [{ width: 28 }, { width: 52 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 34 }];
@@ -365,7 +450,7 @@
         for (const x of its) { for (const l of x.linhas.filter((q) => typeof q.real === 'number')) { const r = wr.addRow([x.nome, l.desc || l.rot || '', l.prev, l.real, l.real - l.prev, l.obs || '']); [3, 4, 5].forEach((c) => { r.getCell(c).numFmt = money; }); }
           for (const e of x.extras) { const r = wr.addRow([x.nome, 'NÃO PREVISTO — ' + e.desc, 0, e.v, e.v, '']); [3, 4, 5].forEach((c) => { r.getCell(c).numFmt = money; }); } }
       }
-      const name = ('Fechamento ' + (F.numero || '') + ' ' + (F.cliente || '')).trim().replace(/[\\/:*?"<>|]+/g, '_') + '.xlsx';
+      const name = ((aprovacao ? 'Aprovação ' : 'Fechamento ') + (F.numero || '') + ' ' + (F.cliente || '')).trim().replace(/[\\/:*?"<>|]+/g, '_') + '.xlsx';
       const ok = await REG.save(name, await wbx.xlsx.writeBuffer(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); if (!ok) toast('Download cancelado');
     }
 
@@ -392,7 +477,7 @@
       const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!fechDe(id)) { toast('Esta proposta ainda não tem baixa: use "Dar baixa" primeiro.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       const cl = t.closest('[data-mgclose]'); if (cl) { const p = (REG.listPropostas() || []).find((x) => x.id === cl.dataset.mgclose); if (p) fecharModal(p); return; }
       if (ui.view !== 'margens') return;
-      const tb = t.closest('[data-mgtab]'); if (tb) { ui.mgTab = tb.dataset.mgtab; ctx.render(); return; }
+      const tb = t.closest('[data-mgtab]'); if (tb) { ui.mgTab = tb.dataset.mgtab; ui.apId = null; ctx.render(); return; }
       const op = t.closest('[data-mgopen]'); if (op) { ui.mgId = op.dataset.mgopen; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (t.closest('[data-mgback]')) { ui.mgId = null; ctx.render(); return; }
       if (t.closest('[data-mgcalc]')) { calcularAntigas(); return; }
@@ -408,7 +493,7 @@
     });
 
     // ---------- etapas da proposta (página inicial) ----------
-    const ETAPAS = [['formacao', 'Formação'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Enviada ao financeiro'], ['engenharia', 'Enviada à engenharia'], ['real', 'Custo real preenchido'], ['encerrada', 'Encerrada']];
+    const ETAPAS = [['formacao', 'Formação'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Financeiro avisado'], ['engenharia', 'Engenharia avisada'], ['real', 'Custo real lançado'], ['encerrada', 'Encerrada']];
     const dt = (iso) => { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); } catch (e) { return ''; } };
     function etapas(p) {
       ensure(); const F = fechDe(p.id); const e = p.etapas || {}; const st = p.status || 'rascunho'; const perdida = st === 'perdida';
@@ -422,14 +507,14 @@
         else if (!F) s = 'off';
         else if (k === 'real') { act = 'real'; if (R.cobertura >= 1 - 1e-9) { s = 'ok'; info = '100%'; } else if (R.apontadas) { s = 'parcial'; info = pct(R.cobertura, 0); } }
         else if (k === 'encerrada') { act = 'marcar'; if (e.encerrada || F.execucao === 'encerrada') { s = 'ok'; info = e.encerrada ? dt(e.encerrada.at) : ''; } }
-        else { act = 'marcar'; if (e[k]) { s = 'ok'; info = dt(e[k].at); } }
+        else { act = 'avisar'; if (e[k]) { s = 'ok'; info = dt(e[k].at); } }
         return { k, lb, s, info, act, obs: e[k] && e[k].obs };
       });
     }
     const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial'); };
     function etapasHtml(p) {
       const L = etapas(p); const prox = L.find((x) => x.s === 'pend' || x.s === 'parcial');
-      return `<div class="etapas">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
+      return `<div class="etapas">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
         <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
     }
     async function salvarEtapa(p, k, val, desc) {
@@ -446,7 +531,8 @@
       if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'cliente') { const rec = Object.assign({}, p, { status: 'enviada', etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }); delete rec.id; delete rec.local;
         REG.saveProposta(p.id, rec).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
-      if (x.act !== 'marcar') return;
+      if (x.act === 'avisar' && x.s !== 'ok') { avisarModal(p, [k]); return; }
+      if (x.act !== 'marcar' && x.act !== 'avisar') return;
       if (x.s === 'ok') { if (!window.confirm('Desmarcar "' + x.lb + '"?')) return; salvarEtapa(p, k, null, x.lb + ' desmarcada').catch((e) => toast(e.message || 'Não consegui salvar')); return; }
       modal(`<h2>${esc(x.lb)}</h2><p class="sub" style="margin:0">${esc((p.numero || p.name || '') + ' · ' + (p.cliente || ''))}</p>
         <div class="f"><label for="etObs">Observação (opcional)</label><input id="etObs" placeholder="${k === 'financeiro' ? 'ex.: enviado por e-mail para o financeiro com o pedido' : k === 'engenharia' ? 'ex.: enviado para a engenharia lançar o custo real' : 'ex.: projeto entregue e faturado'}"></div>
@@ -459,7 +545,213 @@
       });
     });
 
-    return { vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente };
+    // ---------- aviso por e-mail ao Financeiro e à Engenharia ----------
+    const avisosCfg = () => Object.assign({ financeiro: '', engenharia: '', diretoria: '', cc: '', link: 'https://claude.ai/artifact/3pa3KFzGLean13jGE6PgSJ' }, ((REG.tabelas || {}).AVISOS || {}).cfg || {});
+    const emails = (t) => String(t || '').split(/[;,\s]+/).map((x) => x.trim()).filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+    let mcpP;
+    const getMcp = () => { if (mcpP === undefined) mcpP = (window.claude && window.claude.use ? window.claude.use('mcp') : Promise.resolve(null)).catch(() => null); return mcpP; };
+    function textoAviso(p, F, areas, cfg) {
+      const P = fechado(F); const n = F.numero || F.nome || 'sem número';
+      const linhas = [`Olá,`, ``, `A proposta ${n} — ${F.cliente || ''} foi fechada em ${fmtD(F.fechadoEm)}${F.pedido ? ' (pedido ' + F.pedido + ')' : ''}.`,
+        `Valor fechado: ${brl(P.venda)} sem IPI · margem líquida fechada: ${pct(P.margemPct, 1)}.`, `Itens:`].concat(P.itens.map((x) => `• ${x.qtd || 1} × ${x.nome}`)).concat(['']);
+      if (areas.includes('financeiro')) linhas.push(`Financeiro: a formação completa (custos, impostos, comissões e margem por item) está disponível no LS Pricer em Margens → Fechadas → ${n}, com a planilha do fechamento em Excel.`);
+      if (areas.includes('engenharia')) linhas.push(`Engenharia: por favor, lance o custo real de compras e fabricação de cada linha no LS Pricer em Margens → Fechadas → ${n} (botão "Custo real"). A margem realizada é calculada na hora.`);
+      linhas.push('', `LS Pricer: ${cfg.link}`, F.obs ? `Observações da negociação: ${F.obs}` : '');
+      return { assunto: `Proposta ${n} fechada — formação disponível${F.cliente ? ' · ' + F.cliente : ''}`, corpo: linhas.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim() };
+    }
+    async function marcarAvisadas(p, areas, obs) {
+      const rec = Object.assign({}, p); delete rec.id; delete rec.local; rec.etapas = Object.assign({}, p.etapas || {});
+      for (const a of areas) rec.etapas[a] = { at: new Date().toISOString(), by: REG.me || null, obs };
+      await REG.saveProposta(p.id, rec);
+      ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' — ' + areas.map((a) => (ETAPAS.find((x) => x[0] === a) || [0, a])[1]).join(' e ') + (obs ? ': ' + obs : ''), mudancas: areas.map((a) => ({ campo: (ETAPAS.find((x) => x[0] === a) || [0, a])[1], de: null, para: 'feito' })) });
+      ctx.render();
+    }
+    // janela de e-mail genérica: Outlook do usuário (conector Microsoft 365), programa de e-mail ou copiar
+    function emailModal(o) {
+      modal(`<h2>${esc(o.titulo)}</h2>${o.intro ? `<p class="sub" style="margin:0">${esc(o.intro)}</p>` : ''}
+        <div class="fields">
+          ${o.grupos.map((g) => `<div class="f span2"><label class="chk"><input type="checkbox" data-eg="${g.k}"${g.on ? ' checked' : ''}> ${esc(g.lb)}</label><input data-egto="${g.k}" value="${esc(g.emails || '')}" placeholder="e-mail ${esc(g.lb.toLowerCase())}"></div>`).join('')}
+          <div class="f spanall"><label for="emCc">Cópia</label><input id="emCc" value="${esc(o.cc || '')}" placeholder="opcional"></div>
+          <div class="f spanall"><label for="emAss">Assunto</label><input id="emAss" value="${esc(o.assunto)}"></div>
+          <div class="f spanall"><label for="emTxt">Mensagem</label><textarea id="emTxt" rows="12"></textarea></div>
+        </div>
+        ${o.excel ? '<p class="sub" style="margin:0">O Outlook do app envia sem anexo: quem recebe abre a análise no app. Para anexar a planilha, baixe e use "Abrir no meu e-mail".</p>' : ''}
+        <p class="sub" id="emMsg" style="margin:0"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="emOutlook" hidden>Enviar pelo Outlook</button><a class="btn" id="emMail" target="_blank" rel="noopener">Abrir no meu e-mail</a>${o.excel ? '<button class="btn" id="emXls">Baixar a planilha</button>' : ''}<button class="btn" id="emCopy">Copiar texto</button>${o.soMarcar ? `<button class="btn" id="emSo">${esc(o.soMarcar)}</button>` : ''}<button class="btn" data-close>Agora não</button></div>`, (m, close) => {
+        const g = (q) => $(q, m);
+        const sel = () => o.grupos.filter((x) => m.querySelector(`[data-eg="${x.k}"]`).checked).map((x) => x.k);
+        const para = () => [].concat(...o.grupos.filter((x) => m.querySelector(`[data-eg="${x.k}"]`).checked).map((x) => emails(m.querySelector(`[data-egto="${x.k}"]`).value)));
+        const mail = () => { g('#emMail').href = 'mailto:' + encodeURIComponent(para().join(',')) + '?subject=' + encodeURIComponent(g('#emAss').value) + (emails(g('#emCc').value).length ? '&cc=' + encodeURIComponent(emails(g('#emCc').value).join(',')) : '') + '&body=' + encodeURIComponent(g('#emTxt').value); };
+        const refaz = () => { g('#emTxt').value = o.corpo(sel()); mail(); };
+        m.querySelectorAll('[data-eg]').forEach((c) => { c.onchange = refaz; }); m.querySelectorAll('[data-egto]').forEach((c) => { c.oninput = mail; }); ['#emCc', '#emAss', '#emTxt'].forEach((q) => { g(q).oninput = mail; }); refaz();
+        getMcp().then((x) => { if (x) g('#emOutlook').hidden = false; });
+        // lê a seleção antes de fechar a janela
+        const fim = async (obs, a, to) => { if (o.onDone) await o.onDone(a, obs, to); };
+        g('#emOutlook').onclick = async () => {
+          const to = para(); if (!to.length) { g('#emMsg').textContent = 'Informe pelo menos um e-mail válido.'; return; }
+          const mc = await getMcp(); if (!mc) { g('#emMsg').textContent = 'O envio pelo Outlook não está disponível aqui. Use "Abrir no meu e-mail".'; return; }
+          const html = g('#emTxt').value.split(/\n{2,}/).map((par) => '<p>' + esc(par).replace(/\n/g, '<br>') + '</p>').join('');
+          g('#emOutlook').disabled = true; g('#emMsg').textContent = 'Enviando…';
+          try {
+            await mc.callTool('Microsoft 365', 'outlook_send_mail', Object.assign({ to, subject: g('#emAss').value.slice(0, 255), body: html, bodyType: 'html' }, emails(g('#emCc').value).length ? { cc: emails(g('#emCc').value) } : {}));
+            const a = sel(); close(); await fim('e-mail enviado para ' + to.join(', '), a, to); toast('E-mail enviado');
+          } catch (e) {
+            g('#emOutlook').disabled = false; const c = e && e.code;
+            g('#emMsg').textContent = c === 'needs_reauth' ? 'A conexão com o Microsoft 365 expirou: reconecte em claude.ai (Configurações → Conectores) e tente de novo.'
+              : c === 'server_not_connected' || c === 'selection_required' ? 'O Microsoft 365 não está conectado na sua conta do claude.ai. Conecte em Configurações → Conectores, ou use "Abrir no meu e-mail".'
+              : c === 'not_granted' || c === 'not_in_manifest' ? 'O envio pelo Outlook não foi permitido. Use "Abrir no meu e-mail".'
+              : c === 'blocked_by_policy' || c === 'approval_required' ? 'A política da organização não permite enviar e-mail por aqui. Use "Abrir no meu e-mail".'
+              : c === 'tool_error' ? 'O Outlook recusou o envio: ' + ((e && e.message) || '') + '. Confira os e-mails.'
+              : c === 'cancelled' ? 'Envio cancelado.'
+              : 'Não sei se o e-mail saiu (' + (c || 'erro') + '). Confira a pasta Enviados do Outlook antes de tentar de novo.';
+          }
+        };
+        g('#emMail').onclick = () => { setTimeout(() => { if (window.confirm('O e-mail foi enviado?')) { const a = sel(), to = para(); close(); fim('e-mail pelo programa de e-mail para ' + to.join(', '), a, to); } }, 600); };
+        g('#emCopy').onclick = () => navigator.clipboard.writeText(g('#emAss').value + '\n\n' + g('#emTxt').value).then(() => toast('Texto copiado'), () => toast('Não consegui copiar'));
+        if (o.excel) g('#emXls').onclick = () => o.excel().catch((e) => toast(e.message || 'Não consegui gerar o Excel'));
+        const so = g('#emSo'); if (so) so.onclick = async () => { const a = sel(), to = para(); close(); await fim('registrado sem e-mail pelo app', a, to); };
+      });
+    }
+    function avisarModal(p, areas) {
+      ensure(); const F = fechDe(p.id); if (!F) { toast('Dê baixa na proposta antes de avisar as áreas.'); return; }
+      const cfg = avisosCfg();
+      emailModal({ titulo: 'Avisar Financeiro e Engenharia', intro: `A formação da proposta ${F.numero || F.nome || ''} está disponível. Confira o e-mail e envie; as etapas marcam sozinhas.`,
+        grupos: [{ k: 'financeiro', lb: 'Financeiro', emails: cfg.financeiro, on: areas.includes('financeiro') }, { k: 'engenharia', lb: 'Engenharia', emails: cfg.engenharia, on: areas.includes('engenharia') }],
+        cc: cfg.cc, assunto: textoAviso(p, F, areas, cfg).assunto, corpo: (sel) => textoAviso(p, F, sel, cfg).corpo, excel: () => excel(F), soMarcar: 'Só marcar como avisado',
+        onDone: async (a, obs) => { if (!a.length) return; await marcarAvisadas(Object.assign({}, (REG.listPropostas() || []).find((x) => x.id === p.id) || p), a, obs); } });
+    }
+
+    // ---------- aprovação de desconto fora da política (Diretoria + Financeiro) ----------
+    let aprov = []; let subA = null;
+    function ensureA() {
+      const m = shared() ? 'shared' : 'local'; if (subA === m || subA === 'shared') return; subA = m;
+      if (m === 'shared') REG.db.collection('aprovacoes').orderBy('at', 'desc').limit(300).onSnapshot((s) => { aprov = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
+      else { try { aprov = Object.entries(JSON.parse(localStorage.getItem('lspricer.aprovacoes.v1') || '{}')).map(([id, x]) => Object.assign({ id }, x)); } catch (e) { aprov = []; } }
+    }
+    async function gravarA(id, rec) {
+      const body = JSON.parse(JSON.stringify(rec)); delete body.id;
+      if (shared()) await REG.db.doc('aprovacoes/' + id).set(body);
+      else { let all = {}; try { all = JSON.parse(localStorage.getItem('lspricer.aprovacoes.v1') || '{}'); } catch (e) { all = {}; } all[id] = body; try { localStorage.setItem('lspricer.aprovacoes.v1', JSON.stringify(all)); } catch (e) { /* sem espaço */ } aprov = Object.entries(all).map(([k, x]) => Object.assign({ id: k }, x)); ctx.render(); }
+    }
+    const PAPEIS = [['diretoria', 'Diretoria'], ['financeiro', 'Financeiro']];
+    const aprovDe = (propId) => { ensureA(); return aprov.find((a) => a.id === propId) || null; };
+    const estadoA = (a) => { if (!a) return null; const d = a.decisoes || {}; if (PAPEIS.some(([k]) => d[k] && d[k].decisao === 'reprovada')) return 'reprovada'; if (PAPEIS.every(([k]) => d[k] && d[k].decisao === 'aprovada')) return 'aprovada'; return 'pendente'; };
+    // sem aprovador definido, qualquer Editor decide; o dono sempre pode
+    const podeDecidir = (papel) => { if (REG.mode === 'local' || REG.isOwner) return true; const l = (REG.acessos || {})['ap_' + papel] || []; return l.length ? l.includes(REG.me) : !!REG.canEditCadastro; };
+    // análise no formato da planilha (Reunião): fator mínimo × fator que o preço suporta, por item
+    function analise(snap) {
+      return snap.itens.map((x) => {
+        const icms = x.icmsPct != null ? x.icmsPct : 0; const pis = x.pisPct != null ? x.pisPct : 0.0065, cof = x.cofinsPct != null ? x.cofinsPct : 0.03; const ir = num(x.irPct); const ipi = num(x.ipiPct);
+        const div = 1 - (icms + ir + (pis + cof) * (1 - icms)); const fre = num(x.custoFrete), sta = num(x.custoStartup); const aq = x.custo - fre - sta;
+        const fmin = x.fatorTabela ? x.fatorTabela * (1 - num(x.descMax)) : null; const preco = x.venda + num(x.ipi);
+        const necessario = fmin ? (aq * fmin + fre + sta) / div * (1 + ipi) : null; const suporta = aq ? (preco / (1 + ipi) * div - fre - sta) / aq : null;
+        return { nome: x.nome, n: x.n, aq, fre, sta, div, fmin, fatorAplicado: x.fatorAplicado, suporta, necessario, preco, dif: necessario != null ? necessario - preco : null, margemPct: x.margemPct, ok: necessario == null || preco >= necessario - 0.01 };
+      });
+    }
+    function textoAprov(p, snap, mot, cfg) {
+      const A = analise(snap); const n = p.numero || p.name || 'sem número';
+      const l = [`Olá,`, ``, `Peço aprovação para a proposta ${n} — ${p.cliente || ''}, que está fora da política de preço.`, `Valor proposto: ${brl(snap.venda)} sem IPI · margem líquida: ${pct(snap.margemPct, 1)} (mínimo ${pct(snap.minimo || 0, 0)}).`, ``, `Justificativa: ${mot || '—'}`, ``, `Itens:`]
+        .concat(A.map((x) => `• ${x.nome}: margem ${pct(x.margemPct, 1)}; fator aplicado ${x.fatorAplicado ? NF[4].format(x.fatorAplicado) : '—'} × mínimo ${x.fmin ? NF[4].format(x.fmin) : '—'}${x.dif != null && x.dif > 0.01 ? '; faltam ' + brl(x.dif) + ' para a política' : ''}.`))
+        .concat(['', `Para analisar e aprovar: LS Pricer → Margens → Aprovações → ${n}. A análise está no formato da planilha (Reunião e Base), com o Excel para baixar.`, `LS Pricer: ${cfg.link}`]);
+      return { assunto: `Aprovação de desconto · proposta ${n}${p.cliente ? ' · ' + p.cliente : ''}`, corpo: l.join('\n') };
+    }
+    const fAprov = (p, a) => ({ id: p.id, propId: p.id, div: p.div || 'SEQ', tipo: p.tipo || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', fechadoEm: (a && a.at || new Date().toISOString()).slice(0, 10), pedido: '', obs: 'Análise para aprovação de desconto', modo: 'aprovacao', vendaProposta: a.snap.venda, valorFechado: a.snap.venda, snap: a.snap, real: {}, execucao: '' });
+    function pedirAprovacao(p, snap) {
+      ensureA(); const cfg = avisosCfg();
+      modal(`<h2>Pedir aprovação</h2><p class="sub" style="margin:0">O desconto passa da política. Explique o motivo; Diretoria e Financeiro analisam e aprovam no app.</p>
+        <div class="f"><label for="apMot">Justificativa</label><textarea id="apMot" rows="3" placeholder="ex.: cliente estratégico, concorrência com preço X, volume do contrato anual…"></textarea></div>
+        <div style="display:flex;gap:8px"><button class="btn pri" id="apOk">Continuar para o e-mail</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+        $('#apMot', o).focus();
+        $('#apOk', o).onclick = async () => {
+          const mot = $('#apMot', o).value.trim(); if (!mot) { toast('Escreva a justificativa'); return; } close();
+          const rec = { propId: p.id, uid: p.uid || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', div: p.div || 'SEQ', at: new Date().toISOString(), by: REG.me || null, motivo: mot, snap, decisoes: {} };
+          try { await gravarA(p.id, rec); ctx.log && ctx.log({ tipo: 'Aprovação solicitada', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — ' + mot, mudancas: [{ campo: 'Margem', de: null, para: snap.margemPct }, { campo: 'Valor', de: null, para: snap.venda }] }); }
+          catch (e) { toast((e && e.message) || 'Não consegui registrar o pedido'); return; }
+          const t = textoAprov(p, snap, mot, cfg);
+          emailModal({ titulo: 'Pedir aprovação à Diretoria e ao Financeiro', intro: 'O pedido já está no app (Margens → Aprovações). Envie o aviso por e-mail.',
+            grupos: [{ k: 'diretoria', lb: 'Diretoria', emails: cfg.diretoria, on: true }, { k: 'financeiro', lb: 'Financeiro', emails: cfg.financeiro, on: true }], cc: cfg.cc, assunto: t.assunto, corpo: () => t.corpo,
+            excel: () => excel(fAprov(p, rec), true), onDone: async (a, obs) => { ctx.log && ctx.log({ tipo: 'Aprovação solicitada', ref: p.id, desc: 'aviso: ' + obs, mudancas: [] }); } });
+          ctx.render();
+        };
+      });
+    }
+    function vAprovacoes() {
+      ensureA();
+      if (ui.apId) return vAprovDetalhe(ui.apId);
+      const rows = aprov.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).map((a) => { const e = estadoA(a); const pill = { pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e];
+        return `<tr class="click" data-apopen="${esc(a.id)}"><td>${esc(fmtD(a.at))}</td><td><span class="divb ${String(a.div || 'SEQ').toLowerCase()}">${esc(a.div || 'SEQ')}</span> <b>${esc(a.numero || '—')}</b><br><small class="sub">${esc(a.cliente || a.nome || '')}</small></td><td class="n">${brl(a.snap.venda)}</td><td class="n">${pct(a.snap.margemPct, 1)}</td>
+          <td>${PAPEIS.map(([k, lb]) => { const d = (a.decisoes || {})[k]; return `<span class="pill ${d ? (d.decisao === 'aprovada' ? 'ok' : 'bad') : 'mute'}">${lb}: ${d ? d.decisao : 'pendente'}</span>`; }).join(' ')}</td><td><span class="pill ${pill}">${e}</span></td><td><button class="btn sm pri" data-apopen="${esc(a.id)}">Analisar</button></td></tr>`; }).join('');
+      return `<section class="card"><h2>Aprovações de desconto <span class="sub">propostas fora da política</span></h2><div class="tw"><table class="t"><thead><tr><th>Pedido</th><th>Proposta</th><th>Valor</th><th>Margem</th><th>Decisões</th><th>Situação</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum pedido de aprovação.</td></tr>'}</tbody></table></div></section>`;
+    }
+    function vAprovDetalhe(id) {
+      const a = aprov.find((x) => x.id === id); if (!a) { ui.apId = null; return '<p class="sub">Pedido não encontrado.</p>'; }
+      const A = analise(a.snap); const e = estadoA(a); const d = a.decisoes || {};
+      const fx = (v) => (typeof v === 'number' && isFinite(v) ? NF[4].format(v) + 'x' : '—');
+      const linha = (lb, f, cls = '') => `<tr class="${cls}"><td>${lb}</td>${A.map((x) => `<td class="n">${f(x)}</td>`).join('')}</tr>`;
+      const tabela = `<div class="tw"><table class="t"><thead><tr><th>Etapa</th>${A.map((x) => `<th>${esc(x.n && /^ITEM/.test(x.n) ? x.n : x.nome.slice(0, 24))}</th>`).join('')}</tr></thead><tbody>
+        ${linha('Custo de aquisição', (x) => brl(x.aq))}${linha('(+) Frete embutido', (x) => brl(x.fre))}${linha('(+) Start-up embutido', (x) => brl(x.sta))}${linha('Divisor dos tributos (antes do IPI)', (x) => NF[4].format(x.div))}
+        ${linha('Fator aplicado na proposta', (x) => fx(x.fatorAplicado))}${linha('Fator mínimo aprovado (política)', (x) => fx(x.fmin))}${linha('<b>Fator que o preço suporta</b>', (x) => `<b class="${x.fmin && x.suporta < x.fmin - 1e-4 ? 'bad-t' : 'ok-t'}">${fx(x.suporta)}</b>`, 'tot')}
+        ${linha('Preço necessário pela política', (x) => (x.necessario != null ? brl(x.necessario) : '—'))}${linha('Preço proposto (com IPI)', (x) => brl(x.preco))}${linha('<b>Diferença até a política</b>', (x) => (x.dif != null ? `<b class="${x.dif > 0.01 ? 'bad-t' : 'ok-t'}">${brl(x.dif)}</b>` : '—'), 'tot')}
+        ${linha('Margem líquida', (x) => pct(x.margemPct, 1))}${linha('Conclusão', (x) => `<span class="pill ${x.ok ? 'ok' : 'bad'}">${x.ok ? 'atende à política' : 'abaixo da política'}</span>`)}</tbody></table></div>`;
+      const dec = PAPEIS.map(([k, lb]) => { const x = d[k]; const pode = podeDecidir(k);
+        return `<div class="kpi"><span>${lb}</span>${x ? `<b class="${x.decisao === 'aprovada' ? 'ok-t' : 'bad-t'}">${x.decisao}</b><em>${esc(fmtD(x.at))} · <span data-uid="${esc(x.by || '')}">${x.by ? '…' : ''}</span>${x.comentario ? ' · ' + esc(x.comentario) : ''}</em>` : `<b>pendente</b><em>${pode ? `<button class="btn sm pri" data-apdec="${esc(a.id)}|${k}|aprovada">Aprovar</button> <button class="btn sm" data-apdec="${esc(a.id)}|${k}|reprovada">Reprovar</button>` : 'aguardando quem cuida desta aprovação'}</em>`}</div>`; }).join('');
+      return `<div class="stack"><div class="flowhead"><div><button class="btn sm" data-apback>← Aprovações</button><h1 style="margin-top:8px">Aprovação · ${esc(a.numero || a.nome || '')}</h1><div class="sub">${esc(a.cliente || '')} · pedido em ${esc(fmtD(a.at))} por <span data-uid="${esc(a.by || '')}">${a.by ? '…' : 'alguém da equipe'}</span></div></div>
+        <div class="sumbar"><div><span>Valor proposto</span><b>${brl(a.snap.venda)}</b></div><div><span>Margem líquida</span><b class="bad-t">${pct(a.snap.margemPct, 1)}</b></div><div><span class="pill ${{ pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e]}">${e}</span></div></div></div>
+        <section class="card"><h2>Justificativa</h2><p style="margin:0">${esc(a.motivo || '')}</p></section>
+        <section class="card"><h2>Análise no formato da planilha <span class="sub">fator mínimo × fator que o preço suporta</span></h2>${tabela}<div class="docbar" style="margin-top:10px"><button class="btn" data-apxls="${esc(a.id)}">Baixar a planilha (Reunião e Base)</button></div></section>
+        <div class="kpis">${dec}</div></div>`;
+    }
+    document.addEventListener('click', (ev) => {
+      const t = ev.target;
+      const op = t.closest('[data-apopen]'); if (op && !t.closest('[data-apdec]')) { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = op.dataset.apopen; ctx.render(); window.scrollTo(0, 0); return; }
+      if (t.closest('[data-apback]')) { ui.apId = null; ctx.render(); return; }
+      const xl = t.closest('[data-apxls]'); if (xl) { const a = aprov.find((x) => x.id === xl.dataset.apxls); if (a) excel(fAprov({ id: a.id, numero: a.numero, cliente: a.cliente, name: a.nome, div: a.div }, a), true).catch((e) => toast(e.message || 'Não consegui gerar o Excel')); return; }
+      const dc = t.closest('[data-apdec]'); if (dc) { const [id, papel, decisao] = dc.dataset.apdec.split('|'); const a = aprov.find((x) => x.id === id); if (!a) return;
+        modal(`<h2>${decisao === 'aprovada' ? 'Aprovar' : 'Reprovar'} · ${esc(PAPEIS.find((x) => x[0] === papel)[1])}</h2><div class="f"><label for="adCom">Comentário${decisao === 'reprovada' ? ' (obrigatório)' : ' (opcional)'}</label><input id="adCom" placeholder="${decisao === 'aprovada' ? 'ex.: aprovado com prazo de pagamento 28 DDL' : 'ex.: margem baixa demais; tentar 30%'}"></div><div style="display:flex;gap:8px"><button class="btn pri" id="adOk">Confirmar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+          $('#adCom', o).focus();
+          $('#adOk', o).onclick = async () => { const com = $('#adCom', o).value.trim(); if (decisao === 'reprovada' && !com) { toast('Escreva o motivo'); return; } close();
+            const rec = Object.assign({}, a, { decisoes: Object.assign({}, a.decisoes || {}, { [papel]: { decisao, comentario: com || null, at: new Date().toISOString(), by: REG.me || null } }) });
+            try { await gravarA(id, rec); ctx.log && ctx.log({ tipo: 'Aprovação — ' + decisao, ref: id, desc: (a.numero || '') + ' · ' + papel + (com ? ': ' + com : ''), mudancas: [{ campo: papel, de: 'pendente', para: decisao }] }); toast('Decisão registrada'); }
+            catch (e) { toast((e && e.message) || 'Não consegui registrar'); } };
+        }); }
+    });
+
+    // próximo passo de cada proposta (botão principal na página inicial)
+    function proximo(p) {
+      ensure(); const F = fechDe(p.id); const st = p.status || 'rascunho'; const e = p.etapas || {};
+      if (st === 'perdida') return { lb: 'Reabrir', act: 'reabrir' };
+      const ap = aprovDe(p.id); if (!F && ap && estadoA(ap) === 'pendente' && PAPEIS.some(([k]) => !(ap.decisoes || {})[k] && podeDecidir(k))) return { lb: 'Analisar aprovação', act: 'aprovacao' };
+      if (!F) return st === 'rascunho' ? { lb: 'Enviar ao cliente', act: 'cliente' } : { lb: 'Dar baixa', act: 'baixa' };
+      if (!e.financeiro || !e.engenharia) return { lb: 'Avisar áreas', act: 'avisar' };
+      if (realizado(F).cobertura < 1 - 1e-9) return { lb: 'Custo real', act: 'real' };
+      if (!(e.encerrada || F.execucao === 'encerrada')) return { lb: 'Encerrar', act: 'encerrar' };
+      return null;
+    }
+    function situacao(p) {
+      const F = fechDe(p.id); const st = p.status || 'rascunho'; const e = p.etapas || {};
+      if (st === 'perdida') return ['Perdida', 'bad']; if (F && (e.encerrada || F.execucao === 'encerrada')) return ['Encerrada', 'ok'];
+      if (F) return ['Fechada', 'ok'];
+      const ap = aprovDe(p.id); if (ap) { const e2 = estadoA(ap); if (e2 === 'pendente') return ['Aguardando aprovação', 'warn']; if (e2 === 'reprovada') return ['Desconto reprovado', 'bad']; }
+      if (st === 'enviada' || st === 'negociacao') return ['Enviada ao cliente', 'warn']; return ['Rascunho', 'mute'];
+    }
+    document.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-hnext]'); const pd = ev.target.closest('[data-hperdida]'); if (!b && !pd) return;
+      const [pid, act] = (b ? b.dataset.hnext : pd.dataset.hperdida + '|perdida').split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
+      const salvaStatus = async (status, extra, desc) => { const rec = Object.assign({}, p, { status }, extra || {}); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec); ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + (desc ? ' — ' + desc : ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: status }] }); ctx.render(); };
+      if (act === 'cliente') { salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
+      if (act === 'baixa') { fecharModal(p); return; }
+      if (act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
+      if (act === 'avisar') { const e = p.etapas || {}; avisarModal(p, ['financeiro', 'engenharia'].filter((a) => !e[a])); return; }
+      if (act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
+      if (act === 'encerrar') { const x = document.querySelector(`[data-etp="${CSS.escape(p.id)}|encerrada"]`); if (x) x.click(); return; }
+      if (act === 'reabrir') { salvaStatus('enviada', null, 'reaberta').then(() => toast('Proposta reaberta')); return; }
+      if (act === 'perdida') {
+        modal(`<h2>Proposta perdida</h2><p class="sub" style="margin:0">${esc((p.numero || p.name || '') + ' · ' + (p.cliente || ''))}</p><div class="f"><label for="pdMot">Motivo (fica no histórico e ajuda a entender as perdas)</label><input id="pdMot" placeholder="preço, prazo, concorrente, projeto cancelado…"></div><div style="display:flex;gap:8px"><button class="btn pri" id="pdOk2">Marcar como perdida</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+          $('#pdMot', o).focus(); $('#pdOk2', o).onclick = () => { const mot = $('#pdMot', o).value.trim(); if (!mot) { toast('Escreva o motivo'); return; } close(); salvaStatus('perdida', { motivoPerda: mot }, 'perdida: ' + mot).then(() => toast('Marcada como perdida')); };
+        }); }
+    });
+
+    return { vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();

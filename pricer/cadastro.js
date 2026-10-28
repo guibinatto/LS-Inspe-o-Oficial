@@ -287,14 +287,15 @@
     // ---- áreas responsáveis: quem pode editar cada parte do cadastro ----
     // Sem ninguém atribuído, vale a regra antiga (todo Editor edita tudo). O dono do app edita sempre.
     R.acessos = {};
-    R.areasConfiguradas = () => Object.values(R.acessos || {}).some((l) => l && l.length);
+    // as chaves ap_* são os aprovadores de desconto, não travam o cadastro
+    R.areasConfiguradas = () => Object.entries(R.acessos || {}).some(([k, l]) => !/^ap_/.test(k) && l && l.length);
     R.areaOk = (area) => {
       if (R.mode === 'local') return true;
       if (!R.canEditCadastro) return false;
       if (R.isOwner || !area || !R.areasConfiguradas()) return true;
       return ((R.acessos || {})[area] || []).includes(R.me);
     };
-    R.minhasAreas = () => Object.entries(R.acessos || {}).filter(([, l]) => (l || []).includes(R.me)).map(([a]) => a);
+    R.minhasAreas = () => Object.entries(R.acessos || {}).filter(([k, l]) => !/^ap_/.test(k) && (l || []).includes(R.me)).map(([a]) => a);
     R.setAcessos = async (areas, desc) => {
       if (R.mode !== 'shared') throw new Error('As áreas responsáveis valem só no app compartilhado.');
       if (!R.isOwner) throw new Error('Só o dono do app define quem cuida de cada área.');

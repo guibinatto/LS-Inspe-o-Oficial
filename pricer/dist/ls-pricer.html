@@ -1385,14 +1385,15 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
     // ---- áreas responsáveis: quem pode editar cada parte do cadastro ----
     // Sem ninguém atribuído, vale a regra antiga (todo Editor edita tudo). O dono do app edita sempre.
     R.acessos = {};
-    R.areasConfiguradas = () => Object.values(R.acessos || {}).some((l) => l && l.length);
+    // as chaves ap_* são os aprovadores de desconto, não travam o cadastro
+    R.areasConfiguradas = () => Object.entries(R.acessos || {}).some(([k, l]) => !/^ap_/.test(k) && l && l.length);
     R.areaOk = (area) => {
       if (R.mode === 'local') return true;
       if (!R.canEditCadastro) return false;
       if (R.isOwner || !area || !R.areasConfiguradas()) return true;
       return ((R.acessos || {})[area] || []).includes(R.me);
     };
-    R.minhasAreas = () => Object.entries(R.acessos || {}).filter(([, l]) => (l || []).includes(R.me)).map(([a]) => a);
+    R.minhasAreas = () => Object.entries(R.acessos || {}).filter(([k, l]) => !/^ap_/.test(k) && (l || []).includes(R.me)).map(([a]) => a);
     R.setAcessos = async (areas, desc) => {
       if (R.mode !== 'shared') throw new Error('As áreas responsáveis valem só no app compartilhado.');
       if (!R.isOwner) throw new Error('Só o dono do app define quem cuida de cada área.');
@@ -2126,17 +2127,18 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const ui = ctx.ui; const all = REG.listPropostas() || []; const q = norm(ui.homeQ || ''); const f = ui.homeDiv || 'todas';
       const hay = (p) => norm([p.numero, p.cliente, p.name, p.status, divOf(p), p.tipo, p.spv && (p.spv.descricao + ' ' + p.spv.local + ' ' + (p.spv.pecas || []).map((x) => x.desc + ' ' + (x.forn || '')).join(' '))].join(' '));
       const pend = { pend_fin: 'financeiro', pend_eng: 'engenharia', pend_real: 'real' };
-      const list = all.filter((p) => (f === 'todas' || divOf(p) === f || p.status === f || (pend[f] && ctx.etapaPendente && ctx.etapaPendente(p, pend[f]))) && (!q || hay(p).includes(q)));
+      const sit = (p) => (ctx.situacao ? ctx.situacao(p) : [(STATUS.find((y) => y[0] === (p.status || 'rascunho')) || STATUS[0])[1], 'mute']);
+      const porSit = { abertas: (p) => ['Rascunho', 'Enviada ao cliente', 'Aguardando aprovação', 'Desconto reprovado'].includes(sit(p)[0]), aprovacao: (p) => sit(p)[0] === 'Aguardando aprovação', fechadas: (p) => ['Fechada', 'Encerrada'].includes(sit(p)[0]), perdidas: (p) => sit(p)[0] === 'Perdida' };
+      const list = all.filter((p) => (f === 'todas' || divOf(p) === f || (porSit[f] && porSit[f](p)) || (pend[f] && ctx.etapaPendente && ctx.etapaPendente(p, pend[f]))) && (!q || hay(p).includes(q)));
       const sx = stats(all); const docsHit = q ? docs.filter((d) => norm([d.nome, d.fornecedor, d.numero, (d.itens || []).map((i) => i.descricao).join(' ')].join(' ')).includes(q)).slice(0, 6) : [];
-      const pill = (s) => { const x = STATUS.find((y) => y[0] === s) || STATUS[0]; return `<span class="pill ${x[2]}">${x[1]}</span>`; };
       const rows = list.slice(0, 60).map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
         <td><span class="divb ${divOf(p).toLowerCase()}">${divOf(p)}</span>${p.tipo ? ` <small class="sub">${esc(p.tipo)}</small>` : ''}</td>
         <td><b>${esc(p.numero || '—')}</b><br><small class="sub">${esc(p.cliente || p.name || '')}</small></td>
         <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
-        <td><select data-hstatus="${esc(p.id)}" aria-label="Status">${STATUS.map(([k, lb]) => `<option value="${k}"${(p.status || 'rascunho') === k ? ' selected' : ''}>${lb}</option>`).join('')}</select></td>
+        <td><span class="pill ${sit(p)[1]}">${esc(sit(p)[0])}</span></td>
         <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
-        <td><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${p.status === 'perdida' ? '' : p.status === 'ganha' ? ` <button class="btn sm pri" data-mgreal="${esc(p.id)}" title="Lançar o custo real de compras e fabricação">Custo real</button>` : ` <button class="btn sm" data-mgclose="${esc(p.id)}" title="Registrar como fechada e congelar a formação">Dar baixa</button>`}</td></tr>${ctx.etapasHtml ? `<tr class="etrow"><td colspan="6">${ctx.etapasHtml(p)}</td></tr>` : ''}`).join('');
-      const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['enviada', 'Enviadas'], ['negociacao', 'Em negociação'], ['ganha', 'Ganhas'], ['pend_fin', 'Falta financeiro'], ['pend_eng', 'Falta engenharia'], ['pend_real', 'Falta custo real']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
+        <td class="hacts">${(() => { const nx = ctx.proximo && ctx.proximo(p); return nx ? `<button class="btn sm pri" data-hnext="${esc(p.id)}|${nx.act}">${esc(nx.lb)}</button> ` : ''; })()}<button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${sit(p)[0] === 'Perdida' || ['Fechada', 'Encerrada'].includes(sit(p)[0]) ? '' : ` <button class="restore" data-hperdida="${esc(p.id)}" title="Marcar como perdida, com o motivo">perdida</button>`}</td></tr>${ctx.etapasHtml ? `<tr class="etrow"><td colspan="6">${ctx.etapasHtml(p)}</td></tr>` : ''}`).join('');
+      const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['abertas', 'Em aberto'], ['aprovacao', 'Aguardando aprovação'], ['fechadas', 'Fechadas'], ['pend_fin', 'Falta avisar financeiro'], ['pend_eng', 'Falta avisar engenharia'], ['pend_real', 'Falta custo real'], ['perdidas', 'Perdidas']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
       const tipos = spvTipos().map((t) => `<button class="tchip" data-spvnew="${t.abrev}" title="${esc(t.desc)}"><b>${esc((TIPO_INI[t.abrev] || {}).titulo || t.nome)}</b><small>${esc(t.abrev)}</small></button>`).join('');
       return `<div class="stack home">
         <div class="hero"><div><h1>Formação de preço</h1><div class="sub">Busque uma proposta antiga ou comece uma nova.</div></div>
@@ -2157,7 +2159,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="kpi"><span>Documentos</span><b>${docs.length}</b><em><button class="restore" data-view="documentos">abrir a biblioteca</button></em></div>
         </div>
         <section class="card"><h2>Propostas <span class="sub">${list.length} encontrada(s)</span></h2><div class="hchips">${chips}</div>
-          <div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th>Divisão</th><th>Número / cliente</th><th>Total</th><th>Status</th><th>Data</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="sub">${all.length ? 'Nada encontrado com essa busca.' : 'Nenhuma proposta salva ainda. Comece uma nova acima e clique em Salvar.'}</td></tr>`}</tbody></table></div></section>
+          <div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th>Divisão</th><th>Número / cliente</th><th>Total</th><th>Situação</th><th>Data</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="sub">${all.length ? 'Nada encontrado com essa busca.' : 'Nenhuma proposta salva ainda. Comece uma nova acima e clique em Salvar.'}</td></tr>`}</tbody></table></div></section>
         ${docsHit.length ? `<section class="card"><h2>Documentos encontrados</h2>${docList(docsHit)}</section>` : ''}
       </div>`;
     }
@@ -2195,7 +2197,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       return `<div class="stack">
         <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-view="inicio">← Início</button><h1 style="margin-top:8px"><span class="divb spv">SPV</span> ${esc((TIPO_INI[s.tipo] || {}).titulo || ti.nome)} ${s.numero ? '· ' + esc(s.numero) : ''}</h1><div class="sub">${esc(ti.nome)} · ${esc(s.cliente || 'cliente a definir')}</div></div>
           <div class="sumbar"><div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
-        ${below && r.multMin ? `<div class="banner bad">Lucro líquido de ${pct(r.lucroPct, 1)}, abaixo do mínimo de ${pct(r.mk.lucro_min, 0)}. Para chegar lá, o multiplicador do serviço precisa ser ${fmt(r.multMin, 2)}. <button class="restore" data-spfix>aplicar ${fmt(Math.ceil(r.multMin * 100) / 100, 2)}</button></div>` : ''}
+        ${below && r.multMin ? `<div class="banner bad">Lucro líquido de ${pct(r.lucroPct, 1)}, abaixo do mínimo de ${pct(r.mk.lucro_min, 0)}. Para chegar lá, o multiplicador do serviço precisa ser ${fmt(r.multMin, 2)}. <button class="restore" data-spfix>aplicar ${fmt(Math.ceil(r.multMin * 100) / 100, 2)}</button> ou <button class="restore" data-alaprov>pedir aprovação à Diretoria e ao Financeiro</button>${ctx.aprovHtml ? ctx.aprovHtml() : ''}</div>` : ''}
         <section class="card"><h2>Modelo <span class="sub">${mods.length ? 'escopo, equipe e frequência prontos; depois é só ajustar' : 'nenhum modelo cadastrado para este tipo'}</span></h2>
           <div class="mchips">${mods.map((m) => `<button class="mchip${s.modelo === m.id ? ' on' : ''}" data-spmod="${esc(m.id)}"><b>${esc(m.nome)}</b>${m.equipe && m.equipe.length ? `<small>${esc(m.equipe.map((e) => e.tec + ' × ' + e.dias + 'd').join(' + '))}${m.pecas && m.pecas.length ? ' · ' + m.pecas.length + ' peça(s)' : ''}</small>` : ''}</button>`).join('')}</div>
           <div class="docbar" style="margin-top:10px">${REG.areaOk('servicos') ? '<button class="btn sm" data-spsavemod>Salvar esta proposta como modelo</button>' : ''}<button class="restore" data-spcfg="modelos">ver todos os modelos</button></div></section>
@@ -2486,7 +2488,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       if (t.closest('[data-seqnew]')) { ctx.newSeq(); return; }
       const sf = t.closest('[data-seqfam]'); if (sf) { ctx.newSeq(sf.dataset.seqfam); return; }
       const hd = t.closest('[data-hdiv]'); if (hd) { ctx.ui.homeDiv = hd.dataset.hdiv; ctx.render(); return; }
-      const ho = t.closest('[data-hopen]'); if (ho && !t.closest('select') && !t.closest('[data-hdup]')) { const p = (REG.listPropostas() || []).find((x) => x.id === ho.dataset.hopen); if (p) ctx.openProposta(p, false); return; }
+      const ho = t.closest('[data-hopen]'); if (ho && !t.closest('select') && !t.closest('[data-hdup]') && !t.closest('[data-hnext]') && !t.closest('[data-hperdida]')) { const p = (REG.listPropostas() || []).find((x) => x.id === ho.dataset.hopen); if (p) ctx.openProposta(p, false); return; }
       const hu = t.closest('[data-hdup]'); if (hu) { const p = (REG.listPropostas() || []).find((x) => x.id === hu.dataset.hdup); if (p) ctx.openProposta(p, true); return; }
       const ad = t.closest('[data-spadd]'); if (ad && S()) { const s = S(); if (ad.dataset.spadd === 'equipe') s.equipe.push({ tec: '', diaria: 0, dias: s.equipe[0] ? s.equipe[0].dias : 1 }); else s.pecas.push({ desc: '', qtd: 1, unit: 0, ipi: 0, moeda: 'BRL', incluso: true }); ctx.persist(); ctx.render(); return; }
       const rm = t.closest('[data-sprm]'); if (rm && S()) { const [k, i] = rm.dataset.sprm.split('.'); S()[k].splice(+i, 1); ctx.persist(); ctx.render(); return; }
@@ -3023,6 +3025,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
             if (querXls) excel(Object.assign({ id: p.id }, F)).catch((e) => toast(e.message || 'Não consegui gerar o Excel'));
             // vai direto para a tela do custo real desta proposta
             ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = p.id; onDone && onDone(); ctx.render(); window.scrollTo(0, 0);
+            setTimeout(() => { const p2 = (REG.listPropostas() || []).find((x) => x.id === p.id) || Object.assign({}, p, { status: 'ganha' }); avisarModal(p2, ['financeiro', 'engenharia']); }, 400);
           } catch (e) { $('#fcOk', o).disabled = false; toast((e && e.message) || 'Não consegui registrar a baixa'); }
         };
       });
@@ -3082,6 +3085,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     function vMargens() {
       ensure();
       if (ui.mgId) return vDetalhe(ui.mgId);
+      ensureA(); if ((ui.mgTab || 'painel') === 'aprovacoes' && ui.apId) return vAprovDetalhe(ui.apId);
+      const nAp = aprov.filter((a) => estadoA(a) === 'pendente').length;
       const B = base(); const tab = ui.mgTab || 'painel';
       const itAb = B.abertas.flatMap((p) => (p.resumo.itens || []).map((x) => ({ div: p.div || 'SEQ', fam: x.familia, famNome: x.familiaNome || x.familia, nome: x.nome, venda: num(x.venda), margem: num(x.margem), min: num(p.resumo.minimo), pac: p })));
       const itFe = B.fechadas.flatMap((f) => f.itens.map((x) => ({ div: f.F.div, fam: x.familia, famNome: x.familiaNome || x.familia, nome: x.nome, venda: x.venda, margem: x.margem, margemReal: x.margemReal, min: num(f.F.snap.minimo), pac: f })));
@@ -3091,7 +3096,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const baixo = B.abertas.filter((p) => p.resumo.minimo && p.resumo.margemPct < p.resumo.minimo).length;
       const sel = (id, v, opts) => `<select id="${id}" aria-label="${id}">${opts.map(([k, l]) => `<option value="${k}"${v === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
       const filtros = `<div class="sheetbar">${sel('mgPer', ui.mgPer || '12m', [['12m', 'Últimos 12 meses'], ['ano', 'Este ano'], ['tudo', 'Tudo']])}${sel('mgDiv', ui.mgDiv || 'todas', [['todas', 'SEQ e SPV'], ['SEQ', 'Só SEQ'], ['SPV', 'Só SPV']])}
-        <div class="hchips" style="margin-left:auto">${[['painel', 'Painel'], ['fechadas', `Fechadas (${B.fechadas.length})`], ['abertas', `Em aberto (${B.abertas.length})`]].map(([k, l]) => `<button class="hchip${tab === k ? ' on' : ''}" data-mgtab="${k}">${l}</button>`).join('')}</div></div>`;
+        <div class="hchips" style="margin-left:auto">${[['painel', 'Painel'], ['fechadas', `Fechadas (${B.fechadas.length})`], ['abertas', `Em aberto (${B.abertas.length})`], ['aprovacoes', `Aprovações${nAp ? ' (' + nAp + ' pendente' + (nAp > 1 ? 's' : '') + ')' : ''}`]].map(([k, l]) => `<button class="hchip${tab === k ? ' on' : ''}" data-mgtab="${k}">${l}</button>`).join('')}</div></div>`;
       const kpis = `<div class="kpis">
         <div class="kpi"><span>Em aberto</span><b>${mi(vAb)}</b><em>${B.abertas.length} proposta(s) · margem ${mAb === null ? '—' : pct(mAb, 1)}</em></div>
         <div class="kpi"><span>Fechadas</span><b>${mi(vFe)}</b><em>${B.fechadas.length} pacote(s) · margem fechada ${mFe === null ? '—' : pct(mFe, 1)}</em></div>
@@ -3101,6 +3106,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const fila = B.fechadas.filter((f) => f.cobertura < 1).sort((a, b) => String(b.F.fechadoEm).localeCompare(String(a.F.fechadoEm))).slice(0, 6);
       const filaHtml = fila.length ? `<section class="card"><h2>Custo real a lançar <span class="sub">fechadas com linhas sem custo real</span></h2><div class="tw"><table class="t"><tbody>${fila.map((f) => `<tr><td><span class="divb ${f.F.div.toLowerCase()}">${f.F.div}</span> <b>${esc(f.F.numero || '—')}</b> <span class="sub">${esc(f.F.cliente || '')} · fechada em ${fmtD(f.F.fechadoEm)}</span></td><td class="n">${pct(f.cobertura, 0)} apontado</td><td style="text-align:right"><button class="btn sm pri" data-mgopen="${esc(f.F.id)}">Lançar custo real</button></td></tr>`).join('')}</tbody></table></div></section>` : '';
       let body = filaHtml;
+      if (tab === 'aprovacoes') body = vAprovacoes(); else
       if (tab === 'painel') {
         const divs = ['SEQ', 'SPV'].map((d) => { const a = itAb.filter((x) => x.div === d), f = itFe.filter((x) => x.div === d); const pa = wavg(a, (x) => x.venda, (x) => x.margem), pf = wavg(f, (x) => x.venda, (x) => x.margem);
           return { label: d, sub: `${mi(a.reduce((t, x) => t + x.venda, 0))} · ${mi(f.reduce((t, x) => t + x.venda, 0))}`, vals: [pa, pf], tips: [`${d} em aberto: margem ${pa === null ? '—' : pct(pa, 1)} sobre ${brl(a.reduce((t, x) => t + x.venda, 0))}`, `${d} fechadas: margem ${pf === null ? '—' : pct(pf, 1)} sobre ${brl(f.reduce((t, x) => t + x.venda, 0))}`] }; }).filter((r) => r.vals.some((v) => v !== null));
@@ -3205,13 +3211,103 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       });
     }
 
+    // ---------- abas no padrão do Markup HFS (Reunião + Base), com fórmulas vivas ----------
+    function hfsSheets(wbx, F, R) {
+      const its = R.itens; const n = its.length; const L = (c) => { let s = ''; while (c > 0) { const m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = Math.floor((c - 1) / 26); } return s; };
+      const IC = (i) => L(3 + i); const TC = L(3 + n); const NC = 5 + n; const first = IC(0), last = IC(n - 1);
+      const NAVY = 'FF243649', INK = 'FF202B36', HEAD = 'FFEDF1F5', KEY = 'FFDCE8F0', INPF = 'FFFFF1C2', INPC = 'FF1657AE', TOPF = 'FFE9F0F5';
+      const RS = '"R$ "#,##0.00;\\("R$ "#,##0.00\\);"R$ -"', FX = '0.0000"x"', PC = '0.00%';
+      const nomeCurto = (x, i) => (x.n && /^ITEM/.test(x.n) ? x.n.replace('ITEM ', 'Item ') : 'Item ' + String(i + 1).padStart(2, '0')) + (x.familia ? ' · ' + x.familia : '');
+      const mk = (title) => { const ws = wbx.addWorksheet(title, { views: [{ showGridLines: false }] }); ws.getColumn(1).width = 3; ws.getColumn(2).width = title === 'Reunião' ? 62 : 46; for (let i = 0; i < n; i++) ws.getColumn(3 + i).width = 21; ws.getColumn(3 + n).width = 22; ws.getColumn(4 + n).width = 3; ws.getColumn(NC).width = 62; return ws; };
+      const put = (ws, a, v, st = {}) => { const c = ws.getCell(a); c.value = v; if (st.fmt) c.numFmt = st.fmt; c.font = { name: 'Arial', size: st.size || 11, bold: !!st.b, color: { argb: st.color || INK } }; if (st.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: st.fill } }; if (st.wrap) c.alignment = { wrapText: true, vertical: 'top' }; return c; };
+      const inp = (ws, a, v, fmt) => put(ws, a, v, { fmt, fill: INPF, color: INPC });
+      const sec = (ws, r, t) => { put(ws, 'B' + r, t, { b: true, color: 'FFFFFFFF', fill: NAVY }); for (let i = 0; i <= n; i++) put(ws, L(3 + i) + r, null, { fill: NAVY }); };
+      const head = (ws, r, lb, tot = 'Total') => { put(ws, 'B' + r, lb, { b: true, fill: HEAD }); its.forEach((x, i) => put(ws, IC(i) + r, nomeCurto(x, i), { b: true, fill: HEAD })); if (tot) put(ws, TC + r, tot, { b: true, fill: HEAD }); };
+      const linhaF = (ws, r, lb, f, fmt, st = {}) => { put(ws, 'B' + r, lb, st); its.forEach((x, i) => put(ws, IC(i) + r, { formula: f(IC(i), i) }, Object.assign({ fmt }, st))); if (st.tot !== false) put(ws, TC + r, { formula: st.totF || `SUM(${first}${r}:${last}${r})` }, Object.assign({ fmt }, st)); };
+      const nota = (ws, r, t) => put(ws, L(NC) + r, t, { size: 10, color: 'FF52514E', wrap: true });
+      // ---- Base ----
+      const B = mk('Base');
+      put(B, 'B2', 'Base da formação | ' + (F.numero || F.nome || ''), { b: true, size: 20, color: NAVY }); put(B, 'B3', 'Valores extraídos do LS Pricer no fechamento de ' + fmtD(F.fechadoEm) + '; amarelo = entrada editável.');
+      sec(B, 5, 'CUSTOS LANÇADOS NA FORMAÇÃO'); head(B, 6, 'Componente');
+      const grupos = new Map();
+      its.forEach((x, i) => (x.linhas || []).forEach((l) => { if (l.k === 'startup' || l.k === 'frete') return; const ori = l.ori === 'IMP' ? 'importado' : 'nacional'; const g = String(l.fam || (l.grupo === 'ESCOPO' ? 'Escopo sem família' : l.grupo) || 'Outros').replace(/^\d+\./, '') + ' | ' + ori; if (!grupos.has(g)) grupos.set(g, { ori, v: its.map(() => 0) }); grupos.get(g).v[i] += l.prev; }));
+      its.forEach((x, i) => { const base = x.custo - num(x.custoStartup) - num(x.custoFrete); const soma = [...grupos.values()].reduce((t, g) => t + g.v[i], 0); const d = base - soma; if (Math.abs(d) > 0.5) { const g = 'Outros e ajustes | nacional'; if (!grupos.has(g)) grupos.set(g, { ori: 'nacional', v: its.map(() => 0) }); grupos.get(g).v[i] += d; } });
+      const ord = [...grupos.entries()].sort((a, b) => (a[1].ori === b[1].ori ? b[1].v.reduce((q, z) => q + z, 0) - a[1].v.reduce((q, z) => q + z, 0) : a[1].ori === 'importado' ? -1 : 1));
+      let r = 7; const r0 = r; let ri0 = null, ri1 = null, rn0 = null, rn1 = null;
+      for (const [g, o] of ord) { put(B, 'B' + r, g); o.v.forEach((v, i) => inp(B, IC(i) + r, Math.round(v * 100) / 100, RS)); put(B, TC + r, { formula: `SUM(${first}${r}:${last}${r})` }, { fmt: RS }); if (o.ori === 'importado') { ri0 = ri0 || r; ri1 = r; } else { rn0 = rn0 || r; rn1 = r; } r++; }
+      r++; const rImp = r, rNac = r + 1, rCus = r + 2;
+      linhaF(B, rImp, 'Total importado', (c) => (ri0 ? `SUM(${c}${ri0}:${c}${ri1})` : '0'), RS); linhaF(B, rNac, 'Total nacional', (c) => (rn0 ? `SUM(${c}${rn0}:${c}${rn1})` : '0'), RS); linhaF(B, rCus, 'Custo de aquisição original', (c) => `SUM(${c}${rImp}:${c}${rNac})`, RS, { b: true });
+      r = rCus + 2; sec(B, r, 'VALORES ADICIONADOS AO PREÇO'); head(B, r + 1, 'Componente');
+      const rFre = r + 2, rSta = r + 3;
+      put(B, 'B' + rFre, 'Frete embutido no preço'); put(B, 'B' + rSta, 'Start-up embutido no preço');
+      its.forEach((x, i) => { inp(B, IC(i) + rFre, num(x.custoFrete), RS); inp(B, IC(i) + rSta, num(x.custoStartup), RS); }); [rFre, rSta].forEach((q) => put(B, TC + q, { formula: `SUM(${first}${q}:${last}${q})` }, { fmt: RS }));
+      r = rSta + 2; sec(B, r, 'TRIBUTOS CADASTRADOS NO PRICER'); head(B, r + 1, 'Parâmetro', null);
+      const rIcms = r + 2, rPis = r + 3, rCof = r + 4, rIr = r + 5, rIpi = r + 6, rDiv = r + 7;
+      [[rIcms, 'ICMS', (x) => (x.icmsPct != null ? x.icmsPct : Math.max(0, (x.venda ? x.impostos / x.venda : 0) - num(x.pisPct || 0.0065) - num(x.cofinsPct || 0.03) - num(x.irPct)))], [rPis, 'PIS | base sem ICMS', (x) => (x.pisPct != null ? x.pisPct : 0.0065)], [rCof, 'COFINS | base sem ICMS', (x) => (x.cofinsPct != null ? x.cofinsPct : 0.03)], [rIr, 'IRPJ / CSLL', (x) => num(x.irPct)], [rIpi, 'IPI | por fora', (x) => num(x.ipiPct)]]
+        .forEach(([q, lb, f]) => { put(B, 'B' + q, lb); its.forEach((x, i) => inp(B, IC(i) + q, f(x), PC)); });
+      linhaF(B, rDiv, 'Divisor fiscal | antes do IPI', (c) => `1-(${c}${rIcms}+${c}${rIr}+(${c}${rPis}+${c}${rCof})*(1-${c}${rIcms}))`, '0.00000', { tot: false });
+      r = rDiv + 2; sec(B, r, 'PREÇO FECHADO E POLÍTICA'); put(B, TC + r, 'TOTAL', { b: true, color: 'FFFFFFFF', fill: NAVY });
+      const rPre = r + 1, rTab = r + 2, rDes = r + 3, rMin = r + 4;
+      put(B, 'B' + rPre, 'Preço fechado com impostos (com IPI)'); its.forEach((x, i) => inp(B, IC(i) + rPre, Math.round((x.venda + num(x.ipi) * R.k) * 100) / 100, RS)); put(B, TC + rPre, { formula: `SUM(${first}${rPre}:${last}${rPre})` }, { fmt: RS });
+      put(B, 'B' + rTab, 'Fator de tabela'); its.forEach((x, i) => inp(B, IC(i) + rTab, x.fatorTabela || null, FX)); nota(B, rTab, 'Fator de tabela da família de produto do item (POLÍTICA).');
+      put(B, 'B' + rDes, 'Desconto máximo da política'); its.forEach((x, i) => inp(B, IC(i) + rDes, x.descMax != null ? x.descMax : null, PC)); nota(B, rDes, 'Desconto máximo sobre o preço de tabela, pela origem do conjunto (nacional ou importado).');
+      linhaF(B, rMin, 'Fator mínimo aprovado', (c) => `IF(${c}${rTab}="","",${c}${rTab}*(1-${c}${rDes}))`, FX, { tot: false }); nota(B, rMin, 'Fator mínimo = fator de tabela × (1 − desconto máximo): cobre custo fixo, financeiro e o resultado desejado.');
+      r = rMin + 3; put(B, 'B' + r, 'Fontes e premissas', { b: true });
+      [`LS Pricer: ${its.map((x, i) => nomeCurto(x, i)).join(', ')} — custos, frete, start-up e tributos do fechamento.`, `Fechamento de ${fmtD(F.fechadoEm)}${F.pedido ? ', pedido ' + F.pedido : ''}: valor proposto ${brl(F.vendaProposta)} e fechado ${brl(R.venda)} sem IPI.`, 'A origem (importado/nacional) de cada componente vem do cadastro de insumos.', 'Atualização proporcional do importado é uma estimativa; conferir nacionalização e créditos.', 'Frete e start-up cobrados foram mantidos como na origem; sem novo encargo financeiro.']
+        .forEach((t, j) => put(B, 'B' + (r + 1 + j), t, { size: 10, color: 'FF52514E' }));
+      // ---- Reunião ----
+      const W = mk('Reunião'); const cambio = num(((ctx.SPV && ctx.SPV.cfg && ctx.SPV.cfg().mk) || {}).cambio_usd) || 5.5;
+      put(W, 'B2', 'Markup da negociação | ' + (F.cliente || ''), { b: true, size: 20, color: NAVY }); put(W, 'B3', (F.numero || F.nome || '') + ' • preço fechado × custo atualizado pelo câmbio');
+      put(W, 'B5', 'Preço necessário pelo fator aprovado', { fill: TOPF }); put(W, TC + '5', { formula: TC + '31' }, { b: true, size: 19, color: NAVY, fill: TOPF, fmt: RS });
+      put(W, 'B6', 'Preço fechado com o cliente'); put(W, TC + '6', { formula: 'C10' }, { fmt: RS }); nota(W, 6, 'Preço com impostos e IPI, como fechado.');
+      put(W, 'B7', 'Ajuste para atender à política'); put(W, TC + '7', { formula: `${TC}5-${TC}6` }, { fmt: RS }); nota(W, 7, 'Entre parênteses: sobrando. Sem parênteses: faltando.');
+      put(W, 'B9', 'Câmbio "atual" (estimativa)'); inp(W, 'C9', cambio, '"R$ "0.00'); nota(W, 9, 'Cenário para a reunião; não é cotação verificada.');
+      put(W, 'B10', 'Preço total fechado'); put(W, 'C10', { formula: `Base!${TC}${rPre}` }, { fmt: RS });
+      put(W, 'B11', 'Câmbio usado no custo original (nacionalização)'); inp(W, 'C11', cambio, '"R$ "0.00'); nota(W, 11, 'Confirmar com Compras o câmbio da formação.');
+      put(W, 'B12', 'Fator mínimo aprovado (por item na linha 36)'); put(W, 'C12', { formula: `IFERROR(AVERAGE(${first}36:${last}36),"")` }, { fmt: FX });
+      sec(W, 14, '1. ATUALIZAR O CUSTO DE AQUISIÇÃO'); head(W, 15, 'Etapa');
+      linhaF(W, 16, 'Importado no custo original', (c) => `Base!${c}${rImp}`, RS); linhaF(W, 17, 'Nacional no custo original', (c) => `Base!${c}${rNac}`, RS); linhaF(W, 18, 'Custo total original', (c) => `SUM(${c}16:${c}17)`, RS);
+      linhaF(W, 19, 'Variação do câmbio | compra ÷ formação', () => '$C$9/$C$11', '0.0000', { tot: false });
+      linhaF(W, 20, 'Importado com o novo câmbio', (c) => `${c}16*${c}19`, RS); nota(W, 20, 'Somente a parcela importada varia; o custo nacional permanece fixo.');
+      linhaF(W, 21, 'CUSTO DE AQUISIÇÃO ATUALIZADO', (c) => `SUM(${c}17,${c}20)`, RS, { b: true, fill: HEAD }); nota(W, 21, 'A classificação e os valores de origem permanecem como no Pricer.');
+      sec(W, 23, '2. FORMAR O PREÇO E CONFERIR A CONDIÇÃO DO CLIENTE'); head(W, 23, '2. FORMAR O PREÇO E CONFERIR A CONDIÇÃO DO CLIENTE'); put(W, 'B23', '2. FORMAR O PREÇO E CONFERIR A CONDIÇÃO DO CLIENTE', { b: true, color: 'FFFFFFFF', fill: NAVY });
+      linhaF(W, 24, 'Custo atualizado × fator mínimo', (c) => `IF(${c}36="",0,${c}21*${c}36)`, RS); nota(W, 24, 'O fator é aplicado ao custo, antes dos impostos de venda.');
+      linhaF(W, 25, '(+) Frete embutido no preço', (c) => `Base!${c}${rFre}`, RS); linhaF(W, 26, '(+) Start-up embutido no preço', (c) => `Base!${c}${rSta}`, RS);
+      linhaF(W, 27, '(=) Base do preço antes dos tributos', (c) => `SUM(${c}24:${c}26)`, RS);
+      linhaF(W, 28, 'Divisor dos tributos | antes do IPI', (c) => `Base!${c}${rDiv}`, '0.00000', { tot: false });
+      linhaF(W, 29, 'Preço com tributos | antes do IPI', (c) => `${c}27/${c}28`, RS); linhaF(W, 30, '(+) IPI', (c) => `${c}29*Base!${c}${rIpi}`, RS);
+      linhaF(W, 31, 'PREÇO NECESSÁRIO PELA POLÍTICA', (c) => `SUM(${c}29:${c}30)`, RS, { b: true, fill: KEY });
+      linhaF(W, 32, 'Preço fechado com o cliente', (c) => `Base!${c}${rPre}`, RS);
+      linhaF(W, 33, 'Preço do cliente após tributos', (c) => `${c}32/(1+Base!${c}${rIpi})*${c}28`, RS);
+      linhaF(W, 34, 'Base disponível para o produto', (c) => `${c}33-${c}25-${c}26`, RS);
+      linhaF(W, 35, 'FATOR QUE O PREÇO DO CLIENTE SUPORTA', (c) => `IFERROR(${c}34/${c}21,"")`, FX, { b: true, fill: HEAD, totF: `IFERROR(SUM(${first}34:${last}34)/${TC}21,"")` });
+      linhaF(W, 36, 'Fator mínimo aprovado', (c) => `Base!${c}${rMin}`, FX, { totF: 'C12' });
+      linhaF(W, 37, 'Diferença até o preço da política', (c) => `${c}31-${c}32`, RS);
+      put(W, 'B38', 'Conclusão sobre o fator aprovado', { fill: HEAD }); put(W, 'C38', { formula: `IF(${TC}32<${TC}31-0.01,"ABAIXO DA POLÍTICA","ATENDE À POLÍTICA")` }, { fill: HEAD, b: true });
+      sec(W, 40, '3. IDENTIFICAR SE A VENDA COBRE TODOS OS CUSTOS');
+      put(W, 'B41', 'Fator de equilíbrio validado pelo Financeiro'); inp(W, 'C41', null, FX); nota(W, 41, 'Preencher somente se conhecido; vazio não significa zero.');
+      linhaF(W, 42, 'Preço de equilíbrio | sem resultado desejado', (c) => `IF(COUNT($C$41)=0,"",(${c}21*$C$41+${c}25+${c}26)/${c}28*(1+Base!${c}${rIpi}))`, RS, { totF: `IF(COUNT($C$41)=0,"",SUM(${first}42:${last}42))` });
+      linhaF(W, 43, 'Diferença de preço até o equilíbrio', (c) => `IF(COUNT($C$41)=0,"",${c}42-${c}32)`, RS, { totF: `IF(COUNT($C$41)=0,"",${TC}42-${TC}32)` });
+      put(W, 'B44', 'Conclusão sobre a cobertura dos custos'); put(W, 'C44', { formula: `IF(COUNT(C41)=0,"EQUILÍBRIO NÃO INFORMADO",IF(${TC}32<${TC}42-0.01,"NÃO COBRE TODOS OS CUSTOS",IF(ABS(${TC}32-${TC}42)<=0.01,"NO EQUILÍBRIO","COBRE O EQUILÍBRIO")))` }, { b: true });
+      put(W, 'B46', 'Como explicar na reunião', { b: true });
+      ['1. O fator mínimo cobre estrutura, financeiro e resultado desejado.', '2. O câmbio aumenta o custo importado; o preço fixo passa a suportar um fator menor.', '3. Abaixo do mínimo: não atinge a política. Abaixo do equilíbrio: não cobre os custos.', 'O fator de equilíbrio deve usar a mesma base do fator praticado, sem duplicar os adicionais.']
+        .forEach((t, j) => put(W, 'B' + (47 + j), t));
+      wbx.views = [{ activeTab: 0 }];
+    }
+
     // ---------- Excel do fechamento: resumo no formato do Memorial (um item por coluna) ----------
-    async function excel(F) {
+    async function excel(F, aprovacao) {
       const ExcelJS = await excelLib(); const R = realizado(F); const k = R.k; const wbx = new ExcelJS.Workbook(); wbx.creator = 'LS Pricer';
+      hfsSheets(wbx, F, R);
+      // pedido de aprovação: o preço ainda é o proposto, não o fechado
+      if (F.modo === 'aprovacao') {
+        const TR = [[/Preço total fechado/g, 'Preço total proposto'], [/fechado com o cliente/g, 'proposto ao cliente'], [/Preço fechado com impostos/g, 'Preço proposto com impostos'], [/preço fechado ×/g, 'preço proposto ×'], [/como fechado/g, 'como proposto'], [/no fechamento de/g, 'no pedido de aprovação de'], [/do fechamento/g, 'da proposta'], [/^Fechamento de /, 'Pedido de aprovação de '], [/ e fechado .*? sem IPI/, ' sem IPI']];
+        ['Base', 'Reunião'].forEach((nm) => { const ws = wbx.getWorksheet(nm); if (ws) ws.eachRow((row) => row.eachCell((c) => { if (typeof c.value === 'string') { let v = c.value; TR.forEach(([a, b]) => { v = v.replace(a, b); }); if (v !== c.value) c.value = v; } })); });
+      }
       const OR = 'FFE8570A', INK = 'FF1E1F21', SOFT = 'FFFFF1E8', GRAY = 'FFF4F3F0';
       const money = '#,##0.00;[Red]-#,##0.00', perc = '0.00%;[Red]-0.00%', fat = '0.0000';
       const its = R.itens; const n = its.length; const colT = n + 2;
-      const ws = wbx.addWorksheet('Fechamento', { views: [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 8 }] });
+      const ws = wbx.addWorksheet('Memorial', { views: [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 8 }] });
       ws.columns = [{ width: 46 }].concat(its.map(() => ({ width: 17 }))).concat([{ width: 19 }]);
       const t = ws.addRow(['LS FIRE — FECHAMENTO DA PROPOSTA']); t.font = { bold: true, size: 14, color: { argb: OR } };
       ws.addRow([`${F.div}${F.tipo ? ' · ' + F.tipo : ''} · ${F.numero || F.nome || ''} · ${F.cliente || ''}`]).font = { bold: true };
@@ -3267,15 +3363,6 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         row('Custo real', (x) => x.custoReal, money); row('Diferença de custo (real − previsto)', (x) => x.custoReal - x.custo, money);
         row('Margem líquida realizada (R$)', (x) => x.margemReal, money, { bold: true }); row('Margem líquida realizada (%)', (x) => x.margemRealPct, perc, { lead: true, total: R.margemRealPct });
       }
-      // composição resumida, como a aba Base da análise de markup
-      const wc = wbx.addWorksheet('Composição', { views: [{ showGridLines: false, state: 'frozen', xSplit: 1, ySplit: 2 }] });
-      wc.columns = [{ width: 46 }].concat(its.map(() => ({ width: 17 }))).concat([{ width: 19 }]);
-      wc.addRow(['CUSTOS LANÇADOS NA FORMAÇÃO']).font = { bold: true, color: { argb: OR } };
-      const h2 = wc.addRow(['Componente'].concat(its.map((x, i) => 'ITEM ' + String(i + 1).padStart(2, '0'))).concat(['TOTAL'])); h2.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INK } }; });
-      const grupos = new Map();
-      its.forEach((x, i) => lin(x).forEach((l) => { const g = (String(l.fam || (l.grupo === 'ESCOPO' ? 'ESCOPO SEM FAMÍLIA' : l.grupo) || 'OUTROS').replace(/^\d+\./, '') || 'OUTROS') + (l.ori ? ' | ' + (l.ori === 'IMP' ? 'importado' : 'nacional') : ''); if (!grupos.has(g)) grupos.set(g, its.map(() => 0)); grupos.get(g)[i] += l.prev; }));
-      for (const [g, v] of [...grupos.entries()].sort((a2, b2) => b2[1].reduce((q, z) => q + z, 0) - a2[1].reduce((q, z) => q + z, 0))) { const r = wc.addRow([g].concat(v).concat([v.reduce((q, z) => q + z, 0)])); r.eachCell((c, ci) => { if (ci > 1) c.numFmt = money; }); }
-      const tr = wc.addRow(['TOTAL'].concat(its.map((x) => x.custo)).concat([R.custo])); tr.eachCell((c, ci) => { c.font = { bold: true }; if (ci > 1) c.numFmt = money; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY } }; });
       // custo real por linha, só quando houver apontamento
       if (R.apontadas || its.some((x) => x.extras.length)) {
         const wr = wbx.addWorksheet('Custo real'); wr.columns = [{ width: 28 }, { width: 52 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 34 }];
@@ -3283,7 +3370,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         for (const x of its) { for (const l of x.linhas.filter((q) => typeof q.real === 'number')) { const r = wr.addRow([x.nome, l.desc || l.rot || '', l.prev, l.real, l.real - l.prev, l.obs || '']); [3, 4, 5].forEach((c) => { r.getCell(c).numFmt = money; }); }
           for (const e of x.extras) { const r = wr.addRow([x.nome, 'NÃO PREVISTO — ' + e.desc, 0, e.v, e.v, '']); [3, 4, 5].forEach((c) => { r.getCell(c).numFmt = money; }); } }
       }
-      const name = ('Fechamento ' + (F.numero || '') + ' ' + (F.cliente || '')).trim().replace(/[\\/:*?"<>|]+/g, '_') + '.xlsx';
+      const name = ((aprovacao ? 'Aprovação ' : 'Fechamento ') + (F.numero || '') + ' ' + (F.cliente || '')).trim().replace(/[\\/:*?"<>|]+/g, '_') + '.xlsx';
       const ok = await REG.save(name, await wbx.xlsx.writeBuffer(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); if (!ok) toast('Download cancelado');
     }
 
@@ -3310,7 +3397,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!fechDe(id)) { toast('Esta proposta ainda não tem baixa: use "Dar baixa" primeiro.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       const cl = t.closest('[data-mgclose]'); if (cl) { const p = (REG.listPropostas() || []).find((x) => x.id === cl.dataset.mgclose); if (p) fecharModal(p); return; }
       if (ui.view !== 'margens') return;
-      const tb = t.closest('[data-mgtab]'); if (tb) { ui.mgTab = tb.dataset.mgtab; ctx.render(); return; }
+      const tb = t.closest('[data-mgtab]'); if (tb) { ui.mgTab = tb.dataset.mgtab; ui.apId = null; ctx.render(); return; }
       const op = t.closest('[data-mgopen]'); if (op) { ui.mgId = op.dataset.mgopen; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (t.closest('[data-mgback]')) { ui.mgId = null; ctx.render(); return; }
       if (t.closest('[data-mgcalc]')) { calcularAntigas(); return; }
@@ -3326,7 +3413,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     });
 
     // ---------- etapas da proposta (página inicial) ----------
-    const ETAPAS = [['formacao', 'Formação'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Enviada ao financeiro'], ['engenharia', 'Enviada à engenharia'], ['real', 'Custo real preenchido'], ['encerrada', 'Encerrada']];
+    const ETAPAS = [['formacao', 'Formação'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Financeiro avisado'], ['engenharia', 'Engenharia avisada'], ['real', 'Custo real lançado'], ['encerrada', 'Encerrada']];
     const dt = (iso) => { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); } catch (e) { return ''; } };
     function etapas(p) {
       ensure(); const F = fechDe(p.id); const e = p.etapas || {}; const st = p.status || 'rascunho'; const perdida = st === 'perdida';
@@ -3340,14 +3427,14 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         else if (!F) s = 'off';
         else if (k === 'real') { act = 'real'; if (R.cobertura >= 1 - 1e-9) { s = 'ok'; info = '100%'; } else if (R.apontadas) { s = 'parcial'; info = pct(R.cobertura, 0); } }
         else if (k === 'encerrada') { act = 'marcar'; if (e.encerrada || F.execucao === 'encerrada') { s = 'ok'; info = e.encerrada ? dt(e.encerrada.at) : ''; } }
-        else { act = 'marcar'; if (e[k]) { s = 'ok'; info = dt(e[k].at); } }
+        else { act = 'avisar'; if (e[k]) { s = 'ok'; info = dt(e[k].at); } }
         return { k, lb, s, info, act, obs: e[k] && e[k].obs };
       });
     }
     const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial'); };
     function etapasHtml(p) {
       const L = etapas(p); const prox = L.find((x) => x.s === 'pend' || x.s === 'parcial');
-      return `<div class="etapas">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
+      return `<div class="etapas">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
         <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
     }
     async function salvarEtapa(p, k, val, desc) {
@@ -3364,7 +3451,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'cliente') { const rec = Object.assign({}, p, { status: 'enviada', etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }); delete rec.id; delete rec.local;
         REG.saveProposta(p.id, rec).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
-      if (x.act !== 'marcar') return;
+      if (x.act === 'avisar' && x.s !== 'ok') { avisarModal(p, [k]); return; }
+      if (x.act !== 'marcar' && x.act !== 'avisar') return;
       if (x.s === 'ok') { if (!window.confirm('Desmarcar "' + x.lb + '"?')) return; salvarEtapa(p, k, null, x.lb + ' desmarcada').catch((e) => toast(e.message || 'Não consegui salvar')); return; }
       modal(`<h2>${esc(x.lb)}</h2><p class="sub" style="margin:0">${esc((p.numero || p.name || '') + ' · ' + (p.cliente || ''))}</p>
         <div class="f"><label for="etObs">Observação (opcional)</label><input id="etObs" placeholder="${k === 'financeiro' ? 'ex.: enviado por e-mail para o financeiro com o pedido' : k === 'engenharia' ? 'ex.: enviado para a engenharia lançar o custo real' : 'ex.: projeto entregue e faturado'}"></div>
@@ -3377,7 +3465,213 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       });
     });
 
-    return { vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente };
+    // ---------- aviso por e-mail ao Financeiro e à Engenharia ----------
+    const avisosCfg = () => Object.assign({ financeiro: '', engenharia: '', diretoria: '', cc: '', link: 'https://claude.ai/artifact/3pa3KFzGLean13jGE6PgSJ' }, ((REG.tabelas || {}).AVISOS || {}).cfg || {});
+    const emails = (t) => String(t || '').split(/[;,\s]+/).map((x) => x.trim()).filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+    let mcpP;
+    const getMcp = () => { if (mcpP === undefined) mcpP = (window.claude && window.claude.use ? window.claude.use('mcp') : Promise.resolve(null)).catch(() => null); return mcpP; };
+    function textoAviso(p, F, areas, cfg) {
+      const P = fechado(F); const n = F.numero || F.nome || 'sem número';
+      const linhas = [`Olá,`, ``, `A proposta ${n} — ${F.cliente || ''} foi fechada em ${fmtD(F.fechadoEm)}${F.pedido ? ' (pedido ' + F.pedido + ')' : ''}.`,
+        `Valor fechado: ${brl(P.venda)} sem IPI · margem líquida fechada: ${pct(P.margemPct, 1)}.`, `Itens:`].concat(P.itens.map((x) => `• ${x.qtd || 1} × ${x.nome}`)).concat(['']);
+      if (areas.includes('financeiro')) linhas.push(`Financeiro: a formação completa (custos, impostos, comissões e margem por item) está disponível no LS Pricer em Margens → Fechadas → ${n}, com a planilha do fechamento em Excel.`);
+      if (areas.includes('engenharia')) linhas.push(`Engenharia: por favor, lance o custo real de compras e fabricação de cada linha no LS Pricer em Margens → Fechadas → ${n} (botão "Custo real"). A margem realizada é calculada na hora.`);
+      linhas.push('', `LS Pricer: ${cfg.link}`, F.obs ? `Observações da negociação: ${F.obs}` : '');
+      return { assunto: `Proposta ${n} fechada — formação disponível${F.cliente ? ' · ' + F.cliente : ''}`, corpo: linhas.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim() };
+    }
+    async function marcarAvisadas(p, areas, obs) {
+      const rec = Object.assign({}, p); delete rec.id; delete rec.local; rec.etapas = Object.assign({}, p.etapas || {});
+      for (const a of areas) rec.etapas[a] = { at: new Date().toISOString(), by: REG.me || null, obs };
+      await REG.saveProposta(p.id, rec);
+      ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' — ' + areas.map((a) => (ETAPAS.find((x) => x[0] === a) || [0, a])[1]).join(' e ') + (obs ? ': ' + obs : ''), mudancas: areas.map((a) => ({ campo: (ETAPAS.find((x) => x[0] === a) || [0, a])[1], de: null, para: 'feito' })) });
+      ctx.render();
+    }
+    // janela de e-mail genérica: Outlook do usuário (conector Microsoft 365), programa de e-mail ou copiar
+    function emailModal(o) {
+      modal(`<h2>${esc(o.titulo)}</h2>${o.intro ? `<p class="sub" style="margin:0">${esc(o.intro)}</p>` : ''}
+        <div class="fields">
+          ${o.grupos.map((g) => `<div class="f span2"><label class="chk"><input type="checkbox" data-eg="${g.k}"${g.on ? ' checked' : ''}> ${esc(g.lb)}</label><input data-egto="${g.k}" value="${esc(g.emails || '')}" placeholder="e-mail ${esc(g.lb.toLowerCase())}"></div>`).join('')}
+          <div class="f spanall"><label for="emCc">Cópia</label><input id="emCc" value="${esc(o.cc || '')}" placeholder="opcional"></div>
+          <div class="f spanall"><label for="emAss">Assunto</label><input id="emAss" value="${esc(o.assunto)}"></div>
+          <div class="f spanall"><label for="emTxt">Mensagem</label><textarea id="emTxt" rows="12"></textarea></div>
+        </div>
+        ${o.excel ? '<p class="sub" style="margin:0">O Outlook do app envia sem anexo: quem recebe abre a análise no app. Para anexar a planilha, baixe e use "Abrir no meu e-mail".</p>' : ''}
+        <p class="sub" id="emMsg" style="margin:0"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="emOutlook" hidden>Enviar pelo Outlook</button><a class="btn" id="emMail" target="_blank" rel="noopener">Abrir no meu e-mail</a>${o.excel ? '<button class="btn" id="emXls">Baixar a planilha</button>' : ''}<button class="btn" id="emCopy">Copiar texto</button>${o.soMarcar ? `<button class="btn" id="emSo">${esc(o.soMarcar)}</button>` : ''}<button class="btn" data-close>Agora não</button></div>`, (m, close) => {
+        const g = (q) => $(q, m);
+        const sel = () => o.grupos.filter((x) => m.querySelector(`[data-eg="${x.k}"]`).checked).map((x) => x.k);
+        const para = () => [].concat(...o.grupos.filter((x) => m.querySelector(`[data-eg="${x.k}"]`).checked).map((x) => emails(m.querySelector(`[data-egto="${x.k}"]`).value)));
+        const mail = () => { g('#emMail').href = 'mailto:' + encodeURIComponent(para().join(',')) + '?subject=' + encodeURIComponent(g('#emAss').value) + (emails(g('#emCc').value).length ? '&cc=' + encodeURIComponent(emails(g('#emCc').value).join(',')) : '') + '&body=' + encodeURIComponent(g('#emTxt').value); };
+        const refaz = () => { g('#emTxt').value = o.corpo(sel()); mail(); };
+        m.querySelectorAll('[data-eg]').forEach((c) => { c.onchange = refaz; }); m.querySelectorAll('[data-egto]').forEach((c) => { c.oninput = mail; }); ['#emCc', '#emAss', '#emTxt'].forEach((q) => { g(q).oninput = mail; }); refaz();
+        getMcp().then((x) => { if (x) g('#emOutlook').hidden = false; });
+        // lê a seleção antes de fechar a janela
+        const fim = async (obs, a, to) => { if (o.onDone) await o.onDone(a, obs, to); };
+        g('#emOutlook').onclick = async () => {
+          const to = para(); if (!to.length) { g('#emMsg').textContent = 'Informe pelo menos um e-mail válido.'; return; }
+          const mc = await getMcp(); if (!mc) { g('#emMsg').textContent = 'O envio pelo Outlook não está disponível aqui. Use "Abrir no meu e-mail".'; return; }
+          const html = g('#emTxt').value.split(/\n{2,}/).map((par) => '<p>' + esc(par).replace(/\n/g, '<br>') + '</p>').join('');
+          g('#emOutlook').disabled = true; g('#emMsg').textContent = 'Enviando…';
+          try {
+            await mc.callTool('Microsoft 365', 'outlook_send_mail', Object.assign({ to, subject: g('#emAss').value.slice(0, 255), body: html, bodyType: 'html' }, emails(g('#emCc').value).length ? { cc: emails(g('#emCc').value) } : {}));
+            const a = sel(); close(); await fim('e-mail enviado para ' + to.join(', '), a, to); toast('E-mail enviado');
+          } catch (e) {
+            g('#emOutlook').disabled = false; const c = e && e.code;
+            g('#emMsg').textContent = c === 'needs_reauth' ? 'A conexão com o Microsoft 365 expirou: reconecte em claude.ai (Configurações → Conectores) e tente de novo.'
+              : c === 'server_not_connected' || c === 'selection_required' ? 'O Microsoft 365 não está conectado na sua conta do claude.ai. Conecte em Configurações → Conectores, ou use "Abrir no meu e-mail".'
+              : c === 'not_granted' || c === 'not_in_manifest' ? 'O envio pelo Outlook não foi permitido. Use "Abrir no meu e-mail".'
+              : c === 'blocked_by_policy' || c === 'approval_required' ? 'A política da organização não permite enviar e-mail por aqui. Use "Abrir no meu e-mail".'
+              : c === 'tool_error' ? 'O Outlook recusou o envio: ' + ((e && e.message) || '') + '. Confira os e-mails.'
+              : c === 'cancelled' ? 'Envio cancelado.'
+              : 'Não sei se o e-mail saiu (' + (c || 'erro') + '). Confira a pasta Enviados do Outlook antes de tentar de novo.';
+          }
+        };
+        g('#emMail').onclick = () => { setTimeout(() => { if (window.confirm('O e-mail foi enviado?')) { const a = sel(), to = para(); close(); fim('e-mail pelo programa de e-mail para ' + to.join(', '), a, to); } }, 600); };
+        g('#emCopy').onclick = () => navigator.clipboard.writeText(g('#emAss').value + '\n\n' + g('#emTxt').value).then(() => toast('Texto copiado'), () => toast('Não consegui copiar'));
+        if (o.excel) g('#emXls').onclick = () => o.excel().catch((e) => toast(e.message || 'Não consegui gerar o Excel'));
+        const so = g('#emSo'); if (so) so.onclick = async () => { const a = sel(), to = para(); close(); await fim('registrado sem e-mail pelo app', a, to); };
+      });
+    }
+    function avisarModal(p, areas) {
+      ensure(); const F = fechDe(p.id); if (!F) { toast('Dê baixa na proposta antes de avisar as áreas.'); return; }
+      const cfg = avisosCfg();
+      emailModal({ titulo: 'Avisar Financeiro e Engenharia', intro: `A formação da proposta ${F.numero || F.nome || ''} está disponível. Confira o e-mail e envie; as etapas marcam sozinhas.`,
+        grupos: [{ k: 'financeiro', lb: 'Financeiro', emails: cfg.financeiro, on: areas.includes('financeiro') }, { k: 'engenharia', lb: 'Engenharia', emails: cfg.engenharia, on: areas.includes('engenharia') }],
+        cc: cfg.cc, assunto: textoAviso(p, F, areas, cfg).assunto, corpo: (sel) => textoAviso(p, F, sel, cfg).corpo, excel: () => excel(F), soMarcar: 'Só marcar como avisado',
+        onDone: async (a, obs) => { if (!a.length) return; await marcarAvisadas(Object.assign({}, (REG.listPropostas() || []).find((x) => x.id === p.id) || p), a, obs); } });
+    }
+
+    // ---------- aprovação de desconto fora da política (Diretoria + Financeiro) ----------
+    let aprov = []; let subA = null;
+    function ensureA() {
+      const m = shared() ? 'shared' : 'local'; if (subA === m || subA === 'shared') return; subA = m;
+      if (m === 'shared') REG.db.collection('aprovacoes').orderBy('at', 'desc').limit(300).onSnapshot((s) => { aprov = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
+      else { try { aprov = Object.entries(JSON.parse(localStorage.getItem('lspricer.aprovacoes.v1') || '{}')).map(([id, x]) => Object.assign({ id }, x)); } catch (e) { aprov = []; } }
+    }
+    async function gravarA(id, rec) {
+      const body = JSON.parse(JSON.stringify(rec)); delete body.id;
+      if (shared()) await REG.db.doc('aprovacoes/' + id).set(body);
+      else { let all = {}; try { all = JSON.parse(localStorage.getItem('lspricer.aprovacoes.v1') || '{}'); } catch (e) { all = {}; } all[id] = body; try { localStorage.setItem('lspricer.aprovacoes.v1', JSON.stringify(all)); } catch (e) { /* sem espaço */ } aprov = Object.entries(all).map(([k, x]) => Object.assign({ id: k }, x)); ctx.render(); }
+    }
+    const PAPEIS = [['diretoria', 'Diretoria'], ['financeiro', 'Financeiro']];
+    const aprovDe = (propId) => { ensureA(); return aprov.find((a) => a.id === propId) || null; };
+    const estadoA = (a) => { if (!a) return null; const d = a.decisoes || {}; if (PAPEIS.some(([k]) => d[k] && d[k].decisao === 'reprovada')) return 'reprovada'; if (PAPEIS.every(([k]) => d[k] && d[k].decisao === 'aprovada')) return 'aprovada'; return 'pendente'; };
+    // sem aprovador definido, qualquer Editor decide; o dono sempre pode
+    const podeDecidir = (papel) => { if (REG.mode === 'local' || REG.isOwner) return true; const l = (REG.acessos || {})['ap_' + papel] || []; return l.length ? l.includes(REG.me) : !!REG.canEditCadastro; };
+    // análise no formato da planilha (Reunião): fator mínimo × fator que o preço suporta, por item
+    function analise(snap) {
+      return snap.itens.map((x) => {
+        const icms = x.icmsPct != null ? x.icmsPct : 0; const pis = x.pisPct != null ? x.pisPct : 0.0065, cof = x.cofinsPct != null ? x.cofinsPct : 0.03; const ir = num(x.irPct); const ipi = num(x.ipiPct);
+        const div = 1 - (icms + ir + (pis + cof) * (1 - icms)); const fre = num(x.custoFrete), sta = num(x.custoStartup); const aq = x.custo - fre - sta;
+        const fmin = x.fatorTabela ? x.fatorTabela * (1 - num(x.descMax)) : null; const preco = x.venda + num(x.ipi);
+        const necessario = fmin ? (aq * fmin + fre + sta) / div * (1 + ipi) : null; const suporta = aq ? (preco / (1 + ipi) * div - fre - sta) / aq : null;
+        return { nome: x.nome, n: x.n, aq, fre, sta, div, fmin, fatorAplicado: x.fatorAplicado, suporta, necessario, preco, dif: necessario != null ? necessario - preco : null, margemPct: x.margemPct, ok: necessario == null || preco >= necessario - 0.01 };
+      });
+    }
+    function textoAprov(p, snap, mot, cfg) {
+      const A = analise(snap); const n = p.numero || p.name || 'sem número';
+      const l = [`Olá,`, ``, `Peço aprovação para a proposta ${n} — ${p.cliente || ''}, que está fora da política de preço.`, `Valor proposto: ${brl(snap.venda)} sem IPI · margem líquida: ${pct(snap.margemPct, 1)} (mínimo ${pct(snap.minimo || 0, 0)}).`, ``, `Justificativa: ${mot || '—'}`, ``, `Itens:`]
+        .concat(A.map((x) => `• ${x.nome}: margem ${pct(x.margemPct, 1)}; fator aplicado ${x.fatorAplicado ? NF[4].format(x.fatorAplicado) : '—'} × mínimo ${x.fmin ? NF[4].format(x.fmin) : '—'}${x.dif != null && x.dif > 0.01 ? '; faltam ' + brl(x.dif) + ' para a política' : ''}.`))
+        .concat(['', `Para analisar e aprovar: LS Pricer → Margens → Aprovações → ${n}. A análise está no formato da planilha (Reunião e Base), com o Excel para baixar.`, `LS Pricer: ${cfg.link}`]);
+      return { assunto: `Aprovação de desconto · proposta ${n}${p.cliente ? ' · ' + p.cliente : ''}`, corpo: l.join('\n') };
+    }
+    const fAprov = (p, a) => ({ id: p.id, propId: p.id, div: p.div || 'SEQ', tipo: p.tipo || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', fechadoEm: (a && a.at || new Date().toISOString()).slice(0, 10), pedido: '', obs: 'Análise para aprovação de desconto', modo: 'aprovacao', vendaProposta: a.snap.venda, valorFechado: a.snap.venda, snap: a.snap, real: {}, execucao: '' });
+    function pedirAprovacao(p, snap) {
+      ensureA(); const cfg = avisosCfg();
+      modal(`<h2>Pedir aprovação</h2><p class="sub" style="margin:0">O desconto passa da política. Explique o motivo; Diretoria e Financeiro analisam e aprovam no app.</p>
+        <div class="f"><label for="apMot">Justificativa</label><textarea id="apMot" rows="3" placeholder="ex.: cliente estratégico, concorrência com preço X, volume do contrato anual…"></textarea></div>
+        <div style="display:flex;gap:8px"><button class="btn pri" id="apOk">Continuar para o e-mail</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+        $('#apMot', o).focus();
+        $('#apOk', o).onclick = async () => {
+          const mot = $('#apMot', o).value.trim(); if (!mot) { toast('Escreva a justificativa'); return; } close();
+          const rec = { propId: p.id, uid: p.uid || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', div: p.div || 'SEQ', at: new Date().toISOString(), by: REG.me || null, motivo: mot, snap, decisoes: {} };
+          try { await gravarA(p.id, rec); ctx.log && ctx.log({ tipo: 'Aprovação solicitada', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — ' + mot, mudancas: [{ campo: 'Margem', de: null, para: snap.margemPct }, { campo: 'Valor', de: null, para: snap.venda }] }); }
+          catch (e) { toast((e && e.message) || 'Não consegui registrar o pedido'); return; }
+          const t = textoAprov(p, snap, mot, cfg);
+          emailModal({ titulo: 'Pedir aprovação à Diretoria e ao Financeiro', intro: 'O pedido já está no app (Margens → Aprovações). Envie o aviso por e-mail.',
+            grupos: [{ k: 'diretoria', lb: 'Diretoria', emails: cfg.diretoria, on: true }, { k: 'financeiro', lb: 'Financeiro', emails: cfg.financeiro, on: true }], cc: cfg.cc, assunto: t.assunto, corpo: () => t.corpo,
+            excel: () => excel(fAprov(p, rec), true), onDone: async (a, obs) => { ctx.log && ctx.log({ tipo: 'Aprovação solicitada', ref: p.id, desc: 'aviso: ' + obs, mudancas: [] }); } });
+          ctx.render();
+        };
+      });
+    }
+    function vAprovacoes() {
+      ensureA();
+      if (ui.apId) return vAprovDetalhe(ui.apId);
+      const rows = aprov.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).map((a) => { const e = estadoA(a); const pill = { pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e];
+        return `<tr class="click" data-apopen="${esc(a.id)}"><td>${esc(fmtD(a.at))}</td><td><span class="divb ${String(a.div || 'SEQ').toLowerCase()}">${esc(a.div || 'SEQ')}</span> <b>${esc(a.numero || '—')}</b><br><small class="sub">${esc(a.cliente || a.nome || '')}</small></td><td class="n">${brl(a.snap.venda)}</td><td class="n">${pct(a.snap.margemPct, 1)}</td>
+          <td>${PAPEIS.map(([k, lb]) => { const d = (a.decisoes || {})[k]; return `<span class="pill ${d ? (d.decisao === 'aprovada' ? 'ok' : 'bad') : 'mute'}">${lb}: ${d ? d.decisao : 'pendente'}</span>`; }).join(' ')}</td><td><span class="pill ${pill}">${e}</span></td><td><button class="btn sm pri" data-apopen="${esc(a.id)}">Analisar</button></td></tr>`; }).join('');
+      return `<section class="card"><h2>Aprovações de desconto <span class="sub">propostas fora da política</span></h2><div class="tw"><table class="t"><thead><tr><th>Pedido</th><th>Proposta</th><th>Valor</th><th>Margem</th><th>Decisões</th><th>Situação</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum pedido de aprovação.</td></tr>'}</tbody></table></div></section>`;
+    }
+    function vAprovDetalhe(id) {
+      const a = aprov.find((x) => x.id === id); if (!a) { ui.apId = null; return '<p class="sub">Pedido não encontrado.</p>'; }
+      const A = analise(a.snap); const e = estadoA(a); const d = a.decisoes || {};
+      const fx = (v) => (typeof v === 'number' && isFinite(v) ? NF[4].format(v) + 'x' : '—');
+      const linha = (lb, f, cls = '') => `<tr class="${cls}"><td>${lb}</td>${A.map((x) => `<td class="n">${f(x)}</td>`).join('')}</tr>`;
+      const tabela = `<div class="tw"><table class="t"><thead><tr><th>Etapa</th>${A.map((x) => `<th>${esc(x.n && /^ITEM/.test(x.n) ? x.n : x.nome.slice(0, 24))}</th>`).join('')}</tr></thead><tbody>
+        ${linha('Custo de aquisição', (x) => brl(x.aq))}${linha('(+) Frete embutido', (x) => brl(x.fre))}${linha('(+) Start-up embutido', (x) => brl(x.sta))}${linha('Divisor dos tributos (antes do IPI)', (x) => NF[4].format(x.div))}
+        ${linha('Fator aplicado na proposta', (x) => fx(x.fatorAplicado))}${linha('Fator mínimo aprovado (política)', (x) => fx(x.fmin))}${linha('<b>Fator que o preço suporta</b>', (x) => `<b class="${x.fmin && x.suporta < x.fmin - 1e-4 ? 'bad-t' : 'ok-t'}">${fx(x.suporta)}</b>`, 'tot')}
+        ${linha('Preço necessário pela política', (x) => (x.necessario != null ? brl(x.necessario) : '—'))}${linha('Preço proposto (com IPI)', (x) => brl(x.preco))}${linha('<b>Diferença até a política</b>', (x) => (x.dif != null ? `<b class="${x.dif > 0.01 ? 'bad-t' : 'ok-t'}">${brl(x.dif)}</b>` : '—'), 'tot')}
+        ${linha('Margem líquida', (x) => pct(x.margemPct, 1))}${linha('Conclusão', (x) => `<span class="pill ${x.ok ? 'ok' : 'bad'}">${x.ok ? 'atende à política' : 'abaixo da política'}</span>`)}</tbody></table></div>`;
+      const dec = PAPEIS.map(([k, lb]) => { const x = d[k]; const pode = podeDecidir(k);
+        return `<div class="kpi"><span>${lb}</span>${x ? `<b class="${x.decisao === 'aprovada' ? 'ok-t' : 'bad-t'}">${x.decisao}</b><em>${esc(fmtD(x.at))} · <span data-uid="${esc(x.by || '')}">${x.by ? '…' : ''}</span>${x.comentario ? ' · ' + esc(x.comentario) : ''}</em>` : `<b>pendente</b><em>${pode ? `<button class="btn sm pri" data-apdec="${esc(a.id)}|${k}|aprovada">Aprovar</button> <button class="btn sm" data-apdec="${esc(a.id)}|${k}|reprovada">Reprovar</button>` : 'aguardando quem cuida desta aprovação'}</em>`}</div>`; }).join('');
+      return `<div class="stack"><div class="flowhead"><div><button class="btn sm" data-apback>← Aprovações</button><h1 style="margin-top:8px">Aprovação · ${esc(a.numero || a.nome || '')}</h1><div class="sub">${esc(a.cliente || '')} · pedido em ${esc(fmtD(a.at))} por <span data-uid="${esc(a.by || '')}">${a.by ? '…' : 'alguém da equipe'}</span></div></div>
+        <div class="sumbar"><div><span>Valor proposto</span><b>${brl(a.snap.venda)}</b></div><div><span>Margem líquida</span><b class="bad-t">${pct(a.snap.margemPct, 1)}</b></div><div><span class="pill ${{ pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e]}">${e}</span></div></div></div>
+        <section class="card"><h2>Justificativa</h2><p style="margin:0">${esc(a.motivo || '')}</p></section>
+        <section class="card"><h2>Análise no formato da planilha <span class="sub">fator mínimo × fator que o preço suporta</span></h2>${tabela}<div class="docbar" style="margin-top:10px"><button class="btn" data-apxls="${esc(a.id)}">Baixar a planilha (Reunião e Base)</button></div></section>
+        <div class="kpis">${dec}</div></div>`;
+    }
+    document.addEventListener('click', (ev) => {
+      const t = ev.target;
+      const op = t.closest('[data-apopen]'); if (op && !t.closest('[data-apdec]')) { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = op.dataset.apopen; ctx.render(); window.scrollTo(0, 0); return; }
+      if (t.closest('[data-apback]')) { ui.apId = null; ctx.render(); return; }
+      const xl = t.closest('[data-apxls]'); if (xl) { const a = aprov.find((x) => x.id === xl.dataset.apxls); if (a) excel(fAprov({ id: a.id, numero: a.numero, cliente: a.cliente, name: a.nome, div: a.div }, a), true).catch((e) => toast(e.message || 'Não consegui gerar o Excel')); return; }
+      const dc = t.closest('[data-apdec]'); if (dc) { const [id, papel, decisao] = dc.dataset.apdec.split('|'); const a = aprov.find((x) => x.id === id); if (!a) return;
+        modal(`<h2>${decisao === 'aprovada' ? 'Aprovar' : 'Reprovar'} · ${esc(PAPEIS.find((x) => x[0] === papel)[1])}</h2><div class="f"><label for="adCom">Comentário${decisao === 'reprovada' ? ' (obrigatório)' : ' (opcional)'}</label><input id="adCom" placeholder="${decisao === 'aprovada' ? 'ex.: aprovado com prazo de pagamento 28 DDL' : 'ex.: margem baixa demais; tentar 30%'}"></div><div style="display:flex;gap:8px"><button class="btn pri" id="adOk">Confirmar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+          $('#adCom', o).focus();
+          $('#adOk', o).onclick = async () => { const com = $('#adCom', o).value.trim(); if (decisao === 'reprovada' && !com) { toast('Escreva o motivo'); return; } close();
+            const rec = Object.assign({}, a, { decisoes: Object.assign({}, a.decisoes || {}, { [papel]: { decisao, comentario: com || null, at: new Date().toISOString(), by: REG.me || null } }) });
+            try { await gravarA(id, rec); ctx.log && ctx.log({ tipo: 'Aprovação — ' + decisao, ref: id, desc: (a.numero || '') + ' · ' + papel + (com ? ': ' + com : ''), mudancas: [{ campo: papel, de: 'pendente', para: decisao }] }); toast('Decisão registrada'); }
+            catch (e) { toast((e && e.message) || 'Não consegui registrar'); } };
+        }); }
+    });
+
+    // próximo passo de cada proposta (botão principal na página inicial)
+    function proximo(p) {
+      ensure(); const F = fechDe(p.id); const st = p.status || 'rascunho'; const e = p.etapas || {};
+      if (st === 'perdida') return { lb: 'Reabrir', act: 'reabrir' };
+      const ap = aprovDe(p.id); if (!F && ap && estadoA(ap) === 'pendente' && PAPEIS.some(([k]) => !(ap.decisoes || {})[k] && podeDecidir(k))) return { lb: 'Analisar aprovação', act: 'aprovacao' };
+      if (!F) return st === 'rascunho' ? { lb: 'Enviar ao cliente', act: 'cliente' } : { lb: 'Dar baixa', act: 'baixa' };
+      if (!e.financeiro || !e.engenharia) return { lb: 'Avisar áreas', act: 'avisar' };
+      if (realizado(F).cobertura < 1 - 1e-9) return { lb: 'Custo real', act: 'real' };
+      if (!(e.encerrada || F.execucao === 'encerrada')) return { lb: 'Encerrar', act: 'encerrar' };
+      return null;
+    }
+    function situacao(p) {
+      const F = fechDe(p.id); const st = p.status || 'rascunho'; const e = p.etapas || {};
+      if (st === 'perdida') return ['Perdida', 'bad']; if (F && (e.encerrada || F.execucao === 'encerrada')) return ['Encerrada', 'ok'];
+      if (F) return ['Fechada', 'ok'];
+      const ap = aprovDe(p.id); if (ap) { const e2 = estadoA(ap); if (e2 === 'pendente') return ['Aguardando aprovação', 'warn']; if (e2 === 'reprovada') return ['Desconto reprovado', 'bad']; }
+      if (st === 'enviada' || st === 'negociacao') return ['Enviada ao cliente', 'warn']; return ['Rascunho', 'mute'];
+    }
+    document.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-hnext]'); const pd = ev.target.closest('[data-hperdida]'); if (!b && !pd) return;
+      const [pid, act] = (b ? b.dataset.hnext : pd.dataset.hperdida + '|perdida').split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
+      const salvaStatus = async (status, extra, desc) => { const rec = Object.assign({}, p, { status }, extra || {}); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec); ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + (desc ? ' — ' + desc : ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: status }] }); ctx.render(); };
+      if (act === 'cliente') { salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
+      if (act === 'baixa') { fecharModal(p); return; }
+      if (act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
+      if (act === 'avisar') { const e = p.etapas || {}; avisarModal(p, ['financeiro', 'engenharia'].filter((a) => !e[a])); return; }
+      if (act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
+      if (act === 'encerrar') { const x = document.querySelector(`[data-etp="${CSS.escape(p.id)}|encerrada"]`); if (x) x.click(); return; }
+      if (act === 'reabrir') { salvaStatus('enviada', null, 'reaberta').then(() => toast('Proposta reaberta')); return; }
+      if (act === 'perdida') {
+        modal(`<h2>Proposta perdida</h2><p class="sub" style="margin:0">${esc((p.numero || p.name || '') + ' · ' + (p.cliente || ''))}</p><div class="f"><label for="pdMot">Motivo (fica no histórico e ajuda a entender as perdas)</label><input id="pdMot" placeholder="preço, prazo, concorrente, projeto cancelado…"></div><div style="display:flex;gap:8px"><button class="btn pri" id="pdOk2">Marcar como perdida</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+          $('#pdMot', o).focus(); $('#pdOk2', o).onclick = () => { const mot = $('#pdMot', o).value.trim(); if (!mot) { toast('Escreva o motivo'); return; } close(); salvaStatus('perdida', { motivoPerda: mot }, 'perdida: ' + mot).then(() => toast('Marcada como perdida')); };
+        }); }
+    });
+
+    return { vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();
@@ -3647,6 +3941,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const html = Object.assign({ inicio: SPV.vHome, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
     MG.ensure(); SPV.ensureDocs(); PD.ensure();
     { const nb = document.querySelector('#nav [data-view="cadastro"]'); const n = REG.areaOk('custos') ? PD.abertos().length : 0; if (nb) nb.innerHTML = 'Cadastro' + (n ? ` <span class="nbadge" title="${n} pedido(s) de cadastro em aberto">${n}</span>` : ''); }
+    { const mb = document.querySelector('#nav [data-view="margens"]'); const n = MG.pendentesAprov(); if (mb) mb.innerHTML = 'Margens' + (n ? ` <span class="nbadge" title="${n} aprovação(ões) de desconto esperando você">${n}</span>` : ''); }
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="${esc(state.id)}">Lançar custo real</button></div>` : '';
     $('#app').innerHTML = aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
@@ -4008,6 +4303,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
   function primeiraSemPreco(S) { for (let r = 34; r <= 112; r++) if (/sem custo|sem o preço/.test(txt(S, 'L' + r))) return r; return 0; }
   function alertsFor(S) {
     const out = []; const add = (lvl, msg, fix) => { if (!out.some((x) => x.msg === msg)) out.push({ lvl, msg, fix, S }); };
+    // fora da política: além de corrigir, dá para pedir aprovação à Diretoria e ao Financeiro
+    const addP = (lvl, msg, fix) => { add(lvl, msg, fix); const a = out.find((x) => x.msg === msg); if (a) a.aprov = aprovInfo(); };
     if (!filled(S)) {
       // ainda sem preço: diz o que falta para montar
       const b = txt(S, 'B32');
@@ -4018,10 +4315,10 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       return out;
     }
     const p84 = txt(S, 'P84');
-    if (p84 === 'ABAIXO DO PISO') add('bad', `Fator ${fmtNum(val(S, 'F15'), '0.000')} abaixo do piso da política (${fmtNum(val(S, 'H15'), '0.000')}): precisa de aprovação`, val(S, 'C8') ? { lb: 'Tirar o desconto', act: 'desconto' } : { lb: 'Ajustar à margem mínima', act: 'margem' });
+    if (p84 === 'ABAIXO DO PISO') addP('bad', `Fator efetivo ${fmtNum(val(S, 'P83'), '0.000')} abaixo do piso da política (${fmtNum(val(S, 'H15'), '0.000')}): precisa de aprovação`, val(S, 'C8') ? { lb: 'Tirar o desconto', act: 'desconto' } : { lb: 'Ajustar à margem mínima', act: 'margem' });
     else if (/NÃO ENCONTRADO/.test(p84)) add('bad', p84.charAt(0) + p84.slice(1).toLowerCase() + '. Escolha a potência na lista.', /DIESEL/.test(p84) ? { lb: 'Pedir cadastro do motor', act: 'pedir', data: pedidoMotor(S, 'diesel') } : /ELÉTRICO/.test(p84) ? { lb: 'Pedir cadastro do motor', act: 'pedir', data: pedidoMotor(S, 'eletrico') } : null);
     else if (/SEM PREÇO/.test(p84)) { const r0 = primeiraSemPreco(S); add('bad', 'Há componente sem preço no cadastro: entra com custo zero.', r0 ? { lb: 'Pedir cadastro do preço', act: 'pedir', data: pedidoDaLinha(S, r0) } : null); }
-    if (txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO') add('bad', `Margem ${pct(val(S, 'J15'))} abaixo do mínimo de ${pct(val('PARÂMETROS', 'C34'))}`, { lb: 'Ajustar à margem mínima', act: 'margem' });
+    if (txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO') addP('bad', `Margem ${pct(val(S, 'J15'))} abaixo do mínimo de ${pct(val('PARÂMETROS', 'C34'))}`, { lb: 'Ajustar à margem mínima', act: 'margem' });
     for (const a of ['P78', 'P105', 'C185', 'C187']) { const t = txt(S, a); if (t && !/^OK/.test(t)) add('warn', t); }
     const b32 = txt(S, 'B32');
     if (/SEM VAZÃO NOMINAL/.test(b32)) add('warn', 'Sem vazão nominal: válvula de alívio, cone, medidor e barriletes não entram. Informe a vazão.', { lb: 'Informar a vazão', act: 'foco', data: 'G17' });
@@ -4034,14 +4331,38 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const ack = state.ack || {}; for (const a of out) { const k = S + '|' + a.msg; if (ack[k]) a.ack = ack[k]; }
     return out;
   }
+  // situação do pedido de aprovação desta proposta; a aprovação vale enquanto a margem não cair abaixo da aprovada
+  function aprovInfo() {
+    const ap = state.id ? MG.aprovDe(state.id) : null; if (!ap) return { estado: null };
+    const atual = isSpv() ? SPV.snapshot(state.spv).margemPct : isFacts() ? FX.snapshot(state.facts).margemPct : val('PROPOSTA', 'J16');
+    let estado = MG.estadoA(ap); if (estado === 'aprovada' && typeof atual === 'number' && atual < num0(ap.snap.margemPct) - 5e-4) estado = 'vencida';
+    return { estado, id: ap.id, at: ap.at, margem: ap.snap.margemPct, decisoes: ap.decisoes || {} };
+  }
+  function aprovLinha(x) {
+    const a = x.aprov; if (!a || !a.estado) return '';
+    const d = Object.values(a.decisoes).filter((y) => y.comentario).map((y) => y.comentario).join(' · ');
+    const t = a.estado === 'pendente' ? `Aprovação pedida em ${new Date(a.at).toLocaleDateString('pt-BR')}: aguardando ${['diretoria', 'financeiro'].filter((k) => !a.decisoes[k]).map((k) => (k === 'diretoria' ? 'Diretoria' : 'Financeiro')).join(' e ')}.`
+      : a.estado === 'aprovada' ? `Aprovado pela Diretoria e pelo Financeiro com margem de ${pct(a.margem)}${d ? ' · ' + d : ''}.`
+      : a.estado === 'vencida' ? `A aprovação foi para margem de ${pct(a.margem)}; a margem caiu depois disso. Peça de novo.`
+      : `Desconto reprovado${d ? ': ' + d : ''}.`;
+    return `<br><small class="sub">${esc(t)} <button class="restore" data-apopen="${esc(a.id)}">ver aprovação</button></small>`;
+  }
   // cada alerta: corrigir agora (quando dá) ou seguir assim, com a justificativa no histórico
   const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => { const key = esc(JSON.stringify([x.S, x.msg]));
-    return `<li class="${x.ack ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(new Date(x.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span>
-      <span class="alact">${x.fix && !x.ack ? `<button class="btn sm pri" data-alfix="${esc(JSON.stringify({ S: x.S, act: x.fix.act, data: x.fix.data }))}">${esc(x.fix.lb)}</button>` : ''}${x.ack ? `<button class="restore" data-alundo="${key}">desfazer</button>` : x.lvl !== 'info' ? `<button class="btn sm" data-alack="${key}">Seguir assim</button>` : ''}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
-  const countPills = (list) => { const n = (l) => list.filter((x) => x.lvl === l && !x.ack).length; return list.length ? [['bad', 'alerta'], ['warn', 'aviso']].filter(([l]) => n(l)).map(([l, w]) => `<span class="pill ${l}">${n(l)} ${w}${n(l) > 1 ? 's' : ''}</span>`).join(' ') || '<span class="pill mute">só informação</span>' : '<span class="pill ok">sem alertas</span>'; };
+    const ap = x.aprov && x.aprov.estado; const okAp = ap === 'aprovada'; const pedeAp = x.aprov && !x.ack && (!ap || ap === 'reprovada' || ap === 'vencida');
+    return `<li class="${x.ack || okAp ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${aprovLinha(x)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(new Date(x.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span>
+      <span class="alact">${pedeAp ? `<button class="btn sm${ap ? ' pri' : ''}" data-alaprov>${ap ? 'Pedir de novo' : 'Pedir aprovação'}</button>` : ''}${x.fix && !x.ack && !okAp ? `<button class="btn sm pri" data-alfix="${esc(JSON.stringify({ S: x.S, act: x.fix.act, data: x.fix.data }))}">${esc(x.fix.lb)}</button>` : ''}${x.ack ? `<button class="restore" data-alundo="${key}">desfazer</button>` : x.lvl !== 'info' && !x.aprov ? `<button class="btn sm" data-alack="${key}">Seguir assim</button>` : ''}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
+  const countPills = (list) => { const n = (l) => list.filter((x) => x.lvl === l && !x.ack && !(x.aprov && x.aprov.estado === 'aprovada')).length; return list.length ? [['bad', 'alerta'], ['warn', 'aviso']].filter(([l]) => n(l)).map(([l, w]) => `<span class="pill ${l}">${n(l)} ${w}${n(l) > 1 ? 's' : ''}</span>`).join(' ') || '<span class="pill mute">só informação</span>' : '<span class="pill ok">sem alertas</span>'; };
 
   // ações dos alertas
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-alaprov]')) {
+      // a aprovação fica ligada à proposta salva: salva antes, se preciso
+      if (!state.id || dirty) { await $('#bSave').onclick(); if (!state.id) return; }
+      const p = (REG.listPropostas() || []).find((x) => x.id === state.id) || { id: state.id, uid: state.uid, name: docTitle(), div: isSpv() ? 'SPV' : 'SEQ' };
+      const snap = isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot();
+      MG.pedirAprovacao(Object.assign({ numero: isSpv() ? state.spv.numero : isFacts() ? state.facts.numero : txt('PROPOSTA', 'C5'), cliente: isSpv() ? state.spv.cliente : isFacts() ? state.facts.cliente : txt('PROPOSTA', 'F5') }, p, { id: state.id, name: docTitle() }), snap); return;
+    }
     const fx = e.target.closest('[data-alfix]');
     if (fx) { let a; try { a = JSON.parse(fx.dataset.alfix); } catch (er) { return; } const S = a.S; const i = ITEMS.indexOf(S);
       if (a.act === 'pedir') { PD.pedir(Object.assign({ propUid: state.uid, propNome: docTitle() }, a.data || {})); return; }
@@ -4390,12 +4711,12 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
     ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições']]],
-    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis por área'], ['tabelas', 'Planilha (avançado)']]],
+    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis e e-mails'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
   const areaOfTab = (t) => (AREAS.find((a) => a[3].some((x) => x[0] === t)) || AREAS[0])[0];
-  const areaName = (k) => (AREAS.find((a) => a[0] === k) || [0, k])[1];
+  const areaName = (k) => (AREAS.find((a) => a[0] === k) || PAPEIS_AP.find((a) => a[0] === k) || [0, k])[1];
   const canEd = () => REG.areaOk(areaOfTab(ui.cad));
   const fmtAt = (s) => { try { return new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return s; } };
   const fmtVal = (v) => typeof v === 'number' ? NF[2].format(v) : v === null || v === undefined || v === '' ? '—' : String(v);
@@ -4791,17 +5112,33 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
   });
 
   // ---- responsáveis por área (só o dono do app define) ----
+  // e-mails de aviso (baixa e aprovação de desconto): editáveis por quem cuida de Sistema
+  const AV_CAMPOS = [['financeiro', 'Financeiro', 'recebe o aviso da baixa e o pedido de aprovação'], ['engenharia', 'Engenharia', 'recebe o aviso da baixa para lançar o custo real'], ['diretoria', 'Diretoria', 'recebe o pedido de aprovação de desconto'], ['cc', 'Cópia', 'opcional, vai em todos'], ['link', 'Link do app', 'vai no texto do e-mail']];
+  function avisosCard() {
+    const cfg = Object.assign({ link: 'https://claude.ai/artifact/3pa3KFzGLean13jGE6PgSJ' }, ((REG.tabelas || {}).AVISOS || {}).cfg || {}); const ed = REG.areaOk('sistema');
+    return `<section class="card"><h2>E-mails das áreas <span class="sub">usados na janela de e-mail da baixa e da aprovação</span></h2>
+      <div class="fields">${AV_CAMPOS.map(([k, lb, d]) => `<div class="f span2"><label for="av_${k}">${lb}</label><input id="av_${k}" data-avcfg="${k}" value="${esc(cfg[k] || '')}" placeholder="${esc(d)}"${ed ? '' : ' disabled'}></div>`).join('')}</div>
+      <p class="sub" style="margin:8px 0 0">Separe vários e-mails com vírgula.${ed ? '' : ' Só quem cuida de Sistema altera.'}</p></section>`;
+  }
+  document.addEventListener('change', async (e) => {
+    const el = e.target.closest('[data-avcfg]'); if (!el) return;
+    const k = el.dataset.avcfg; const old = (((REG.tabelas || {}).AVISOS || {}).cfg || {});
+    const cfg = Object.assign({}, old, { [k]: el.value.trim() });
+    try { await REG.setTable('AVISOS', { cfg }, 'E-mails das áreas', [{ campo: (AV_CAMPOS.find((x) => x[0] === k) || [0, k])[1], de: old[k] || null, para: cfg[k] || null }]); toast('E-mail salvo'); } catch (er) { toast(errMsg(er)); }
+  });
+  const PAPEIS_AP = [['ap_diretoria', 'Diretoria', 'aprova desconto fora da política'], ['ap_financeiro', 'Financeiro', 'aprova desconto fora da política']];
   function vAcessos() {
-    if (REG.mode !== 'shared') return '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita tudo.</p></section>';
+    if (REG.mode !== 'shared') return avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
     const own = REG.isOwner; const ac = REG.acessos || {};
-    const rows = AREAS.filter((a) => a[0] !== 'sistema').map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
-      <td>${(ac[k] || []).map((id) => `<span class="pchip"><span data-uid="${esc(id)}">…</span>${own ? `<button class="restore" data-acrm="${k}|${esc(id)}" aria-label="Remover">×</button>` : ''}</span>`).join(' ') || '<span class="sub">ninguém (só o dono edita)</span>'}</td>
+    const rows = AREAS.filter((a) => a[0] !== 'sistema').concat(PAPEIS_AP).map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
+      <td>${(ac[k] || []).map((id) => `<span class="pchip"><span data-uid="${esc(id)}">…</span>${own ? `<button class="restore" data-acrm="${k}|${esc(id)}" aria-label="Remover">×</button>` : ''}</span>`).join(' ') || `<span class="sub">${/^ap_/.test(k) ? 'ninguém: qualquer Editor aprova' : 'ninguém (só o dono edita)'}</span>`}</td>
       <td>${own ? `<button class="btn sm" data-acadd="${k}">+ Pessoa</button>` : ''}</td></tr>`).join('');
     return `<div class="stack">
       <section class="card"><h2>Responsáveis por área</h2>
         <p class="sub" style="margin:0 0 10px">Cada área do cadastro só pode ser alterada por quem está nela. ${REG.areasConfiguradas() ? '' : '<b>Ainda não há ninguém definido: hoje todo Editor altera tudo.</b> Ao incluir a primeira pessoa, a trava passa a valer.'} O dono do app altera tudo.</p>
         <div class="tw"><table class="t"><thead><tr><th>Área</th><th>Pessoas</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-        ${own ? '' : '<p class="sub" style="margin:10px 0 0">Só o dono do app muda esta lista.</p>'}</section>
+        <p class="sub" style="margin:10px 0 0">As duas últimas linhas são os aprovadores de desconto fora da política: cada pedido precisa do sim da Diretoria e do Financeiro.${own ? '' : ' Só o dono do app muda esta lista.'}</p></section>
+      ${avisosCard()}
       <section class="card"><h2>Como dar acesso</h2><div class="kv" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr)">
         <div>Comercial e vendedores</div><div style="text-align:left;font-weight:400">Compartilhe o app como <b>Contribuidor</b>: fazem e salvam propostas, anexam documentos e não alteram nenhum cadastro (o banco bloqueia).</div>
         <div>Custos, Engenharia, Fiscal, Precificação, Serviços</div><div style="text-align:left;font-weight:400">Compartilhe como <b>Editor</b> e inclua a pessoa na área acima. O app só libera a edição das áreas dela.</div>
@@ -4824,7 +5161,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
 
   function vHistorico() {
     const q = (ui.histQ || '').trim().toLowerCase(); const T = ui.histT || '';
-    const grupoH = (t) => /^(Proposta|Status|Alerta)/.test(t) ? 'propostas' : /^(Baixa|Custo real|Execução)/.test(t) ? 'margens' : /^Documento/.test(t) ? 'documentos' : /^Pedido/.test(t) ? 'pedidos' : /^Acessos/.test(t) ? 'acessos' : 'cadastro';
+    const grupoH = (t) => /^(Proposta|Status|Alerta|Aprovação)/.test(t) ? 'propostas' : /^(Baixa|Custo real|Execução)/.test(t) ? 'margens' : /^Documento/.test(t) ? 'documentos' : /^Pedido/.test(t) ? 'pedidos' : /^Acessos/.test(t) ? 'acessos' : 'cadastro';
     const list = REG.historico.filter((h) => !T || grupoH(h.tipo || '') === T).filter((h) => !q || [h.tipo, h.desc, h.ref, ...(h.mudancas || []).map((m) => m.campo)].join(' ').toLowerCase().includes(q)).slice(0, 250);
     const items = list.map((h) => {
       const muds = h.mudancas || []; const many = muds.length > 12;
@@ -5323,7 +5660,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       if (m.custoStartup) linhas.push({ k: 'startup', grupo: 'SERVIÇOS', rot: 'Start-up', desc: 'Start-up', qtd: 1, unit: m.custoStartup / qtd, custo: m.custoStartup / qtd });
       if (m.custoFrete) linhas.push({ k: 'frete', grupo: 'SERVIÇOS', rot: 'Frete', desc: 'Frete', qtd: 1, unit: m.custoFrete / qtd, custo: m.custoFrete / qtd });
       const ro = rows.custoMat ? (() => { for (let r = 3; r <= 38; r++) if (txt('MEMORIAL', 'B' + r) === 'Origem do conjunto') return txt('MEMORIAL', numToCol(3 + i) + r); return ''; })() : '';
-      itens.push(Object.assign({ n: S, origem: ro, nome: txt(S, 'C28') || txt('PROPOSTA', 'C' + (20 + i)) || S, codigo: txt(S, 'C27'), familia: fam, familiaNome: famLabel(fam), linhas }, m, { qtd }));
+      const pol = { fatorTabela: n(val(S, 'P20')), descMax: n(val(S, 'P24')), piso: n(val(S, 'P25')), fatorAplicado: n(val(S, 'P23')), pisPct: n(val(PA, 'C5')), cofinsPct: n(val(PA, 'C6')) };
+      itens.push(Object.assign(pol, { n: S, origem: ro, nome: txt(S, 'C28') || txt('PROPOSTA', 'C' + (20 + i)) || S, codigo: txt(S, 'C27'), familia: fam, familiaNome: famLabel(fam), linhas }, m, { qtd }));
     });
     const T = pick('M');
     return { div: 'SEQ', venda: T.venda, vendaIpi: T.vendaIpi, custo: T.custo, impostos: T.impostos, comissao: T.comissao, margem: T.margem, margemPct: T.margemPct, minimo: n(val(PA, 'C34')), itens };
@@ -5380,7 +5718,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     ui.step = 1; setView('proposta'); toast('Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
-  const SPV = window.PricerSPV({ famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
