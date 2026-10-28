@@ -165,6 +165,15 @@
       await log({ tipo: 'Insumo excluído', ref: id, desc: before.produto, mudancas: [{ campo: 'Valor', de: before.valor ?? null, para: null }] });
     };
     R.newInsumoId = (a, b) => String(a).padStart(2, '0') + '-' + b;
+    // renomear família: troca o nome em todos os insumos dela (o código nn não muda)
+    R.renameFamily = async (oldFam, newFam) => {
+      guard();
+      if (famCode(oldFam) !== famCode(newFam)) throw new Error('O código da família não muda; troque só o nome.');
+      const n = R.insumos.filter((x) => x.fam === oldFam).length;
+      if (R.mode === 'shared') await mutate(famDoc(oldFam), (d) => { d.fam = newFam; for (const it of Object.values(d.itens || {})) if (it.fam === oldFam) it.fam = newFam; return d; });
+      else { R.insumos = R.insumos.map((x) => x.fam === oldFam ? Object.assign({}, x, { fam: newFam }) : x); saveLocal(); changed('insumos'); }
+      await log({ tipo: 'Família', ref: oldFam, desc: 'Renomeada para ' + newFam + ' (' + n + ' insumos)', mudancas: [{ campo: 'Família', de: oldFam, para: newFam }] });
+    };
 
     // ---- kits ----
     const kitList = (kind) => (kind === 'motor' ? R.kitMotor : R.kitBomba);

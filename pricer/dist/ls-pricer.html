@@ -204,6 +204,17 @@ textarea.paste{width:100%;min-height:110px;font-family:var(--f-mono);font-size:1
 .modal input,.modal select{border:1px solid var(--line2);background:var(--card);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
 .modal .card{width:min(820px,100%)}
 /* modo simples */
+.fields > .f{align-content:start}
+.f > small.sub{font-size:12px;line-height:1.35}
+.pctl{align-items:center;gap:6px}.pctl .unit{color:var(--ink3);font-size:13px}
+.pctl input,.pctl select,.t.reg td.in input,.t.reg td.in select{width:100%;min-width:0;border:1px solid var(--entry-line);background:var(--entry);border-radius:6px;padding:5px 8px;font-size:14px}
+.pctl input.over,.pctl select.over,.t.reg td.in .over{border-color:var(--or)}
+.t.reg td.in input{min-width:110px}
+.t.reg tr.newrow td{background:var(--or-soft)}
+.chgv{color:var(--or-ink);font-weight:600}
+.syslists{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.syslists > div{display:grid;gap:4px}
+.subtabs{overflow-x:auto;flex-wrap:nowrap}.subtabs button{white-space:nowrap}
 .famgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .famcard{display:grid;gap:4px;text-align:left;padding:14px;border:1px solid var(--line2);border-radius:10px;background:var(--card);cursor:pointer}
 .famcard b{font-family:var(--f-cond);font-size:18px;letter-spacing:.03em}
@@ -1143,6 +1154,15 @@ details.card > summary .sub{font-family:var(--f-body);text-transform:none;letter
       await log({ tipo: 'Insumo excluído', ref: id, desc: before.produto, mudancas: [{ campo: 'Valor', de: before.valor ?? null, para: null }] });
     };
     R.newInsumoId = (a, b) => String(a).padStart(2, '0') + '-' + b;
+    // renomear família: troca o nome em todos os insumos dela (o código nn não muda)
+    R.renameFamily = async (oldFam, newFam) => {
+      guard();
+      if (famCode(oldFam) !== famCode(newFam)) throw new Error('O código da família não muda; troque só o nome.');
+      const n = R.insumos.filter((x) => x.fam === oldFam).length;
+      if (R.mode === 'shared') await mutate(famDoc(oldFam), (d) => { d.fam = newFam; for (const it of Object.values(d.itens || {})) if (it.fam === oldFam) it.fam = newFam; return d; });
+      else { R.insumos = R.insumos.map((x) => x.fam === oldFam ? Object.assign({}, x, { fam: newFam }) : x); saveLocal(); changed('insumos'); }
+      await log({ tipo: 'Família', ref: oldFam, desc: 'Renomeada para ' + newFam + ' (' + n + ' insumos)', mudancas: [{ campo: 'Família', de: oldFam, para: newFam }] });
+    };
 
     // ---- kits ----
     const kitList = (kind) => (kind === 'motor' ? R.kitMotor : R.kitBomba);
@@ -1623,6 +1643,8 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   // Regras do app sobre a planilha (itens 01 a 10):
   // - o arranjo escolhido manda: a jockey só entra sozinha quando nenhum arranjo foi definido;
   // - arranjo só de jockey (J) também monta o item.
+  { const cod = MODEL.sheets.find((x) => x.name === 'CODIFICAÇÃO');
+    for (let r = 5; r <= 18; r++) cod.cells['D' + r] = `=IF(B${r}="","",IF(B${r}="CONJUNTO MOTOBOMBA","CMB",IF(B${r}="BOMBA JOCKEY + PAINEL","JOCKEYPAINEL",IF(B${r}="FABRICANTES","OEM",SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(B${r}," ",""),"+",""),"/","")))))`; }
   for (const s of MODEL.sheets) if (/^ITEM \d\d$/.test(s.name)) {
     s.cells.AR14 = '=IF(AND($AR$6="",$AR$19="",$AR$8=""),0,1)';
     s.cells.AR20 = '=$AR$22&IF(AND($J$19<>"",ISERROR(SEARCH("J",$AR$22)),$E$17=""),"J","")';
@@ -1633,9 +1655,9 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     s.cells.AR25 = '=IF($I$19<>"",$I$19,$AR$9)';
     s.cells.AR26 = '=IFERROR(INDEX(FX_ITENS,MATCH($AR$25,FX_HP,1),1),1)';
     // família do equipamento → estrutura padrão (CMB, SKID, CONTAINER, ESPECIAL, JOCKEYPAINEL, OEM)
-    { const X = 'INDEX(MOD_ESTRUTURA,MATCH($AR$1,MOD_NOME,0))';
-      s.cells.AR2 = '=IF($C$21="SKID","SKID",IF($C$21="CONTAINER","CONTAINER",IF($C$21="ESPECIAL","ESPECIAL",IF($C$21="BOMBA JOCKEY + PAINEL","JOCKEYPAINEL",IF($C$21="FABRICANTES","OEM","CMB")))))';
-      s.cells.C21 = `=IFERROR(IF(${X}="SKID","SKID",IF(${X}="CONTAINER","CONTAINER",IF(${X}="ESPECIAL","ESPECIAL",IF(${X}="JOCKEYPAINEL","BOMBA JOCKEY + PAINEL",IF(${X}="OEM","FABRICANTES","CONJUNTO MOTOBOMBA"))))),"CONJUNTO MOTOBOMBA")`; }
+    { const X = 'INDEX(MOD_ESTRUTURA,MATCH($AR$1,MOD_NOME,0))', K = "'CODIFICAÇÃO'!$D$5:$D$18";
+      s.cells.AR2 = `=IFERROR(INDEX(${K},MATCH($C$21,COD_FAM,0)),"CMB")`;
+      s.cells.C21 = `=IFERROR(INDEX(COD_FAM,MATCH(${X},${K},0)),"CONJUNTO MOTOBOMBA")`; }
     // estruturas: "vale para" aceita combinações (CMB+SKID…) e regras novas (trocador, radiador, opcional por item)
     for (let r = 68; r <= 127; r++) {
       const n = r - 67; let f = s.cells['AF' + r]; if (typeof f !== 'string') continue;
@@ -2501,7 +2523,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
 
   // ---------- cadastro: insumos, kits, importação, histórico e demais tabelas ----------
   const H = REG.helpers;
-  const CAD_TABS = [['insumos', 'Insumos'], ['estruturas', 'Estruturas'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Outras tabelas']];
+  const CAD_TABS = [['insumos', 'Insumos'], ['familias', 'Famílias'], ['estruturas', 'Estruturas'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['parametros', 'Parâmetros'], ['politica', 'Política de preço'], ['codificacao', 'Codificação'], ['fci', 'FCI e válvulas'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Planilha (avançado)']];
   const fmtAt = (s) => { try { return new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return s; } };
   const fmtVal = (v) => typeof v === 'number' ? NF[2].format(v) : v === null || v === undefined || v === '' ? '—' : String(v);
   const who = (id) => id ? `<span data-uid="${esc(id)}">…</span>` : (REG.mode === 'shared' ? 'alguém da equipe' : 'neste navegador');
@@ -2510,7 +2532,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     const names = await REG.names(els.map((e) => e.dataset.uid));
     for (const e of els) e.textContent = names[e.dataset.uid] || 'alguém da equipe';
   }
-  function famList() { const s = new Set(REG.insumos.map((x) => x.fam).filter(Boolean)); return [...s].sort((a, b) => H.famCode(a) - H.famCode(b)); }
+  function famList() { const s = new Set(REG.insumos.map((x) => x.fam).filter(Boolean)); for (const x of famInsumos()) s.add(x.fam); return [...s].sort((a, b) => H.famCode(a) - H.famCode(b)); }
   function cadStatus() {
     const shared = REG.mode === 'shared';
     const chips = [];
@@ -2524,7 +2546,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   }
   function vCadastro() {
     const tab = ui.cad || 'insumos';
-    const body = { insumos: vInsumos, estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, parametros: () => vParamTab('parametros'), politica: () => vParamTab('politica'), codificacao: () => vParamTab('codificacao'), fci: () => vParamTab('fci'), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
         <div><h1>Cadastro</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div></div>
@@ -2810,10 +2832,14 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   // ---- estruturas padrão (receita do MONTADOR) ----
   const MO = 'MONTADOR';
   const REC_COLS = { rot: 'B', estr: 'C', acion: 'D', bloco: 'E', fam: 'F', tipo: 'G', campo: 'H', pre: 'I', suf: 'J', qtd: 'K', regra: 'L' };
-  const FAMS = [['CMB', 'Conjunto motobomba', 'CONJUNTO MOTOBOMBA'], ['SKID', 'Skid', 'SKID'], ['CONTAINER', 'Container', 'CONTAINER'], ['ESPECIAL', 'Especial', 'ESPECIAL'], ['JOCKEYPAINEL', 'Bomba jockey + painel', 'BOMBA JOCKEY + PAINEL'], ['OEM', 'Fabricantes (OEM)', 'FABRICANTES']];
-  const famLabel = (k) => (FAMS.find((f) => f[0] === k) || [k, k])[1];
+  const FAM_NICE = { CMB: 'Conjunto motobomba', SKID: 'Skid', CONTAINER: 'Container', ESPECIAL: 'Especial', JOCKEYPAINEL: 'Bomba jockey + painel', OEM: 'Fabricantes (OEM)' };
+  const CORE_FAMS = ['CONJUNTO MOTOBOMBA', 'SKID', 'CONTAINER', 'ESPECIAL', 'BOMBA JOCKEY + PAINEL', 'FABRICANTES'];
+  const niceName = (n) => String(n).charAt(0) + String(n).slice(1).toLowerCase();
+  const famsEquip = () => { const out = []; for (let r = 5; r <= 18; r++) { const n = val('CODIFICAÇÃO', 'B' + r); if (!n) continue; const k = String(val('CODIFICAÇÃO', 'D' + r) || ''); out.push([k, FAM_NICE[k] || niceName(n), String(n), r]); } return out; };
+  const FAMS = { find: (fn) => famsEquip().find(fn), filter: (fn) => famsEquip().filter(fn), map: (fn) => famsEquip().map(fn), get length() { return famsEquip().length; } };
+  const famLabel = (k) => (FAMS.find((f) => f[0] === k) || [k, FAM_NICE[k] || k])[1];
   const famKey = (fam) => (FAMS.find((f) => f[2] === fam) || ['CMB'])[0];
-  const NEAR = { CMB: 'SKID', SKID: 'CONTAINER', CONTAINER: 'SKID', ESPECIAL: 'CMB', JOCKEYPAINEL: 'CMB', OEM: 'CMB' };
+  const NEAR = new Proxy({ CMB: 'SKID', SKID: 'CONTAINER', CONTAINER: 'SKID' }, { get: (o, k) => o[k] || 'CMB' });
   const estrList = () => String(val(MO, 'N91') || 'CMB,SKID,CONTAINER').split(',').map((x) => x.trim()).filter(Boolean);
   const ESTRSf = () => estrList().map((k) => [k, famLabel(k)]);
   const ACIONS = [['DIESEL', 'Conjunto diesel'], ['ELETRICA', 'Conjunto elétrico'], ['JOCKEY', 'Bomba jockey'], ['TODOS', 'Comum ao equipamento']];
@@ -2999,6 +3025,175 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     try { await REG.setCells(sh, { [a]: v === '' ? null : v }, 'Tabela por porte ' + sh + ' ' + a, baseOf(sh)); } catch (err) { toast(errMsg(err)); }
   });
 
+  // ---- cadastros a partir das tabelas da planilha: parâmetros, listas, política, codificação, FCI ----
+  const PA = 'PARÂMETROS', PO = 'POLÍTICA', CO = 'CODIFICAÇÃO';
+  const listOf = (sheet, col, r1, r2) => { const o = []; for (let r = r1; r <= r2; r++) { const v = val(sheet, col + r); if (v !== null && v !== '' && v !== undefined) o.push(String(v)); } return o; };
+  const PARAM_CARDS = {
+    parametros: [
+      { t: 'Tributos sobre a receita', rows: [['C5', 'PIS', 'pct'], ['C6', 'COFINS', 'pct'], ['C7', 'IRPJ / CSLL', 'pct'], ['C8', 'Alíquota interestadual de importados', 'pct'], ['C9', 'Limite de conteúdo importado (FCI)', 'pct']] },
+      { t: 'Convênio ICMS 52/91', rows: [['C12', 'Aplicar automaticamente', ['SIM', 'NÃO']], ['C13', 'Carga efetiva — interestadual', 'pct'], ['C14', 'Carga efetiva — demais', 'pct']] },
+      { t: 'Formação do preço', rows: [['C32', 'Modo padrão dos itens', ['FATOR (MARKUP)', 'MARGEM ALVO']], ['C33', 'Margem alvo padrão', 'pct'], ['C34', 'Margem mínima', 'pct'], ['C35', 'Fórmula da margem alvo', ['EXATA', 'ENCADEADA']], ['C17', 'Base da comissão', ['VENDA BRUTA', 'VENDA LÍQUIDA']], ['C23', 'Provisão de frete no resultado', 'pct']] },
+      { t: 'Frete e start-up', rows: [['C26', 'Fator de frete', 'pct'], ['C27', 'Fator de start-up', 'pct'], ['C28', 'Custo padrão por km (R$)', 'num'], ['C29', 'Valor padrão da diária (R$)', 'num'], ['C30', 'Folga de negociação padrão', 'pct'], ['C39', 'Aplicar encargo financeiro do pagamento', ['SIM', 'NÃO']]] },
+      { t: 'Emitente', rows: [['C140', 'Razão social', 'text'], ['C141', 'CNPJ', 'text'], ['C142', 'Inscrição estadual', 'text'], ['C143', 'Regime tributário', 'text'], ['C144', 'Endereço', 'text'], ['C145', 'Contato', 'text']] },
+    ],
+    codificacao: [
+      { t: 'Padrões da codificação', s: CO, rows: [['C66', 'Segmento padrão', () => listOf(CO, 'AB', 5, 13)], ['C67', 'Marca padrão', () => listOf(CO, 'Q', 5, 15)], ['C68', 'Tensão do painel quando é diesel', () => listOf(CO, 'N', 5, 16)], ['C69', 'Partida do painel quando é diesel', () => listOf(CO, 'X', 5, 14)]] },
+    ],
+  };
+  const TABLES = {
+    comissao: { t: 'Comissões', s: PA, r1: 19, r2: 21, cols: [['B', 'Tipo', 'text', 1], ['C', 'Taxa', 'pct']], note: 'Os tipos são escolhidos na proposta (comissão do vendedor e do agente).' },
+    pagto: { t: 'Condições de pagamento', s: PA, r1: 41, r2: 75, key: 'B', cols: [['B', 'Condição', 'text'], ['C', 'Encargo financeiro', 'pct']] },
+    ncm: { t: 'NCM e IPI', s: PA, r1: 110, r2: 126, key: 'C', cols: [['B', 'Descrição', 'text'], ['C', 'NCM', 'text'], ['D', 'IPI', 'pct'], ['E', 'Entra no Convênio 52/91?', ['SIM', 'NÃO']]] },
+    unid: { t: 'Unidades de medida', s: PA, r1: 150, r2: 161, key: 'B', cols: [['B', 'Unidade', 'text'], ['C', 'Descrição', 'text'], ['D', 'Código na FCI', 'text']] },
+    uf: { t: 'ICMS por UF', s: PA, r1: 79, r2: 105, cols: [['B', 'Estado', 'text', 1], ['D', 'UF', 'text', 1], ['C', 'Região', 'text', 1], ['E', 'Alíquota interna', 'pct'], ['F', 'Interestadual saindo de SC', 'pct'], ['G', 'DIFAL', 'pct', 1]] },
+    segdesc: { t: 'Desconto por segmento', s: PO, r1: 7, r2: 12, cols: [['B', 'Segmento', 'text', 1], ['C', 'Desconto sobre a tabela', 'pct']] },
+    polfam: { t: 'Famílias de produto', s: PO, r1: 17, r2: 39, key: 'B', cols: [['B', 'Família de produto', 'text'], ['C', 'Fator de tabela', 'num'], ['D', 'Margem bruta', 'pct', 1], ['E', 'Desconto do produto', 'pct'], ['F', 'Desc. máx. nacional', 'pct'], ['G', 'Desc. máx. importado', 'pct'], ['H', 'Piso nacional', 'num', 1]], note: 'O fator de tabela vezes o custo dá o preço de tabela; o piso é o fator mínimo depois do desconto máximo.' },
+    config: { t: 'Configurações de bomba', s: CO, r1: 5, r2: 18, key: 'E', cols: [['E', 'Configuração', 'text'], ['F', 'Sigla', 'text']] },
+    rot: { t: 'Rotações', s: CO, r1: 5, r2: 24, key: 'H', cols: [['H', 'RPM', 'num'], ['I', 'Sigla', 'text']] },
+    norma: { t: 'Normas', s: CO, r1: 5, r2: 16, key: 'K', cols: [['K', 'Norma', 'text'], ['L', 'Sigla', 'text']] },
+    tensao: { t: 'Tensões do painel', s: CO, r1: 5, r2: 16, key: 'N', cols: [['N', 'Tensão', 'text'], ['O', 'Sigla', 'text']] },
+    marca: { t: 'Marcas', s: CO, r1: 5, r2: 15, key: 'Q', cols: [['Q', 'Marca', 'text'], ['R', 'Sigla', 'text']] },
+    segcod: { t: 'Segmentos da codificação', s: CO, r1: 5, r2: 13, key: 'AB', cols: [['AB', 'Segmento', 'text']] },
+    modcfg: { t: 'Configuração por modelo de bomba', s: CO, r1: 88, r2: 230, key: 'B', cols: [['B', 'Modelo da bomba', 'text'], ['C', 'Configuração', () => listOf(CO, 'E', 5, 18)]], note: 'O código do item lê a configuração (end suction, split case…) por aqui.' },
+    fciuf: { t: 'Alíquota da saída para a FCI', s: 'FCI', r1: 6, r2: 32, cols: [['B', 'UF', 'text', 1], ['C', 'Contribuinte — conteúdo > 40%', 'pct'], ['D', 'Contribuinte — conteúdo ≤ 40%', 'pct'], ['E', 'Carga interna do destino', 'pct']] },
+    valv: { t: 'Kits de válvula de alívio', s: 'KIT VÁLVULA ALÍVIO', r1: 2, r2: 37, key: 'A', cols: [['A', 'Descrição', 'text'], ['B', 'Tipo', ['ACE', 'NAC', 'IMP']], ['C', 'Marca', 'text'], ['D', 'Válvula (R$)', 'num'], ['E', 'Waste cone (R$)', 'num'], ['F', 'Custo total (R$)', 'num']] },
+  };
+  const SYS_LISTS = [['Cadastros fiscais', PA, 'C', 131, 133], ['Agentes', PA, 'D', 131, 133], ['Blocos', PA, 'E', 131, 133], ['Fretes', PA, 'F', 131, 133], ['Normas da proposta', PA, 'G', 131, 134], ['Segmentos da proposta', PA, 'B', 131, 136], ['Acionamentos', CO, 'T', 5, 15], ['Arrefecimentos', CO, 'V', 5, 14], ['Tipos de partida', CO, 'X', 5, 14], ['Tensões VCC', CO, 'Z', 5, 14]];
+  const pctShow = (v) => typeof v === 'number' ? NF[2].format(v * 100).replace(/,00$/, '') : '';
+  function cellCtl(sh, a, kind, label) {
+    const v = val(sh, a); const ed = REG.canEditCadastro; const ch = (REG.tabelas[sh] || {}); const over = a in ch;
+    const shown = kind === 'pct' ? pctShow(v) : v === null || v === undefined ? '' : typeof v === 'number' ? fmtPlain(v) : String(v);
+    if (!ed) return `<span class="${over ? 'chgv' : ''}">${esc(kind === 'pct' && shown ? shown + '%' : shown) || '—'}</span>`;
+    const list = typeof kind === 'function' ? kind() : Array.isArray(kind) ? kind : null;
+    const data = `data-pcell="${esc(sh)}|${a}" data-kind="${list ? 'text' : kind}" aria-label="${esc(label)}"${over ? ' class="over"' : ''}`;
+    if (list) return `<select ${data}><option value="">—</option>${list.map((o) => `<option${o === shown ? ' selected' : ''}>${esc(o)}</option>`).join('')}${shown && !list.includes(shown) ? `<option selected>${esc(shown)}</option>` : ''}</select>`;
+    return `<input ${data} value="${esc(shown)}"${kind === 'text' ? '' : ' inputmode="decimal"'}${kind === 'pct' ? ' placeholder="%"' : ''}>`;
+  }
+  function paramCard(cd) {
+    const sh = cd.s || PA;
+    return `<section class="card"><h2>${esc(cd.t)}</h2><div class="fields">${cd.rows.map(([a, lb, kind]) => {
+      const hint = sh === PA ? txt(PA, 'D' + a.slice(1)) : '';
+      return `<div class="f${kind === 'text' && /Razão|Endereço|Contato/.test(lb) ? ' span2' : ''}"><label>${esc(lb)}</label><div class="ctl pctl">${cellCtl(sh, a, kind, lb)}${kind === 'pct' ? '<span class="unit">%</span>' : ''}</div>${hint ? `<small class="sub">${esc(hint)}</small>` : ''}</div>`;
+    }).join('')}</div></section>`;
+  }
+  const keyOf = (T) => T.key || T.cols[0][0];
+  function tableRows(T) { const rows = []; for (let r = T.r1; r <= T.r2; r++) { const k = val(T.s, keyOf(T) + r); if (k !== null && k !== undefined && k !== '') rows.push(r); } return rows; }
+  function tableCard(id) {
+    const T = TABLES[id]; const rows = tableRows(T); const ed = REG.canEditCadastro; const canAdd = ed && T.key && rows.length < T.r2 - T.r1 + 1;
+    const extra = ui.tblAdd === id && canAdd ? (() => { let r = T.r1; const used = new Set(rows); while (used.has(r)) r++; return r; })() : 0;
+    const tr = (r, isNew) => `<tr${isNew ? ' class="newrow"' : ''}>${T.cols.map(([c, lb, kind, ro]) => { const a = c + r; if (ro || isFormulaBase(T.s, a)) { const v = val(T.s, a); return `<td class="n">${esc(kind === 'pct' ? (typeof v === 'number' ? pctShow(v) + '%' : '') : kind === 'num' && typeof v === 'number' ? fmtNum(v, '0.0000') : fmtPlain(v))}</td>`; } return `<td class="in">${cellCtl(T.s, a, kind, lb)}</td>`; }).join('')}${ed && T.key ? `<td>${isNew ? '<span class="sub">preencha a 1ª coluna</span>' : `<button class="restore" data-rowdel="${id}|${r}">excluir</button>`}</td>` : ''}</tr>`;
+    return `<section class="card"><h2>${esc(T.t)} <span class="sub">${rows.length} de ${T.r2 - T.r1 + 1}</span></h2>${T.note ? `<p class="sub" style="margin:0 0 10px">${esc(T.note)}</p>` : ''}
+      <div class="tw"><table class="t reg"><thead><tr>${T.cols.map((x) => `<th>${esc(x[1])}</th>`).join('')}${ed && T.key ? '<th></th>' : ''}</tr></thead><tbody>${rows.map((r) => tr(r)).join('')}${extra ? tr(extra, true) : ''}</tbody></table></div>
+      ${canAdd && !extra ? `<div class="docbar" style="margin-top:10px"><button class="btn sm" data-rowadd="${id}">+ Adicionar</button></div>` : ''}</section>`;
+  }
+  async function rowDelete(id, r) {
+    const T = TABLES[id]; const rows = tableRows(T).filter((x) => x !== r); const cols = T.cols.filter(([c, , , ro]) => !ro && !isFormulaBase(T.s, c + T.r1)).map((x) => x[0]);
+    const vals = rows.map((q) => cols.map((c) => wb.raw(T.s, c + q)));
+    if (id === 'polfam') { const nm = val(PO, 'B' + r); for (let q = 74; q <= 82; q++) if (val(CO, 'C' + q) === nm) return toast('Esta família de produto está ligada a uma família de equipamento; troque lá antes de excluir.'); }
+    const ch = {}; for (let i = 0; i <= T.r2 - T.r1; i++) cols.forEach((c, j) => { ch[c + (T.r1 + i)] = i < vals.length ? (vals[i][j] === undefined ? null : vals[i][j]) : null; });
+    try { await REG.setCells(T.s, ch, T.t + ': linha excluída', baseOf(T.s)); toast('Excluído'); } catch (e) { toast(errMsg(e)); }
+  }
+  // famílias de insumo: as que têm insumo + as criadas vazias (FAMILIAS no banco de tabelas)
+  const famReg = () => REG.tabelas.FAMILIAS || {};
+  function famInsumos() {
+    const m = new Map();
+    for (const x of REG.insumos) { if (!x.fam) continue; const e = m.get(x.fam) || { fam: x.fam, n: 0, semPreco: 0 }; e.n++; if (typeof x.valor !== 'number') e.semPreco++; m.set(x.fam, e); }
+    for (const [code, v] of Object.entries(famReg())) { if (!v || !v.nome) continue; const fam = String(code).padStart(2, '0') + '.' + v.nome; if (![...m.keys()].some((f) => H.famCode(f) === +code)) m.set(fam, { fam, n: 0, semPreco: 0 }); }
+    return [...m.values()].sort((a, b) => H.famCode(a.fam) - H.famCode(b.fam));
+  }
+  function vFamilias() {
+    const ed = REG.canEditCadastro; const lines = recLines();
+    const ins = famInsumos().map((x) => { const code = H.famCode(x.fam); const nome = x.fam.replace(/^\d+\./, ''); const d = (famReg()[code] || {}).desc || ''; const inRec = lines.filter((l) => l.fam === x.fam).length;
+      return `<tr><td class="n">${String(code).padStart(2, '0')}</td><td><b>${esc(nome)}</b>${d ? `<br><small class="sub">${esc(d)}</small>` : ''}</td><td class="n">${x.n}${x.semPreco ? ` <span class="pill warn">${x.semPreco} sem preço</span>` : ''}</td><td class="n">${inRec || ''}</td><td>${ed ? `<button class="btn sm" data-famedit="${esc(x.fam)}">Editar</button>` : ''} <button class="btn sm" data-famins="${esc(x.fam)}">Ver insumos</button></td></tr>`; }).join('');
+    const eq = famsEquip().map(([k, lb, nome, r]) => { const core = CORE_FAMS.includes(nome); const pf = (() => { for (let q = 74; q <= 82; q++) if (val(CO, 'B' + q) === nome) return txt(CO, 'C' + q); return ''; })();
+      const reg = estrList().includes(k); const nm = modelos().filter((m) => m.estr === k).length;
+      return `<tr><td><b>${esc(lb)}</b>${core ? '' : ' <span class="pill mute">nova</span>'}</td><td class="code">${esc(txt(CO, 'C' + r))}</td><td>${esc(pf) || '<span class="pill warn">sem família de produto</span>'}</td><td>${reg ? '<span class="pill ok">cadastrada</span>' : `<span class="pill warn">sem estrutura</span>`}</td><td class="n">${nm}</td><td>${ed ? `<button class="btn sm" data-eqedit="${r}">Editar</button>` : ''}</td></tr>`; }).join('');
+    return `<div class="stack">
+      <section class="card"><h2>Famílias de insumo <span class="sub">agrupam o cadastro de insumos; a montagem e o escopo escolhem o insumo pela família</span></h2>
+        <div class="tw"><table class="t"><thead><tr><th>Código</th><th>Família</th><th>Insumos</th><th>Na estrutura</th><th></th></tr></thead><tbody>${ins}</tbody></table></div>
+        ${ed ? '<div class="docbar" style="margin-top:10px"><button class="btn sm pri" data-famnew>+ Nova família de insumo</button></div>' : ''}</section>
+      <section class="card"><h2>Famílias de equipamento <span class="sub">o que o item é: cada uma tem sigla no código, família de produto na política de preço e estrutura padrão</span></h2>
+        <div class="tw"><table class="t"><thead><tr><th>Família</th><th>Sigla</th><th>Família de produto (política)</th><th>Estrutura</th><th>Modelos prontos</th><th></th></tr></thead><tbody>${eq}</tbody></table></div>
+        ${ed && famsEquip().length < 9 ? '<div class="docbar" style="margin-top:10px"><button class="btn sm pri" data-eqnew>+ Nova família de equipamento</button></div>' : ''}</section>
+    </div>`;
+  }
+  function famModal(fam) {
+    const isNew = !fam; const code = isNew ? Math.max(0, ...famInsumos().map((x) => H.famCode(x.fam)).filter((n) => n < 99)) + 1 : H.famCode(fam);
+    const nome = isNew ? '' : fam.replace(/^\d+\./, ''); const desc = (famReg()[code] || {}).desc || ''; const n = isNew ? 0 : (famInsumos().find((x) => x.fam === fam) || {}).n || 0;
+    modal(`<h2>${isNew ? 'Nova família de insumo' : 'Família ' + esc(fam)}</h2>
+      <div class="fields"><div class="f"><label for="fmCode">Código</label><input id="fmCode" value="${String(code).padStart(2, '0')}" ${isNew ? 'inputmode="numeric"' : 'disabled'}></div>
+      <div class="f span2"><label for="fmNome">Nome (sem espaços, como no código do insumo)</label><input id="fmNome" value="${esc(nome)}" placeholder="EX.: VALVULARETENCAO"></div>
+      <div class="f spanall"><label for="fmDesc">Descrição</label><input id="fmDesc" value="${esc(desc)}" placeholder="Para que serve, o que entra aqui"></div></div>
+      ${!isNew && n ? `<p class="sub" style="margin:0">Renomear troca a família nos ${n} insumos dela e nas linhas da estrutura padrão. Propostas já salvas mantêm o nome antigo no escopo digitado à mão.</p>` : ''}
+      <p class="sub" id="fmMsg" style="margin:0"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="fmOk">Salvar</button>${!isNew && !n ? '<button class="btn" id="fmDel">Excluir família vazia</button>' : ''}<button class="btn" data-close>Fechar</button></div>`, (o, close) => {
+      $('#fmOk', o).onclick = async () => {
+        const c = parseInt($('#fmCode', o).value, 10); const nm = $('#fmNome', o).value.trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9]/g, '');
+        if (!c || c < 1 || c > 98) { $('#fmMsg', o).textContent = 'Use um código de 1 a 98.'; return; }
+        if (!nm) { $('#fmMsg', o).textContent = 'Dê um nome à família.'; return; }
+        if (isNew && famInsumos().some((x) => H.famCode(x.fam) === c)) { $('#fmMsg', o).textContent = 'Já existe uma família com o código ' + c + '.'; return; }
+        const nf = String(c).padStart(2, '0') + '.' + nm;
+        try {
+          if (!isNew && nf !== fam && n) { await REG.renameFamily(fam, nf); }
+          await REG.setCells('FAMILIAS', { [c]: { nome: nm, desc: $('#fmDesc', o).value.trim() } }, 'Família ' + nf, () => null);
+          if (!isNew && nf !== fam) { const ch = {}; for (const l of recLines()) if (l.fam === fam) ch['F' + l.r] = nf; if (Object.keys(ch).length) await REG.setCells(MO, ch, 'Estrutura: família renomeada para ' + nf, baseOf(MO)); }
+          close(); toast(isNew ? 'Família criada: ' + nf : 'Família salva: ' + nf);
+        } catch (e) { $('#fmMsg', o).textContent = errMsg(e); }
+      };
+      const d = $('#fmDel', o); if (d) d.onclick = async () => { try { await REG.setCells('FAMILIAS', { [code]: null }, 'Família excluída ' + fam, () => null); close(); toast('Família excluída'); } catch (e) { $('#fmMsg', o).textContent = errMsg(e); } };
+    });
+  }
+  function eqModal(r) {
+    const isNew = !r; const used = new Set(famsEquip().map((x) => x[3])); if (isNew) { r = 5; while (used.has(r)) r++; }
+    const nome = isNew ? '' : txt(CO, 'B' + r); const core = CORE_FAMS.includes(nome);
+    let pr = 0; for (let q = 74; q <= 82; q++) if (nome && val(CO, 'B' + q) === nome) pr = q;
+    const prods = listOf(PO, 'B', 17, 39);
+    modal(`<h2>${isNew ? 'Nova família de equipamento' : esc(famLabel(String(val(CO, 'D' + r))))}</h2>
+      <div class="fields"><div class="f span2"><label for="eqNome">Nome</label><input id="eqNome" value="${esc(nome)}" placeholder="EX.: CASA DE BOMBAS"${core ? ' disabled' : ''}></div>
+      <div class="f"><label for="eqSig">Sigla no código</label><input id="eqSig" value="${esc(txt(CO, 'C' + r))}" placeholder="3 letras"></div>
+      <div class="f spanall"><label for="eqProd">Família de produto na política de preço</label><select id="eqProd">${prods.map((p) => `<option${pr && txt(CO, 'C' + pr) === p ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select></div></div>
+      ${core ? '<p class="sub" style="margin:0">O nome das famílias de origem da planilha fica fixo: as fórmulas dependem dele.</p>' : ''}
+      ${isNew ? '<p class="sub" style="margin:0">Depois de criar, cadastre a estrutura dela em Estruturas (o app avisa no item enquanto não houver).</p>' : ''}
+      <p class="sub" id="eqMsg" style="margin:0"></p>
+      <div style="display:flex;gap:8px"><button class="btn pri" id="eqOk">Salvar</button><button class="btn" data-close>Fechar</button></div>`, (o, close) => {
+      $('#eqOk', o).onclick = async () => {
+        const nm = core ? nome : $('#eqNome', o).value.trim().toUpperCase(); const sg = $('#eqSig', o).value.trim().toUpperCase(); const pf = $('#eqProd', o).value;
+        if (!nm || !sg) { $('#eqMsg', o).textContent = 'Preencha o nome e a sigla.'; return; }
+        if (!core && famsEquip().some((x) => x[2] === nm && x[3] !== r)) { $('#eqMsg', o).textContent = 'Já existe uma família com esse nome.'; return; }
+        let q = pr; if (!q) { q = 74; while (q <= 82 && val(CO, 'B' + q)) q++; } if (q > 82) { $('#eqMsg', o).textContent = 'A tabela de famílias da política está cheia (9).'; return; }
+        try { await REG.setCells(CO, { ['B' + r]: nm, ['C' + r]: sg, ['B' + q]: nm, ['C' + q]: pf }, 'Família de equipamento ' + nm, baseOf(CO)); close(); toast('Família de equipamento salva: ' + nm); } catch (e) { $('#eqMsg', o).textContent = errMsg(e); }
+      };
+    });
+  }
+  function vParamTab(tab) {
+    const groups = {
+      parametros: () => PARAM_CARDS.parametros.map(paramCard).join('') + ['comissao', 'pagto', 'ncm', 'unid', 'uf'].map(tableCard).join(''),
+      politica: () => ['segdesc', 'polfam'].map(tableCard).join(''),
+      codificacao: () => PARAM_CARDS.codificacao.map(paramCard).join('') + ['config', 'rot', 'norma', 'tensao', 'marca', 'segcod', 'modcfg'].map(tableCard).join('')
+        + `<section class="card"><h2>Listas do sistema <span class="sub">só leitura: as fórmulas comparam estes nomes</span></h2><div class="syslists">${SYS_LISTS.map(([t, sh, c, a, b]) => `<div><b>${esc(t)}</b><div>${listOf(sh, c, a, b).map((x) => `<span class="pill mute">${esc(x)}</span>`).join(' ')}</div></div>`).join('')}</div></section>`,
+      fci: () => ['fciuf', 'valv'].map(tableCard).join(''),
+    };
+    const intro = { parametros: 'Impostos, frete, formação do preço, condições de pagamento, NCM e unidades. Uma mudança aqui vale para todas as propostas.', politica: 'Fator de tabela e descontos máximos por família de produto, e desconto por segmento de cliente.', codificacao: 'Siglas e listas que montam o código e a descrição do item.', fci: 'Alíquotas da FCI por UF e o cadastro de kits de válvula de alívio.' }[tab];
+    return `<div class="stack"><p class="sub" style="margin:0">${intro}</p>${groups[tab]()}</div>`;
+  }
+  document.addEventListener('change', async (e) => {
+    const el = e.target; if (!el.dataset || !el.dataset.pcell) return;
+    const [sh, a] = el.dataset.pcell.split('|'); let v = el.value.trim(); const k = el.dataset.kind;
+    if (v !== '' && (k === 'pct' || k === 'num')) { const n = parseInput(v, 'num'); if (typeof n !== 'number') { toast('Número inválido: ' + v); return render(); } v = k === 'pct' ? n / 100 : n; }
+    const ch = { [a]: v === '' ? null : v };
+    if (sh === PO && a[0] === 'B') { const old = val(PO, a); if (old) for (let q = 74; q <= 82; q++) if (val(CO, 'C' + q) === old) await REG.setCells(CO, { ['C' + q]: v }, 'Família de produto renomeada', baseOf(CO)).catch(() => {}); }
+    try { await REG.setCells(sh, ch, (sh === PA ? 'Parâmetros' : sh) + ' ' + a, baseOf(sh)); if (ui.tblAdd) ui.tblAdd = null; } catch (err) { toast(errMsg(err)); }
+  });
+  document.addEventListener('click', (e) => {
+    if (ui.view !== 'cadastro') return;
+    const ad = e.target.closest('[data-rowadd]'); if (ad) { ui.tblAdd = ad.dataset.rowadd; render(); const inp = document.querySelector('tr.newrow input, tr.newrow select'); if (inp) inp.focus(); return; }
+    const dl = e.target.closest('[data-rowdel]'); if (dl) { if (!dl.dataset.sure) { dl.dataset.sure = 1; dl.textContent = 'confirmar'; return; } const [id, r] = dl.dataset.rowdel.split('|'); rowDelete(id, +r); return; }
+    const fe = e.target.closest('[data-famedit]'); if (fe) { famModal(fe.dataset.famedit); return; }
+    if (e.target.closest('[data-famnew]')) { famModal(null); return; }
+    const fi = e.target.closest('[data-famins]'); if (fi) { ui.cad = 'insumos'; ui.insFam = fi.dataset.famins; store.set(SK.view, ui); render(); return; }
+    const ee = e.target.closest('[data-eqedit]'); if (ee) { eqModal(+ee.dataset.eqedit); return; }
+    if (e.target.closest('[data-eqnew]')) { eqModal(0); return; }
+  });
   // ---- demais tabelas (grade) ----
   function vTabelas() {
     const S = TABLE_SHEETS.includes(ui.table) ? ui.table : 'PARÂMETROS'; ui.table = S; const sh = baseSheets[S];
