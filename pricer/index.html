@@ -31,6 +31,7 @@
   --shadow:0 1px 2px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body)}
 button,input,select,textarea{font:inherit;color:inherit}
 .num,td.n,.kpi b{font-variant-numeric:tabular-nums}
@@ -198,6 +199,15 @@ textarea.paste{width:100%;min-height:110px;font-family:var(--f-mono);font-size:1
 .modal input,.modal select{border:1px solid var(--line2);background:var(--card);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
 .modal .card{width:min(820px,100%)}
 /* modo simples */
+.sugs{display:grid;gap:8px}
+.sugrow{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.sugrow.done{opacity:.7;cursor:default}
+.chks{display:flex;gap:6px 14px;flex-wrap:wrap;padding-top:6px}
+.chks .chk{white-space:nowrap}
+.t.porte td.in input{min-width:120px}
+.t.porte td.in input[data-num="1"]{min-width:64px}
+.t.porte td.chg{background:var(--or-soft)}
+.optlist{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
 .flowhead{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
 .sumbar{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:center;padding:8px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px}
 .sumbar > div{display:flex;align-items:baseline;gap:6px}

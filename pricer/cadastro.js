@@ -202,6 +202,21 @@
       else { R.tabelas = Object.assign({}, R.tabelas, { [sheet]: cells }); if (!Object.keys(cells).length) delete R.tabelas[sheet]; saveLocal(); changed('tabelas'); }
       await log({ tipo: 'Tabela ' + sheet, ref: sheet + '!' + a, desc: sheet + ' ' + a, mudancas: [{ campo: a, de: before ?? null, para: restore ? (baseVal ?? null) : v }] });
     };
+    // várias células de uma vez (uma linha de estrutura, por exemplo): uma gravação e um registro no histórico
+    R.setCells = async (sheet, changes, desc, baseOf) => {
+      guard();
+      const cells = Object.assign({}, R.tabelas[sheet] || {}); const mud = [];
+      for (const [a, v0] of Object.entries(changes)) {
+        const v = v0 === undefined || v0 === '' ? null : v0; const base = baseOf(a); const before = a in cells ? (cells[a] === '' ? null : cells[a]) : (base ?? null);
+        if ((v ?? null) === (base ?? null)) delete cells[a]; else cells[a] = v === null ? '' : v;
+        if ((before ?? null) !== (v ?? null)) mud.push({ campo: a, de: before ?? null, para: v });
+      }
+      if (!mud.length) return false;
+      if (R.mode === 'shared') await R.db.doc('tabelas/' + slug(sheet)).set({ sheet, cells });
+      else { R.tabelas = Object.assign({}, R.tabelas, { [sheet]: cells }); if (!Object.keys(cells).length) delete R.tabelas[sheet]; saveLocal(); changed('tabelas'); }
+      await log({ tipo: 'Estrutura', ref: sheet, desc, mudancas: mud });
+      return true;
+    };
     R.resetSheet = async (sheet) => {
       guard();
       if (R.mode === 'shared') await R.db.doc('tabelas/' + slug(sheet)).set({ sheet, cells: {} });

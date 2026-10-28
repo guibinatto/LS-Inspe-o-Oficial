@@ -15,6 +15,13 @@
     // cada conjunto usa a própria potência: o elétrico dimensiona painel, base, acoplamento e capa pelos CV dele
     s.cells.AR25 = '=IF($I$19<>"",$I$19,$AR$9)';
     s.cells.AR26 = '=IFERROR(INDEX(FX_ITENS,MATCH($AR$25,FX_HP,1),1),1)';
+    // estruturas: "vale para" aceita combinações (CMB+SKID…) e regras novas (trocador, radiador, opcional por item)
+    for (let r = 68; r <= 127; r++) {
+      const n = r - 67; let f = s.cells['AF' + r]; if (typeof f !== 'string') continue;
+      f = f.split(`INDEX(REC_ESTRUT,${n})=$AR$2,AND(INDEX(REC_ESTRUT,${n})="SKID+CONTAINER",OR($AR$2="SKID",$AR$2="CONTAINER"))`).join(`ISNUMBER(SEARCH("+"&$AR$2&"+","+"&INDEX(REC_ESTRUT,${n})&"+"))`);
+      f = f.split(`AND(INDEX(REC_KIT,${n})="SEM KIT BOMBA",ISNUMBER(MATCH($AR$7,KB_DESC,0)))`).join(`AND(INDEX(REC_KIT,${n})="SEM KIT BOMBA",ISNUMBER(MATCH($AR$7,KB_DESC,0))),AND(INDEX(REC_KIT,${n})="SÓ TROCADOR",ISERROR(SEARCH("TROCADOR",$AR$6))),AND(INDEX(REC_KIT,${n})="SÓ RADIADOR",ISERROR(SEARCH("RADIADOR",$AR$6))),AND(INDEX(REC_KIT,${n})="OPCIONAL",$BC$${r}<>1)`);
+      s.cells['AF' + r] = f;
+    }
     for (let r = 68; r <= 127; r++) for (const col of ['AJ', 'AL', 'AM', 'AN']) {
       const f = s.cells[col + r]; if (typeof f !== 'string') continue;
       const m = /INDEX\(REC_TIPO,(\d+)\)/.exec(f); if (!m) continue;
@@ -690,6 +697,7 @@
         <div class="arrbox">${arrUi}</div>
         ${sets.join('')}
       </section>
+      ${optSection(S, c)}
       <details class="card"${keep('cond')}><summary>Condições deste item <span class="sub">${esc(cond)}</span></summary>
         <div class="fields">${f('C8', 'Desconto de negociação')}${fs('L17', 'Margem alvo')}${fs('J17', 'Modo de preço')}${fs('K7', 'Folga de negociação')}${f('C12', 'Start-up — distância (km)')}${f('F12', 'Start-up — diárias')}${f('I12', 'Start-up — valor fechado')}</div></details>
       <details class="card"${keep('comp')}><summary>Componentes <span class="sub">${nComp} itens · custo ${brl(val(S, 'H114'))}</span></summary>
@@ -722,6 +730,16 @@
       ${datalists()}
     </div>`;
   }
+  // opcionais da estrutura padrão: o item marca quais entram
+  function optSection(S, c) {
+    const st = String(val(S, 'AR2') || 'CMB');
+    const has = { DIESEL: c.d > 0, ELETRICA: c.e > 0, JOCKEY: c.j, TODOS: true };
+    const opts = recLines().filter((x) => x.regra === 'OPCIONAL' && estrOf(x).includes(st) && has[x.acion || 'TODOS']);
+    if (!opts.length || !c.code) return '';
+    const price = (x) => { if (!['FIXO', 'SPLIT'].includes(x.tipo)) return ''; const i = REG.insumos.find((y) => y.produto === x.campo); return i && typeof i.valor === 'number' ? brl(i.valor) + ' · ' + qtdTxt(x.qtd) : '<span class="pill warn">sem preço no cadastro</span>'; };
+    return `<section class="card"><h2>Opcionais <span class="sub">da estrutura padrão; marcados entram no custo e na FCI</span></h2><div class="optlist">${opts.map((x) => { const row = 67 + (x.r - 91); return `<label class="sugrow"><input type="checkbox" data-opt="${row}"${val(S, 'BC' + row) === 1 ? ' checked' : ''}><span><b>${esc(x.rot)}</b><br><small class="sub">${price(x)}</small></span></label>`; }).join('')}</div></section>`;
+  }
+  document.addEventListener('change', (e) => { const o = e.target.closest && e.target.closest('[data-opt]'); if (!o || ui.view !== 'item') return; commit(ITEMS[ui.item], 'BC' + o.dataset.opt, o.checked ? 1 : null, !o.checked); });
   function dupItem(i) {
     const j = firstFree(); if (j < 0) return toast('As 10 posições de item já estão em uso');
     const d = state.doc = state.doc || {};
@@ -795,7 +813,7 @@
 
   // ---------- cadastro: insumos, kits, importação, histórico e demais tabelas ----------
   const H = REG.helpers;
-  const CAD_TABS = [['insumos', 'Insumos'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Outras tabelas']];
+  const CAD_TABS = [['insumos', 'Insumos'], ['estruturas', 'Estruturas'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['importar', 'Importar preços'], ['historico', 'Histórico'], ['tabelas', 'Outras tabelas']];
   const fmtAt = (s) => { try { return new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return s; } };
   const fmtVal = (v) => typeof v === 'number' ? NF[2].format(v) : v === null || v === undefined || v === '' ? '—' : String(v);
   const who = (id) => id ? `<span data-uid="${esc(id)}">…</span>` : (REG.mode === 'shared' ? 'alguém da equipe' : 'neste navegador');
@@ -818,7 +836,7 @@
   }
   function vCadastro() {
     const tab = ui.cad || 'insumos';
-    const body = { insumos: vInsumos, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
         <div><h1>Cadastro</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div></div>
@@ -1100,6 +1118,178 @@
       <div class="sheetbar"><input id="histQ" type="search" placeholder="Buscar no histórico…" value="${esc(ui.histQ || '')}" aria-label="Buscar no histórico" style="flex:1 1 260px"><span class="sub">${REG.mode === 'shared' ? 'Últimos 90 dias com alteração, de toda a equipe' : 'Alterações feitas neste navegador'}</span></div>
       <div class="hlist">${items || '<p class="sub">Nenhuma alteração registrada ainda. Tudo está com os valores da planilha REV21.</p>'}</div></section>`;
   }
+
+  // ---- estruturas padrão (receita do MONTADOR) ----
+  const MO = 'MONTADOR';
+  const REC_COLS = { rot: 'B', estr: 'C', acion: 'D', bloco: 'E', fam: 'F', tipo: 'G', campo: 'H', pre: 'I', suf: 'J', qtd: 'K', regra: 'L' };
+  const ESTRS = [['CMB', 'Conjunto motobomba'], ['SKID', 'Skid'], ['CONTAINER', 'Container']];
+  const ACIONS = [['DIESEL', 'Conjunto diesel'], ['ELETRICA', 'Conjunto elétrico'], ['JOCKEY', 'Bomba jockey'], ['TODOS', 'Comum ao equipamento']];
+  const TIPOS = [['MOTOR', 'O motor escolhido no item'], ['BOMBA', 'A bomba escolhida no item'], ['JOCKEY', 'A bomba jockey escolhida no item'], ['FAIXA', 'Tabela por potência do diesel'], ['CV', 'Tabela por potência elétrica'], ['VAZAO', 'Tabela por vazão (hidráulica)'], ['TAMANHO', 'Pelo porte do motor (1 a 9)'], ['FIXO', 'Sempre o mesmo insumo'], ['SPLIT', 'Só em bomba split case']];
+  const QTDS = [['N', '1 por bomba'], ['N+1', '1 por bomba + 1'], ['2N', '2 por bomba'], ['4N', '4 por bomba']];
+  const REGRAS = [['', 'Sempre'], ['SEM KIT MOTOR', 'Só se o motor não for kit'], ['SEM KIT BOMBA', 'Só se a bomba não for kit'], ['SÓ TROCADOR', 'Só motor com trocador de calor'], ['SÓ RADIADOR', 'Só motor com radiador'], ['OPCIONAL', 'Opcional: marcado no item']];
+  const fxHead = (sheet, row, c0, n) => Array.from({ length: n }, (_, i) => String(val(sheet, numToCol(colToNum(c0) + i) + row) || '').replace(/^\d+\s*·\s*/, ''));
+  const heads = () => ({ FAIXA: fxHead(MO, 156, 'D', 10), CV: fxHead(MO, 171, 'D', 4), VAZAO: fxHead('KIT HIDRÁULICA', 3, 'J', 8) });
+  function recLines() {
+    const out = [];
+    for (let r = 92; r <= 151; r++) {
+      const x = { r }; for (const [k, c] of Object.entries(REC_COLS)) { const v = val(MO, c + r); x[k] = v === null || v === undefined ? '' : v; }
+      if (x.tipo === '' && x.rot === '') continue; out.push(x);
+    }
+    return out;
+  }
+  const estrOf = (x) => x.estr === 'TODOS' || x.estr === '' ? ESTRS.map((e) => e[0]) : String(x.estr).split('+');
+  function origemTxt(x, H) {
+    const col = (k) => H[k][(+x.campo || 1) - 1] || ('coluna ' + x.campo);
+    switch (x.tipo) {
+      case 'MOTOR': return x.acion === 'ELETRICA' ? 'O motor elétrico escolhido no item' : 'O motor diesel escolhido no item';
+      case 'BOMBA': return 'A bomba escolhida no item';
+      case 'JOCKEY': return 'A bomba jockey escolhida no item';
+      case 'FAIXA': return 'Potência do diesel → ' + col('FAIXA');
+      case 'CV': return 'Potência elétrica → ' + col('CV');
+      case 'VAZAO': return 'Vazão → ' + col('VAZAO');
+      case 'TAMANHO': return `"${x.pre}" + porte do motor${x.suf ? ` + "${x.suf}"` : ''}`;
+      case 'FIXO': return 'Sempre: ' + x.campo;
+      case 'SPLIT': return 'Só split case: ' + x.campo;
+      default: return x.tipo;
+    }
+  }
+  const qtdTxt = (q) => (QTDS.find((x) => x[0] === String(q)) || [0, `${q} por equipamento`])[1];
+  const regraTxt = (g) => (REGRAS.find((x) => x[0] === g) || [0, g])[1];
+  // sugestões da LS Pricer: nomes mais claros e opcionais com insumos que já estão no cadastro
+  const SUGESTOES = [
+    { id: 'nomes', t: 'Nomes mais claros nas linhas principais', d: 'O motor e a bomba deixam de se chamar "kit…" na lista: se é kit ou não, a regra já resolve.', ren: { 92: 'Motor diesel', 96: 'Bomba principal', 97: 'Bomba principal', 108: 'Válvula de liberação de ar', 112: 'Recirculação da carcaça', 132: 'Painel local (repetidor)' } },
+    { id: 'nivel', t: 'Opcional: sensor de nível do tanque (alto e baixo)', d: 'Pedido comum em especificação de cliente. Insumo já cadastrado em 45.ACESSORIOSTANQUE.', add: { rot: 'Sensor de nível do tanque', estr: 'TODOS', acion: 'DIESEL', bloco: 'TERCEIROS', fam: '45.ACESSORIOSTANQUE', tipo: 'FIXO', campo: 'SENSOR DE NIVEL ALTO E BAIXO TORNATECH 1 1/2" - GSEFPI0637', qtd: 'N', regra: 'OPCIONAL' } },
+    { id: 'manta', t: 'Opcional: manta térmica do escapamento', d: 'Proteção térmica do escape. Insumo já cadastrado em 41.OUTROS (motores de 5 e 6 cilindros).', add: { rot: 'Manta térmica do escapamento', estr: 'TODOS', acion: 'DIESEL', bloco: 'TERCEIROS', fam: '41.OUTROS', tipo: 'FIXO', campo: 'MANTA TÉRMICA MOTORES 5 E 6 CILINDROS', qtd: 'N', regra: 'OPCIONAL' } },
+    { id: 'pintura', t: 'Opcional: pintura especial (Petrobras N-1731)', d: 'Para clientes de óleo e gás. Insumo já cadastrado em 35.PINTURAESPECIAL.', add: { rot: 'Pintura especial', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '35.PINTURAESPECIAL', tipo: 'FIXO', campo: 'PINTURA ESPECIAL PADRÃO PETROBRÁS N-1731', qtd: 1, regra: 'OPCIONAL' } },
+    { id: 'teste', t: 'Opcional: teste de desempenho em fábrica com laudo', d: 'Cria o insumo "TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO" em 34.MAODEOBRA, sem preço: defina o valor no cadastro antes de usar.', add: { rot: 'Teste de desempenho em fábrica', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '34.MAODEOBRA', tipo: 'FIXO', campo: 'TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO', qtd: 'N', regra: 'OPCIONAL' }, novo: { fam: '34.MAODEOBRA', produto: 'TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO', origem: 'NAC' } },
+    { id: 'databook', t: 'Opcional: data book (manual, certificados e desenhos)', d: 'Cria o insumo "DATA BOOK TÉCNICO" em 41.OUTROS, sem preço: defina o valor no cadastro antes de usar.', add: { rot: 'Data book técnico', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '41.OUTROS', tipo: 'FIXO', campo: 'DATA BOOK TÉCNICO', qtd: 1, regra: 'OPCIONAL' }, novo: { fam: '41.OUTROS', produto: 'DATA BOOK TÉCNICO', origem: 'NAC' } },
+  ];
+  const sugFeita = (sg, lines) => sg.ren ? Object.entries(sg.ren).every(([r, n]) => (lines.find((x) => x.r === +r) || {}).rot === n) : lines.some((x) => x.rot === sg.add.rot);
+  const recChanges = (r, x) => { const ch = {}; for (const [k, c] of Object.entries(REC_COLS)) ch[c + r] = x[k] === '' || x[k] === undefined ? null : x[k]; return ch; };
+  const baseOf = (sheet) => (a) => { const v = baseRaw(sheet, a); return v === undefined ? null : v; };
+
+  function vEstruturas() {
+    const est = ui.estr || 'CMB'; const H = heads(); const lines = recLines();
+    const free = 151 - 91 - lines.length;
+    const tabs = ESTRS.map(([k, lb]) => `<button role="tab" aria-selected="${k === est}" data-estr="${k}">${lb}</button>`).join('');
+    const mine = lines.filter((x) => estrOf(x).includes(est));
+    const groups = ACIONS.map(([k, lb]) => {
+      const g = mine.filter((x) => (x.acion || 'TODOS') === k); if (!g.length) return '';
+      return `<tr class="grp"><td colspan="6">${lb} <span class="sub">· ${g.length} componentes</span></td></tr>` + g.map((x) => `<tr class="click" data-recedit="${x.r}">
+        <td><b>${esc(x.rot || '(sem nome)')}</b><br><small class="sub">${esc(x.fam)} · ${esc(x.bloco)}</small></td>
+        <td>${esc(origemTxt(x, H))}</td><td>${esc(qtdTxt(x.qtd))}</td>
+        <td>${x.regra ? `<span class="pill ${x.regra === 'OPCIONAL' ? 'mute' : 'warn'}">${esc(regraTxt(x.regra))}</span>` : ''}</td>
+        <td>${estrOf(x).length === 3 ? '<span class="pill mute">todas</span>' : estrOf(x).map((e) => `<span class="pill mute">${esc(e)}</span>`).join(' ')}</td>
+        <td><button class="btn sm" data-recedit="${x.r}">Editar</button></td></tr>`).join('');
+    }).join('');
+    const sug = SUGESTOES.map((sg) => { const done = sugFeita(sg, lines); return `<label class="sugrow${done ? ' done' : ''}"><input type="checkbox" data-sug="${sg.id}"${done ? ' disabled checked' : ''}><span><b>${esc(sg.t)}</b>${done ? ' <span class="pill ok">aplicada</span>' : ''}<br><small class="sub">${esc(sg.d)}</small></span></label>`; }).join('');
+    const changed = Object.keys(REG.tabelas[MO] || {}).length + Object.keys(REG.tabelas['KIT HIDRÁULICA'] || {}).length;
+    return `<div class="stack">
+      <p class="sub" style="margin:0">A estrutura padrão diz o que entra em cada equipamento montado: quais componentes, de onde sai o insumo (o que foi escolhido no item, a tabela por porte ou um insumo fixo), quantos por bomba e em que condição. Toda proposta nova monta o item por aqui. ${free} linha(s) livre(s) de 60.</p>
+      <div class="subtabs" role="tablist" aria-label="Estrutura">${tabs}</div>
+      <div class="docbar"><button class="btn sm pri" data-recnew${REG.canEditCadastro && free > 0 ? '' : ' disabled'}>+ Novo componente</button>${changed ? `<span class="sub">${changed} alteração(ões) sobre a planilha</span><button class="btn sm" data-recreset>Voltar à estrutura da planilha</button>` : ''}</div>
+      <div class="tw"><table class="t"><thead><tr><th>Componente</th><th>De onde sai o insumo</th><th>Quantidade</th><th>Condição</th><th>Vale para</th><th></th></tr></thead><tbody>${groups || '<tr><td colspan="6" class="sub">Nenhum componente nesta estrutura.</td></tr>'}</tbody></table></div>
+      <section class="card"><h2>Sugestões <span class="sub">marque o que quiser aplicar; opcionais não entram no preço até serem marcados no item</span></h2>
+        <div class="sugs">${sug}</div>
+        <div class="docbar" style="margin-top:10px"><button class="btn sm pri" data-sugapply${REG.canEditCadastro ? '' : ' disabled'}>Aplicar as marcadas</button></div></section>
+      <section class="card"><h2>Tabelas por porte <span class="sub">o insumo de cada faixa; vale para todas as estruturas</span></h2>
+        <div class="subtabs" role="tablist">${[['FAIXA', 'Potência do diesel (HP)'], ['CV', 'Potência elétrica (CV)'], ['VAZAO', 'Vazão (hidráulica)']].map(([k, lb]) => `<button role="tab" aria-selected="${(ui.porte || 'FAIXA') === k}" data-porte="${k}">${lb}</button>`).join('')}</div>
+        ${porteGrid(ui.porte || 'FAIXA')}</section>
+      ${datalists()}
+    </div>`;
+  }
+  function porteGrid(k) {
+    const spec = { FAIXA: [MO, 156, 157, 166, 'B', 'M', ['B', 'C', 'D']], CV: [MO, 171, 172, 187, 'B', 'G', ['B', 'C']], VAZAO: ['KIT HIDRÁULICA', 3, 4, 32, 'A', 'Q', ['A']] }[k];
+    const [sh, hr, r1, r2, c1, c2, numCols] = spec; const cols = []; for (let c = colToNum(c1); c <= colToNum(c2); c++) cols.push(numToCol(c));
+    const ed = REG.canEditCadastro; const chg = REG.tabelas[sh] || {};
+    const head = cols.map((c) => `<th>${esc(String(val(sh, c + hr) || '').replace(/^\d+\s*·\s*/, ''))}</th>`).join('');
+    let body = '';
+    for (let r = r1; r <= r2; r++) {
+      if (val(sh, cols[0] + r) === null && val(sh, cols[1] + r) === null) continue;
+      body += '<tr>' + cols.map((c) => {
+        const a = c + r; const f = isFormulaBase(sh, a); const v = val(sh, a); const shown = v === null || v === undefined ? '' : typeof v === 'number' ? fmtPlain(v) : String(v);
+        if (f || !ed) return `<td class="${a in chg ? 'chg' : ''}">${esc(shown)}</td>`;
+        return `<td class="in ${a in chg ? 'over' : ''}"><input data-tcell="${esc(sh)}|${a}" data-num="${numCols.includes(c) ? 1 : ''}" value="${esc(shown)}"${numCols.includes(c) ? ' inputmode="decimal"' : ' list="dl_all"'} aria-label="${esc(sh)} ${a}"></td>`;
+      }).join('') + '</tr>';
+    }
+    return `<div class="tw" style="margin-top:10px"><table class="t porte"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${k === 'VAZAO' ? '<p class="sub" style="margin:8px 0 0">Nesta tabela você muda as bitolas (colunas à esquerda); os nomes dos insumos à direita saem delas.</p>' : ''}`;
+  }
+  function recModal(r, preset) {
+    const H = heads(); const isNew = !!preset;
+    const x = preset || recLines().find((y) => y.r === r) || {};
+    const opt = (list, cur) => list.map(([k, lb]) => `<option value="${esc(k)}"${String(cur) === String(k) ? ' selected' : ''}>${esc(lb)}</option>`).join('');
+    const colOpts = (k) => H[k].map((h, i) => `<option value="${i + 1}"${String(x.campo) === String(i + 1) && x.tipo === k ? ' selected' : ''}>${esc(h)}</option>`).join('');
+    const qIsNum = typeof x.qtd === 'number' || /^\d+$/.test(String(x.qtd));
+    const ro = REG.canEditCadastro ? '' : ' disabled';
+    modal(`<h2>${isNew ? 'Novo componente' : 'Componente da estrutura'}</h2>
+      <div class="fields">
+        <div class="f spanall"><label for="rRot">Nome do componente</label><input id="rRot" value="${esc(x.rot || '')}"${ro}></div>
+        <div class="f"><label for="rAc">Conjunto</label><select id="rAc"${ro}>${opt(ACIONS, x.acion || 'TODOS')}</select></div>
+        <div class="f"><label>Vale para</label><div class="chks">${ESTRS.map(([k, lb]) => `<label class="chk"><input type="checkbox" data-rest="${k}"${estrOf(x).includes(k) ? ' checked' : ''}${ro}> ${esc(lb)}</label>`).join('')}</div></div>
+        <div class="f"><label for="rFam">Família do cadastro</label><select id="rFam"${ro}>${famList().map((f) => `<option${f === x.fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></div>
+        <div class="f"><label for="rBl">Bloco</label><select id="rBl"${ro}>${opt([['TERCEIROS', 'Terceiros (comprado)'], ['LS FIRE', 'LS Fire (fabricado)']], x.bloco || 'TERCEIROS')}</select></div>
+        <div class="f spanall"><label for="rTipo">De onde sai o insumo</label><select id="rTipo"${ro}>${opt(TIPOS, x.tipo || 'FIXO')}</select></div>
+        <div class="f spanall" data-tp="FAIXA"><label for="rFx">Coluna da tabela por potência do diesel</label><select id="rFx"${ro}>${colOpts('FAIXA')}</select></div>
+        <div class="f spanall" data-tp="CV"><label for="rCv">Coluna da tabela por potência elétrica</label><select id="rCv"${ro}>${colOpts('CV')}</select></div>
+        <div class="f spanall" data-tp="VAZAO"><label for="rVz">Coluna da tabela por vazão</label><select id="rVz"${ro}>${colOpts('VAZAO')}</select></div>
+        <div class="f" data-tp="TAMANHO"><label for="rPre">Texto antes do porte</label><input id="rPre" value="${esc(x.pre || '')}"${ro}></div>
+        <div class="f" data-tp="TAMANHO"><label for="rSuf">Texto depois do porte</label><input id="rSuf" value="${esc(x.suf || '')}"${ro}></div>
+        <div class="f spanall" data-tp="FIXO SPLIT"><label for="rIns">Insumo</label><input id="rIns" list="dl_all" value="${esc(['FIXO', 'SPLIT'].includes(x.tipo) ? x.campo : '')}"${ro}></div>
+        <div class="f"><label for="rQ">Quantidade</label><select id="rQ"${ro}>${opt(QTDS.concat([['FIX', 'Fixa por equipamento']]), qIsNum ? 'FIX' : (x.qtd || 'N'))}</select></div>
+        <div class="f" data-q><label for="rQn">Quantas</label><input id="rQn" inputmode="decimal" value="${qIsNum ? esc(x.qtd) : '1'}"${ro}></div>
+        <div class="f spanall"><label for="rRg">Condição</label><select id="rRg"${ro}>${opt(REGRAS, x.regra || '')}</select></div>
+      </div>
+      <p class="sub" id="rMsg" style="margin:0"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${REG.canEditCadastro ? `<button class="btn pri" id="rSave">Salvar</button>${isNew ? '' : '<button class="btn" id="rDel">Excluir da estrutura</button>'}` : ''}<button class="btn" data-close>Fechar</button></div>
+      ${datalists()}`, (o, close) => {
+      const g = (s) => $(s, o);
+      const sync = () => { const t = g('#rTipo').value; o.querySelectorAll('[data-tp]').forEach((el) => { el.hidden = !el.dataset.tp.split(' ').includes(t); }); g('[data-q]').hidden = g('#rQ').value !== 'FIX'; };
+      g('#rTipo').onchange = sync; g('#rQ').onchange = sync; sync();
+      const save = g('#rSave'); if (save) save.onclick = async () => {
+        const t = g('#rTipo').value; const ests = [...o.querySelectorAll('[data-rest]:checked')].map((e) => e.dataset.rest);
+        if (!g('#rRot').value.trim()) { g('#rMsg').textContent = 'Dê um nome ao componente.'; return; }
+        if (!ests.length) { g('#rMsg').textContent = 'Marque ao menos uma estrutura em "Vale para".'; return; }
+        const campo = { FAIXA: +g('#rFx').value, CV: +g('#rCv').value, VAZAO: +g('#rVz').value, FIXO: g('#rIns').value.trim(), SPLIT: g('#rIns').value.trim() }[t] ?? '';
+        if (['FIXO', 'SPLIT'].includes(t) && !campo) { g('#rMsg').textContent = 'Escolha o insumo.'; return; }
+        const qn = parseInput(g('#rQn').value, 'num');
+        const nx = { rot: g('#rRot').value.trim(), estr: ests.length === 3 ? 'TODOS' : ests.join('+'), acion: g('#rAc').value, bloco: g('#rBl').value, fam: g('#rFam').value, tipo: t, campo,
+          pre: t === 'TAMANHO' ? g('#rPre').value : '', suf: t === 'TAMANHO' ? g('#rSuf').value : '', qtd: g('#rQ').value === 'FIX' ? (typeof qn === 'number' ? qn : 1) : g('#rQ').value, regra: g('#rRg').value };
+        try { await REG.setCells(MO, recChanges(x.r, nx), 'Estrutura: ' + nx.rot, baseOf(MO)); close(); toast('Estrutura salva: ' + nx.rot); if (['FIXO', 'SPLIT'].includes(t) && !REG.insumos.some((i) => i.produto === campo)) toast('Atenção: "' + campo + '" não está no cadastro de insumos; entra com custo zero.'); }
+        catch (e) { g('#rMsg').textContent = errMsg(e); }
+      };
+      const del = g('#rDel'); if (del) del.onclick = async () => {
+        if (!del.dataset.sure) { del.dataset.sure = 1; del.textContent = 'Confirmar exclusão'; del.classList.add('pri'); return; }
+        try { const ch = {}; for (const c of Object.values(REC_COLS)) ch[c + x.r] = null; await REG.setCells(MO, ch, 'Estrutura: excluiu ' + x.rot, baseOf(MO)); close(); toast('Componente excluído da estrutura'); } catch (e) { g('#rMsg').textContent = errMsg(e); }
+      };
+    });
+  }
+  async function applySugs(ids) {
+    const lines = recLines(); const used = new Set(lines.map((x) => x.r)); const ch = {}; const novos = []; const nomes = [];
+    for (const sg of SUGESTOES.filter((s) => ids.includes(s.id))) {
+      if (sg.ren) for (const [r, n] of Object.entries(sg.ren)) if (used.has(+r)) ch[REC_COLS.rot + r] = n;
+      if (sg.add) { let r = 92; while (used.has(r) && r <= 151) r++; if (r > 151) break; used.add(r); Object.assign(ch, recChanges(r, sg.add)); }
+      if (sg.novo && !REG.insumos.some((i) => i.produto === sg.novo.produto)) novos.push(sg.novo);
+      nomes.push(sg.t);
+    }
+    for (const n of novos) { const { a, b } = REG.nextCode(n.fam); await REG.saveInsumo({ id: REG.newInsumoId(a, b), a, b, fam: n.fam, produto: n.produto, origem: n.origem }, true); }
+    if (Object.keys(ch).length) await REG.setCells(MO, ch, 'Sugestões aplicadas: ' + nomes.join('; '), baseOf(MO));
+    toast(nomes.length + ' sugestão(ões) aplicada(s)');
+  }
+  document.addEventListener('click', async (e) => {
+    if (ui.view !== 'cadastro' || ui.cad !== 'estruturas') return;
+    const t = e.target.closest('[data-estr]'); if (t) { ui.estr = t.dataset.estr; store.set(SK.view, ui); render(); return; }
+    const pt = e.target.closest('[data-porte]'); if (pt) { ui.porte = pt.dataset.porte; render(); return; }
+    const ed = e.target.closest('[data-recedit]'); if (ed) { recModal(+ed.dataset.recedit); return; }
+    if (e.target.closest('[data-recnew]')) { const used = new Set(recLines().map((x) => x.r)); let r = 92; while (used.has(r)) r++; if (r > 151) return toast('A receita já tem 60 linhas'); recModal(r, { r, rot: '', estr: ui.estr || 'CMB', acion: 'TODOS', bloco: 'TERCEIROS', fam: '', tipo: 'FIXO', campo: '', qtd: 'N', regra: '' }); return; }
+    const rs = e.target.closest('[data-recreset]');
+    if (rs) { if (!rs.dataset.sure) { rs.dataset.sure = 1; rs.textContent = 'Confirmar: desfazer todas as alterações da estrutura'; rs.classList.add('pri'); return; } try { await REG.resetSheet(MO); await REG.resetSheet('KIT HIDRÁULICA'); toast('Estrutura de volta à planilha'); } catch (err) { toast(errMsg(err)); } return; }
+    if (e.target.closest('[data-sugapply]')) { const ids = [...document.querySelectorAll('[data-sug]:checked:not(:disabled)')].map((x) => x.dataset.sug); if (!ids.length) return toast('Marque ao menos uma sugestão'); try { await applySugs(ids); } catch (err) { toast(errMsg(err)); } }
+  });
+  document.addEventListener('change', async (e) => {
+    const el = e.target; if (!el.dataset || !el.dataset.tcell) return;
+    const [sh, a] = el.dataset.tcell.split('|'); let v = el.value.trim(); if (el.dataset.num && v !== '') { const n = parseInput(v, 'num'); v = typeof n === 'number' ? n : v; }
+    try { await REG.setCells(sh, { [a]: v === '' ? null : v }, 'Tabela por porte ' + sh + ' ' + a, baseOf(sh)); } catch (err) { toast(errMsg(err)); }
+  });
 
   // ---- demais tabelas (grade) ----
   function vTabelas() {
