@@ -110,11 +110,11 @@ body.side-mini .nav .nbadge{position:absolute;top:2px;right:4px}
 .ctx-tt{min-width:0}.ctx-tt h1{margin:0;font-size:24px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ctx-tags{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .ctx-kpis{display:flex;align-items:stretch;gap:0;padding:0;overflow:hidden}
-.ctx-kpis .k{display:flex;flex-direction:column;justify-content:center;padding:8px 16px;border-left:1px solid var(--line);min-width:0}
+.ctx-kpis .k{display:flex;flex-direction:column;justify-content:flex-start;gap:4px;padding:12px 18px;border-left:1px solid var(--line);min-width:112px}
 .ctx-kpis .k:first-child{border-left:0}
 .ctx-kpis .k span{font-family:var(--f-cond);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
-.ctx-kpis .k b{font-size:18px;white-space:nowrap}
-.ctx-kpis .k em{font-style:normal;font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.ctx-kpis .k b{font-size:18px;line-height:1.2;white-space:nowrap}
+.ctx-kpis .k em{font-style:normal;font-size:11.5px;line-height:1.2;min-height:1.2em;color:var(--ink3);white-space:nowrap}
 .ctx-more{display:none;align-self:center;margin:0 8px}
 .ptabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line2);margin:0 0 14px;scrollbar-width:thin}
 .ptab{display:inline-flex;align-items:center;gap:7px;padding:9px 12px 10px;border:0;border-bottom:2px solid transparent;background:none;color:var(--ink2);font-family:var(--f-cond);font-weight:600;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;white-space:nowrap;border-radius:8px 8px 0 0;transition:color .15s ease,background .15s ease,border-color .15s ease}
@@ -6270,6 +6270,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         <section class="card"><h2>Demonstrativo — base sem IPI</h2><div class="kv res">${demo}</div></section>
         <section class="card"><h2>Fora do preço e conferências</h2><div class="kv res">${fora}</div></section>
       </div>
+      ${propComCard()}
     </div>`;
   }
 
@@ -7370,14 +7371,15 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const pnAb = state.id ? PN.daProposta(state.id).filter(PN.aberta).filter((x) => spv || fx || x.origem !== 'auto').length : 0;
     const sit = sv ? (MG.situacao ? MG.situacao(sv) : [STATUS_LB[sv.status || 'rascunho'], 'mute']) : ['Não salva', 'mute'];
     const baixa = typeof mg === 'number' && typeof mMin === 'number' && mg < mMin;
+    const ipiTxt = spv ? 'com impostos' : 'com IPI';
     return `<section class="ctxh${ui.ctxOpen ? ' open' : ''}" aria-label="Resumo da proposta">
       <div class="ctx-id"><span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : fx ? 'FACTS' : 'SEQ'}</span><div class="ctx-tt"><h1>${esc(num || 'Proposta sem número')}</h1><div class="sub">${esc(cli || 'Cliente não informado')}</div></div>
         <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[2] === 'aprovacao' && MG.faseLb ? MG.faseLb('aprovacao') : sit[0])}</span>${spv || fx ? '' : apSelo()}</div></div>
       <div class="ctx-kpis sumbar sticky">
-        <div class="k"><span>Valor total</span><b>${brl(tot)}</b></div>
-        <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b>${typeof mMin === 'number' ? `<em>mín. ${pct(mMin, 0)}</em>` : ''}</div>
-        <div class="k x"><span>Custo</span><b>${brl(custo)}</b></div>
-        <div class="k x"><span>Itens</span><b>${nItens}</b></div>
+        <div class="k"><span>Valor total</span><b>${brl(tot)}</b><em>${ipiTxt}</em></div>
+        <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}</em></div>
+        <div class="k x"><span>Custo</span><b>${brl(custo)}</b><em></em></div>
+        <div class="k x"><span>Itens</span><b>${nItens}</b><em></em></div>
         <div class="k"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>
         <button class="btn sm ctx-more" data-ctxmore aria-expanded="${ui.ctxOpen ? 'true' : 'false'}" data-ico="${ui.ctxOpen ? 'chevron-down' : 'chevron-right'}">${ui.ctxOpen ? 'menos' : 'mais'}</button></div>
     </section>`;
@@ -7686,7 +7688,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const ed = e.target.closest('[data-edit]');
     if (ed) { uiEdit.add(ed.dataset.edit); render(); const [s, a] = ed.dataset.edit.split('|'); const el = document.getElementById(id(s, a)); if (el) el.focus(); return; }
     const sp = e.target.closest('[data-step]');
-    if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; setView('proposta'); return; }
+    if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; if (!ui.simple && sp.closest('.ptabs, .flowbar, #app')) { ui.simple = true; store.set(SK.view, ui); } setView('proposta'); return; }
     if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; setView('item'); return; }
     const dp = e.target.closest('[data-dup]'); if (dp) { dupItem(+dp.dataset.dup); return; }
     const rm = e.target.closest('[data-rmitem]');

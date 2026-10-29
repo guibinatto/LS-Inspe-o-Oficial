@@ -482,6 +482,7 @@
         <section class="card"><h2>Demonstrativo — base sem IPI</h2><div class="kv res">${demo}</div></section>
         <section class="card"><h2>Fora do preço e conferências</h2><div class="kv res">${fora}</div></section>
       </div>
+      ${propComCard()}
     </div>`;
   }
 
@@ -1582,14 +1583,15 @@
     const pnAb = state.id ? PN.daProposta(state.id).filter(PN.aberta).filter((x) => spv || fx || x.origem !== 'auto').length : 0;
     const sit = sv ? (MG.situacao ? MG.situacao(sv) : [STATUS_LB[sv.status || 'rascunho'], 'mute']) : ['Não salva', 'mute'];
     const baixa = typeof mg === 'number' && typeof mMin === 'number' && mg < mMin;
+    const ipiTxt = spv ? 'com impostos' : 'com IPI';
     return `<section class="ctxh${ui.ctxOpen ? ' open' : ''}" aria-label="Resumo da proposta">
       <div class="ctx-id"><span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : fx ? 'FACTS' : 'SEQ'}</span><div class="ctx-tt"><h1>${esc(num || 'Proposta sem número')}</h1><div class="sub">${esc(cli || 'Cliente não informado')}</div></div>
         <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[2] === 'aprovacao' && MG.faseLb ? MG.faseLb('aprovacao') : sit[0])}</span>${spv || fx ? '' : apSelo()}</div></div>
       <div class="ctx-kpis sumbar sticky">
-        <div class="k"><span>Valor total</span><b>${brl(tot)}</b></div>
-        <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b>${typeof mMin === 'number' ? `<em>mín. ${pct(mMin, 0)}</em>` : ''}</div>
-        <div class="k x"><span>Custo</span><b>${brl(custo)}</b></div>
-        <div class="k x"><span>Itens</span><b>${nItens}</b></div>
+        <div class="k"><span>Valor total</span><b>${brl(tot)}</b><em>${ipiTxt}</em></div>
+        <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}</em></div>
+        <div class="k x"><span>Custo</span><b>${brl(custo)}</b><em></em></div>
+        <div class="k x"><span>Itens</span><b>${nItens}</b><em></em></div>
         <div class="k"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>
         <button class="btn sm ctx-more" data-ctxmore aria-expanded="${ui.ctxOpen ? 'true' : 'false'}" data-ico="${ui.ctxOpen ? 'chevron-down' : 'chevron-right'}">${ui.ctxOpen ? 'menos' : 'mais'}</button></div>
     </section>`;
@@ -1898,7 +1900,7 @@
     const ed = e.target.closest('[data-edit]');
     if (ed) { uiEdit.add(ed.dataset.edit); render(); const [s, a] = ed.dataset.edit.split('|'); const el = document.getElementById(id(s, a)); if (el) el.focus(); return; }
     const sp = e.target.closest('[data-step]');
-    if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; setView('proposta'); return; }
+    if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; if (!ui.simple && sp.closest('.ptabs, .flowbar, #app')) { ui.simple = true; store.set(SK.view, ui); } setView('proposta'); return; }
     if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; setView('item'); return; }
     const dp = e.target.closest('[data-dup]'); if (dp) { dupItem(+dp.dataset.dup); return; }
     const rm = e.target.closest('[data-rmitem]');

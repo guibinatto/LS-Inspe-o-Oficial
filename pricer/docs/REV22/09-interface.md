@@ -136,3 +136,8 @@ Linha da proposta: os botões ficam num grupo alinhado — próximo passo (desta
 
 - **Layout** (planilha completa da proposta → Resultado consolidado): o cartão ocupa a largura toda, em três blocos (Custos · Impostos, comissão e margem · Preço, IPI e origem), com mais espaço entre as linhas; Demonstrativo e Fora do preço lado a lado embaixo. Corrigido também o defeito que trocava rótulo e valor de lado depois de cada separador (ICMS e as linhas seguintes apareciam alinhadas à direita e em negrito).
 - **Origem do conjunto (pacote)**: a fórmula MEMORIAL!M29 devolvia "MISTO" quando havia itens nacionais e importados. Agora segue a regra da FCI aplicada ao pacote: conteúdo de importação consolidado (MEMORIAL!M30) acima de LIMITE_CI (PARÂMETROS!C9, 40%) = IMPORTADO, senão NACIONAL; sem itens, "—". Impacto verificado: M29 só é usada por PROPOSTA!E69 (exibição); a origem e o ICMS de cada item continuam vindo da FCI do item (P33). Regressão REV21: 0 diferença. No exemplo, a origem do pacote passa de MISTO para IMPORTADO (CI 45,00%).
+
+## 14. Onde fica "Gerar proposta (PDF)" e o resumo do topo
+
+- Na **visão planilha** (botão do topo "Visão guiada"), clicar numa aba da proposta (Dados gerais, Itens… Documentos) não mudava nada: a tela continuava na planilha completa. Agora a aba abre a etapa na visão guiada; o cartão **Proposta técnica e comercial** também aparece no fim da planilha completa.
+- Resumo do topo (valor total, margem, custo, itens, pendências): rótulos, valores e linha de apoio alinhados na mesma altura em todas as colunas (antes, as colunas sem linha de apoio ficavam centralizadas e desalinhadas); "com IPI" sob o valor total.
