@@ -17,7 +17,9 @@ const L = __dirname + '/libs/';
   console.log('grupos item1:', await p.$$eval('#cr_ITEM\\ 01 tr.grp', (x) => x.map((e) => e.innerText)));
   console.log('MO linhas:', await p.$$eval('#cr_ITEM\\ 01 tr', (x) => { let on = false; const o = []; for (const r of x) { if (r.classList.contains('grp')) on = /Mão/.test(r.innerText); else if (on) o.push(r.innerText.replace(/\s+/g, ' ').slice(0, 90)); } return o; }));
   await p.click('#cr_ITEM\\ 01 [data-rok] >> nth=0'); await p.waitForTimeout(400);
-  const inp = await p.$('#cr_ITEM\\ 01 input[data-real] >> nth=1'); await inp.fill('1.500,00'); await inp.press('Tab'); await p.waitForTimeout(400);
+  // linha 2: valor unitário com impostos 1.500,00 e quantidade usada 2 → o app calcula o total (3.000,00)
+  const inp = await p.$('#cr_ITEM\\ 01 input[data-ru] >> nth=1'); await inp.fill('1.500,00'); await inp.press('Tab'); await p.waitForTimeout(400);
+  const iq = await p.$('#cr_ITEM\\ 01 input[data-rq] >> nth=1'); await iq.fill('2'); await iq.press('Tab'); await p.waitForTimeout(400);
   console.log('linhas 1-2:', await p.$$eval('#cr_ITEM\\ 01 tr.rdone, #cr_ITEM\\ 01 tr.rpend', (x) => x.slice(0, 3).map((e) => e.className + ' ' + e.innerText.replace(/\s+/g, ' ').slice(0, 120))));
   await p.click('[data-rokall="ITEM 01"]'); await p.waitForTimeout(400); console.log('kpi item1:', await p.$eval('#cr_ITEM\\ 01 .kpis', (x) => x.innerText.replace(/\s+/g, ' ')));
   await p.screenshot({ path: __dirname + '/cr_1.png' });

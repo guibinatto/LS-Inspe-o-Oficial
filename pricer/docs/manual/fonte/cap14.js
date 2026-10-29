@@ -52,20 +52,21 @@ module.exports = {
         { sel: '#app .kpis .kpi.lead', txt: 'Margem com o custo real. Este quadro aparece só para quem vê preço e margem.', pos: 'l' },
         { sel: 'label[for="mgNf"]', txt: 'Ler NF ou pedido: lê o documento e sugere em que linha lançar cada item.', pos: 'b' },
         { sel: '[data-mgconcl]', txt: 'Fabricação concluída → enviar ao Financeiro.', pos: 'b' },
-        { sel: '[data-mgreopen]', txt: 'Desfazer baixa (pede confirmação). Apaga a baixa e o custo real lançado.', pos: 'b' },
+        { sel: '[data-mgreopen]', txt: 'Reabrir (desfazer baixa): pede o motivo e guarda uma cópia da baixa e do custo real na proposta.', pos: 'b' },
       ] },
 
     { id: '14-04', nome: 'margens-custo-real-item', titulo: 'Conferência do custo real de um item, linha a linha', clip: '[id="cr_ITEM 03"]', pad: 8,
       prep: async (p, h) => {
         const it = '[id="cr_ITEM 03"]';
-        const inp = await p.$(`${it} input[data-real] >> nth=1`);
+        const inp = await p.$(`${it} input[data-ru] >> nth=1`);
         const v = lerNum(await inp.inputValue());
         await inp.fill((Math.round(v * 1.12 * 100) / 100).toFixed(2).replace('.', ','));
         await inp.press('Tab'); await h.esperar(800);
       },
       marcas: [
         { sel: '[id="cr_ITEM 03"] .kpis', txt: 'Resumo do item: custo previsto, realizado, diferença e linhas conferidas.', pos: 'l' },
-        { sel: '[id="cr_ITEM 03"] input[data-real]', txt: 'Realizado (R$): vem com o valor previsto. Digite o valor real quando for diferente e saia do campo.', pos: 'b' },
+        { sel: '[id="cr_ITEM 03"] input[data-rq]', txt: 'Quantidade usada: vem com a prevista. Corrija se foi usada outra quantidade.', pos: 'b' },
+        { sel: '[id="cr_ITEM 03"] input[data-ru]', txt: 'Valor unitário com impostos: vem com o previsto. Digite o valor real pago e saia do campo; o app calcula o total.', pos: 'b' },
         { sel: '[id="cr_ITEM 03"] [data-rok]', txt: '"✓ igual": confirma que a linha custou o previsto (o selo passa a "✓ conferido").', pos: 't' },
         { sel: '[id="cr_ITEM 03"] .pill.warn', txt: '"alterado": o valor lançado é diferente do previsto; a diferença fica em vermelho quando o custo sobe.', pos: 'b' },
         { sel: '[id="cr_ITEM 03"] input[data-robs]', txt: 'Observação da linha (NF, OS, fornecedor).', pos: 't' },
@@ -76,7 +77,7 @@ module.exports = {
     { id: '14-05', nome: 'margens-painel', titulo: 'Menu Margens: filtros, indicadores e gráficos', alto: 1150,
       prep: async (p, h) => {
         // uma linha grande do item 1 custou 15% a mais que o previsto
-        const inp = await p.$('[id="cr_ITEM 01"] input[data-real] >> nth=0');
+        const inp = await p.$('[id="cr_ITEM 01"] input[data-ru] >> nth=0');
         const v = lerNum(await inp.inputValue());
         await inp.fill((Math.round(v * 1.15 * 100) / 100).toFixed(2).replace('.', ','));
         await inp.press('Tab'); await h.esperar(800);
@@ -235,7 +236,7 @@ module.exports = {
     { t: 'tut', titulo: 'Lançar o custo real de uma proposta fechada', objetivo: 'Registrar quanto cada linha realmente custou e calcular a margem realizada.', quem: 'Engenharia e Custos. No modo compartilhado, quem está nessas áreas em Configurações → Responsáveis (sem ninguém nas áreas, qualquer Editor; o dono sempre). No modo local não há controle de acesso.', pre: ['Proposta com baixa e situação ganha.'], passos: [
       'Abra a proposta pelo próximo passo **Lançar custo real** (tela Início), pela lista **Custo real a lançar** ou pelo botão **Custo real** da aba Fechadas.',
       { x: 'Confira o resumo no topo: previsto, realizado, diferença e porcentagem conferida.', fig: '14-03' },
-      { x: 'Em cada item, clique em **✓ igual** quando a linha custou o previsto, ou digite o valor real no campo **Realizado (R$)** e saia do campo. Use a coluna **Observação** para NF, OS ou fornecedor.', fig: '14-04' },
+      { x: 'Em cada item, clique em **✓ igual** quando a linha custou o previsto, ou confirme a **Quantidade usada** e digite o **Valor unitário com impostos** realmente pago e saia do campo: o app calcula o total (quantidade × unitário) e a diferença. Use a coluna **Observação** para NF, OS ou fornecedor.', fig: '14-04' },
       'Para o que não estava previsto, clique em **+ Custo não previsto**, escreva a descrição e o valor e clique em **Lançar**.',
       'Quando terminar as linhas de um item, use **✓ Conferir as N restantes como iguais ao previsto** para fechar o que faltou.',
       'Ao fim da fabricação, clique em **Fabricação concluída → enviar ao Financeiro** e envie o relatório pela janela de e-mail, ou clique em **Só marcar como concluída**.',

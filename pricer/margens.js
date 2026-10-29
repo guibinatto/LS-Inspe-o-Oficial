@@ -88,7 +88,10 @@
       const P = fechado(F); const R = F.real || {}; let lin = 0, ap = 0;
       const itens = P.itens.map((x) => {
         const r = R[x.n] || {}; let custoReal = 0, custoPrev = 0, apont = 0;
-        const linhas = (x.linhas || []).map((l) => { const q = (r.l || {})[l.k]; lin++; const has = q && typeof q.v === 'number'; if (has) { ap++; apont++; } custoPrev += l.custo * x.qtd; const real = has ? q.v : null; custoReal += has ? real : l.custo * x.qtd; return Object.assign({}, l, { prev: l.custo * x.qtd, real, obs: q && q.obs, doc: q && q.doc }); });
+        const linhas = (x.linhas || []).map((l) => { const q = (r.l || {})[l.k]; lin++; const has = q && typeof q.v === 'number'; if (has) { ap++; apont++; } custoPrev += l.custo * x.qtd; const real = has ? q.v : null; custoReal += has ? real : l.custo * x.qtd;
+          const qPrev = num(l.qtd) * (x.qtd || 1); const prev = l.custo * x.qtd; const uPrev = num(l.unit) || (qPrev ? prev / qPrev : prev);
+          const qReal = has && typeof q.q === 'number' ? q.q : qPrev; const uReal = has ? (typeof q.u === 'number' ? q.u : (qReal ? real / qReal : real)) : uPrev;
+          return Object.assign({}, l, { prev, real, qPrev, uPrev, qReal, uReal, obs: q && q.obs, doc: q && q.doc }); });
         // custos fora das linhas (fabricação, frete…) que não viraram linha
         const resto = Math.max(0, x.custo - custoPrev); custoReal += resto;
         const extras = (r.extras || []).filter((e) => typeof e.v === 'number'); custoReal += extras.reduce((t, e) => t + e.v, 0);
@@ -268,24 +271,27 @@
       const dif = (d) => (Math.abs(d) < 0.005 ? '<span class="sub">0,00</span>' : `<b class="${d > 0 ? 'bad-t' : 'ok-t'}">${d > 0 ? '+' : '−'}${brl(Math.abs(d)).replace('R$ ', '')}</b>`);
       const linha = (it, l) => {
         const has = typeof l.real === 'number'; const v = has ? l.real : l.prev; const d = v - l.prev; const igual = has && Math.abs(d) < 0.005;
-        const st = !has ? `<button class="rok" data-rok="${esc(it.n)}|${esc(l.k)}" title="Confere: o custo real é igual ao previsto"${ed ? '' : ' disabled'}>✓ igual</button>` : igual ? '<span class="pill ok">✓ conferido</span>' : '<span class="pill warn">alterado</span>';
-        return `<tr class="${has ? 'rdone' : 'rpend'}"><td>${esc(l.desc || l.rot || '')}<br><small class="sub">${esc([ehMO(l) ? 'MÃO DE OBRA' : l.grupo, l.fam].filter(Boolean).join(' · '))}</small></td><td class="n">${NF[2].format(num(l.qtd) * (it.qtd || 1))}</td><td class="n">${brl(l.prev)}</td>
-          <td class="in">${ed ? `<input class="rin${has ? '' : ' pend'}" data-real="${esc(it.n)}|${esc(l.k)}" inputmode="decimal" value="${NF[2].format(v)}" aria-label="Custo real de ${esc(l.desc || l.rot || '')}">` : brl(v)}</td><td class="n">${dif(d)}</td><td>${st}</td>
+        const st = !has ? `<button class="rok" data-rok="${esc(it.n)}|${esc(l.k)}" title="Confere: quantidade e valor iguais ao previsto"${ed ? '' : ' disabled'}>✓ igual</button>` : igual ? '<span class="pill ok">✓ conferido</span>' : '<span class="pill warn">alterado</span>';
+        const nm = esc(l.desc || l.rot || '');
+        return `<tr class="${has ? 'rdone' : 'rpend'}"><td>${nm}<br><small class="sub">${esc([ehMO(l) ? 'MÃO DE OBRA' : l.grupo, l.fam].filter(Boolean).join(' · '))}</small></td>
+          <td class="n">${NF[2].format(l.qPrev)}</td><td class="in">${ed ? `<input class="rin q${has ? '' : ' pend'}" data-rq="${esc(it.n)}|${esc(l.k)}" inputmode="decimal" value="${NF[2].format(l.qReal)}" aria-label="Quantidade usada de ${nm}">` : NF[2].format(l.qReal)}</td>
+          <td class="n">${brl(l.uPrev).replace('R$ ', '')}</td><td class="in">${ed ? `<input class="rin${has ? '' : ' pend'}" data-ru="${esc(it.n)}|${esc(l.k)}" inputmode="decimal" value="${NF[2].format(l.uReal)}" aria-label="Valor unitário com impostos de ${nm}">` : brl(l.uReal).replace('R$ ', '')}</td>
+          <td class="n">${brl(l.prev).replace('R$ ', '')}</td><td class="n"><b>${brl(v).replace('R$ ', '')}</b></td><td class="n">${dif(d)}</td><td>${st}</td>
           <td class="in">${ed ? `<input class="rin" data-robs="${esc(it.n)}|${esc(l.k)}" value="${esc(l.obs || '')}" placeholder="NF, OS, fornecedor…" aria-label="Observação">` : esc(l.obs || '')}</td></tr>`;
       };
       const itens = R.itens.map((it) => {
         // mão de obra num bloco próprio, depois dos materiais
         const mat = it.linhas.filter((l) => !ehMO(l)), mo = it.linhas.filter(ehMO);
-        const ex = it.extras.map((e, i) => `<tr class="newrow"><td>${esc(e.desc)}<br><small class="sub">NÃO PREVISTO</small></td><td></td><td class="n">—</td><td class="n">${brl(e.v)}</td><td class="n">${dif(e.v)}</td><td></td><td>${ed ? `<button class="restore" data-rexdel="${esc(it.n)}|${i}">remover</button>` : ''}</td></tr>`).join('');
+        const ex = it.extras.map((e, i) => `<tr class="newrow"><td>${esc(e.desc)}<br><small class="sub">NÃO PREVISTO</small></td><td></td><td></td><td></td><td></td><td class="n">—</td><td class="n"><b>${brl(e.v).replace('R$ ', '')}</b></td><td class="n">${dif(e.v)}</td><td></td><td>${ed ? `<button class="restore" data-rexdel="${esc(it.n)}|${i}">remover</button>` : ''}</td></tr>`).join('');
         const pend = it.linhas.length - it.apont; const prev = it.custo; const real = it.custoReal;
         return `<section class="card" id="cr_${esc(it.n)}"><h2>${esc(it.nome)} <span class="sub">${esc(it.familiaNome || it.familia || '')} · ${NF[0].format(it.qtd || 1)} un.</span></h2>
           <div class="kpis" style="margin-bottom:10px"><div class="kpi"><span>Custo previsto</span><b>${brl(prev)}</b></div><div class="kpi lead"><span>Custo realizado</span><b>${brl(real)}</b></div><div class="kpi"><span>Diferença</span><b class="${real - prev > 0.005 ? 'bad-t' : 'ok-t'}">${real - prev >= 0 ? '+' : '−'}${brl(Math.abs(real - prev)).replace('R$ ', '')}</b><em>${prev ? pct((real - prev) / prev, 1) : ''}</em></div><div class="kpi"><span>Conferência</span><b>${it.apont} de ${it.linhas.length}</b><em>${pend ? pend + ' linha(s) a conferir' : 'tudo conferido'}</em></div></div>
-          <div class="tw"><table class="t reg"><thead><tr><th>Componente</th><th>Qtd</th><th>Previsto</th><th>Realizado (R$)</th><th>Diferença</th><th></th><th>Observação</th></tr></thead><tbody>
-          ${mat.length ? '<tr class="grp"><td colspan="7">Materiais e componentes</td></tr>' + mat.map((l) => linha(it, l)).join('') : ''}
-          <tr class="grp"><td colspan="7">Mão de obra</td></tr>${mo.length ? mo.map((l) => linha(it, l)).join('') : '<tr><td colspan="7" class="sub">Sem linha de mão de obra na formação. Lance horas extras ou serviços como "custo não previsto".</td></tr>'}
-          ${ex ? '<tr class="grp"><td colspan="7">Não previsto</td></tr>' + ex : ''}
-          ${it.resto > 0.5 ? `<tr><td class="sub">Outros custos sem linha (arredondamentos)</td><td></td><td class="n">${brl(it.resto)}</td><td class="n sub">${brl(it.resto)}</td><td></td><td></td><td></td></tr>` : ''}
-          <tr class="tot"><td>Total do item</td><td></td><td class="n">${brl(prev)}</td><td class="n">${brl(real)}</td><td class="n">${dif(real - prev)}</td><td></td><td></td></tr></tbody></table></div>
+          <div class="tw"><table class="t reg"><thead><tr><th rowspan="2">Componente</th><th colspan="2">Quantidade</th><th colspan="2">Valor unitário com impostos (R$)</th><th colspan="2">Total (R$)</th><th rowspan="2">Diferença</th><th rowspan="2"></th><th rowspan="2">Observação</th></tr><tr><th>Prevista</th><th>Usada</th><th>Previsto</th><th>Real</th><th>Previsto</th><th>Real</th></tr></thead><tbody>
+          ${mat.length ? '<tr class="grp"><td colspan="11">Materiais e componentes</td></tr>' + mat.map((l) => linha(it, l)).join('') : ''}
+          <tr class="grp"><td colspan="11">Mão de obra</td></tr>${mo.length ? mo.map((l) => linha(it, l)).join('') : '<tr><td colspan="11" class="sub">Sem linha de mão de obra na formação. Lance horas extras ou serviços como "custo não previsto".</td></tr>'}
+          ${ex ? '<tr class="grp"><td colspan="11">Não previsto</td></tr>' + ex : ''}
+          ${it.resto > 0.5 ? `<tr><td class="sub">Outros custos sem linha (arredondamentos)</td><td></td><td></td><td></td><td></td><td class="n">${brl(it.resto).replace('R$ ', '')}</td><td class="n sub">${brl(it.resto).replace('R$ ', '')}</td><td></td><td></td><td></td></tr>` : ''}
+          <tr class="tot"><td>Total do item</td><td></td><td></td><td></td><td></td><td class="n">${brl(prev).replace('R$ ', '')}</td><td class="n">${brl(real).replace('R$ ', '')}</td><td class="n">${dif(real - prev)}</td><td></td><td></td></tr></tbody></table></div>
           ${ed ? `<div class="docbar" style="margin-top:8px">${pend ? `<button class="btn sm" data-rokall="${esc(it.n)}">✓ Conferir as ${pend} restantes como iguais ao previsto</button>` : ''}<button class="btn sm" data-rexadd="${esc(it.n)}">+ Custo não previsto</button></div>` : ''}</section>`;
       }).join('');
       const exec = F0.execucao || 'em andamento'; const concluida = exec !== 'em andamento';
@@ -344,9 +350,9 @@
           const somar = $('#nfSum', o).checked; const ref = [j.fornecedor, j.documento && 'nº ' + j.documento].filter(Boolean).join(' ');
           let docId = null; try { docId = await ctx.SPV.salvarDoc({ tipo: j.tipo || 'nota', fornecedor: j.fornecedor || '', numero: j.documento || '', data: /^\d{4}-\d{2}-\d{2}$/.test(j.data || '') ? j.data : null, moeda: j.moeda || 'BRL', total: typeof j.total === 'number' ? j.total : null, itens: j.itens || [], propUid: F.uid || null, propNome: (F.numero || '') + ' · ' + (F.cliente || ''), notas: 'Custo real do fechamento' }, file); } catch (e) { docId = null; }
           const add = {}; const extras = {};
-          o.querySelectorAll('[data-nfmap]').forEach((s) => { const b = best[+s.dataset.nfmap]; if (s.value === '') return; if (s.value === 'extra') { const n = R.itens[0].n; (extras[n] = extras[n] || []).push({ desc: b.x.descricao + (ref ? ' (' + ref + ')' : ''), v: b.v }); return; } const c = linhas[+s.value]; const key = c.it.n + '|' + c.l.k; add[key] = (add[key] || 0) + b.v; });
+          o.querySelectorAll('[data-nfmap]').forEach((s) => { const b = best[+s.dataset.nfmap]; if (s.value === '') return; if (s.value === 'extra') { const n = R.itens[0].n; (extras[n] = extras[n] || []).push({ desc: b.x.descricao + (ref ? ' (' + ref + ')' : ''), v: b.v }); return; } const c = linhas[+s.value]; const key = c.it.n + '|' + c.l.k; const a0 = add[key] || { v: 0, q: 0 }; add[key] = { v: a0.v + b.v, q: a0.q + num(b.x.quantidade || 1) }; });
           await setReal(id, (real) => {
-            for (const [key, v] of Object.entries(add)) { const [n, k] = key.split('|'); real[n] = real[n] || {}; real[n].l = real[n].l || {}; const cur = real[n].l[k] || {}; const base = somar && typeof cur.v === 'number' ? cur.v : 0; real[n].l[k] = { v: base + v, obs: [cur.obs, ref].filter(Boolean).join(' · '), doc: docId || cur.doc || null }; }
+            for (const [key, a] of Object.entries(add)) { const [n, k] = key.split('|'); real[n] = real[n] || {}; real[n].l = real[n].l || {}; const cur = real[n].l[k] || {}; const base = somar && typeof cur.v === 'number' ? cur.v : 0; const qb = somar && typeof cur.v === 'number' ? (typeof cur.q === 'number' ? cur.q : 0) : 0; const qt = qb + a.q, vt = base + a.v; real[n].l[k] = { v: vt, q: qt, u: qt ? vt / qt : vt, obs: [cur.obs, ref].filter(Boolean).join(' · '), doc: docId || cur.doc || null }; }
             for (const [n, list] of Object.entries(extras)) { real[n] = real[n] || {}; real[n].extras = (real[n].extras || []).concat(list); }
           });
           close(); toast(Object.keys(add).length + ' linha(s) com custo real lançado');
@@ -509,8 +515,8 @@
       // custo real por linha, só quando houver apontamento
       if (R.apontadas || its.some((x) => x.extras.length)) {
         const wr = wbx.addWorksheet('Custo real'); wr.columns = [{ width: 28 }, { width: 52 }, { width: 16 }, { width: 16 }, { width: 14 }, { width: 34 }];
-        const h3 = wr.addRow(['Item', 'Componente', 'Previsto', 'Real', 'Diferença', 'Observação']); h3.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INK } }; });
-        for (const x of its) { for (const l of x.linhas.filter((q) => typeof q.real === 'number')) { const r = wr.addRow([x.nome, l.desc || l.rot || '', l.prev, l.real, l.real - l.prev, l.obs || '']); [3, 4, 5].forEach((c) => { r.getCell(c).numFmt = money; }); }
+        const h3 = wr.addRow(['Item', 'Componente', 'Qtd prevista', 'Qtd usada', 'Unit. previsto c/ impostos', 'Unit. real c/ impostos', 'Total previsto', 'Total real', 'Diferença', 'Observação']); h3.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INK } }; });
+        for (const x of its) { for (const l of x.linhas.filter((q) => typeof q.real === 'number')) { const r = wr.addRow([x.nome, l.desc || l.rot || '', l.qPrev, l.qReal, l.uPrev, l.uReal, l.prev, l.real, l.real - l.prev, l.obs || '']); [5, 6, 7, 8, 9].forEach((c) => { r.getCell(c).numFmt = money; }); }
           for (const e of x.extras) { const r = wr.addRow([x.nome, 'NÃO PREVISTO — ' + e.desc, 0, e.v, e.v, '']); [3, 4, 5].forEach((c) => { r.getCell(c).numFmt = money; }); } }
       }
       const name = ((aprovacao ? 'Aprovação ' : 'Fechamento ') + (F.numero || '') + ' ' + (F.cliente || '')).trim().replace(/[\\/:*?"<>|]+/g, '_') + '.xlsx';
@@ -529,6 +535,11 @@
     document.addEventListener('change', (e) => {
       const el = e.target; if (ui.view !== 'margens') return;
       if (el.id === 'mgPer' || el.id === 'mgDiv' || el.id === 'mgFam') { ui[el.id] = el.value; ctx.render(); return; }
+      if (el.dataset.rq || el.dataset.ru) {
+        const [n, k] = (el.dataset.rq || el.dataset.ru).split('|'); const t = el.value.trim(); const x = parseInput(t, 'num'); if (typeof x !== 'number' || x < 0) { toast('Número inválido'); return; }
+        const F = fech.find((f) => f.id === ui.mgId); const it = F && realizado(F).itens.find((y) => y.n === n); const l = it && it.linhas.find((y) => y.k === k); if (!l) return;
+        const q = el.dataset.rq ? x : l.qReal, u = el.dataset.ru ? x : l.uReal;
+        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; real[n].l[k] = Object.assign(real[n].l[k] || {}, { q, u, v: Math.round(q * u * 100) / 100 }); }, 'linha ' + (l.desc || k) + ': ' + NF[2].format(q) + ' × ' + brl(u) + ' = ' + brl(q * u)); return; }
       if (el.dataset.real) { const [n, k] = el.dataset.real.split('|'); const t = el.value.trim(); const v = t === '' ? null : parseInput(t, 'num'); if (t !== '' && typeof v !== 'number') { toast('Número inválido'); return; }
         setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; const cur = real[n].l[k] || {}; if (v === null) { delete cur.v; } else cur.v = v; real[n].l[k] = cur; }, 'linha ' + k + (v === null ? ' apagada' : ' = ' + brl(v))); return; }
       if (el.dataset.robs) { const [n, k] = el.dataset.robs.split('|'); setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; real[n].l[k] = Object.assign(real[n].l[k] || {}, { obs: el.value.trim() }); }); return; }
@@ -538,9 +549,9 @@
     document.addEventListener('click', (e) => {
       const t = e.target;
       const ok1 = t.closest('[data-rok]'); if (ok1) { const [n, k] = ok1.dataset.rok.split('|'); const F = fech.find((f) => f.id === ui.mgId); const it = F && realizado(F).itens.find((x) => x.n === n); const l = it && it.linhas.find((x) => x.k === k); if (!l) return;
-        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; real[n].l[k] = Object.assign(real[n].l[k] || {}, { v: l.prev, ok: true }); }, 'linha ' + (l.desc || k) + ' conferida = previsto'); return; }
+        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; real[n].l[k] = Object.assign(real[n].l[k] || {}, { q: l.qPrev, u: l.uPrev, v: l.prev, ok: true }); }, 'linha ' + (l.desc || k) + ' conferida = previsto'); return; }
       const oka = t.closest('[data-rokall]'); if (oka) { const n = oka.dataset.rokall; const F = fech.find((f) => f.id === ui.mgId); const it = F && realizado(F).itens.find((x) => x.n === n); if (!it) return; const falta = it.linhas.filter((l) => typeof l.real !== 'number');
-        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; for (const l of falta) real[n].l[l.k] = Object.assign(real[n].l[l.k] || {}, { v: l.prev, ok: true }); }, falta.length + ' linha(s) de ' + (it.nome || n) + ' conferidas = previsto'); return; }
+        setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; for (const l of falta) real[n].l[l.k] = Object.assign(real[n].l[l.k] || {}, { q: l.qPrev, u: l.uPrev, v: l.prev, ok: true }); }, falta.length + ' linha(s) de ' + (it.nome || n) + ' conferidas = previsto'); return; }
       const cf = t.closest('[data-mgconcl]'); if (cf) { concluirFab(cf.dataset.mgconcl); return; }
       const hr0 = t.closest('[data-hreabrir]'); if (hr0) { const p = (REG.listPropostas() || []).find((x) => x.id === hr0.dataset.hreabrir); if (p) reabrirModal(p); return; }
       const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!liberaReal(id)) { toast(fechDe(id) ? 'O custo real é lançado só com a proposta ganha.' : 'O custo real é lançado depois da baixa da proposta ganha.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); const it = rl.dataset.mgitem; if (it) setTimeout(() => { const el = document.getElementById('cr_' + it); if (el) el.scrollIntoView({ block: 'start' }); }, 60); return; }

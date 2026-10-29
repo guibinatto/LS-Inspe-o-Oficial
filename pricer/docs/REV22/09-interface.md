@@ -116,3 +116,8 @@ As fases passam a ser as mesmas em todo o app — situação da linha e do cabe�
 Chips da tela Início: Todas, SEQ, SPV, Em aberto, Em aprovação, Enviadas ao cliente, Ganhas, Perdidas, Falta avisar financeiro, Falta avisar engenharia, Falta custo real. Um filtro salvo com o nome antigo continua funcionando.
 
 Linha da proposta: os botões ficam num grupo alinhado — próximo passo (destacado), **Revisar** (novo: abre a proposta e a janela de nova revisão; aparece em Em aberto, Em aprovação e Enviada ao cliente), **Abrir**, **Duplicar** e **Perdida** (antes um link solto, desalinhado). O símbolo de etapa em andamento passou de ◐ para •, que não sai cortado.
+
+## 11. Custo real por quantidade e valor unitário; Reabrir
+
+- **Custo real**: cada linha passa a ter **Quantidade** (prevista × usada) e **Valor unitário com impostos** (previsto × real); o **total real é calculado** pelo app (quantidade usada × unitário real) e a diferença também. **✓ igual** confirma quantidade e unitário previstos. A leitura de NF grava a quantidade da nota e o unitário (total ÷ quantidade). Lançamentos antigos, feitos só pelo total, continuam valendo (a quantidade aparece igual à prevista e o unitário sai do total). O Excel "previsto × realizado" ganhou as colunas de quantidade e unitário.
+- **Reabrir**: na linha das propostas Ganhas e Encerradas da tela Início (e em Custo real, "Reabrir (desfazer baixa)"). Pede o motivo, avisa se há custo real lançado, guarda uma cópia da baixa e do custo real dentro da proposta (`baixasDesfeitas`) e volta a proposta para Enviada ao cliente. Antes, "Desfazer baixa" ficava só no Custo real e apagava a baixa sem cópia.
