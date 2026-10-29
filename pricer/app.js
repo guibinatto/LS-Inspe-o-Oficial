@@ -671,7 +671,10 @@
   // com valor target: vale enquanto a proposta não ficar abaixo do valor aprovado; sem target (pedidos antigos): pela margem
   function aprovInfo() {
     const ap = state.id ? MG.aprovDe(state.id) : null; if (!ap) return { estado: null };
-    let estado = MG.estadoA(ap); const base = { id: ap.id, at: ap.at, margem: ap.snap.margemPct, decisoes: ap.decisoes || {}, com: MG.comQuem(ap, true), aplicadoEm: ap.aplicadoEm || null };
+    let estado = MG.estadoA(ap); const base = { id: ap.id, at: ap.at, margem: ap.snap.margemPct, decisoes: MG.decs(ap), com: MG.comQuem(ap, true), aplicadoEm: ap.aplicadoEm || null };
+    // premissas (custo e itens) mudaram depois do pedido: a aprovação não vale mais
+    if (estado === 'aprovada') { let r = null; try { r = MG.premissaMudou(ap, resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot())); } catch (e) { r = null; }
+      if (r) return Object.assign(base, { estado: 'vencida', motivo: r, alvoIpi: ap.alvo ? ap.alvo.vendaSem * MG.ipiRatio(ap.snap) : null, desc: ap.alvo ? 1 - ap.alvo.k : null, margemAlvo: ap.alvo ? ap.alvo.margemPct : null }); }
     if (ap.alvo) {
       const atualIpi = isSpv() ? SPV.total() : isFacts() ? FX.total() : val('PROPOSTA', 'P43'); const alvoIpi = ap.alvo.vendaSem * MG.ipiRatio(ap.snap);
       if (estado === 'aprovada' && typeof atualIpi === 'number' && atualIpi < alvoIpi - 1) estado = 'vencida';
@@ -693,6 +696,7 @@
     const alvo = a.alvoIpi ? ` o valor target de ${brl(a.alvoIpi)} (desconto de ${pct(a.desc, 1)}, margem ${pct(a.margemAlvo, 1)})` : '';
     const t = a.estado === 'pendente' ? `Aprovação${alvo ? ' d' + alvo.trim().replace(/^o /, 'o ') : ''} pedida em ${new Date(a.at).toLocaleDateString('pt-BR')}: está \u0001.`
       : a.estado === 'aprovada' ? (alvo ? `Diretoria e Financeiro aprovaram${alvo}.` : `Aprovado pela Diretoria e pelo Financeiro com margem de ${pct(a.margem)}.`) + (d ? ' ' + d : '')
+      : a.estado === 'vencida' && a.motivo ? `A aprovação perdeu a validade: ${a.motivo} depois do pedido. Peça de novo.`
       : a.estado === 'vencida' ? (alvo ? `Aprovado${alvo}, mas a proposta está em ${brl(a.atualIpi)}, abaixo do aprovado. Peça de novo.` : `A aprovação foi para margem de ${pct(a.margem)}; a margem caiu depois disso. Peça de novo.`)
       : `Desconto reprovado${d ? ': ' + d : ''}.`;
     return `<br><small class="sub">${esc(t).replace('\u0001', '<b>' + a.com + '</b>')} ${a.aplicar ? '<button class="btn sm pri" data-apaplica>Aplicar o valor aprovado na proposta</button> ' : ''}<button class="restore" data-apopen="${esc(a.id)}">ver aprovação</button></small>`;
@@ -871,13 +875,57 @@
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id) || {};
     const totAtual = salva.total; const mAtual = salva.resumo ? salva.resumo.margemPct : null;
     const dif = (v) => (typeof v === 'number' && typeof totAtual === 'number' ? (v - totAtual >= 0 ? '+' : '−') + brl(Math.abs(v - totAtual)).replace('R$ ', '') : '');
-    const linha = (x) => `<tr><td><b>Rev. ${x.rev}</b></td><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.total === 'number' ? brl(x.total) : '—'}<br><small class="sub">${dif(x.total)}</small></td><td class="n">${x.margemPct != null ? pct(x.margemPct) : '—'}</td><td>${esc(x.statusEra === 'enviada' || x.statusEra === 'negociacao' ? 'enviada ao cliente' : x.statusEra || '')}${/_c\d+$/.test(x.id) ? '<br><small class="sub">cópia guardada num conflito de edição simultânea</small>' : x.motivoProxima ? `<br><small class="sub">na rev. ${x.rev + 1}: ${esc(x.motivoProxima)}</small>` : ''}</td><td style="white-space:nowrap"><button class="btn sm" data-revver="${esc(x.id)}">Ver</button> <button class="btn sm" data-revrest="${esc(x.id)}">Restaurar</button></td></tr>`;
+    const linha = (x) => `<tr><td><b>Rev. ${x.rev}</b></td><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.total === 'number' ? brl(x.total) : '—'}<br><small class="sub">${dif(x.total)}</small></td><td class="n">${x.margemPct != null ? pct(x.margemPct) : '—'}</td><td>${esc(x.statusEra === 'enviada' || x.statusEra === 'negociacao' ? 'enviada ao cliente' : x.statusEra || '')}${x.marco ? `<br><span class="pill ${x.marco === 'aprovada' ? 'ok' : 'warn'}">${x.marco === 'aprovada' ? 'versão aprovada' : 'versão enviada ao cliente'} · congelada</span>` : ''}${/_c\d+$/.test(x.id) ? '<br><small class="sub">cópia guardada num conflito de edição simultânea</small>' : x.motivoProxima ? `<br><small class="sub">na rev. ${x.rev + 1}: ${esc(x.motivoProxima)}</small>` : ''}</td><td style="white-space:nowrap"><button class="btn sm" data-revver="${esc(x.id)}">Ver</button> <button class="btn sm" data-revrest="${esc(x.id)}">Restaurar</button></td></tr>`;
     modal(`<h2>Revisões · ${esc(docTitle())}</h2>
       <div class="tw"><table class="t"><thead><tr><th>Revisão</th><th>Guardada em</th><th>Total</th><th>Margem</th><th>Situação</th><th></th></tr></thead><tbody>
         <tr class="tot"><td><b>Rev. ${revDe(salva)}</b> <span class="pill ok">atual</span></td><td>${esc(fmtAt(salva.at || ''))}</td><td class="n">${typeof totAtual === 'number' ? brl(totAtual) : '—'}</td><td class="n">${mAtual != null ? pct(mAtual) : '—'}</td><td>${esc(salva.status || 'rascunho')}</td><td>${state.verRev ? '<button class="btn sm pri" data-revatual>Voltar à atual</button>' : ''}</td></tr>
         ${L.map(linha).join('') || '<tr><td colspan="6" class="sub">Nenhuma revisão anterior ainda.</td></tr>'}</tbody></table></div>
-      <p class="sub" style="margin:0">"Ver" abre a revisão só para consulta. "Restaurar" guarda a atual e traz aquela de volta como a próxima revisão.</p>
+      <p class="sub" style="margin:0">"Ver" abre a revisão só para consulta. "Restaurar" guarda a atual e traz aquela de volta como a próxima revisão. As versões enviadas ao cliente e as aprovadas ficam congeladas automaticamente.</p>
+      ${L.length ? `<div class="fields" style="align-items:end"><div class="f"><label for="rcA">Comparar</label><select id="rcA">${L.map((x, i) => `<option value="${esc(x.id)}"${i === 0 ? ' selected' : ''}>Rev. ${x.rev}${x.marco ? ' · ' + x.marco : ''} · ${esc(fmtAt(x.at))}</option>`).join('')}</select></div>
+        <div class="f"><label for="rcB">com</label><select id="rcB"><option value="atual" selected>Rev. ${revDe(salva)} (atual)</option>${L.map((x) => `<option value="${esc(x.id)}">Rev. ${x.rev}${x.marco ? ' · ' + x.marco : ''} · ${esc(fmtAt(x.at))}</option>`).join('')}</select></div>
+        <div class="f"><button class="btn pri" data-revcmp>Comparar</button></div></div>` : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap">${state.verRev ? '' : `<button class="btn pri" data-revisar>Revisar (criar revisão ${n + 1})</button>`}<button class="btn" data-close>Fechar</button></div>`, (o) => fillNames(o));
+  }
+  // ---------- comparação entre revisões ----------
+  const ROT_CAB = { C5: 'Número', C6: 'Revisão', C7: 'Data', F5: 'Cliente', F6: 'Cidade / UF', F7: 'UF', F8: 'Segmento', F9: 'Norma', J5: 'Cadastro fiscal', J6: 'Condição de pagamento', J7: 'Comissão do vendedor', J8: 'Comissão do AN', L5: 'CNPJ', L7: 'Vendedor', L8: 'Agente de negócio', B13: 'Frete', C9: 'Desconto global' };
+  const fmtV = (v) => (v === undefined || v === null || v === '' ? '—' : typeof v === 'number' ? NF[2].format(v).replace(/,00$/, '') : String(v));
+  function compararRev(A, B) {
+    const a = A.body || {}, b = B.body || {}; const ra = a.resumo || {}, rb = b.resumo || {}; const campos = [];
+    if (a.doc || b.doc) {
+      const da = a.doc || {}, db = b.doc || {}; const pa = da.PROPOSTA || {}, pb = db.PROPOSTA || {};
+      for (const k of new Set(Object.keys(pa).concat(Object.keys(pb)))) if (JSON.stringify(pa[k]) !== JSON.stringify(pb[k])) campos.push({ campo: ROT_CAB[k] || 'Proposta ' + k, de: fmtV(pa[k]), para: fmtV(pb[k]) });
+      for (const S of new Set(Object.keys(da).concat(Object.keys(db)))) { if (S === 'PROPOSTA') continue; const sa = da[S] || {}, sb = db[S] || {}; const n = [...new Set(Object.keys(sa).concat(Object.keys(sb)))].filter((k) => JSON.stringify(sa[k]) !== JSON.stringify(sb[k])).length; if (n) campos.push({ campo: S, de: '', para: n + ' campo(s) de entrada mudaram' }); }
+    } else {
+      const xa = a.spv || a.facts || {}, xb = b.spv || b.facts || {};
+      for (const k of new Set(Object.keys(xa).concat(Object.keys(xb)))) { const va = xa[k], vb = xb[k]; if (JSON.stringify(va) === JSON.stringify(vb)) continue;
+        if (Array.isArray(va) || Array.isArray(vb) || (va && typeof va === 'object') || (vb && typeof vb === 'object')) campos.push({ campo: k, de: Array.isArray(va) ? va.length + ' linha(s)' : '', para: Array.isArray(vb) ? vb.length + ' linha(s) · mudou' : 'mudou' });
+        else campos.push({ campo: k, de: fmtV(va), para: fmtV(vb) }); }
+    }
+    const ia = new Map((ra.itens || []).map((x) => [x.nome, x])), ib = new Map((rb.itens || []).map((x) => [x.nome, x])); const itens = [];
+    for (const [n, x] of ib) { const y = ia.get(n); if (!y) itens.push({ tipo: 'incluído', nome: n, b: x }); else if (Math.abs(num0(y.venda) - num0(x.venda)) > 0.5 || num0(y.qtd) !== num0(x.qtd) || Math.abs(num0(y.custo) - num0(x.custo)) > 0.5) itens.push({ tipo: 'alterado', nome: n, a: y, b: x }); }
+    for (const [n, y] of ia) if (!ib.has(n)) itens.push({ tipo: 'retirado', nome: n, a: y });
+    const ap = MG.aprovDe(B.propId || A.propId); let reaprov = null;
+    if (ap && MG.estadoA(ap) !== 'reprovada') reaprov = MG.premissaMudou(ap, rb) || (ap.alvo && typeof b.total === 'number' && b.total < ap.alvo.vendaSem * MG.ipiRatio(ap.snap) - 1 ? 'o total ficou abaixo do valor aprovado' : null);
+    else if (typeof rb.margemPct === 'number' && typeof rb.minimo === 'number' && rb.margemPct < rb.minimo - 5e-4) reaprov = 'a margem ficou abaixo do mínimo da política';
+    return { campos, itens, ra, rb, ta: a.total, tb: b.total, reaprov, temAprov: !!ap };
+  }
+  function compararModal(A, B) {
+    const c = compararRev(A, B); const dif = (x, y, f) => (typeof x === 'number' && typeof y === 'number' ? `<b class="${y - x < -1e-9 ? 'bad-t' : y - x > 1e-9 ? 'ok-t' : ''}">${y - x >= 0 ? '+' : '−'}${f(Math.abs(y - x))}</b>` : '—');
+    const linhaT = (lb, x, y, f) => `<tr><td>${lb}</td><td class="n">${typeof x === 'number' ? f(x) : '—'}</td><td class="n">${typeof y === 'number' ? f(y) : '—'}</td><td class="n">${dif(x, y, f)}</td></tr>`;
+    modal(`<h2>Comparação · ${esc(A.rot)} → ${esc(B.rot)}</h2>
+      <div class="tw"><table class="t"><thead><tr><th></th><th>${esc(A.rot)}</th><th>${esc(B.rot)}</th><th>Diferença</th></tr></thead><tbody>
+        ${linhaT('Total da proposta', c.ta, c.tb, brl)}${linhaT('Custo', c.ra.custo, c.rb.custo, brl)}${linhaT('Impostos', c.ra.impostos, c.rb.impostos, brl)}${linhaT('Margem líquida (R$)', c.ra.margem, c.rb.margem, brl)}
+        <tr><td>Margem líquida (%)</td><td class="n">${c.ra.margemPct != null ? pct(c.ra.margemPct, 1) : '—'}</td><td class="n">${c.rb.margemPct != null ? pct(c.rb.margemPct, 1) : '—'}</td><td class="n">${typeof c.ra.margemPct === 'number' && typeof c.rb.margemPct === 'number' ? dif(c.ra.margemPct * 100, c.rb.margemPct * 100, (v) => NF[1].format(v) + ' p.p.') : '—'}</td></tr></tbody></table></div>
+      <div class="banner ${c.reaprov ? 'warn' : 'ok'}" style="margin:0">${c.reaprov ? `<b>Precisa de nova aprovação:</b> ${esc(c.reaprov)}.` : c.temAprov ? 'A aprovação existente continua valendo para esta versão (custo, itens e valor dentro do aprovado).' : 'Nada nesta comparação exige aprovação.'}</div>
+      <h3 style="margin:4px 0 0">Itens</h3>${c.itens.length ? `<div class="tw"><table class="t"><tbody>${c.itens.map((x) => `<tr><td><span class="pill ${x.tipo === 'incluído' ? 'ok' : x.tipo === 'retirado' ? 'bad' : 'warn'}">${x.tipo}</span></td><td>${esc(x.nome || '—')}</td><td class="n">${x.a ? brl(x.a.venda) + (x.a.qtd ? ' · ' + x.a.qtd + ' un' : '') : ''}${x.a && x.b ? ' → ' : ''}${x.b ? '<b>' + brl(x.b.venda) + (x.b.qtd ? ' · ' + x.b.qtd + ' un' : '') + '</b>' : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0">Os mesmos itens, com os mesmos valores.</p>'}
+      <h3 style="margin:4px 0 0">Campos alterados</h3>${c.campos.length ? `<div class="tw"><table class="t"><thead><tr><th>Campo</th><th>${esc(A.rot)}</th><th>${esc(B.rot)}</th></tr></thead><tbody>${c.campos.map((x) => `<tr><td>${esc(x.campo)}</td><td>${esc(x.de)}</td><td><b>${esc(x.para)}</b></td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0">Nenhum campo mudou.</p>'}
+      <div style="display:flex;gap:8px"><button class="btn" data-revs>← Revisões</button><button class="btn" data-close>Fechar</button></div>`);
+  }
+  // marcos: a versão enviada ao cliente e a aprovada ficam congeladas como estavam naquele momento
+  async function congelarMarco(propId, marco) {
+    try { const cur = await REG.lerProposta(propId); if (!cur) return; const corpo = JSON.parse(JSON.stringify(cur));
+      await revGravar({ propId, rev: revDe(cur), at: new Date().toISOString(), by: REG.me || null, statusEra: cur.status || 'rascunho', marco, motivoProxima: '', total: cur.total ?? null, margemPct: cur.resumo ? cur.resumo.margemPct : null, numero: cur.numero || '', cliente: cur.cliente || '', body: corpo }, '_' + marco);
+    } catch (e) { toast('Não consegui congelar a versão ' + (marco === 'aprovada' ? 'aprovada' : 'enviada') + ': ' + errMsg(e)); }
   }
   function carregarCorpo(q, extra) {
     const ex = Object.assign({ uid: q.uid || newUid(), status: q.status || 'rascunho', ack: q.ack || {}, verBase: (((REG.listPropostas() || []).find((y) => y.id === state.id)) || {}).verDoc }, extra || {});
@@ -888,6 +936,9 @@
   document.addEventListener('click', async (e) => {
     if (e.target.closest('[data-revs]')) { revisoesModal(); return; }
     if (e.target.closest('[data-revisar]')) { $('#overlay').innerHTML = ''; revisarModal(); return; }
+    if (e.target.closest('[data-revcmp]')) { const a = $('#rcA'), b = $('#rcB'); if (!a || !b) return; const pid = (state.verRev || {}).propId || state.id;
+      const pega = (v) => { if (v === 'atual') { const sv = (REG.listPropostas() || []).find((y) => y.id === pid) || {}; return { rot: 'Rev. ' + revDe(sv) + ' (atual)', body: sv, propId: pid }; } const x = revCache.list.find((y) => y.id === v); return x ? { rot: 'Rev. ' + x.rev + (x.marco ? ' ' + x.marco : ''), body: x.body, propId: pid } : null; };
+      const A = pega(a.value), B = pega(b.value); if (!A || !B) return; if (a.value === b.value) { toast('Escolha duas versões diferentes'); return; } $('#overlay').innerHTML = ''; compararModal(A, B); return; }
     const vr = e.target.closest('[data-revver]'); if (vr) { const x = revCache.list.find((y) => y.id === vr.dataset.revver); if (!x) return;
       if (dirty && !state.verRev && !window.confirm('Há alterações não salvas na revisão atual. Abrir a revisão ' + x.rev + ' mesmo assim? (as alterações se perdem)')) return;
       $('#overlay').innerHTML = ''; const pid = state.id; carregarCorpo(x.body, { verRev: { rev: x.rev, propId: pid, at: x.at } }); dirty = false; ui.step = 4; setView('proposta'); return; }
@@ -1115,7 +1166,7 @@
     try { const L = linhasCusto(); const n = (s) => L.filter((y) => y.al.some((a) => a[0] === s)).length;
       if (n('imped')) add('imped', 'Custos', n('imped') + ' componente(s) principal(is) sem preço', { step: 3 }); if (n('aviso')) add('aviso', 'Custos', n('aviso') + ' linha(s) de custo pedindo atenção (sem custo, cotação vencida, variação)', { step: 3 }); if (n('info')) add('info', 'Custos', n('info') + ' linha(s) com informação de cotação', { step: 3 }); } catch (e) { /* segue */ }
     const memo = val(P, 'E83'); if (typeof memo === 'number' && Math.abs(memo) > 0.005) add('imped', 'Integridade do cálculo', 'A proposta não bate com o memorial: diferença de ' + brl(memo), { step: 4 });
-    const ai = aprovInfo(); if (ai.estado === 'pendente') add('aviso', 'Aprovação', 'Aprovação ' + (ai.com || '').replace(/<[^>]+>/g, ''), { step: 5, sel: '.aprovbox' }); else if (ai.estado === 'reprovada') add('imped', 'Aprovação', 'Desconto reprovado: ajuste o preço ou peça de novo', { step: 5, sel: '.aprovbox' }); else if (ai.estado === 'vencida') add('imped', 'Aprovação', 'Proposta abaixo do valor aprovado', { step: 5, sel: '.aprovbox' });
+    const ai = aprovInfo(); if (ai.estado === 'pendente') add('aviso', 'Aprovação', 'Aprovação ' + (ai.com || '').replace(/<[^>]+>/g, ''), { step: 5, sel: '.aprovbox' }); else if (ai.estado === 'reprovada') add('imped', 'Aprovação', 'Desconto reprovado: ajuste o preço ou peça de novo', { step: 5, sel: '.aprovbox' }); else if (ai.estado === 'vencida') add('imped', 'Aprovação', ai.motivo ? 'A aprovação perdeu a validade: ' + ai.motivo : 'Proposta abaixo do valor aprovado', { step: 5, sel: '.aprovbox' });
     const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
     if (sv && !MG.conferidaOk(sv)) add(sv.conferencia ? 'aviso' : 'info', 'Documentos', sv.conferencia ? (sv.conferencia.ok ? 'Conferência do PDF desatualizada: a proposta mudou' : 'O PDF conferido tem divergências') : 'PDF da proposta ainda não conferido', { step: 5, sel: '#confCard' });
     if (!state.id) add('aviso', 'Documentos', 'Proposta ainda não salva', { save: true });
@@ -1215,6 +1266,7 @@
       body = `${vConferenciaCentral()}
         ${(() => { const ai = aprovInfo(); return `<section class="card"><h2>Aprovação da proposta <span class="sub">desconto além da política: peça pela proposta toda, com o valor target</span></h2><div class="aprovbox">${ai.estado ? aprovLinha({ aprov: ai }).replace(/^<br>/, '') : '<small class="sub">Nenhum pedido de aprovação para esta proposta.</small>'}<button class="btn${ai.estado === 'pendente' || ai.estado === 'aprovada' ? '' : ' pri'}" data-alaprov>${ai.estado ? 'Pedir de novo (novo valor target)' : 'Pedir aprovação (valor target)'}</button></div></section>`; })()}
         ${confCard()}
+        ${PN.cardProposta(state.id, docTitle())}
         <details class="card"${keep('alertas')}><summary>Alertas por item <span class="sub">${countPills(alerts)}</span></summary>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta nos itens.</p>'}</details>
         ${nav(4, 6)}`;
     } else {
@@ -1948,8 +2000,43 @@
   });
   document.addEventListener('click', (e) => { if (e.target.closest('[data-logoreset]')) salvaLogo(null, 'Logo original restaurado'); });
   const PAPEIS_AP = [['ap_diretoria', 'Diretoria', 'aprova desconto fora da política'], ['ap_financeiro', 'Financeiro', 'aprova desconto fora da política']];
+  // ---------- perfis e permissões ----------
+  // Os perfis saem do nível de compartilhamento do app (garantido pelo banco) e das listas de responsáveis e aprovadores,
+  // que só o dono do app grava (regra do banco em meta/acessos).
+  const PERFIS = [['admin', 'Administrador'], ['diretoria', 'Diretoria Comercial'], ['comercial', 'Comercial'], ['engenharia', 'Engenharia'], ['custos', 'Compras/Custos'], ['finfiscal', 'Financeiro/Fiscal'], ['consulta', 'Consulta']];
+  const PERFIL_DE = { admin: 'dono do app', diretoria: 'na lista de aprovadores Diretoria', comercial: 'compartilhado como Contribuidor ou Editor', engenharia: 'na área Engenharia (e Editor)', custos: 'na área Custos (e Editor)', finfiscal: 'na lista de aprovadores Financeiro ou na área Fiscal', consulta: 'compartilhado como Leitor' };
+  function meusPerfis() {
+    if (REG.mode !== 'shared') return ['admin'];
+    const ac = REG.acessos || {}; const tem = (k) => (ac[k] || []).includes(REG.me); const out = [];
+    if (REG.isOwner) out.push('admin'); if (tem('ap_diretoria')) out.push('diretoria'); if (REG.canSaveShared) out.push('comercial');
+    if (tem('engenharia')) out.push('engenharia'); if (tem('custos')) out.push('custos'); if (tem('ap_financeiro') || tem('fiscal')) out.push('finfiscal');
+    if (!REG.canSaveShared) out.push('consulta');
+    return out;
+  }
+  // ação · perfis que podem · onde a regra é garantida
+  const PERMS = [
+    ['Consultar propostas, margens e cadastro', ['admin', 'diretoria', 'comercial', 'engenharia', 'custos', 'finfiscal', 'consulta'], 'banco'],
+    ['Criar, editar e salvar propostas; pendências; documentos', ['admin', 'diretoria', 'comercial', 'engenharia', 'custos', 'finfiscal'], 'banco (Contribuidor ou acima)'],
+    ['Mandar proposta para a lixeira', ['admin', 'comercial'], 'app: o Comercial só o rascunho que criou'],
+    ['Apagar proposta de vez · restaurar backup', ['admin'], 'app'],
+    ['Aprovar desconto pela Diretoria', ['admin', 'diretoria'], 'banco + conferência na leitura: assinatura gravada no espaço da própria pessoa e lista de aprovadores'],
+    ['Aprovar desconto pelo Financeiro', ['admin', 'finfiscal'], 'banco + conferência na leitura (só quem está na lista Financeiro)'],
+    ['Alterar cadastro de Custos', ['admin', 'custos'], 'banco (Editor) + app (área)'],
+    ['Alterar Engenharia', ['admin', 'engenharia'], 'banco (Editor) + app (área)'],
+    ['Alterar Fiscal', ['admin', 'finfiscal'], 'banco (Editor) + app (área; só quem está na área Fiscal)'],
+    ['Lançar custo real', ['admin', 'engenharia', 'custos'], 'app'],
+    ['Conferir previsto × realizado', ['admin', 'finfiscal'], 'app'],
+    ['Definir responsáveis, aprovadores e perfis', ['admin'], 'banco (só o dono grava)']];
+  function perfisCard() {
+    const meus = meusPerfis();
+    return `<section class="card"><h2>Perfis e permissões <span class="sub">quem pode o quê</span></h2>
+      <p class="sub" style="margin:0 0 8px">${REG.mode === 'shared' ? `Seus perfis: ${meus.map((k) => `<span class="pill ok">${esc(PERFIS.find((x) => x[0] === k)[1])}</span>`).join(' ')}` : '<b>Neste arquivo (modo local) não há login nem controle de acesso: quem abre o arquivo faz tudo, como administrador.</b> Os perfis abaixo valem no app compartilhado.'}</p>
+      <div class="tw"><table class="t perm"><thead><tr><th>Ação</th>${PERFIS.map(([k, lb]) => `<th title="${esc(PERFIL_DE[k])}">${esc(lb)}</th>`).join('')}<th>Onde é garantido</th></tr></thead><tbody>
+        ${PERMS.map(([a, ps, onde]) => `<tr><td>${esc(a)}</td>${PERFIS.map(([k]) => `<td class="c">${ps.includes(k) ? '<span class="ok-t" aria-label="pode">✓</span>' : '<span class="sub" aria-label="não pode">—</span>'}</td>`).join('')}<td><small class="sub">${esc(onde)}</small></td></tr>`).join('')}</tbody></table></div>
+      <p class="sub" style="margin:8px 0 0"><b>Banco</b>: a regra é do banco compartilhado do claude.ai e vale mesmo fora da tela (nível de compartilhamento: Leitor, Contribuidor, Editor, dono). <b>App</b>: o app confere antes de gravar e registra no histórico, mas o banco só distingue nível de compartilhamento; uma pessoa com acesso de Contribuidor e conhecimento técnico poderia gravar direto pelo navegador. Esses casos ficam no histórico e estão descritos nas limitações da REV22. Sem ninguém nas áreas, todo Editor altera todo o cadastro; sem aprovadores definidos, qualquer Editor aprova.</p></section>`;
+  }
   function vAcessos() {
-    if (REG.mode !== 'shared') return logoCard() + avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
+    if (REG.mode !== 'shared') return perfisCard() + logoCard() + avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
     const own = REG.isOwner; const ac = REG.acessos || {};
     const rows = AREAS.filter((a) => a[0] !== 'sistema').concat(PAPEIS_AP).map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
       <td>${(ac[k] || []).map((id) => `<span class="pchip"><span data-uid="${esc(id)}">…</span>${own ? `<button class="restore" data-acrm="${k}|${esc(id)}" aria-label="Remover">×</button>` : ''}</span>`).join(' ') || `<span class="sub">${/^ap_/.test(k) ? 'ninguém: qualquer Editor aprova' : 'ninguém (só o dono edita)'}</span>`}</td>
@@ -1959,7 +2046,7 @@
         <p class="sub" style="margin:0 0 10px">Cada área do cadastro só pode ser alterada por quem está nela. ${REG.areasConfiguradas() ? '' : '<b>Ainda não há ninguém definido: hoje todo Editor altera tudo.</b> Ao incluir a primeira pessoa, a trava passa a valer.'} O dono do app altera tudo.</p>
         <div class="tw"><table class="t"><thead><tr><th>Área</th><th>Pessoas</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
         <p class="sub" style="margin:10px 0 0">As duas últimas linhas são os aprovadores de desconto fora da política: cada pedido precisa do sim da Diretoria e do Financeiro.${own ? '' : ' Só o dono do app muda esta lista.'}</p></section>
-      ${logoCard()}${avisosCard()}
+      ${perfisCard()}${logoCard()}${avisosCard()}
       <section class="card"><h2>Como dar acesso</h2><div class="kv" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr)">
         <div>Comercial e vendedores</div><div style="text-align:left;font-weight:400">Compartilhe o app como <b>Contribuidor</b>: fazem e salvam propostas, anexam documentos e não alteram nenhum cadastro (o banco bloqueia).</div>
         <div>Custos, Engenharia, Fiscal, Precificação, Serviços</div><div style="text-align:left;font-weight:400">Compartilhe como <b>Editor</b> e inclua a pessoa na área acima. O app só libera a edição das áreas dela.</div>
@@ -1999,15 +2086,33 @@
       <div class="docbar"><button class="btn pri" data-bkbaixa>Baixar backup completo</button>${pre ? `<button class="btn" data-bkpre>Baixar a cópia automática de antes da REV22 (${esc(fmtAt(pre.criadoEm))})</button>` : ''}</div></section>
       <section class="card"><h2>Restaurar <span class="sub">a partir de um backup</span></h2>
       <p class="sub" style="margin:0 0 8px">O app mostra o que tem no arquivo e o que vai mudar antes de gravar. Por padrão só acrescenta o que não existe; quando o registro já existe, a versão atual vai para as revisões antes de ser substituída.</p>
-      <label class="btn" for="bkArq">Escolher arquivo de backup (.json)</label><input type="file" id="bkArq" accept=".json,application/json" hidden></section></div>`;
+      ${REG.ehAdmin() ? '<label class="btn" for="bkArq">Escolher arquivo de backup (.json)</label><input type="file" id="bkArq" accept=".json,application/json" hidden>' : '<p class="sub" style="margin:0"><b>Só o administrador (dono do app) restaura backups.</b></p>'}</section>
+      ${vLixeira()}</div>`;
   }
+  // lixeira: propostas excluídas ficam aqui até o administrador apagar de vez
+  function vLixeira() {
+    const L = REG.lixeira().sort((a, b) => String(b.excluida.at).localeCompare(String(a.excluida.at)));
+    return `<section class="card"><h2>Lixeira <span class="sub">${L.length} proposta(s) excluída(s)</span></h2>
+      ${L.length ? `<div class="tw"><table class="t"><thead><tr><th>Proposta</th><th>Excluída em</th><th></th></tr></thead><tbody>${L.map((p) => `<tr><td><b>${esc(p.numero || p.name || '—')}</b><br><small class="sub">${esc(p.cliente || '')}${typeof p.total === 'number' ? ' · ' + brl(p.total) : ''}</small></td><td>${esc(fmtAt(p.excluida.at))}<br><small class="sub">${who(p.excluida.by)}</small></td>
+        <td style="white-space:nowrap"><button class="btn sm" data-lxrest="${esc(p.id)}">Restaurar</button>${REG.ehAdmin() ? ` <button class="btn sm" data-lxdel="${esc(p.id)}">Apagar de vez</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0">Vazia. Quando alguém exclui uma proposta, ela vem para cá e pode ser restaurada.</p>'}
+      <p class="sub" style="margin:8px 0 0">Excluir manda para a lixeira (o administrador ou quem criou o rascunho). Apagar de vez é só do administrador${REG.mode === 'shared' ? ', e as revisões guardadas continuam no banco' : ''}.</p></section>`;
+  }
+  document.addEventListener('click', async (e) => {
+    const r = e.target.closest('[data-lxrest]'); const d = e.target.closest('[data-lxdel]'); if (!r && !d) return;
+    const p = REG.lixeira().find((x) => x.id === (r || d).dataset[r ? 'lxrest' : 'lxdel']); if (!p) return;
+    try {
+      if (r) { await REG.restaurarLixeira(p); logEv({ tipo: 'Proposta restaurada da lixeira', ref: p.id, desc: p.name || '', mudancas: [] }); toast('Proposta restaurada'); }
+      else { if (!window.confirm('Apagar de vez "' + (p.numero || p.name) + '"? Não dá para desfazer (só por um backup).')) return; await REG.deleteProposta(p.id, !!p.local); logEv({ tipo: 'Proposta apagada de vez', ref: p.id, desc: p.name || '', mudancas: [] }); toast('Apagada'); }
+      render();
+    } catch (er) { toast(errMsg(er)); }
+  });
   async function baixarJson(nome, obj) { const ok = await REG.save(nome, JSON.stringify(obj, null, 1), 'application/json'); if (!ok) toast('Download cancelado'); }
   document.addEventListener('click', async (e) => {
     if (e.target.closest('[data-bkbaixa]')) { toast('Montando o backup…'); const b = await montarBackup(); await baixarJson('ls-pricer-backup-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json', b); logEv({ tipo: 'Backup baixado', ref: 'backup', desc: Object.entries(b.colecoes).map(([k, v]) => k + ': ' + Object.keys(v).length).join(' · '), mudancas: [] }); return; }
     if (e.target.closest('[data-bkpre]')) { await baixarJson('ls-pricer-antes-rev22.json', store.get('lspricer.backup.antes-rev22', {})); }
   });
   document.addEventListener('change', (e) => {
-    if (e.target.id !== 'bkArq') return; const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    if (e.target.id !== 'bkArq') return; const f = e.target.files[0]; e.target.value = ''; if (!f) return; if (!REG.ehAdmin()) { toast('Só o administrador restaura backups'); return; }
     const rd = new FileReader(); rd.onload = () => { let b; try { b = JSON.parse(rd.result); } catch (er) { toast('Arquivo inválido'); return; } if (!b || b.app !== 'ls-pricer' || !b.colecoes) { toast('Esse arquivo não é um backup do LS Pricer'); return; } restaurarModal(b); }; rd.readAsText(f);
   });
   async function restaurarModal(b) {
@@ -2752,12 +2857,15 @@
   }
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
-  const FX = window.PricerFacts({ confCard: () => confCard(), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
+  const PN = window.PricerPendencias({ REG, esc, toast, modal, ui, render, log: logEv, fillNames: (o) => fillNames(o), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); } });
+  const FX = window.PricerFacts({ confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
   // pendências de cadastro (pedidos de preço) e do fiscal (NCM por família, alíquotas a definir)
   function pendExtra() {
     const S = [];
+    // pendências do acompanhamento atribuídas a mim (no app compartilhado; neste navegador não há usuário)
+    if (REG.mode === 'shared' && REG.me) S.push({ k: 'acomp', titulo: 'Pendências atribuídas a você', papel: 'Acompanhamento', itens: PN.todas().filter((p) => PN.aberta(p) && p.respId === REG.me).map((p) => ({ titulo: (p.id) + ' · ' + p.titulo, sub: [p.propNome, p.departamento, p.prazo ? 'prazo ' + new Date(p.prazo + 'T12:00').toLocaleDateString('pt-BR') + (PN.vencida(p) ? ' (vencida)' : '') : ''].filter(Boolean).join(' · '), desde: p.criadaEm, btn: ['Abrir', `data-pnabre="${esc(p.id)}"`] })) });
     if (REG.areaOk('custos')) S.push({ k: 'pedidos', titulo: 'Pedidos de cadastro', papel: 'Custos', itens: PD.abertos().map((x) => ({ titulo: x.produto || x.desc || 'Pedido de cadastro', sub: [x.fam, x.propNome].filter(Boolean).join(' · '), desde: x.at, btn: ['Atender', 'data-pendgo="cadastro|pedidos"'] })) });
     if (REG.areaOk('fiscal')) {
       const map = Object.assign({}, REG.FISCAL_FAM_PADRAO, ((REG.tabelas || {}).FISCAL_FAM || {}).map || {});
@@ -2769,7 +2877,7 @@
     return S;
   }
   document.addEventListener('click', (e) => { const g = e.target.closest('[data-pendgo]'); if (!g) return; const [v, c] = g.dataset.pendgo.split('|'); if (g.dataset.cenpend) ui.cenSel = g.dataset.cenpend; ui.view = v; if (c) ui.cad = c; store.set(SK.view, ui); render(); window.scrollTo(0, 0); });
-  const MG = window.PricerMargens({ bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
+  const MG = window.PricerMargens({ acompanhamento: () => PN.vLista(), aoEnviar: (p) => congelarMarco(p.id, 'enviada'), aoAprovar: (id) => congelarMarco(id, 'aprovada'), bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
     // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas
@@ -2779,7 +2887,8 @@
     ui.step = 1; setView('proposta'); toast(fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
-  const SPV = window.PricerSPV({ pendencias: () => MG.resumoPendencias(), confCard: () => confCard(), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const PNL = window.PricerPainel({ REG, esc, brl, pct, ui, render, MG: () => MG, PN: () => PN });
+  const SPV = window.PricerSPV({ painel: () => PNL.vPainel(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
@@ -2807,16 +2916,17 @@
     try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
     // status, etapas, conferência e motivo de perda são da tela inicial: vêm do registro atual do banco
     const ajustar = (body, cur) => {
-      for (const k of ['etapas', 'motivoPerda', 'conferencia', 'criadaEm']) if (cur && cur[k] !== undefined) body[k] = JSON.parse(JSON.stringify(cur[k]));
+      for (const k of ['etapas', 'motivoPerda', 'conferencia', 'criadaEm', 'criadaPor', 'excluida']) if (cur && cur[k] !== undefined) body[k] = JSON.parse(JSON.stringify(cur[k]));
       let status = cur ? (cur.status || 'rascunho') : (state.status || 'rascunho');
       if (novaRev && status !== 'ganha') { status = 'rascunho'; if (body.etapas) delete body.etapas.cliente; }
-      body.status = status; if (!cur) body.criadaEm = body.at;
+      body.status = status; if (!cur) { body.criadaEm = body.at; body.criadaPor = REG.me || null; }
     };
     const base = state.id && state.verBase !== undefined ? state.verBase : undefined;
     try {
       const novo = !state.id; const where = await REG.saveProposta(id, p, { editor: true, base, ajustar });
       delete state._novaRev; state.id = id; state.verBase = (REG.ultimaVersao[id] || {}).verDoc; state.status = (REG.listPropostas() || []).find((x) => x.id === id)?.status || state.status;
       dirty = false; ui.salvoEm = new Date().toISOString(); ui.erroSalvar = null; persist(); atualizaSaveSt();
+      if (!isSpv() && !isFacts()) { try { PN.sincronizar({ id, numero: p.numero, cliente: p.cliente }, conferenciaCentral()).catch(() => {}); } catch (e) { /* a conferência não impede salvar */ } }
       if (!(ev && ev.auto)) toast((where === 'shared' ? 'Salvo e confirmado no banco da equipe: ' : 'Salvo e confirmado neste navegador: ') + docTitle());
       logEv({ tipo: novo ? 'Proposta criada' : ev && ev.auto ? 'Proposta salva (automático)' : 'Proposta salva', ref: id, desc: docTitle() + ' · ' + (p.div || 'SEQ') + (p.tipo ? ' ' + p.tipo : ''), mudancas: [{ campo: 'Total', de: null, para: typeof p.total === 'number' ? p.total : null }, { campo: 'Margem', de: null, para: p.resumo ? p.resumo.margemPct : null }] });
     } catch (err) {
@@ -2865,7 +2975,7 @@
   $('#bOpen').onclick = () => {
     const list = REG.listPropostas();
     const shared = REG.mode === 'shared';
-    const rows = list.map((p) => `<div class="row"><div style="min-width:0"><span class="divb ${p.div === 'SPV' ? 'spv' : 'seq'}">${p.div || 'SEQ'}</span> <b>${esc(p.name)}</b><br><small>${fmtAt(p.at)} · ${typeof p.total === 'number' ? brl(p.total) : '—'}${shared && !p.local ? ' · ' + who(p.by) : ''}${p.local ? ' · <span class="pill mute">neste navegador</span>' : ''}</small></div><div style="display:flex;gap:6px"><button class="btn sm pri" data-open="${esc(p.id)}">Abrir</button><button class="btn sm" data-del="${esc(p.id)}">Excluir</button></div></div>`).join('')
+    const rows = list.map((p) => `<div class="row"><div style="min-width:0"><span class="divb ${p.div === 'SPV' ? 'spv' : 'seq'}">${p.div || 'SEQ'}</span> <b>${esc(p.name)}</b><br><small>${fmtAt(p.at)} · ${typeof p.total === 'number' ? brl(p.total) : '—'}${shared && !p.local ? ' · ' + who(p.by) : ''}${p.local ? ' · <span class="pill mute">neste navegador</span>' : ''}</small></div><div style="display:flex;gap:6px"><button class="btn sm pri" data-open="${esc(p.id)}">Abrir</button>${REG.podeExcluir(p) ? `<button class="btn sm" data-del="${esc(p.id)}" title="Vai para a lixeira (Cadastro → Sistema → Backup); dá para restaurar">Excluir</button>` : ''}</div></div>`).join('')
       || `<p class="sub">Nenhuma proposta salva ${shared ? 'pela equipe' : 'neste navegador'} ainda.</p>`;
     modal(`<h2>Propostas salvas</h2>
       ${shared ? '<p class="sub">Propostas da equipe: quem tem acesso ao app vê e abre todas. Salvar de novo atualiza a mesma proposta.</p>' : '<p class="sub">Este arquivo guarda as propostas só neste navegador.</p>'}
@@ -2884,7 +2994,7 @@
       o.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => {
         if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar'; b.classList.add('pri'); return; }
         const p = byId[b.dataset.del];
-        try { await REG.deleteProposta(p.id, !!p.local); logEv({ tipo: 'Proposta excluída', ref: p.id, desc: p.name || '', mudancas: [] }); b.closest('.row').remove(); if (state.id === p.id) { state.id = null; persist(); } } catch (err) { toast(errMsg(err)); }
+        try { await REG.moverLixeira(p, ''); logEv({ tipo: 'Proposta excluída (lixeira)', ref: p.id, desc: p.name || '', mudancas: [] }); b.closest('.row').remove(); toast('Proposta na lixeira. Dá para restaurar em Cadastro → Sistema → Backup.'); if (state.id === p.id) { state.id = null; persist(); } } catch (err) { toast(errMsg(err)); }
       });
       const payload = () => JSON.stringify(Object.assign({ app: 'ls-pricer', rev: MODEL.source, name: docTitle(), doc: state.doc }, isSpv() ? { div: 'SPV', spv: state.spv } : isFacts() ? { sol: 'FACTS', facts: state.facts } : {}), null, 1);
       $('#mCopy', o).onclick = () => { const t = payload(); $('#mTxt', o).value = t; navigator.clipboard.writeText(t).then(() => toast('Copiado'), () => { $('#mTxt', o).select(); toast('Selecionado — use Ctrl+C'); }); };

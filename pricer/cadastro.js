@@ -85,7 +85,8 @@
       const err = (e) => { R.error = (e && e.code) || 'unavailable'; changed('error'); };
       let got = { meta: false, ins: false, km: false, kb: false };
       const maybeReady = () => { if (got.meta && got.ins && got.km && got.kb && !R.ready) { R.ready = true; changed('ready'); } };
-      db.doc('meta/acessos').onSnapshot((s) => { R.acessos = (s.exists && s.data().areas) || {}; changed('acessos'); }, () => {});
+      // meta/acessos só o dono do app grava (regra do banco); por isso quem gravou (by) é o dono
+      db.doc('meta/acessos').onSnapshot((s) => { R.acessos = (s.exists && s.data().areas) || {}; R.donoId = (s.exists && s.data().by) || null; changed('acessos'); }, () => {});
       db.doc('meta/cadastro').onSnapshot((s) => { R.seeded = !!(s.exists && s.data().seeded); got.meta = true; if (R._applyShared) R._applyShared(); maybeReady(); changed('meta'); }, err);
       // insumos: um documento por família (cadastro/fNN), com os itens por código
       let insDocs = null, kitDocs = null;
@@ -304,7 +305,18 @@
     };
 
     // ---- propostas ----
-    R.listPropostas = () => R.mode === 'shared' && R.propostas ? R.propostas : Object.entries(ls.get(LS.saved, {})).map(([id, p]) => Object.assign({ id, local: true }, p)).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    // excluir: ninguém apaga direto. A proposta vai para a lixeira (dá para restaurar) e só o administrador apaga de vez.
+    // Quem pode mandar para a lixeira: o administrador (dono do app; neste navegador, quem usa) ou quem criou a proposta, enquanto rascunho.
+    R.listPropostas = () => R.todasPropostas().filter((p) => !p.excluida);
+    R.lixeira = () => R.todasPropostas().filter((p) => p.excluida);
+    R.ehAdmin = () => R.mode === 'local' || !!R.isOwner;
+    R.podeExcluir = (p) => R.ehAdmin() || (!!R.canSaveShared && (p.status || 'rascunho') === 'rascunho' && !!p.criadaPor && p.criadaPor === R.me);
+    R.moverLixeira = async (p, motivo) => {
+      if (!R.podeExcluir(p)) throw new Error('Só o administrador ou quem criou o rascunho pode excluir esta proposta.');
+      return R.patchProposta(p.id, (r) => { r.excluida = { at: new Date().toISOString(), by: R.me || null, motivo: motivo || '' }; });
+    };
+    R.restaurarLixeira = async (p) => { if (!R.ehAdmin() && !(p.excluida && p.excluida.by === R.me)) throw new Error('Só o administrador ou quem excluiu pode restaurar.'); return R.patchProposta(p.id, (r) => { delete r.excluida; }); };
+    R.todasPropostas = () => R.mode === 'shared' && R.propostas ? R.propostas : Object.entries(ls.get(LS.saved, {})).map(([id, p]) => Object.assign({ id, local: true }, p)).sort((a, b) => String(b.at).localeCompare(String(a.at)));
     // gravação com versão: 'ver' sobe a cada gravação; 'verDoc' só quando o conteúdo (editor) muda.
     // O editor informa a versão que abriu (base): se outra pessoa gravou o conteúdo antes, é conflito — nunca sobrescreve calado.
     // Status, etapas e conferência gravam por patch: relê o registro atual, aplica só a mudança, grava e confere.
@@ -346,6 +358,7 @@
       }
     };
     R.deleteProposta = async (id, isLocal) => {
+      if (!R.ehAdmin()) throw new Error('Só o administrador apaga uma proposta de vez.');
       if (!isLocal && R.mode === 'shared') { await R.db.doc('propostas/' + id).delete(); return; }
       const saved = ls.get(LS.saved, {}); delete saved[id]; ls.set(LS.saved, saved);
     };

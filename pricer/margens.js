@@ -548,7 +548,7 @@
         let s = 'pend', info = '', act = null;
         if (k === 'formacao') { s = 'ok'; info = dt(p.at); }
         else if (k === 'conferida') { const c = p.conferencia; act = 'conferir'; if (conferidaOk(p)) { s = 'ok'; info = dt(c.at); } else if (c) { s = 'parcial'; info = c.ok ? 'desatualizada' : 'divergências'; } else if (st !== 'rascunho' || F) { s = 'off'; info = 'não conferido'; } }
-        else if (k === 'aprovacao') { const ea = estadoA(ap); act = 'aprovacao'; if (ea === 'aprovada') { s = ap.alvo && !ap.aplicadoEm && !F ? 'parcial' : 'ok'; info = s === 'ok' ? 'aprovada' : 'falta aplicar'; } else if (ea === 'reprovada') { s = 'parcial'; info = 'reprovada'; } else { s = 'parcial'; info = comQuem(ap); } }
+        else if (k === 'aprovacao') { const ea = estadoA(ap); act = 'aprovacao'; if (ea === 'aprovada' && !F && premissaMudou(ap, p.resumo)) { s = 'parcial'; info = 'perdeu a validade: ' + premissaMudou(ap, p.resumo); } else if (ea === 'aprovada') { s = ap.alvo && !ap.aplicadoEm && !F ? 'parcial' : 'ok'; info = s === 'ok' ? 'aprovada' : 'falta aplicar'; } else if (ea === 'reprovada') { s = 'parcial'; info = 'reprovada'; } else { s = 'parcial'; info = comQuem(ap); } }
         else if (k === 'cliente') { if (['enviada', 'negociacao', 'ganha', 'perdida'].includes(st) || F) { s = 'ok'; info = e.cliente ? dt(e.cliente.at) : ''; } else act = 'cliente'; }
         else if (perdida) { s = 'off'; info = k === 'baixa' ? 'perdida' : ''; }
         else if (k === 'baixa') { if (F) { s = 'ok'; info = dt(F.fechadoEm); } else act = 'baixa'; }
@@ -683,7 +683,38 @@
     }
     const PAPEIS = [['diretoria', 'Diretoria'], ['financeiro', 'Financeiro']];
     const aprovDe = (propId) => { ensureA(); return aprov.find((a) => a.id === propId) || null; };
-    const estadoA = (a) => { if (!a) return null; const d = a.decisoes || {}; if (PAPEIS.some(([k]) => d[k] && d[k].decisao === 'reprovada')) return 'reprovada'; if (PAPEIS.every(([k]) => d[k] && d[k].decisao === 'aprovada')) return 'aprovada'; return 'pendente'; };
+    // ---- decisões assinadas ----
+    // No app compartilhado, quem decide grava também uma assinatura no próprio espaço do banco (assinaturas/<id>/aprov/…),
+    // que a regra do banco só deixa essa pessoa escrever. Todos conferem ao ler: a decisão só conta se a assinatura existe
+    // e bate, e se a pessoa está entre os aprovadores do papel (lista que só o dono do app grava) ou é o dono.
+    const CORTE_ASSIN = '2026-10-30'; // decisões anteriores à REV22 não têm assinatura: valem como legado
+    const assin = {}; const subAs = {};
+    function ouvirAssin(uid) {
+      if (!uid || subAs[uid] || !shared()) return; subAs[uid] = true; assin[uid] = null;
+      REG.db.collection('assinaturas/' + uid + '/aprov').onSnapshot((s) => { assin[uid] = Object.fromEntries(s.docs.map((d) => [d.id, d.data()])); ctx.render(); }, () => { assin[uid] = {}; ctx.render(); });
+    }
+    function decisaoValida(a, k) {
+      const x = (a.decisoes || {})[k]; if (!x) return { ok: false };
+      if (REG.mode !== 'shared') return { ok: true };
+      const lista = (REG.acessos || {})['ap_' + k] || [];
+      if (lista.length && !lista.includes(x.by) && !(REG.donoId && x.by === REG.donoId)) return { ok: false, motivo: 'quem decidiu não está entre os aprovadores' };
+      if (String(x.at) < CORTE_ASSIN) return { ok: true, legado: true };
+      ouvirAssin(x.by); const m = assin[x.by];
+      if (!m) return { ok: false, motivo: 'conferindo a assinatura…', carregando: true };
+      const sg = m[a.id + '__' + k]; if (!sg || sg.decisao !== x.decisao || sg.at !== x.at) return { ok: false, motivo: 'decisão sem assinatura válida no banco' };
+      return { ok: true };
+    }
+    const decs = (a) => { const out = {}; for (const [k] of PAPEIS) if (decisaoValida(a, k).ok) out[k] = a.decisoes[k]; return out; };
+    // premissas da aprovação: custo e itens do momento do pedido. Se mudaram, a aprovação não vale mais.
+    function premissaMudou(a, resumo) {
+      if (!a || !a.snap || !resumo) return null;
+      const c0 = num(a.snap.custo), c1 = num(resumo.custo);
+      if (c0 && Math.abs(c1 - c0) / c0 > 0.005) return 'o custo mudou de ' + brl(c0) + ' para ' + brl(c1);
+      const nomes = (L) => (L || []).map((x) => String(x.nome || '') + '×' + num(x.qtd || 1)).sort().join('|');
+      if (a.snap.itens && resumo.itens && nomes(a.snap.itens) !== nomes(resumo.itens)) return 'os itens ou quantidades mudaram';
+      return null;
+    }
+    const estadoA = (a) => { if (!a) return null; const d = decs(a); if (PAPEIS.some(([k]) => d[k] && d[k].decisao === 'reprovada')) return 'reprovada'; if (PAPEIS.every(([k]) => d[k] && d[k].decisao === 'aprovada')) return 'aprovada'; return 'pendente'; };
     // sem aprovador definido, qualquer Editor decide; o dono sempre pode
     const podeDecidir = (papel) => { if (REG.mode === 'local' || REG.isOwner) return true; const l = (REG.acessos || {})['ap_' + papel] || []; return l.length ? l.includes(REG.me) : !!REG.canEditCadastro; };
     // proposta inteira levada ao valor target: preços, impostos e comissões acompanham; o custo fica
@@ -700,7 +731,7 @@
     // preço mínimo da proposta pela margem mínima (sem IPI)
     const minPelaMargem = (snap) => { if (!snap.venda) return null; const t = (snap.venda - num(snap.margem) - snap.custo) / snap.venda; const bf = snap.itens.reduce((a, x) => a + x.venda * baseFrac(x), 0) / snap.venda; const d = 1 - t - num(snap.minimo) * bf; return d > 0 ? snap.custo / d : null; };
     // com quem está: papéis que ainda não decidiram, com os nomes de quem cuida de cada um
-    const pendPapeis = (a) => PAPEIS.filter(([k]) => !(a.decisoes || {})[k]);
+    const pendPapeis = (a) => { const d = decs(a); return PAPEIS.filter(([k]) => !d[k]); };
     const nomesPapel = (k) => ((REG.acessos || {})['ap_' + k] || []);
     function comQuem(a, html) {
       const pp = pendPapeis(a); if (!pp.length) return '';
@@ -708,12 +739,13 @@
       return 'com ' + pp.map(parte).join(' e ');
     }
     function trilha(a) {
-      const d = a.decisoes || {}; const e = estadoA(a);
+      const d = decs(a); const e = estadoA(a);
       const passo = (cls, lb, info) => `<div class="etp ${cls}"><span class="etc">${cls === 'ok' ? '✓' : cls === 'bad' ? '✕' : ''}</span><span class="etl">${lb}</span>${info ? `<small>${info}</small>` : ''}</div>`;
       const quem = (id) => (id ? `<span data-uid="${esc(id)}">…</span>` : '');
       const L = [passo('ok', 'Pedido', `${dt(a.at)} ${quem(a.by)}`)];
-      for (const [k, lb] of PAPEIS) { const x = d[k];
-        if (x) L.push(passo(x.decisao === 'aprovada' ? 'ok' : 'bad', lb + (x.decisao === 'aprovada' ? ' aprovou' : ' reprovou'), `${dt(x.at)} ${quem(x.by)}`));
+      for (const [k, lb] of PAPEIS) { const x = d[k]; const inv = !x && (a.decisoes || {})[k] ? decisaoValida(a, k) : null;
+        if (inv && !inv.carregando) L.push(passo('bad', lb + ': decisão não conta', esc(inv.motivo)));
+        else if (x) L.push(passo(x.decisao === 'aprovada' ? 'ok' : 'bad', lb + (x.decisao === 'aprovada' ? ' aprovou' : ' reprovou'), `${dt(x.at)} ${quem(x.by)}`));
         else { const ids = nomesPapel(k); L.push(passo(e === 'pendente' ? 'next' : 'pend', lb, e === 'pendente' ? 'aguardando' + (ids.length ? ' ' + ids.map(quem).join(', ') : '') : '')); } }
       if (a.alvo) L.push(passo(a.aplicadoEm ? 'ok' : e === 'aprovada' ? 'next' : 'pend', 'Valor aplicado', a.aplicadoEm ? dt(a.aplicadoEm) : e === 'aprovada' ? 'falta aplicar na proposta' : ''));
       return `<div class="etapas trilha" style="--n:${L.length}">${L.join('')}</div>`;
@@ -776,12 +808,12 @@
       if (ui.apId) return vAprovDetalhe(ui.apId);
       const rows = aprov.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).map((a) => { const e = estadoA(a); const pill = { pendente: 'warn', aprovada: 'ok', reprovada: 'bad' }[e];
         return `<tr class="click" data-apopen="${esc(a.id)}"><td>${esc(fmtD(a.at))}</td><td><span class="divb ${String(a.div || 'SEQ').toLowerCase()}">${esc(a.div || 'SEQ')}</span> <b>${esc(a.numero || '—')}</b><br><small class="sub">${esc(a.cliente || a.nome || '')}</small></td><td class="n">${a.alvo ? `${brl(a.alvo.vendaSem * ipiRatio(a.snap))}<br><small class="sub">atual ${brl(a.snap.venda * ipiRatio(a.snap))}</small>` : brl(a.snap.venda)}</td><td class="n">${pct(escala(a.snap, kAlvo(a)).margemPct, 1)}</td>
-          <td>${PAPEIS.map(([k, lb]) => { const d = (a.decisoes || {})[k]; return `<span class="pill ${d ? (d.decisao === 'aprovada' ? 'ok' : 'bad') : 'mute'}">${lb}: ${d ? d.decisao : 'pendente'}</span>`; }).join(' ')}</td><td><span class="pill ${pill}">${e === 'pendente' ? esc(comQuem(a)) : e}</span>${e === 'aprovada' && a.alvo && !a.aplicadoEm ? '<br><small class="sub">falta aplicar na proposta</small>' : ''}</td><td><button class="btn sm pri" data-apopen="${esc(a.id)}">Analisar</button></td></tr>`; }).join('');
+          <td>${PAPEIS.map(([k, lb]) => { const d = decs(a)[k]; return `<span class="pill ${d ? (d.decisao === 'aprovada' ? 'ok' : 'bad') : 'mute'}">${lb}: ${d ? d.decisao : 'pendente'}</span>`; }).join(' ')}</td><td><span class="pill ${pill}">${e === 'pendente' ? esc(comQuem(a)) : e}</span>${e === 'aprovada' && a.alvo && !a.aplicadoEm ? '<br><small class="sub">falta aplicar na proposta</small>' : ''}</td><td><button class="btn sm pri" data-apopen="${esc(a.id)}">Analisar</button></td></tr>`; }).join('');
       return `<section class="card"><h2>Aprovações de desconto <span class="sub">propostas fora da política</span></h2><div class="tw"><table class="t"><thead><tr><th>Pedido</th><th>Proposta</th><th>Valor target</th><th>Margem no target</th><th>Decisões</th><th>Onde está</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum pedido de aprovação.</td></tr>'}</tbody></table></div></section>`;
     }
     function vAprovDetalhe(id) {
       const a = aprov.find((x) => x.id === id); if (!a) { ui.apId = null; return '<p class="sub">Pedido não encontrado.</p>'; }
-      const k = kAlvo(a); const sc = escala(a.snap, k); const A = analise(sc); const A0 = analise(a.snap); const e = estadoA(a); const d = a.decisoes || {}; const ri = ipiRatio(a.snap);
+      const k = kAlvo(a); const sc = escala(a.snap, k); const A = analise(sc); const A0 = analise(a.snap); const e = estadoA(a); const d = decs(a); const ri = ipiRatio(a.snap);
       const fx = (v) => (typeof v === 'number' && isFinite(v) ? NF[4].format(v) + 'x' : '—');
       const linha = (lb, f, cls = '') => `<tr class="${cls}"><td>${lb}</td>${A.map((x) => `<td class="n">${f(x)}</td>`).join('')}</tr>`;
       const tabela = `<div class="tw"><table class="t"><thead><tr><th>Etapa</th>${A.map((x) => `<th>${esc(x.n && /^ITEM/.test(x.n) ? x.n : x.nome.slice(0, 24))}</th>`).join('')}</tr></thead><tbody>
@@ -810,8 +842,11 @@
         modal(`<h2>${decisao === 'aprovada' ? 'Aprovar' : 'Reprovar'} · ${esc(PAPEIS.find((x) => x[0] === papel)[1])}</h2><div class="f"><label for="adCom">Comentário${decisao === 'reprovada' ? ' (obrigatório)' : ' (opcional)'}</label><input id="adCom" placeholder="${decisao === 'aprovada' ? 'ex.: aprovado com prazo de pagamento 28 DDL' : 'ex.: margem baixa demais; tentar 30%'}"></div><div style="display:flex;gap:8px"><button class="btn pri" id="adOk">Confirmar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
           $('#adCom', o).focus();
           $('#adOk', o).onclick = async () => { const com = $('#adCom', o).value.trim(); if (decisao === 'reprovada' && !com) { toast('Escreva o motivo'); return; } close();
-            const rec = Object.assign({}, a, { decisoes: Object.assign({}, a.decisoes || {}, { [papel]: { decisao, comentario: com || null, at: new Date().toISOString(), by: REG.me || null } }) });
-            try { await gravarA(id, rec); ctx.log && ctx.log({ tipo: 'Aprovação — ' + decisao, ref: id, desc: (a.numero || '') + ' · ' + papel + (com ? ': ' + com : ''), mudancas: [{ campo: papel, de: 'pendente', para: decisao }] }); toast('Decisão registrada'); }
+            const at = new Date().toISOString();
+            const rec = Object.assign({}, a, { decisoes: Object.assign({}, a.decisoes || {}, { [papel]: { decisao, comentario: com || null, at, by: REG.me || null } }) });
+            if (shared() && !REG.me) { toast('Não consegui identificar você no app compartilhado; a decisão precisa ser assinada. Recarregue a página.'); return; }
+            try { if (shared()) await REG.db.doc('assinaturas/' + REG.me + '/aprov/' + id + '__' + papel).set({ propId: id, papel, decisao, at, comentario: com || null });
+              await gravarA(id, rec); const d2 = Object.assign({}, decs(a), { [papel]: rec.decisoes[papel] }); if (PAPEIS.every(([k]) => d2[k] && d2[k].decisao === 'aprovada') && ctx.aoAprovar) ctx.aoAprovar(a.propId || id); ctx.log && ctx.log({ tipo: 'Aprovação — ' + decisao, ref: id, desc: (a.numero || '') + ' · ' + papel + (com ? ': ' + com : ''), mudancas: [{ campo: papel, de: 'pendente', para: decisao }] }); toast('Decisão registrada'); }
             catch (e) { toast((e && e.message) || 'Não consegui registrar'); } };
         }); }
     });
@@ -822,7 +857,7 @@
       if (st === 'perdida') return { lb: 'Reabrir', act: 'reabrir' };
       const ap = aprovDe(p.id);
       if (!F && ap) { const ea = estadoA(ap);
-        if (ea === 'pendente') return PAPEIS.some(([k]) => !(ap.decisoes || {})[k] && podeDecidir(k)) ? { lb: 'Analisar aprovação', act: 'aprovacao' } : { lb: 'Ver aprovação', act: 'aprovacao' };
+        if (ea === 'pendente') return PAPEIS.some(([k]) => !decs(ap)[k] && podeDecidir(k)) ? { lb: 'Analisar aprovação', act: 'aprovacao' } : { lb: 'Ver aprovação', act: 'aprovacao' };
         if (ea === 'aprovada' && ap.alvo && !ap.aplicadoEm) return { lb: 'Aplicar valor aprovado', act: 'aplicar' };
         if (ea === 'reprovada') return { lb: 'Ver motivo', act: 'aprovacao' }; }
       if (!F && st === 'rascunho' && !conferidaOk(p)) return { lb: 'Conferir PDF', act: 'conferir' };
@@ -836,7 +871,7 @@
       const F = fechDe(p.id); const st = p.status || 'rascunho'; const e = p.etapas || {};
       if (st === 'perdida') return ['Perdida', 'bad']; if (F && (e.encerrada || F.execucao === 'encerrada')) return ['Encerrada', 'ok'];
       if (F) return ['Fechada', 'ok'];
-      const ap = aprovDe(p.id); if (ap) { const e2 = estadoA(ap); if (e2 === 'pendente') return ['Aprovação ' + comQuem(ap), 'warn']; if (e2 === 'reprovada') return ['Desconto reprovado', 'bad']; if (ap.alvo && !ap.aplicadoEm) return ['Desconto aprovado · falta aplicar', 'ok']; }
+      const ap = aprovDe(p.id); if (ap) { const e2 = estadoA(ap); if (e2 === 'pendente') return ['Aprovação ' + comQuem(ap), 'warn']; if (e2 === 'reprovada') return ['Desconto reprovado', 'bad']; if (premissaMudou(ap, p.resumo)) return ['Aprovação perdeu a validade', 'bad']; if (ap.alvo && !ap.aplicadoEm) return ['Desconto aprovado · falta aplicar', 'ok']; }
       if (st === 'enviada' || st === 'negociacao') return ['Enviada ao cliente', 'warn']; return ['Rascunho', 'mute'];
     }
     document.addEventListener('click', (ev) => {
@@ -866,7 +901,7 @@
       const nomeP = (id) => { const q = props.find((x) => x.id === id); return q ? (q.numero || q.name || '') + (q.cliente ? ' · ' + q.cliente : '') : ''; };
       for (const [k, lb] of PAPEIS) {
         if (!aprovadorDe(k)) continue;
-        const L = aprov.filter((a) => estadoA(a) === 'pendente' && !(a.decisoes || {})[k]).map((a) => ({ titulo: (a.numero || a.nome || '') + (a.cliente ? ' · ' + a.cliente : ''), sub: a.alvo ? `target ${brl(a.alvo.vendaSem * ipiRatio(a.snap))} · desconto ${pct(1 - a.alvo.k, 1)} · margem ${pct(escala(a.snap, kAlvo(a)).margemPct, 1)}` : 'margem ' + pct(a.snap.margemPct, 1), desde: a.at, btn: ['Analisar', `data-apopen="${esc(a.id)}"`] }));
+        const L = aprov.filter((a) => estadoA(a) === 'pendente' && !decs(a)[k]).map((a) => ({ titulo: (a.numero || a.nome || '') + (a.cliente ? ' · ' + a.cliente : ''), sub: a.alvo ? `target ${brl(a.alvo.vendaSem * ipiRatio(a.snap))} · desconto ${pct(1 - a.alvo.k, 1)} · margem ${pct(escala(a.snap, kAlvo(a)).margemPct, 1)}` : 'margem ' + pct(a.snap.margemPct, 1), desde: a.at, btn: ['Analisar', `data-apopen="${esc(a.id)}"`] }));
         S.push({ k: 'ap_' + k, titulo: 'Aprovar descontos', papel: lb, itens: L });
       }
       if (aprovadorDe('financeiro')) S.push({ k: 'fin_rel', titulo: 'Relatórios previsto × realizado para conferir', papel: 'Financeiro',
@@ -887,7 +922,7 @@
       const comItens = S.filter((x) => x.itens.length), vazias = S.filter((x) => !x.itens.length);
       const quem = REG.mode === 'local' ? 'Neste navegador você vê as pendências de todas as áreas.' : REG.areasConfiguradas() || Object.keys(REG.acessos || {}).some((k) => /^ap_/.test(k)) ? 'Mostrando as áreas e aprovações em que você está (Cadastro → Sistema → Responsáveis).' : 'Ninguém foi definido por área ainda: todo Editor vê todas as pendências. Defina em Cadastro → Sistema → Responsáveis.';
       return `<div class="stack"><div class="flowhead"><div><h1>Minhas pendências</h1><div class="sub">${tot ? tot + ' coisa(s) esperando por você, as mais antigas primeiro.' : 'Nada esperando por você agora.'} ${esc(quem)}</div></div></div>
-        ${comItens.map(sec).join('')}${vazias.length ? `<section class="card"><h2>Em dia</h2><div style="display:flex;gap:6px;flex-wrap:wrap">${vazias.map((x) => `<span class="pill ok">✓ ${esc(x.titulo)} · ${esc(x.papel)}</span>`).join('')}</div></section>` : ''}</div>`;
+        ${comItens.map(sec).join('')}${ctx.acompanhamento ? ctx.acompanhamento() : ''}${vazias.length ? `<section class="card"><h2>Em dia</h2><div style="display:flex;gap:6px;flex-wrap:wrap">${vazias.map((x) => `<span class="pill ok">✓ ${esc(x.titulo)} · ${esc(x.papel)}</span>`).join('')}</div></section>` : ''}</div>`;
     }
     // resumo para a tela inicial
     function resumoPendencias() {
@@ -898,7 +933,7 @@
       const fo = ev.target.closest('[data-finok]'); if (!fo) return; const F = fech.find((f) => f.id === fo.dataset.finok); if (!F) return;
       try { await gravar(F.id, Object.assign({}, F, { finConferido: { at: new Date().toISOString(), by: REG.me || null } })); ctx.log && ctx.log({ tipo: 'Custo real', ref: F.id, desc: (F.numero || F.nome || '') + ' — relatório previsto × realizado conferido pelo Financeiro', mudancas: [] }); if (!shared()) ctx.render(); toast('Marcado como conferido'); } catch (e) { toast((e && e.message) || 'Não consegui salvar'); }
     });
-    return { vPendencias, resumoPendencias, nPendencias, conferidaOk, liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
+    return { vPendencias, resumoPendencias, nPendencias, conferidaOk, liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, realizado, listaAprov: () => { ensureA(); return aprov; }, decs, decisaoValida, premissaMudou, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !decs(a)[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();

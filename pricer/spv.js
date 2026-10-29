@@ -357,12 +357,12 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
             <button class="tchip" data-factsnew title="Fully Automatic Churn Testing System — MECON, FM 1330"><b>FACTS</b><small>FAC</small></button></div></div>
           <div class="start spv"><span class="tag">SPV</span><b>Serviços e pós-venda</b><small>Escolha o tipo para começar</small><div class="tchips">${tipos}</div></div>
         </div>
-        <div class="kpis">
+        ${ctx.painel ? ctx.painel() : `<div class="kpis">
           <div class="kpi"><span>Em aberto</span><b>${brl(sx.aberto)}</b><em>${sx.nAberto} proposta(s) enviadas ou em negociação</em></div>
           <div class="kpi"><span>Ganhas em 90 dias</span><b>${sx.ganhas} de ${sx.fechadas}</b><em>${sx.fechadas ? pct(sx.ganhas / sx.fechadas, 0) + ' de conversão' : 'marque o status nas propostas'}</em></div>
           <div class="kpi"><span>Propostas salvas</span><b>${all.length}</b><em>${all.filter((p) => divOf(p) === 'SPV').length} SPV · ${all.filter((p) => divOf(p) === 'SEQ').length} SEQ</em></div>
           <div class="kpi"><span>Documentos</span><b>${docs.length}</b><em><button class="restore" data-view="documentos">abrir a biblioteca</button></em></div>
-        </div>
+        </div>`}
         <section class="card"><h2>Propostas <span class="sub">${list.length} encontrada(s)</span></h2><div class="hchips">${chips}</div>
           <div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th>Divisão</th><th>Número / cliente</th><th>Total</th><th>Situação</th><th>Data</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="sub">${all.length ? 'Nada encontrado com essa busca.' : 'Nenhuma proposta salva ainda. Comece uma nova acima e clique em Salvar.'}</td></tr>`}</tbody></table></div></section>
         ${docsHit.length ? `<section class="card"><h2>Documentos encontrados</h2>${docList(docsHit)}</section>` : ''}
