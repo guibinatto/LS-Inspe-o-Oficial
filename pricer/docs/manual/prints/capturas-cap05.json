@@ -6,7 +6,7 @@
   "titulo": "Aba Memorial: título e documentos para o financeiro",
   "vp": "desktop",
   "arquivo": "05-01-memorial-cabecalho.png",
-  "data": "2026-10-29T17:48:10.992Z",
+  "data": "2026-10-29T18:40:20.225Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -43,7 +43,7 @@
   "titulo": "Memorial do exemplo: custos, impostos, comissão e margem",
   "vp": "desktop",
   "arquivo": "05-02-memorial-custos-margem.png",
-  "data": "2026-10-29T17:48:12.098Z",
+  "data": "2026-10-29T18:40:21.364Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -92,7 +92,7 @@
   "titulo": "Memorial do exemplo: preços, IPI, origem e demonstrativo",
   "vp": "desktop",
   "arquivo": "05-03-memorial-precos-demonstrativo.png",
-  "data": "2026-10-29T17:48:12.613Z",
+  "data": "2026-10-29T18:40:21.889Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -141,7 +141,7 @@
   "titulo": "Fim do Memorial: linhas de conferência e a nota de cálculo",
   "vp": "desktop",
   "arquivo": "05-04-memorial-notas.png",
-  "data": "2026-10-29T17:48:13.137Z",
+  "data": "2026-10-29T18:40:22.455Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -178,7 +178,7 @@
   "titulo": "Aba Documentos (proposta salva)",
   "vp": "desktop",
   "arquivo": "05-05-memorial-aba-documentos.png",
-  "data": "2026-10-29T17:48:13.625Z",
+  "data": "2026-10-29T18:40:22.960Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -221,7 +221,7 @@
   "titulo": "Memorial (PDF) sem acesso à internet: aviso do app",
   "vp": "desktop",
   "arquivo": "05-06-memorial-pdf-sem-internet.png",
-  "data": "2026-10-29T17:48:16.662Z",
+  "data": "2026-10-29T18:40:26.332Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -246,7 +246,7 @@
   "titulo": "Conferência do PDF da proposta (aba Conferência)",
   "vp": "desktop",
   "arquivo": "05-07-memorial-conferencia-pdf.png",
-  "data": "2026-10-29T17:48:18.037Z",
+  "data": "2026-10-29T18:40:27.775Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -277,7 +277,7 @@
   "titulo": "Bloco FCI do item 01",
   "vp": "desktop",
   "arquivo": "05-08-memorial-item-fci.png",
-  "data": "2026-10-29T17:48:19.161Z",
+  "data": "2026-10-29T18:40:28.901Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -326,48 +326,54 @@
   "titulo": "Aba Documentos: cartão Proposta técnica e comercial",
   "vp": "desktop",
   "arquivo": "05-09-proposta-ptc-cartao.png",
-  "data": "2026-10-29T17:48:21.718Z",
+  "data": "2026-10-29T18:40:31.446Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Documento: técnica e comercial, comercial (sem folha de dados) ou técnica (sem preços).",
+    "txt": "Padrão: Clássico (PTC) ou Folha de dados (novo).",
     "sel": "#pcCard .pcopts .f:nth-child(1) .seg",
     "ok": true
    },
    {
     "n": 2,
-    "txt": "Idioma: português, inglês ou espanhol.",
+    "txt": "Documento: técnica e comercial, comercial (sem folha de dados) ou técnica (sem preços).",
     "sel": "#pcCard .pcopts .f:nth-child(2) .seg",
     "ok": true
    },
    {
     "n": 3,
-    "txt": "Moeda: real ou dólar (com a taxa do dia).",
+    "txt": "Idioma: português, inglês ou espanhol. Ao trocar, o cartão já mostra a tradução.",
     "sel": "#pcCard .pcopts .f:nth-child(3) .seg",
     "ok": true
    },
    {
     "n": 4,
+    "txt": "Moeda: real ou dólar (com a taxa do dia).",
+    "sel": "#pcCard .pcopts .f:nth-child(4) .seg",
+    "ok": true
+   },
+   {
+    "n": 5,
     "txt": "Gera o PDF com os números desta formação.",
     "sel": "#pcCard [data-pcgerar]",
     "ok": true
    },
    {
-    "n": 5,
+    "n": 6,
     "txt": "Cabeçalho e condições só para conferir: vêm de Dados gerais e da formação.",
     "sel": "#pcCard .pcro",
     "ok": true
    },
    {
-    "n": 6,
+    "n": 7,
     "txt": "Para mudar, volte a Dados gerais.",
     "sel": "#pcCard [data-step=\"1\"]",
     "ok": true
    },
    {
-    "n": 7,
+    "n": 8,
     "txt": "Código, folha de dados e curva ficam em cada item.",
     "sel": "#pcCard [data-goitem]",
     "ok": true
@@ -378,10 +384,10 @@
   "id": "05-10",
   "cap": 5,
   "nome": "proposta-ptc-modelo",
-  "titulo": "Cadastros → Cadastro geral → Modelo da proposta",
+  "titulo": "Configurações → Modelo da proposta",
   "vp": "desktop",
   "arquivo": "05-10-proposta-ptc-modelo.png",
-  "data": "2026-10-29T17:48:23.594Z",
+  "data": "2026-10-29T18:40:33.354Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -424,7 +430,7 @@
   "titulo": "Item: código do produto, folha de dados e curva da bomba",
   "vp": "desktop",
   "arquivo": "05-11-proposta-ptc-item.png",
-  "data": "2026-10-29T17:48:25.949Z",
+  "data": "2026-10-29T18:40:35.234Z",
   "ok": true,
   "problemas": [],
   "marcas": [

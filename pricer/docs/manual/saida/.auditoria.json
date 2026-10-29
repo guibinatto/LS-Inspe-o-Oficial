@@ -25,12 +25,20 @@
    "Próximo: <etapa> →"
   ],
   [
+   4,
+   "Especificações do fornecimento"
+  ],
+  [
    5,
    "Gerar proposta (PDF)"
   ],
   [
    5,
-   "Cadastros → Cadastro geral → Modelo da proposta"
+   "Configurações → Modelo da proposta"
+  ],
+  [
+   5,
+   "Qtd | Descrição"
   ],
   [
    6,
@@ -199,6 +207,14 @@
   [
    10,
    "Comparar (N)"
+  ],
+  [
+   11,
+   "46 TESTESENSAIOS"
+  ],
+  [
+   11,
+   "47 DOCUMENTOSDESENHOS"
   ],
   [
    11,
