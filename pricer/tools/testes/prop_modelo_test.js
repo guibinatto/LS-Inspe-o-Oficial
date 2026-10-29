@@ -8,7 +8,7 @@ const L = __dirname + '/libs/';
   await p.route('https://fonts.googleapis.com/**', (r) => r.abort());
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('download', (d) => console.log('download:', d.suggestedFilename()));
   await p.goto('file://' + require('path').resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1200);
-  await p.click('#nav [data-view="cadastro"]'); await p.waitForTimeout(300); await p.click('[data-cad="geral"]'); await p.waitForTimeout(300);
+  await p.click('#nav [data-view="config"]'); await p.waitForTimeout(300);
   await p.click('[data-cad="propmodelo"]'); await p.waitForTimeout(400);
   const abre = () => p.evaluate(() => document.querySelectorAll('#app details').forEach((d) => { d.open = true; }));
   await abre();

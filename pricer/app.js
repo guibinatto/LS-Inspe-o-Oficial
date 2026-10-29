@@ -722,6 +722,7 @@
             <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">${showTo < 112 ? '<button class="btn sm" id="bMoreRows">+ linhas</button>' : ''}${lastFilled >= 68 ? '<button class="btn sm" id="bClearScope">Apagar todo o escopo</button>' : ''}
               <span class="sub">Nacional ${brl(val(S, 'H115'))} · Importado ${brl(val(S, 'H116'))} · Serviços ${brl(val(S, 'H117'))} · Materiais ${brl(val(S, 'H118'))} · CI ${pct(val(S, 'J115'), 2)} (${esc(txt(S, 'J116'))})</span></div>
           </section>
+          ${espItemCard(S)}
           <details class="card"><summary>FCI — ficha de conteúdo de importação</summary>
             <div class="stack">
               <div class="docbar"><span class="sub">Baixar a FCI deste item</span><button class="btn sm" data-doc="fcipdf" data-docitem="${S}">PDF</button><button class="btn sm" data-doc="fcixlsx" data-docitem="${S}">Excel (template)</button></div>
@@ -761,6 +762,8 @@
     const rpm = num0(val(S, 'H19')); return { fam: '10.MOTORELETRICO', campos: { cv: txt(S, 'I19'), polos: rpm >= 3000 || !rpm ? '2P' : '4P', tensao: '220/380/440V', marca: 'WEG', mont: 'MANCAL' }, origem: 'NAC', linha: { rotulo: S + ' · motor elétrico' } };
   }
   const num0 = (x) => (typeof x === 'number' ? x : 0);
+  // quantidade digitada no escopo pode ficar como texto ("1", "2,5")
+  const qtdNum = (x) => (typeof x === 'number' ? x : Number(String(x ?? '').trim().replace(/\./g, '').replace(',', '.')) || 0);
   function primeiraSemPreco(S) { for (let r = 34; r <= 112; r++) if (/sem custo|sem o preço/.test(txt(S, 'L' + r))) return r; return 0; }
   // o que as regras de configuração enxergam de um item: campos de escolha e as descrições de todos os componentes
   function itemRegras(S) {
@@ -801,6 +804,7 @@
     const b32 = txt(S, 'B32');
     if (/SEM VAZÃO NOMINAL/.test(b32)) add('warn', 'Sem vazão nominal: válvula de alívio, cone, medidor e barriletes não entram. Informe a vazão.', { lb: 'Informar a vazão', act: 'foco', data: 'G17' });
     if (/jockey e nenhum/.test(b32)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.', { lb: 'Escolher a jockey', act: 'foco', data: 'J19' });
+    for (const c of Object.keys(especDetecta(S))) { const f = especFaltam(S, c); if (f.length) add('warn', ESPEC_FAM[c].tit + ' sem especificação: falta ' + f.join(', ') + '. Sem isso a fábrica não sabe o que fazer e a folha de dados sai incompleta.', { lb: 'Especificar', act: 'esp', data: c }); }
     // regras de configuração da Engenharia (Cadastros → Engenharia → Regras)
     try { for (const x of RG.avaliar(itemRegras(S))) { add(x.sev === 'imped' ? 'bad' : x.sev === 'aviso' ? 'warn' : 'info', x.msg); const a = out.find((y) => y.msg === x.msg); if (a) a.regra = true; } } catch (e) { /* regra malformada não derruba a tela */ }
     const m = /(\d+) LINHA\(S\) ALÉM DA 30ª/.exec(b32); if (m) add('info', `${m[1]} componente(s) além da 30ª linha da planilha: já estão no custo.`);
@@ -880,6 +884,8 @@
         for (let k = 0; k < 8; k++) { const m = val(S, 'J15'); if (typeof m !== 'number' || m >= mn - 5e-4) break; alvo = Math.min(0.9, alvo + (mn - m) + 1e-4); setq('L17', alvo); }
         listCache = new Map(); dirty = true; persist(); render(); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': preço ajustado à margem mínima de ' + pct(mn), mudancas: [{ campo: 'Modo de preço', de: null, para: 'MARGEM ALVO' }, { campo: 'Margem alvo', de: null, para: alvo }, { campo: 'Margem final', de: null, para: val(S, 'J15') }] }); toast('Preço ajustado à margem mínima'); return; }
       if (a.act === 'desconto') { const d0 = val(S, 'C8'); commit(S, 'C8', null, true); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': desconto retirado', mudancas: [{ campo: 'Desconto', de: d0, para: null }] }); toast('Desconto retirado'); return; }
+      if (a.act === 'esp') { ui.item = i; ui.itemFull = false; if (ui.view !== 'item') setView('item');
+        setTimeout(() => { const el = document.getElementById('esp_' + S.replace(/\W/g, '') + '_' + a.data); if (!el) return; el.scrollIntoView({ block: 'start' }); const vazio = [...el.querySelectorAll('[data-esp]')].find((x) => !x.value.trim()); if (vazio) vazio.focus(); }, 60); return; }
       if (a.act === 'foco' || a.act === 'abrir') { ui.item = i; ui.itemFull = false; if (ui.view !== 'item') setView('item');
         setTimeout(() => { if (a.act === 'abrir') { const d = document.querySelector(`details[data-keep="${a.data}"]`); if (d) { d.open = true; d.scrollIntoView({ block: 'start' }); } return; }
           const el = document.getElementById(id(S, a.data)); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } else toast('Escolha a família e o equipamento primeiro'); }, 60); return; }
@@ -1149,6 +1155,64 @@
   function pcSet(k, v) { const pc = Object.assign({}, pcGet()); if (v === undefined) delete pc[k]; else pc[k] = v; state.propCom = pc; dirty = true; persist(); atualizaSaveSt(); }
   // folhas de dados (bomba e motor) que a pessoa conferiu no item: só os campos marcados vão para a proposta
   const fdDoItem = (S) => { const f = (pcGet().fd || {})[S] || {}; const sel = (x) => ((x && x.campos) || []).filter((c) => c.on !== false && c.v).map((c) => [c.k, c.v]); return { bomba: sel(f.bomba), motor: sel(f.motor) }; };
+  // especificação pedida por componentes que não se descrevem sozinhos (pintura especial, testes e ensaios, documentos e desenhos):
+  // quando o item tem um deles, abre os campos; o essencial vazio gera alerta e o que for preenchido vai para a folha de dados
+  const ESPEC_FAM = {
+    '35': { k: 'pintura', tit: 'Pintura especial', re: /PINTURA ESPECIAL/, campos: [
+      ['norma', 'pNorma', 'Especificação ou padrão a seguir', 'ex.: Petrobras N-1731 · especificação do cliente ET-0000', 1],
+      ['preparo', 'pPreparo', 'Preparação de superfície', 'ex.: jateamento abrasivo Sa 2½ (ISO 8501-1)'],
+      ['sistema', 'pSistema', 'Esquema de pintura (fundo, intermediária, acabamento)', 'ex.: fundo epóxi rico em zinco + intermediária epóxi + acabamento poliuretano', 0, 1],
+      ['acabamento', 'pAcab', 'Pintura final (acabamento)', 'ex.: poliuretano alifático brilhante', 1],
+      ['cor', 'pCor', 'Cor final', 'ex.: vermelho segurança RAL 3000 ou Munsell 5R 4/14', 1],
+      ['espessura', 'pEsp', 'Espessura total de película seca', 'ex.: 250 µm'],
+      ['obs', 'obs', 'Observações', 'ex.: motor e painel na cor original do fabricante', 0, 1]] },
+    '46': { k: 'testes', tit: 'Testes e ensaios', re: /\bTESTE\b|ENSAIO|TESTEMUNHAD/, campos: [
+      ['quais', 'tQuais', 'Testes e ensaios incluídos', 'ex.: desempenho em fábrica com levantamento de curva, hidrostático', 1, 1],
+      ['norma', 'tNorma', 'Norma ou procedimento', 'ex.: NFPA 20 · procedimento do cliente'],
+      ['testemunho', 'tTest', 'Testemunho do cliente', 'ex.: testemunhado pelo cliente, com aviso de 10 dias'],
+      ['entrega', 'tEntrega', 'O que é entregue', 'ex.: laudo com a curva levantada e certificados dos instrumentos'],
+      ['obs', 'obs', 'Observações', '', 0, 1]] },
+    '47': { k: 'documentos', tit: 'Documentos e desenhos', re: /DATA ?BOOK|DESENHO|DOCUMENTA/, campos: [
+      ['quais', 'dQuais', 'Documentos e desenhos incluídos', 'ex.: desenho dimensional, arranjo geral, diagrama elétrico, data book', 1, 1],
+      ['aprovacao', 'dAprov', 'Aprovação do cliente', 'ex.: desenhos para aprovação em até 15 dias após o pedido'],
+      ['formato', 'dFormato', 'Idioma e formato', 'ex.: português · PDF e DWG'],
+      ['obs', 'obs', 'Observações', '', 0, 1]] },
+  };
+  // componentes do item (montagem e escopo, com quantidade) que pedem especificação; teste e data book criados antes
+  // das famílias 46 e 47 (em mão de obra ou outros) também contam
+  function especDetecta(S) {
+    const out = {};
+    const linhas = []; for (let k = 34; k <= 63; k++) linhas.push(k); for (let k = 68; k <= 112; k++) linhas.push(k);
+    for (const k of linhas) {
+      const d = txt(S, 'D' + k); const q = qtdNum(val(S, 'F' + k)); if (!d || !(q > 0)) continue;
+      const fam = String(txt(S, 'U' + k) || txt(S, 'C' + k) || ''); const cod = /^\d\d\./.test(fam) ? fam.slice(0, 2) : '';
+      const c = ESPEC_FAM[cod] ? cod : Object.keys(ESPEC_FAM).find((x) => (!cod || cod === '34' || cod === '41') && ESPEC_FAM[x].re.test(upNoAc(d)));
+      if (!c) continue; (out[c] = out[c] || { qtd: 0, descs: [] }).qtd += q; if (!out[c].descs.includes(d)) out[c].descs.push(d);
+    }
+    return out;
+  }
+  const especSalva = (S) => ((pcGet().espec || {})[S]) || {};
+  const especFaltam = (S, c) => { const v = especSalva(S)[c] || {}; return ESPEC_FAM[c].campos.filter((x) => x[4] && !String(v[x[0]] || '').trim()).map((x) => x[2].toLowerCase()); };
+  // o que vai para a folha de dados da proposta (só os campos preenchidos)
+  function especDoItem(S) {
+    return Object.entries(especDetecta(S)).map(([c, x]) => { const v = especSalva(S)[c] || {}; const E = ESPEC_FAM[c];
+      return { qtd: x.qtd, titulo: '@' + E.k, linhas: [['descricao', x.descs.join(' · ')]].concat(E.campos.filter((f) => String(v[f[0]] || '').trim()).map((f) => [f[1], String(v[f[0]]).trim()])) }; });
+  }
+  function espItemCard(S) {
+    const det = especDetecta(S); const cs = Object.keys(det); if (!cs.length) return '';
+    const ro = state.verRev ? ' disabled' : ''; const sv = especSalva(S); const sid = S.replace(/\W/g, '');
+    return cs.map((c) => { const E = ESPEC_FAM[c]; const v = sv[c] || {}; const falta = especFaltam(S, c);
+      return `<section class="card" id="esp_${sid}_${c}"><h2>${esc(E.tit)}: especificação <span class="sub">${esc(det[c].descs.join(' · '))}</span>${falta.length ? ' <span class="pill warn">falta ' + esc(falta.join(', ')) + '</span>' : ' <span class="pill ok">especificada</span>'}</h2>
+        <p class="sub" style="margin:0 0 6px">Aparece porque o item tem ${esc(E.tit.toLowerCase())}. O que for preenchido vai para a folha de dados da proposta e fica salvo com ela; os exemplos em cinza são só referência e não entram no documento. <b class="req">*</b> essencial: enquanto faltar, o item fica com alerta.</p>
+        <div class="fields">${E.campos.map(([k, , lb, ph, obr, area]) => { const idf = `espf_${sid}_${c}_${k}`; const lab = `<label for="${idf}">${esc(lb)}${obr ? ' <b class="req" title="essencial">*</b>' : ''}</label>`;
+          return area ? `<div class="f spanall">${lab}<textarea id="${idf}" data-esp="${esc(S)}|${c}|${k}" rows="2" placeholder="${esc(ph)}"${ro}>${esc(v[k] || '')}</textarea></div>` : `<div class="f span2">${lab}<input id="${idf}" data-esp="${esc(S)}|${c}|${k}" value="${esc(v[k] || '')}" placeholder="${esc(ph)}"${ro}></div>`; }).join('')}</div></section>`; }).join('');
+  }
+  document.addEventListener('change', (e) => {
+    const t = e.target; if (!t.dataset || !t.dataset.esp || state.verRev) return;
+    const [S, c, k] = t.dataset.esp.split('|'); const all = JSON.parse(JSON.stringify(pcGet().espec || {})); const it = all[S] = all[S] || {}; const g = it[c] = it[c] || {};
+    const v = t.value.trim(); if (v) g[k] = v; else delete g[k]; if (!Object.keys(g).length) delete it[c]; if (!Object.keys(it).length) delete all[S];
+    pcSet('espec', Object.keys(all).length ? all : undefined); render();
+  });
   function propostaDados() {
     if (isSpv()) return SPV.propostaDados(state.spv);
     if (isFacts()) return FX.propostaDados(state.facts);
@@ -1162,7 +1226,7 @@
       const comps = [], adic = [];
       const linhas = []; for (let k = 34; k <= 63; k++) linhas.push(k); for (let k = 68; k <= 112; k++) linhas.push(k);
       for (const k of linhas) {
-        const d = txt(S, 'D' + k); const q = val(S, 'F' + k); if (!d || !(typeof q === 'number' && q > 0)) continue;
+        const d = txt(S, 'D' + k); const q = qtdNum(val(S, 'F' + k)); if (!d || !(q > 0)) continue;
         const fam = String(txt(S, 'U' + k) || txt(S, 'C' + k) || ''); const cod = /^\d\d\./.test(fam) ? fam.slice(0, 2) : '';
         if (FD_FORA.has(cod)) continue;
         const custo = val(S, 'H' + k);
@@ -1178,7 +1242,7 @@
       const condicao = [...new Set(bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => nBR(b.vz) + ' m³/h x ' + nBR(b.pr) + ' mca'))].join(' · ');
       const acion = { DIESEL: '#diesel', ELETRICA: '#eletrica', ELETRICO: '#eletrica', JOCKEY: '#jockeyA' };
       itens.push({ key: S, codigo: (pcGet().codigos || {})[S] || '', qtd: num0(val(P, 'F' + r)) || 1, un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
-        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S),
+        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S),
         folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ n: k + 1, acion: acion[b.ac] || b.ac.toLowerCase(), cfg: b.cfg ? TIPO_BOMBA[upNoAc(b.cfg)] || b.cfg.toLowerCase() : '',
           dados: [['modelo', b.mod], ['vazaoNom', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['vazaoProj', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['pressao', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['rotacao', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['potencia', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
     });
@@ -1210,7 +1274,13 @@
     const has = (k) => Object.prototype.hasOwnProperty.call(pc, k);
     const reset = (k) => (has(k) ? ` <button type="button" class="linkbtn" data-pcreset="${k}">voltar ao padrão</button>` : '');
     const seg = (nome, ops, cur) => `<div class="seg" role="radiogroup">${ops.map(([k, lb]) => `<label class="${k === cur ? 'on' : ''}"><input type="radio" name="pc_${nome}" data-pcopt="${nome}" value="${k}"${k === cur ? ' checked' : ''}${ro}>${esc(lb)}</label>`).join('')}</div>`;
-    const moeda = pc.moeda || {}; const usd = moeda.cod === 'USD';
+    const moeda = pc.moeda || {}; const usd = moeda.cod === 'USD'; const taxa = Number(moeda.taxa) || cambioPadrao();
+    // o card mostra o que vai no PDF: valores na moeda escolhida (no formato do idioma) e textos já traduzidos, com o original embaixo
+    const trd = ((pc.trad || {})[lang]) || {}; const tv = (v) => (lang === 'pt' || !v ? v : trd[v] || v);
+    const nfL = new Intl.NumberFormat({ pt: 'pt-BR', en: 'en-US', es: 'es-ES' }[lang] || 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const din = (v) => (usd && taxa > 0 ? 'US$ ' + nfL.format((Number(v) || 0) / taxa) : usd ? 'US$ —' : 'R$ ' + nfL.format(Number(v) || 0));
+    const faltaTr = lang === 'pt' ? 0 : PRP.dinamicos(D, pc).filter((x) => !trd[x]).length;
+    const dupla = (v) => { const t = tv(v); return t && t !== v ? `${esc(t)}<br><small class="sub">${esc(v)}</small>` : t ? esc(t) : '<span class="sub">—</span>'; };
     const fab = Number(E.prazoFab) || 0, ent = Number(E.prazoEnt) || 0;
     const prazo = [fab ? 'fabricação ' + fab + ' dias' : '', ent ? 'entrega ' + ent + ' dias' : '', fab || ent ? 'total ' + (fab + ent) + ' dias' : '', E.prazoTexto].filter(Boolean).join(' · ');
     const kvs = [['Cliente (topo das páginas)', E.cliente], ['Razão social', E.razao], ['CNPJ', E.cnpj], ['Aos cuidados de', E.aosCuidados], ['Projeto/Obra', E.obra], ['Cidade da obra', E.cidade], ['Número e revisão', (D.numero || '—') + ' · rev. ' + (D.rev ?? '')], ['Data', PRP.dataBR(D.data)], ['Validade', PRP.dataBR(D.validade)], ['Condição de pagamento', E.pagamento], ['Frete', E.frete], ['Prazo', prazo]];
@@ -1231,13 +1301,13 @@
         ${usd ? `<div class="f"><label for="pc_taxa">R$ por US$ 1,00</label><input id="pc_taxa" data-pcmoeda="taxa" inputmode="decimal" value="${esc(moeda.taxa ? NF[4].format(moeda.taxa) : '')}" placeholder="${esc(cambioPadrao() ? NF[4].format(cambioPadrao()) : '')}"${ro}><small class="sub">vazio = câmbio do cadastro (${esc(cambioPadrao() ? NF[4].format(cambioPadrao()) : 'não definido')})</small></div><div class="f"><label for="pc_taxad">Data da taxa</label><input id="pc_taxad" type="date" data-pcmoeda="data" value="${esc(moeda.data || hojeISO())}"${ro}></div>` : ''}
       </div>
       ${faltam.length ? `<div class="banner warn" style="margin:8px 0">Falta preencher: ${esc(faltam.join(', '))}. ${seq ? 'Preencha em Dados gerais.' : 'Preencha nos dados da proposta, acima.'}</div>` : ''}
-      <div class="docbar" style="margin:8px 0 4px"><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button><span class="sub">${D.itens.length} item(ns) · total ${esc(brl(D.total))} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
-      ${lang !== 'pt' ? `<p class="sub" style="margin:0 0 6px">Textos padrão e rótulos saem traduzidos com o modelo. Descrições, condição de pagamento, frete e textos ajustados nesta proposta são traduzidos automaticamente ao gerar (quando a tradução automática está disponível) e ficam para revisão abaixo.</p>` : ''}
+      <div class="docbar" style="margin:8px 0 4px"><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button><span class="sub">${D.itens.length} item(ns) · total ${esc(din(D.total))}${usd && taxa > 0 ? ' (R$ ' + esc(nfL.format(D.total || 0)) + ' a ' + esc(NF[4].format(taxa)) + ')' : ''} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
+      ${lang !== 'pt' ? `<div class="banner ${tradEm === lang ? 'info' : faltaTr ? 'warn' : 'ok'}" style="margin:0 0 6px">${tradEm === lang ? 'Traduzindo descrições e condições desta proposta…' : faltaTr ? `${faltaTr} texto(s) desta proposta ainda em português. ${ro ? '' : '<button class="btn sm" data-pctraduz data-ico="languages">Traduzir agora</button>'}` : 'Textos desta proposta traduzidos: confira abaixo (original em cinza) e, se precisar, ajuste em "Traduções desta proposta", mais abaixo.'} Textos padrão e rótulos saem traduzidos com o modelo.</div>` : ''}
       <details class="sub2"${openSet.pc_cab === false ? '' : ' open'} data-keep="pc_cab"><summary>Cabeçalho e condições <span class="sub">vêm de ${seq ? 'Dados gerais e da formação' : 'dados da proposta'}</span></summary>
-        <div class="kv pcro">${kvs.map(([lb, v]) => `<div>${esc(lb)}</div><div>${v ? esc(v) : '<span class="sub">—</span>'}</div>`).join('')}</div>
+        <div class="kv pcro">${kvs.map(([lb, v]) => `<div>${esc(lb)}</div><div>${['Projeto/Obra', 'Condição de pagamento', 'Frete'].includes(lb) ? dupla(v) : v ? esc(v) : '<span class="sub">—</span>'}</div>`).join('')}</div>
         <div class="docbar" style="margin-top:8px">${ir}</div></details>
       <details class="sub2"${keep('pc_itens')}><summary>Itens <span class="sub">${seq ? 'código, folha de dados e curva ficam em cada item' : 'vêm da proposta'}</span></summary>
-        <div class="tw"><table class="t"><thead><tr><th>#</th><th>Código</th><th>Descrição breve</th><th class="num">Qtd</th><th class="num">Total</th>${seq ? '<th>Folha de dados</th><th></th>' : ''}</tr></thead><tbody>${D.itens.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.codigo || '—')}</td><td>${esc(it.breve || '')}</td><td class="num">${esc(nBR(it.qtd))}</td><td class="num">${esc(brl(it.total))}</td>${seq ? `<td class="sub">${fdSt(it.key)}</td><td><button class="btn sm" data-goitem="${ITEMS.indexOf(it.key)}">Abrir item</button></td>` : ''}</tr>`).join('')}</tbody></table></div></details>
+        <div class="tw"><table class="t"><thead><tr><th>#</th><th>Código</th><th>Descrição breve</th>${lang !== 'pt' ? `<th>Descrição (${esc(LANG_LB[lang].toLowerCase())})</th>` : ''}<th class="num">Qtd</th><th class="num">Total${usd ? ' (US$)' : ''}</th>${seq ? '<th>Folha de dados</th><th></th>' : ''}</tr></thead><tbody>${D.itens.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.codigo || '—')}</td><td>${esc(it.breve || '')}</td>${lang !== 'pt' ? `<td>${dupla(seq ? it.completa : it.breve)}</td>` : ''}<td class="num">${esc(nBR(it.qtd))}</td><td class="num">${esc(din(it.total))}</td>${seq ? `<td class="sub">${fdSt(it.key)}</td><td><button class="btn sm" data-goitem="${ITEMS.indexOf(it.key)}">Abrir item</button></td>` : ''}</tr>`).join('')}</tbody></table></div></details>
       <details class="sub2"${keep('pc_notas')}><summary>Textos desta proposta <span class="sub">notas, desvios e exclusões${seq ? '' : ' e observações'}</span></summary><div class="fields">
         ${area('notas', 'Notas', 'Uma por linha. O padrão já considera o que a proposta tem (diesel, elétrica, start-up, norma).' + (lang !== 'pt' ? ' Escreva em português: o texto ajustado é traduzido ao gerar.' : ''))}${area('desvios', 'Desvios')}${area('exclusoes', 'Exclusões')}${seq ? '' : area('observacoes', 'Observações')}</div>
         <div class="docbar"><button class="btn sm" data-pcmodelo data-ico="settings-2">Textos padrão, estrutura e imagens: Modelo da proposta</button></div></details>
@@ -1314,6 +1384,16 @@
     try { const file = await fdArquivo(S, k); if (!file) { toast('Não encontrei o arquivo.'); return; } const campos = await fdLer(S, k, file, !!b.dataset.fdclaude); x.campos = campos; x.lido = true; fdPut(S, k, x); render(); toast(campos.length ? campos.length + ' campo(s) lidos: confira' : 'Nenhum campo reconhecido'); } catch (er) { toast(errMsg(er)); }
   });
   // ---------- tradução dos textos da formação (descrições, pagamento, frete, textos ajustados) ----------
+  // tradução assim que o idioma muda: o card já mostra o resultado, e o PDF reaproveita o que ficou guardado
+  let tradEm = null;
+  async function traduzirAgora() {
+    const lang = pcGet().idioma || 'pt'; if (lang === 'pt' || tradEm || state.verRev) return;
+    let D; try { D = propostaDados(); } catch (er) { return; }
+    const tr0 = ((pcGet().trad || {})[lang]) || {}; if (!PRP.dinamicos(D, pcGet()).some((x) => !tr0[x])) return;
+    tradEm = lang; render();
+    try { const { aviso } = await tradutor(D, pcGet(), lang); if (aviso) toast(aviso); } catch (er) { toast(errMsg(er)); } finally { tradEm = null; render(); }
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-pctraduz]')) traduzirAgora(); });
   async function tradutor(D, pc, lang) {
     const lista = PRP.dinamicos(D, pc); const cache = Object.assign({}, ((pc.trad || {})[lang]) || {}); const falta = lista.filter((s) => !cache[s]);
     let aviso = '';
@@ -1357,7 +1437,7 @@
   document.addEventListener('change', (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return;
     if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } if (v === '' && ['clienteCurto', 'aosCuidados', 'cidade', 'prazoFab', 'prazoEnt', 'prazoTexto', 'observacoes'].includes(k)) v = undefined; pcSet(k, v); if (t.closest('#pcCard')) render(); return; }
-    if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : 'idioma', t.value); render(); return; }
+    if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : 'idioma', t.value); render(); if (k === 'idioma') traduzirAgora(); return; }
     if (t.dataset.pcmoeda) { const m = Object.assign({}, pcGet().moeda || {}); if (t.dataset.pcmoeda === 'taxa') { const n = parseInput(t.value, 'num'); m.taxa = typeof n === 'number' && n > 0 ? n : undefined; } else m.data = t.value; pcSet('moeda', m); render(); return; }
     if (t.dataset.pccod !== undefined) { pcSet('codigos', Object.assign({}, pcGet().codigos || {}, { [t.dataset.pccod]: t.value.trim() })); return; }
     if (t.dataset.pcni !== undefined) { pcSet('notasItem', Object.assign({}, pcGet().notasItem || {}, { [t.dataset.pcni]: t.value.trim() })); return; }
@@ -1370,7 +1450,7 @@
     const sr = e.target.closest('[data-pcsecreset]'); if (sr) { const sec = Object.assign({}, pcGet().secoes || {}); delete sec[sr.dataset.pcsecreset]; pcSet('secoes', sec); render(); return; }
     const tl = e.target.closest('[data-pctrlimpa]'); if (tl) { const tr = Object.assign({}, pcGet().trad || {}); delete tr[tl.dataset.pctrlimpa]; pcSet('trad', tr); render(); return; }
     if (e.target.closest('[data-pctopo]')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-    if (e.target.closest('[data-pcmodelo]')) { ui.cad = 'propmodelo'; setView('cadastro'); return; }
+    if (e.target.closest('[data-pcmodelo]')) { ui.cad = 'propmodelo'; setView('config'); return; }
     if (!e.target.closest('[data-pcgerar]')) return;
     try { await gerarProposta(); } catch (er) { toast(errMsg(er)); }
   });
@@ -1509,8 +1589,9 @@
         <div class="imggrid">${PRP.SLOTS.map(([k, lb]) => { const c = (M.imagens || {})[k] || {}; return `<div class="imgcard"><div class="lbl">${esc(lb)}${c.docId ? ' <span class="pill warn">trocada</span>' : ''}</div>
           <div class="imgprev"><img data-pmthumb="${k}" alt="${esc(lb)}" src="${c.docId ? '' : esc(AS.img[k] || '')}"></div>
           <div class="fields"><div class="f"><label for="pmi_${k}_larg">Tamanho (%)</label><input id="pmi_${k}_larg" data-pmimg="${k}|larg" inputmode="numeric" value="${esc(c.larg || 100)}"${ro}></div>
-            <div class="f"><label for="pmi_${k}_al">Alinhamento</label><select id="pmi_${k}_al" data-pmimg="${k}|al"${ro}>${[['', 'como no modelo'], ['e', 'à esquerda'], ['c', 'centralizada'], ['d', 'à direita']].map(([v, t]) => `<option value="${v}"${(c.al || '') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
-            <div class="f"><label for="pmi_${k}_dy">Deslocar (mm)</label><input id="pmi_${k}_dy" data-pmimg="${k}|dy" inputmode="decimal" value="${esc(c.dy || 0)}"${ro}><small class="sub">+ desce, − sobe</small></div></div>
+            <div class="f"><label for="pmi_${k}_dy">Deslocar (mm)</label><input id="pmi_${k}_dy" data-pmimg="${k}|dy" inputmode="decimal" value="${esc(c.dy || 0)}" title="+ desce, − sobe"${ro}></div>
+            <div class="f spanall"><label for="pmi_${k}_al">Alinhamento</label><select id="pmi_${k}_al" data-pmimg="${k}|al"${ro}>${[['', 'como no modelo'], ['e', 'à esquerda'], ['c', 'centralizada'], ['d', 'à direita']].map(([v, t]) => `<option value="${v}"${(c.al || '') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div></div>
+          <small class="sub">Deslocar: + desce, − sobe</small>
           ${ed ? `<div class="docbar"><label class="btn sm" for="pmup_${k}">Trocar imagem</label><input id="pmup_${k}" type="file" accept="image/png,image/jpeg" data-pmup="${k}" hidden>${c.docId || c.larg || c.al || c.dy ? `<button class="btn sm" data-pmimgreset="${k}">Voltar à original</button>` : ''}</div>` : ''}</div>`; }).join('')}</div></details>
       <details class="sub2"${keep('pm_ct')}><summary>Contatos <span class="sub">${cts.length}</span></summary>
         <div class="tw"><table class="t"><thead><tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th>E-mail</th><th>Sempre</th><th></th></tr></thead><tbody>${cts.map((c, i) => `<tr>${['nome', 'cargo', 'tel', 'email'].map((f) => `<td class="in"><input data-pmct="${i}|${f}" value="${esc(c[f] || '')}" aria-label="${f} do contato ${i + 1}"${ro}></td>`).join('')}<td><input type="checkbox" data-pmct="${i}|sempre"${c.sempre ? ' checked' : ''} aria-label="Sempre na proposta"${ro}></td><td>${ed ? `<button class="btn sm" data-pmctdel="${i}" aria-label="Tirar ${esc(c.nome || 'contato')}">Tirar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
@@ -1969,6 +2050,7 @@
         ${sets.join('')}
       </section>`}
       ${famChosen(S, c) ? optSection(S, c) : ''}
+      ${espItemCard(S)}
       ${!famChosen(S, c) ? '' : `
       <details class="card"${keep('cond')}><summary>Condições deste item <span class="sub">${esc(cond)}</span></summary>
         <div class="fields">${f('C8', 'Desconto de negociação')}${fs('L17', 'Margem alvo')}${fs('J17', 'Modo de preço')}${fs('K7', 'Folga de negociação')}${f('C12', 'Start-up — distância (km)')}${f('F12', 'Start-up — diárias')}${f('I12', 'Start-up — valor fechado')}</div></details>
@@ -2183,14 +2265,16 @@
     ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado, FCI e os cenários da reforma tributária', [['fiscal', 'Impostos e NCM'], ['cenarios', 'Cenários tributários (reforma)']]],
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
-    ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão, o padrão de descrição dos insumos e o modelo da proposta técnica e comercial', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições'], ['campos', 'Campos por família'], ['sinonimos', 'Sinônimos e abreviações'], ['propmodelo', 'Modelo da proposta']]],
-    ['sistema', 'Sistema', 'Histórico, responsáveis e e-mails, backup e restauração e planilha (avançado)', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
+    ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão, e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições'], ['campos', 'Campos por família'], ['sinonimos', 'Sinônimos e abreviações']]],
+    ['sistema', 'Sistema', 'Histórico, modelo da proposta, responsáveis e e-mails, backup e restauração e planilha (avançado)', [['historico', 'Histórico'], ['propmodelo', 'Modelo da proposta'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
   const areaOfTab = (t) => (AREAS.find((a) => a[3].some((x) => x[0] === t)) || AREAS[0])[0];
   const areaName = (k) => (AREAS.find((a) => a[0] === k) || PAPEIS_AP.find((a) => a[0] === k) || [0, k])[1];
-  const canEd = () => REG.areaOk(areaOfTab(ui.cad));
+  // o modelo da proposta fica em Configurações, mas quem edita continua sendo o responsável do Cadastro geral
+  const PERM_TAB = { propmodelo: 'geral' };
+  const canEd = () => REG.areaOk(PERM_TAB[ui.cad] || areaOfTab(ui.cad));
   const fmtAt = (s) => { try { return new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return s; } };
   const fmtVal = (v) => typeof v === 'number' ? NF[2].format(v) : v === null || v === undefined || v === '' ? '—' : String(v);
   const who = (id) => id ? `<span data-uid="${esc(id)}">…</span>` : (REG.mode === 'shared' ? 'alguém da equipe' : 'neste navegador');
@@ -2222,7 +2306,7 @@
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
-        <div>${cfg ? '<h1>Configurações</h1><div class="sub">Histórico de alterações, perfis e responsáveis, e-mails e logo, backup e restauração e a planilha completa (avançado). Itens para administradores.</div>' : `<h1>Cadastros</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div>`}</div>
+        <div>${cfg ? '<h1>Configurações</h1><div class="sub">Histórico de alterações, modelo da proposta, perfis e responsáveis, e-mails e logo, backup e restauração e a planilha completa (avançado). Itens para administradores; o modelo da proposta é editado por quem cuida do Cadastro geral.</div>' : `<h1>Cadastros</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div>`}</div>
         ${cadStatus()}
       </div>
       ${cfg ? '' : `<div class="areatabs" role="tablist">${AREAS.filter((a) => a[0] !== 'sistema').map(([k, lb, d, tabs]) => `<button role="tab" data-cad="${tabs[0][0]}" aria-selected="${k === area[0]}" title="${esc(d)}" data-ico="${AREA_ICO[k] || 'database'}">${lb}${mine && (mine.includes(k) || REG.isOwner) ? ' <span class="mydot" title="sua área"></span>' : ''}</button>`).join('')}</div>`}
@@ -3246,8 +3330,9 @@
     { id: 'nivel', t: 'Opcional: sensor de nível do tanque (alto e baixo)', d: 'Pedido comum em especificação de cliente. Insumo já cadastrado em 45.ACESSORIOSTANQUE.', add: { rot: 'Sensor de nível do tanque', estr: 'TODOS', acion: 'DIESEL', bloco: 'TERCEIROS', fam: '45.ACESSORIOSTANQUE', tipo: 'FIXO', campo: 'SENSOR DE NIVEL ALTO E BAIXO TORNATECH 1 1/2" - GSEFPI0637', qtd: 'N', regra: 'OPCIONAL' } },
     { id: 'manta', t: 'Opcional: manta térmica do escapamento', d: 'Proteção térmica do escape. Insumo já cadastrado em 41.OUTROS (motores de 5 e 6 cilindros).', add: { rot: 'Manta térmica do escapamento', estr: 'TODOS', acion: 'DIESEL', bloco: 'TERCEIROS', fam: '41.OUTROS', tipo: 'FIXO', campo: 'MANTA TÉRMICA MOTORES 5 E 6 CILINDROS', qtd: 'N', regra: 'OPCIONAL' } },
     { id: 'pintura', t: 'Opcional: pintura especial (Petrobras N-1731)', d: 'Para clientes de óleo e gás. Insumo já cadastrado em 35.PINTURAESPECIAL.', add: { rot: 'Pintura especial', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '35.PINTURAESPECIAL', tipo: 'FIXO', campo: 'PINTURA ESPECIAL PADRÃO PETROBRÁS N-1731', qtd: 1, regra: 'OPCIONAL' } },
-    { id: 'teste', t: 'Opcional: teste de desempenho em fábrica com laudo', d: 'Cria o insumo "TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO" em 34.MAODEOBRA, sem preço: defina o valor no cadastro antes de usar.', add: { rot: 'Teste de desempenho em fábrica', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '34.MAODEOBRA', tipo: 'FIXO', campo: 'TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO', qtd: 'N', regra: 'OPCIONAL' }, novo: { fam: '34.MAODEOBRA', produto: 'TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO', origem: 'NAC' } },
-    { id: 'databook', t: 'Opcional: data book (manual, certificados e desenhos)', d: 'Cria o insumo "DATA BOOK TÉCNICO" em 41.OUTROS, sem preço: defina o valor no cadastro antes de usar.', add: { rot: 'Data book técnico', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '41.OUTROS', tipo: 'FIXO', campo: 'DATA BOOK TÉCNICO', qtd: 1, regra: 'OPCIONAL' }, novo: { fam: '41.OUTROS', produto: 'DATA BOOK TÉCNICO', origem: 'NAC' } },
+    { id: 'teste', t: 'Opcional: teste de desempenho em fábrica com laudo', d: 'Cria o insumo "TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO" em 46.TESTESENSAIOS, sem preço: defina o valor no cadastro antes de usar.', add: { rot: 'Teste de desempenho em fábrica', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '46.TESTESENSAIOS', tipo: 'FIXO', campo: 'TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO', qtd: 'N', regra: 'OPCIONAL' }, novo: { fam: '46.TESTESENSAIOS', produto: 'TESTE DE DESEMPENHO EM FÁBRICA COM LAUDO', origem: 'NAC' } },
+    { id: 'databook', t: 'Opcional: data book (manual, certificados e desenhos)', d: 'Cria o insumo "DATA BOOK TÉCNICO" em 47.DOCUMENTOSDESENHOS, sem preço: defina o valor no cadastro antes de usar.', add: { rot: 'Data book técnico', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '47.DOCUMENTOSDESENHOS', tipo: 'FIXO', campo: 'DATA BOOK TÉCNICO', qtd: 1, regra: 'OPCIONAL' }, novo: { fam: '47.DOCUMENTOSDESENHOS', produto: 'DATA BOOK TÉCNICO', origem: 'NAC' } },
+    { id: 'desenhos', t: 'Opcional: desenhos para aprovação do cliente', d: 'Cria o insumo "DESENHOS PARA APROVAÇÃO DO CLIENTE" em 47.DOCUMENTOSDESENHOS, sem preço: defina o valor no cadastro antes de usar.', add: { rot: 'Desenhos para aprovação', estr: 'TODOS', acion: 'TODOS', bloco: 'LS FIRE', fam: '47.DOCUMENTOSDESENHOS', tipo: 'FIXO', campo: 'DESENHOS PARA APROVAÇÃO DO CLIENTE', qtd: 1, regra: 'OPCIONAL' }, novo: { fam: '47.DOCUMENTOSDESENHOS', produto: 'DESENHOS PARA APROVAÇÃO DO CLIENTE', origem: 'NAC' } },
   ];
   const sugFeita = (sg, lines) => sg.ren ? Object.entries(sg.ren).every(([r, n]) => (lines.find((x) => x.r === +r) || {}).rot === n) : lines.some((x) => x.rot === sg.add.rot);
   const recChanges = (r, x) => { const ch = {}; for (const [k, c] of Object.entries(REC_COLS)) ch[c + r] = x[k] === '' || x[k] === undefined ? null : x[k]; return ch; };
@@ -3697,7 +3782,7 @@
     const lines = recLines(); const used = new Set(lines.map((x) => x.r)); const ch = {}; const novos = []; const nomes = [];
     for (const sg of SUGESTOES.filter((s) => ids.includes(s.id))) {
       if (sg.ren) for (const [r, n] of Object.entries(sg.ren)) if (used.has(+r)) ch[REC_COLS.rot + r] = n;
-      if (sg.add) { let r = 92; while (used.has(r) && r <= 151) r++; if (r > 151) break; used.add(r); Object.assign(ch, recChanges(r, sg.add)); }
+      if (sg.add) { let r = 92; while (used.has(r) && r <= 151) r++; if (r > 151) break; used.add(r); const ex = REG.insumos.find((i) => i.produto === sg.add.campo); Object.assign(ch, recChanges(r, ex && ex.fam ? Object.assign({}, sg.add, { fam: ex.fam }) : sg.add)); }
       if (sg.novo && !REG.insumos.some((i) => i.produto === sg.novo.produto)) novos.push(sg.novo);
       nomes.push(sg.t);
     }
@@ -3812,7 +3897,12 @@
     try { await REG.setCells(T.s, ch, T.t + ': linha excluída', baseOf(T.s)); toast('Excluído'); } catch (e) { toast(errMsg(e)); }
   }
   // famílias de insumo: as que têm insumo + as criadas vazias (FAMILIAS no banco de tabelas)
-  const famReg = () => REG.tabelas.FAMILIAS || {};
+  // famílias que já vêm com o app (sem insumo nem preço: o cadastro de Custos cria os insumos); excluir grava vazio por cima
+  const FAM_PADRAO = {
+    46: { nome: 'TESTESENSAIOS', desc: 'Testes e ensaios: desempenho em fábrica, testemunhado, hidrostático, vibração, ruído e laudos' },
+    47: { nome: 'DOCUMENTOSDESENHOS', desc: 'Documentos e desenhos: desenhos para aprovação, dimensional, arranjo, diagramas, data book, memorial e ART' },
+  };
+  const famReg = () => { const out = Object.assign({}, FAM_PADRAO); for (const [k, v] of Object.entries(REG.tabelas.FAMILIAS || {})) { if (v && v.nome) out[k] = v; else delete out[k]; } return out; };
   function famInsumos() {
     const m = new Map();
     for (const x of REG.insumos) { if (!x.fam) continue; const e = m.get(x.fam) || { fam: x.fam, n: 0, semPreco: 0 }; e.n++; if (typeof x.valor !== 'number') e.semPreco++; m.set(x.fam, e); }
@@ -3858,7 +3948,7 @@
           close(); toast(isNew ? 'Família criada: ' + nf : 'Família salva: ' + nf);
         } catch (e) { $('#fmMsg', o).textContent = errMsg(e); }
       };
-      const d = $('#fmDel', o); if (d) d.onclick = async () => { try { await REG.setCells('FAMILIAS', { [code]: null }, 'Família excluída ' + fam, () => null); close(); toast('Família excluída'); } catch (e) { $('#fmMsg', o).textContent = errMsg(e); } };
+      const d = $('#fmDel', o); if (d) d.onclick = async () => { try { await REG.setCells('FAMILIAS', { [code]: null }, 'Família excluída ' + fam, (a) => FAM_PADRAO[a] || null); close(); toast('Família excluída'); } catch (e) { $('#fmMsg', o).textContent = errMsg(e); } };
     });
   }
   function eqModal(r) {

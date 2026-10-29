@@ -38,7 +38,7 @@ module.exports = {
         ['Comparar revisões', 'Selo da revisão → escolha a revisão → **Comparar** (cap. 15)'],
         ['Gerar a proposta (técnica e comercial, comercial ou técnica; PT, EN ou ES; R$ ou US$)', 'Proposta → aba **Documentos** → escolha documento, idioma e moeda → **Gerar proposta (PDF)** (cap. 5)'],
         ['Folha de dados e curva da bomba na proposta', 'Item → **Proposta: código do produto e folha de dados** → solte o PDF (cap. 5)'],
-        ['Mudar estrutura, imagens, textos padrão e contatos da proposta', 'Cadastros → Cadastro geral → **Modelo da proposta** (cap. 5)'],
+        ['Mudar estrutura, imagens, textos padrão e contatos da proposta', 'Configurações → **Modelo da proposta** (cap. 5)'],
         ['Dar baixa (ganha/perdida)', 'Tela Início → próxima etapa da proposta (cap. 14)'],
         ['Lançar custo real', 'Margens → proposta ganha → Custo real (cap. 14)'],
         ['Cadastrar insumo', 'Cadastros → Custos → Insumos e preços → **+ Novo insumo** (cap. 7)'],

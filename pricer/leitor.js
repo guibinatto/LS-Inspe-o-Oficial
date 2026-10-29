@@ -160,6 +160,28 @@
     }
     return out;
   }
+  // texto de todas as páginas com posição (x e y a partir do topo, em pontos) e tamanho da fonte: base para ler
+  // folhas de dados de fabricante em colunas, com faixas de seção
+  async function itensPdf(file, maxPag) {
+    await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const out = [];
+    for (let i = 1; i <= Math.min(pdf.numPages, maxPag || 30); i++) {
+      const pg = await pdf.getPage(i); const vp = pg.getViewport({ scale: 1 }); const tc = await pg.getTextContent();
+      const itens = tc.items.filter((it) => it.str && it.str.trim()).map((it) => ({ x: it.transform[4], y: vp.height - it.transform[5], w: it.width, h: Math.abs(it.transform[3]) || it.height || 8, s: it.str.replace(/\s+/g, ' ').trim() }));
+      out.push({ n: i, w: vp.width, h: vp.height, itens });
+    }
+    return out;
+  }
+  // recorte de uma página (em pontos a partir do topo) como imagem: a curva sem o cabeçalho e a tabela do fabricante
+  async function recorte(file, n, caixa, escala) {
+    await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const pg = await pdf.getPage(Math.min(Math.max(1, n || 1), pdf.numPages));
+    const e = escala || 2.5; const vp = pg.getViewport({ scale: e }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise;
+    const b = caixa || { x: 0, y: 0, w: vp.width / e, h: vp.height / e }; const o = document.createElement('canvas'); o.width = Math.round(b.w * e); o.height = Math.round(b.h * e);
+    const go = o.getContext('2d'); go.fillStyle = '#fff'; go.fillRect(0, 0, o.width, o.height); go.drawImage(c, b.x * e, b.y * e, b.w * e, b.h * e, 0, 0, o.width, o.height);
+    return o.toDataURL('image/jpeg', 0.9);
+  }
   // página de um PDF (ou a própria imagem) como imagem PNG, para pôr a curva da bomba na proposta
   async function paginaImagem(file, n, escala) {
     if (/^image\//.test(file.type || '')) return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res({ url: fr.result, paginas: 1 }); fr.onerror = rej; fr.readAsDataURL(file); });
@@ -169,5 +191,5 @@
     const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise;
     return { url: c.toDataURL('image/jpeg', 0.88), paginas: pdf.numPages };
   }
-  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR, partes, paginaImagem };
+  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR, partes, paginaImagem, itensPdf, recorte };
 })();

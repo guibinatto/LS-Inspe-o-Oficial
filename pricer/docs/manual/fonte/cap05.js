@@ -94,8 +94,8 @@ module.exports = {
         { sel: '#pcCard [data-step="1"]', txt: 'Para mudar, volte a Dados gerais.', pos: 'r' },
         { sel: '#pcCard [data-goitem]', txt: 'Código, folha de dados e curva ficam em cada item.', pos: 'l' },
       ] },
-    { id: '05-10', nome: 'proposta-ptc-modelo', titulo: 'Cadastros → Cadastro geral → Modelo da proposta',
-      prep: async (p, h) => { await p.click('#nav [data-view="cadastro"]'); await h.esperar(300); await p.click('[data-cad="geral"]'); await h.esperar(300); await p.click('[data-cad="propmodelo"]'); await h.esperar(400); await p.evaluate(() => { document.querySelectorAll('#app details').forEach((d) => { d.open = d.dataset.keep === 'pm_estr'; }); }); await h.topo(); },
+    { id: '05-10', nome: 'proposta-ptc-modelo', titulo: 'Configurações → Modelo da proposta',
+      prep: async (p, h) => { await p.click('#nav [data-view="config"]'); await h.esperar(300); await p.click('[data-cad="propmodelo"]'); await h.esperar(400); await p.evaluate(() => { document.querySelectorAll('#app details').forEach((d) => { d.open = d.dataset.keep === 'pm_estr'; }); }); await h.topo(); },
       clip: '#app section.card:has([data-pmlay])', pad: 8, alto: 1100,
       marcas: [
         { sel: '#app section.card:has([data-pmlay]) h2', txt: 'Estrutura, imagens, textos padrão e contatos do PDF de todas as propostas.', pos: 'r' },
@@ -178,7 +178,7 @@ module.exports = {
     ], resultado: 'O PDF é baixado (PTC_, PC_ ou PT_ + número + revisão + idioma/moeda + cliente) e guardado nos documentos da proposta. Na técnica e comercial e na comercial em português e em real, com a proposta salva e sem alterações pendentes, o app confere o PDF com a formação e marca "conferida ✓".', atencao: 'Em inglês e espanhol, os textos padrão saem com a tradução que vem com o app; descrições, pagamento, frete e textos ajustados são traduzidos na hora pelo Claude (quando disponível) e ficam em **Traduções desta proposta** para revisão. Sem a tradução automática, esses textos saem em português. Os termos e condições traduzidos devem ser revisados pelo jurídico.', dica: 'No dólar, a planilha mostra os valores convertidos e uma nota com a taxa e a data; a formação continua em reais.' },
     { t: 'fig', id: '05-11' },
     { t: 'fig', id: '05-10' },
-    { t: 'p', x: 'Em **Cadastros → Cadastro geral → Modelo da proposta** ficam: a **Estrutura do documento** (ordem das seções e o que entra em cada tipo), as **Imagens** (trocar, tamanho, alinhamento e deslocamento de cada imagem), os **Contatos** e os **textos padrão** em português, inglês e espanhol (Somos a LS Fire, notas, comissionamento, prazos, serviços, peças e termos e condições). Texto alterado mostra o selo "alterado" e o link "voltar ao texto original"; se o português mudar e a tradução não, a tradução mostra o aviso "o texto em português mudou: confira esta tradução". Só quem cuida do Cadastro geral altera.' },
+    { t: 'p', x: 'Em **Configurações → Modelo da proposta** ficam: a **Estrutura do documento** (ordem das seções e o que entra em cada tipo), as **Imagens** (trocar, tamanho, alinhamento e deslocamento de cada imagem), os **Contatos** e os **textos padrão** em português, inglês e espanhol (Somos a LS Fire, notas, comissionamento, prazos, serviços, peças e termos e condições). Texto alterado mostra o selo "alterado" e o link "voltar ao texto original"; se o português mudar e a tradução não, a tradução mostra o aviso "o texto em português mudou: confira esta tradução". Só quem cuida do Cadastro geral altera.' },
     { t: 'nv', x: 'O conteúdo do PDF gerado não aparece nas capturas: elas rodam sem internet, e o app precisa baixar a biblioteca do PDF. A geração (três tipos, inglês, espanhol e dólar), a leitura da folha de dados, a curva, a estrutura, a troca de imagem e a conferência automática foram verificadas pelos testes prop_test, prop_spv_test e prop_modelo_test da REV22.' },
 
     { t: 'h', x: 'Conferência do PDF da proposta comercial' },
