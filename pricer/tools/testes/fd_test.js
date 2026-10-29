@@ -23,10 +23,11 @@ const PDF = process.env.FD_PDF; if (!PDF || !fs.existsSync(PDF)) { console.log('
   console.log('3 curva:', await p.$eval('[data-fabcurva="ITEM 01"]', (x) => x.options[x.selectedIndex].text), '| páginas marcadas:', await p.$$eval('[data-fabpag^="ITEM 01|"]', (x) => x.filter((e) => e.checked).map((e) => e.closest('label').innerText.trim()).join(' / ')));
   await p.click('#bSave'); await p.waitForTimeout(600);
   await p.click('[data-view="proposta"]'); await p.click('[data-step="6"]'); await p.waitForTimeout(500);
+  const gera = async (nome) => { const dl = p.waitForEvent('download', { timeout: 60000 }); await p.click('[data-pcgerar]'); const d = await dl; await d.saveAs(__dirname + '/' + nome); await p.waitForTimeout(3000); return d.suggestedFilename(); };
   const opt = async (nome, v) => { await p.click(`#pcCard input[data-pcopt="${nome}"][value="${v}"]`, { force: true }); await p.waitForTimeout(700); };
+  console.log('4a clássico com a curva LS:', await gera('fd_classico.pdf'));
   await opt('estilo', 'fd'); await p.waitForTimeout(800);
   console.log('4 banner:', await p.$eval('#pcCard .banner.ok, #pcCard .banner.info, #pcCard .banner.warn', (x) => x.innerText.replace(/\s+/g, ' ').slice(0, 120)).catch(() => '—'), '| chamadas Claude', await p.evaluate(() => window.__n));
-  const gera = async (nome) => { const dl = p.waitForEvent('download', { timeout: 60000 }); await p.click('[data-pcgerar]'); const d = await dl; await d.saveAs(__dirname + '/' + nome); await p.waitForTimeout(3000); return d.suggestedFilename(); };
   await p.click('#bSave'); await p.waitForTimeout(800); await p.click('[data-view="proposta"]'); await p.click('[data-step="6"]'); await p.waitForTimeout(500);
   console.log('5 pt:', await gera('fd_pt.pdf'));
   await p.click('[data-step="5"]'); await p.waitForTimeout(400); console.log('5b conferência:', await p.$eval('#confCard', (x) => x.innerText.replace(/\s+/g, ' ').slice(0, 300)).catch(() => 'sem cartão')); await p.click('[data-step="6"]'); await p.waitForTimeout(400);

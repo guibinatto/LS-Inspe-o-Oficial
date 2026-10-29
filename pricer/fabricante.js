@@ -26,6 +26,27 @@
     let g = -1, gi = -1; for (let k = 1; k < ts.length; k++) { const d = ts[k].x - (ts[k - 1].x + ts[k - 1].w); if (d > g) { g = d; gi = k; } }
     return g > 12 ? [junta(ts.slice(0, gi)), junta(ts.slice(gi))] : null;
   }
+  // tabela de pontos da curva (Flow | Head | Efficiency | Power | NPSHr), como a da página da curva da Peerless:
+  // cabeçalho com os nomes, linha de unidades e linhas só de números; cada coluna é achada pela posição do nome
+  const COLS = [['q', /^(flow|vaz)/i], ['h', /^(head|altura|tdh)/i], ['eff', /^(eff|rend)/i], ['p', /^(power|pot)/i], ['npsh', /^npsh/i]];
+  const nNum = (t) => { const s = String(t).trim(); if (!/^[-+]?[\d.,]+$/.test(s)) return null; return Number(s.replace(/,/g, '')); };
+  function acharPontos(rows, pag) {
+    for (let i = 0; i < rows.length; i++) {
+      const cab = rows[i].ts; const cols = [];
+      for (const t of cab) { const c = COLS.find(([, re]) => re.test(t.s)); if (c && !cols.some((x) => x.k === c[0])) cols.push({ k: c[0], x: t.x + t.w / 2, u: (t.s.match(/\(([^)]+)\)/) || [])[1] || '' }); }
+      if (!cols.some((c) => c.k === 'q') || !cols.some((c) => c.k === 'h') || cols.length < 3) continue;
+      let j = i + 1;
+      if (rows[j] && rows[j].ts.every((t) => /^\(.+\)$/.test(t.s))) { for (const t of rows[j].ts) { const c = cols.reduce((m, c2) => (Math.abs(c2.x - (t.x + t.w / 2)) < Math.abs(m.x - (t.x + t.w / 2)) ? c2 : m), cols[0]); if (Math.abs(c.x - (t.x + t.w / 2)) < 30) c.u = t.s.slice(1, -1); } j++; }
+      const pts = [];
+      for (; j < rows.length; j++) {
+        const ts = rows[j].ts; if (!ts.every((t) => nNum(t.s) !== null || t.s === '-')) break;
+        const pt = {}; for (const t of ts) { const c = cols.reduce((m, c2) => (Math.abs(c2.x - (t.x + t.w / 2)) < Math.abs(m.x - (t.x + t.w / 2)) ? c2 : m), cols[0]); if (Math.abs(c.x - (t.x + t.w / 2)) < 45) pt[c.k] = nNum(t.s); }
+        if (typeof pt.q === 'number' && typeof pt.h === 'number') pts.push(pt);
+      }
+      if (pts.length >= 4 && pts.every((p, k) => !k || p.q > pts[k - 1].q)) return { pag, unid: Object.fromEntries(cols.map((c) => [c.k, c.u])), pts };
+    }
+    return null;
+  }
   function ler(paginas) {
     const out = { fabricante: '', paginas: [], secoes: [], tabelas: [], escopo: [] };
     const todo = paginas.map((p) => p.itens.map((i) => i.s).join(' ')).join(' ');
@@ -44,6 +65,7 @@
       const curva = /Curve/i.test(tit);
       const desenho = /Arrangement|Dimension|Drawing/i.test(tit) || (!tit && pg.itens.length < 120 && !/:/.test(txt));
       const tipo = escopo ? 'escopo' : curva ? 'curva' : desenho ? 'desenho' : 'dados';
+      if (!out.pontos) out.pontos = acharPontos(rows, pg.n);
       const P = { n: pg.n, titulo: tit || (desenho ? 'Desenho' : 'Página ' + pg.n), tipo, w: pg.w, h: pg.h };
       if (curva) {
         // área do gráfico: abaixo do aviso do fabricante até o eixo de vazão

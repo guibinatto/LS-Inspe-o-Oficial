@@ -166,3 +166,9 @@ Linha da proposta: os botões ficam num grupo alinhado — próximo passo (desta
 - Cartão de especificação no item para famílias 35 (pintura especial), 46 e 47 (`propCom.espec[item][família]`), alerta "Especificar" enquanto faltar campo essencial, saída na folha de dados do PDF.
 - Idioma e moeda atualizam o cartão da proposta na hora (tradução imediata e valores convertidos).
 - Modelo da proposta em **Configurações** (edição pelo responsável do Cadastro geral).
+
+## 18. Curva no padrão LS Fire
+
+- `fabricante.js` lê a tabela de pontos da curva (Flow | Head | Efficiency | Power | NPSHr) → `dados.pontos`.
+- `curva-ls.js` (`PricerCurva.desenhar`) traça em canvas: três painéis com o mesmo eixo de vazão (sem eixo duplo), interpolação monotônica só entre os pontos do fabricante, ponto de trabalho, nominal NFPA 20, shutoff e 150% com os limites da folha, eixo secundário em m³/h, logo LS Fire. Usada nos dois padrões; prévia no item; opção "Imagem do fabricante" mantém o recorte da página.
+- Botão "Anexar folha do fabricante" por item no cartão da proposta.
