@@ -119,12 +119,12 @@
         comCen((c) => { setPath(c, path, v === '' && path.endsWith('.fonte') ? null : v); }, 'Cenário tributário: ' + el.dataset.cenf); return; }
       if (el.dataset.cenex) { const [i, sg] = el.dataset.cenex.split('|'); comCen((c) => { const t = c.tributos[+i]; const s = new Set(t.exclui || []); if (el.checked) s.add(sg); else s.delete(sg); t.exclui = [...s]; }, 'Base de cálculo'); }
     });
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
       if (ctx.ui.view !== 'cadastro' || ctx.ui.cad !== 'cenarios') return; const t = e.target;
       const sl = t.closest('[data-censel]'); if (sl) { ctx.ui.cenSel = sl.dataset.censel; ctx.render(); return; }
       const nv = t.closest('[data-cennovo]'); if (nv) { const c = nv.dataset.cennovo === '2027' ? PADRAO_2027() : { id: novoId(), nome: 'Novo cenário', vigencia: '', status: 'rascunho', tributos: [], regras: [] }; ctx.ui.cenSel = c.id; gravar((C) => { C.cenarios.push(c); }, 'Cenário tributário criado: ' + c.nome); return; }
       if (t.closest('[data-cendup]')) { const c0 = cenarios().find((x) => x.id === ctx.ui.cenSel) || cenarios()[0]; if (!c0) return; const c = Object.assign(JSON.parse(JSON.stringify(c0)), { id: novoId(), nome: c0.nome + ' (cópia)', status: 'rascunho' }); ctx.ui.cenSel = c.id; gravar((C) => { C.cenarios.push(c); }, 'Cenário duplicado'); return; }
-      if (t.closest('[data-cendel]')) { const id = ctx.ui.cenSel || (cenarios()[0] || {}).id; if (!window.confirm('Excluir este cenário?')) return; ctx.ui.cenSel = null; gravar((C) => { C.cenarios = C.cenarios.filter((x) => x.id !== id); }, 'Cenário tributário excluído'); return; }
+      if (t.closest('[data-cendel]')) { const id = ctx.ui.cenSel || (cenarios()[0] || {}).id; if (!(await window.PricerDlg.confirmar('Excluir este cenário?'))) return; ctx.ui.cenSel = null; gravar((C) => { C.cenarios = C.cenarios.filter((x) => x.id !== id); }, 'Cenário tributário excluído'); return; }
       if (t.closest('[data-centadd]')) { comCen((c) => { c.tributos.push({ sigla: 'NOVO', desc: '', aliq: null, modo: 'dentro', exclui: [], red: 0, cred: 0 }); }, 'Tributo incluído'); return; }
       const tr = t.closest('[data-centrm]'); if (tr) { comCen((c) => { c.tributos.splice(+tr.dataset.centrm, 1); }, 'Tributo removido'); return; }
       if (t.closest('[data-cenradd]')) { comCen((c) => { c.regras = c.regras || []; c.regras.push({ campo: 'ncm', valor: '', trib: (c.tributos[0] || {}).sigla || '', efeito: 'aliq', num: 0, obs: '' }); }, 'Regra incluída'); return; }

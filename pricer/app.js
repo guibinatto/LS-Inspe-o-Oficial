@@ -337,7 +337,7 @@
 
   document.addEventListener('click', async (e) => {
     if (e.target.closest('[data-recsalva]')) { ui.recuperado = null; await $('#bSave').onclick(e); return; }
-    if (e.target.closest('[data-recdesc]') || e.target.closest('[data-recnova]')) { const q = (REG.listPropostas() || []).find((x) => x.id === state.id); if (!q) return; if (e.target.closest('[data-recdesc]') && !window.confirm('Descartar as alterações não salvas?')) return; dirty = false; ui.recuperado = null; openProposta(q, false); }
+    if (e.target.closest('[data-recdesc]') || e.target.closest('[data-recnova]')) { const q = (REG.listPropostas() || []).find((x) => x.id === state.id); if (!q) return; if (e.target.closest('[data-recdesc]') && !await DLG.confirmar('Descartar as alterações não salvas?')) return; dirty = false; ui.recuperado = null; openProposta(q, false); }
   });
 
   // ---------- visões ----------
@@ -1090,14 +1090,14 @@
       const pega = (v) => { if (v === 'atual') { const sv = (REG.listPropostas() || []).find((y) => y.id === pid) || {}; return { rot: 'Rev. ' + revDe(sv) + ' (atual)', body: sv, propId: pid }; } const x = revCache.list.find((y) => y.id === v); return x ? { rot: 'Rev. ' + x.rev + (x.marco ? ' ' + x.marco : ''), body: x.body, propId: pid } : null; };
       const A = pega(a.value), B = pega(b.value); if (!A || !B) return; if (a.value === b.value) { toast('Escolha duas versões diferentes'); return; } $('#overlay').innerHTML = ''; compararModal(A, B); return; }
     const vr = e.target.closest('[data-revver]'); if (vr) { const x = revCache.list.find((y) => y.id === vr.dataset.revver); if (!x) return;
-      if (dirty && !state.verRev && !window.confirm('Há alterações não salvas na revisão atual. Abrir a revisão ' + x.rev + ' mesmo assim? (as alterações se perdem)')) return;
+      if (dirty && !state.verRev && !await DLG.confirmar('Há alterações não salvas na revisão atual. Abrir a revisão ' + x.rev + ' mesmo assim? (as alterações se perdem)')) return;
       $('#overlay').innerHTML = ''; const pid = state.id; carregarCorpo(x.body, { verRev: { rev: x.rev, propId: pid, at: x.at } }); dirty = false; ui.step = 4; setView('proposta'); return; }
     const rs = e.target.closest('[data-revrest]'); if (rs) { const x = revCache.list.find((y) => y.id === rs.dataset.revrest); if (!x) return; $('#overlay').innerHTML = ''; await revRestaurar(x); return; }
     if (e.target.closest('[data-revatual]')) { $('#overlay').innerHTML = ''; const pid = (state.verRev || {}).propId || state.id; const q = (REG.listPropostas() || []).find((y) => y.id === pid); if (q) { openProposta(q, false); ui.step = 4; render(); } return; }
   });
   async function revRestaurar(x) {
     const pid = (state.verRev || {}).propId || state.id; const salva = (REG.listPropostas() || []).find((y) => y.id === pid); if (!salva) return;
-    if (!window.confirm(`Restaurar a revisão ${x.rev}? A revisão ${revDe(salva)} atual fica guardada e a ${x.rev} volta como revisão ${revDe(salva) + 1}.`)) return;
+    if (!await DLG.confirmar(`Restaurar a revisão ${x.rev}? A revisão ${revDe(salva)} atual fica guardada e a ${x.rev} volta como revisão ${revDe(salva) + 1}.`)) return;
     try {
       const n = await revCongelar(salva, 'restaurada a revisão ' + x.rev);
       state.id = pid; carregarCorpo(x.body, { uid: salva.uid, verRev: null }); state.id = pid; state.verRev = null; setRev(n + 1); state._novaRev = true;
@@ -1127,6 +1127,7 @@
 
   // ---------- proposta técnica e comercial (modelo PTC LS Fire): o que a formação diz ----------
   const PRP = window.PricerProposta;
+  const DLG = window.PricerDlg;
   // folha de dados: o que entra de cada família de insumo (o resto é interno: base, mão de obra, embalagem…); títulos e valores vão como chave e o PDF põe no idioma
   const FD_TIT = { '01': 'motorDiesel', '10': 'motorEletrico', '11': 'bombaCent', '12': 'motobomba', '13': 'jockey', '15': 'tanque', '16': 'silencioso', '17': 'baterias', '19': 'chave', '20': 'painel', '21': 'painel', '22': 'sensores', '26': 'preaq', '29': 'pressostato', '30': 'manovac', '40': 'cabecote', '42': 'manometro', '43': 'recirc', '45': 'acessTanque' };
   const FD_ADIC = { '23': 'valvAlivio', '24': 'cone', '25': 'medidor', '27': 'barrSuc', '28': 'barrRec', '44': 'valvAr' };
@@ -1365,6 +1366,19 @@
       const x = Object.assign({}, (((pcGet().fd || {})[S]) || {}).curva || {}); x.dados = { fabricante: d.fabricante, secoes: d.secoes, pontos: d.pontos, pontosPag: d.pontosPag || {}, selecao: d.selecao || '' }; fdPut(S, 'curva', x); render();
     } catch (er) { toast('Não consegui ler a curva: ' + errMsg(er)); } finally { lendoCurva[S] = false; }
   }
+  // lê só a curva de um arquivo já guardado (anexado antes da leitura do gráfico em vetor)
+  async function relerCurva(S, k) {
+    try { const file = await fdArquivo(S, k); if (!file || !(/pdf/i.test(file.type) || /\.pdf$/i.test(file.name))) return null; const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20));
+      return Object.assign({}, d, { pontosPag: d.pontosPag || {}, selecao: d.selecao || '' }); } catch (e) { return null; }
+  }
+  // folha do fabricante lida antes da leitura do gráfico: lê a curva de novo (uma vez) e guarda
+  const relendoFab = {};
+  async function fabRelerCurva(S) {
+    if (relendoFab[S]) return; relendoFab[S] = true;
+    const d2 = await relerCurva(S, 'fab');
+    fabMut(S, (G) => { G.dados.pontos = (d2 && d2.pontos) || G.dados.pontos || null; G.dados.pontosPag = (d2 && d2.pontosPag) || {}; if (d2 && d2.pontos && d2.pontos.pag) G.curvaPag = d2.pontos.pag; if (d2 && !(G.dados.secoes || []).length && (d2.secoes || []).length) { for (const g of d2.escopo || []) g.on = false; G.dados = d2; } });
+    render();
+  }
   const prevCv = {};
   async function curvaPrevia(S, k, d) {
     const lang = pcGet().idioma || 'pt'; const ch = lang + '|' + JSON.stringify(d.pontos) + '|' + (d.secoes || []).length; const id = S + '|' + k;
@@ -1386,6 +1400,7 @@
       ${cmp.length ? `<div class="banner warn" style="margin:8px 0">${cmp.map(esc).join('<br>')}</div>` : ''}
       ${(() => { const dc = curvaDados(d, F0.curvaPag); const cps = Object.keys(d.pontosPag || {}).map(Number);
         const sel = cps.length > 1 ? `<div class="f" style="max-width:360px;margin-top:6px"><label for="fabcv_${S.replace(/\W/g, '')}">Página da curva</label><select id="fabcv_${S.replace(/\W/g, '')}" data-fabcurva="${esc(S)}"${ro}>${cps.map((n) => `<option value="${n}"${F0.curvaPag === n ? ' selected' : ''}>página ${n}: ${esc((d.paginas.find((q) => q.n === n) || {}).titulo || '')}</option>`).join('')}</select></div>` : '';
+        if (!curvaOk(dc) && !d.pontosPag && !ro) { queueMicrotask(() => fabRelerCurva(S)); return '<p class="sub" style="margin:8px 0 0">Lendo a curva da folha…</p>'; }
         if (!curvaOk(dc)) return `<div class="banner warn" style="margin:8px 0">${esc(SEM_CURVA)}</div>${sel}`;
         queueMicrotask(() => curvaPrevia(S, 'fab', dc));
         return `<div class="f spanall" style="margin-top:8px"><label>Curva na proposta</label><small class="sub">Redesenhada no padrão LS Fire, ${esc(fonteCurva(dc))}, com o ponto de trabalho e os pontos da NFPA 20 que vieram na folha.</small>${sel}
@@ -1467,7 +1482,7 @@
     ui.item = i; ui.itemFull = false; openSet.fdprop = true; if (ui.view !== 'item') setView('item'); else render();
     setTimeout(() => { const d = document.querySelector('details[data-keep="fdprop"]'); if (d) { d.open = true; const alvo = d.querySelector('[data-fdup$="|fab"]') ? d.querySelector('[data-fdup$="|fab"]').closest('.fdslot') : d.querySelector('[data-fabler]')?.closest('.fdslot'); (alvo || d).scrollIntoView({ block: 'start' }); } }, 80); });
   document.addEventListener('click', async (e) => { const b = e.target.closest('[data-fabler]'); if (!b || state.verRev) return; const S = b.dataset.fabler;
-    try { const F0 = (((pcGet().fd || {})[S]) || {}).fab; const file = await fdArquivo(S, 'fab'); if (!F0 || !file) { toast('Não encontrei o arquivo.'); return; } if (!window.confirm('Ler de novo? As marcações e correções feitas nesta folha voltam ao que o app lê.')) return; await fabLerArquivo(S, file, { docId: F0.docId, nome: F0.nome }); } catch (er) { toast(errMsg(er)); } });
+    try { const F0 = (((pcGet().fd || {})[S]) || {}).fab; const file = await fdArquivo(S, 'fab'); if (!F0 || !file) { toast('Não encontrei o arquivo.'); return; } if (!await DLG.confirmar('Ler de novo? As marcações e correções feitas nesta folha voltam ao que o app lê.')) return; await fabLerArquivo(S, file, { docId: F0.docId, nome: F0.nome }); } catch (er) { toast(errMsg(er)); } });
   async function fdArquivo(S, k) { const x = (((pcGet().fd || {})[S]) || {})[k]; if (!x) return null; const b = await docBlob(x.docId); return b ? new File([b], x.nome || 'arquivo', { type: b.type || (/\.pdf$/i.test(x.nome || '') ? 'application/pdf' : '') }) : null; }
   document.addEventListener('change', async (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return;
@@ -1498,7 +1513,7 @@
     if (b.dataset.fdopen) { const d = (SPV.docs() || []).find((x) => x.id === b.dataset.fdopen); if (d) SPV.abrirDoc(d, false); else toast('Não encontrei o arquivo.'); return; }
     if (state.verRev) return;
     const [S, k, i] = (b.dataset.fdtira || b.dataset.fddel || b.dataset.fdadd || b.dataset.fdler || b.dataset.fdclaude).split('|');
-    if (b.dataset.fdtira) { if (!window.confirm('Tirar este arquivo da proposta? (ele continua nos documentos)')) return; fdPut(S, k, undefined); render(); return; }
+    if (b.dataset.fdtira) { if (!await DLG.confirmar('Tirar este arquivo da proposta? (ele continua nos documentos)')) return; fdPut(S, k, undefined); render(); return; }
     const x = JSON.parse(JSON.stringify((((pcGet().fd || {})[S]) || {})[k] || {}));
     if (b.dataset.fddel) { (x.campos || []).splice(+i, 1); fdPut(S, k, x); render(); return; }
     if (b.dataset.fdadd) { x.campos = (x.campos || []).concat([{ k: 'Campo', v: '', on: true }]); fdPut(S, k, x); render(); return; }
@@ -1559,7 +1574,9 @@
     const curvas = {};
     // curva sempre no padrão LS Fire: redesenhada com os pontos lidos; sem pontos legíveis, fica de fora (o item já avisa)
     const semCurva = [];
-    if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; const dc = curvaDados(cv.dados, cv.pag || 1);
+    if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; let dc = curvaDados(cv.dados, cv.pag || 1);
+      // curva anexada antes da leitura do gráfico (ou lida sem resultado): lê o arquivo de novo agora
+      if (!curvaOk(dc)) { const d2 = await relerCurva(it.key, 'curva'); if (d2) { dc = curvaDados(d2, cv.pag || 1) || curvaDados(d2, null); if (curvaOk(dc)) { const x = Object.assign({}, cv, { dados: d2 }); fdPut(it.key, 'curva', x); } } }
       try { if (curvaOk(dc)) curvas[it.key] = await window.PricerCurva.desenhar(dc, { lang, logo: logoCurva() }); else semCurva.push(it.key); } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
     let tr = (s) => s, aviso = ''; const fd = pc.estilo === 'fd';
     if (lang !== 'pt' || (fd && textosFabTodos(D, pcGet(), lang).length)) ({ tr, aviso } = await tradutor(D, pcGet(), lang));
@@ -1569,7 +1586,11 @@
       try { const file = await fdArquivo(it.key, 'fab'); if (!file) continue; const L = window.PricerLeitor;
         const out = { dados: F0.dados, paginas: {}, semLs: !!F0.semLs };
         // curva: sempre redesenhada no padrão LS Fire com os pontos da folha
-        if (!curvas[it.key]) { const dc = fabCurvaDados(F0); if (curvaOk(dc)) out.curva = await window.PricerCurva.desenhar(dc, { lang, logo: logoCurva() }); else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
+        if (!curvas[it.key]) { let dc = fabCurvaDados(F0);
+          if (!curvaOk(dc)) { const d2 = await relerCurva(it.key, 'fab'); if (d2) { dc = curvaDados(d2, d2.pontos && d2.pontos.pag); if (curvaOk(dc)) fabMut(it.key, (G) => { G.dados.pontos = d2.pontos; G.dados.pontosPag = d2.pontosPag; G.curvaPag = d2.pontos.pag || G.curvaPag; });
+            // folha guardada sem nada lido (leitura antiga ou que falhou): usa a leitura nova inteira
+            if (!(F0.dados.secoes || []).length && (d2.secoes || []).length) { for (const g of d2.escopo || []) g.on = false; out.dados = d2; fabMut(it.key, (G) => { G.dados = d2; G.curvaPag = (d2.pontos && d2.pontos.pag) || G.curvaPag; }); } } }
+          if (curvaOk(dc)) out.curva = await window.PricerCurva.desenhar(dc, { lang, logo: logoCurva() }); else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
         if (!fd) { if (out.curva) curvas[it.key] = out.curva; continue; }
         for (const q of F0.dados.paginas) if ((F0.pags || {})[q.n]) out.paginas[q.n] = { url: await L.recorte(file, q.n, null, 2.2), w: q.w, h: q.h };
         fab[it.key] = out; } catch (er) { toast('Não consegui preparar a folha do fabricante de ' + it.key + ': ' + errMsg(er)); } }
@@ -1802,11 +1823,11 @@
       if (r) { const k = r.dataset.pmreset; const top = k.split('.')[0]; const base = pmBase(lang);
         if (k.includes('.')) { const sub = k.split('.')[1]; const cur = Object.assign({}, PRP.modelo(REG, lang)[top] || {}, { [sub]: (base[top] || {})[sub] }); await pmSalvar(top, JSON.stringify(cur) === JSON.stringify(base[top]) ? undefined : cur, k, lang); } else await pmSalvar(top, undefined, k, lang); return; }
       if (o) { const [k, dir] = o.dataset.pmord.split('|'); const L = JSON.parse(JSON.stringify(PRP.modelo(REG).layout || PRP.LAYOUT)); const ord = (L.ordem || PRP.LAYOUT.ordem).slice(); const i = ord.indexOf(k), j = i + Number(dir); if (i < 1 || j < 1 || j >= ord.length) return; [ord[i], ord[j]] = [ord[j], ord[i]]; L.ordem = ord; await pmSalvar('layout', L, 'ordem das seções'); return; }
-      if (lr) { if (!window.confirm('Voltar a estrutura do documento ao original?')) return; await pmSalvar('layout', undefined, 'estrutura do documento'); return; }
+      if (lr) { if (!await DLG.confirmar('Voltar a estrutura do documento ao original?')) return; await pmSalvar('layout', undefined, 'estrutura do documento'); return; }
       if (ir) { const k = ir.dataset.pmimgreset; const im = JSON.parse(JSON.stringify(PRP.modelo(REG).imagens || {})); delete im[k]; await pmSalvar('imagens', im, 'imagem ' + k + ' (original)'); return; }
       const L = JSON.parse(JSON.stringify(PRP.modelo(REG).contatos || []));
       if (a) { L.push({ nome: 'Novo contato', cargo: '', tel: '', email: '' }); await pmSalvar('contatos', L, 'contatos'); return; }
-      if (d) { const i = +d.dataset.pmctdel; if (!window.confirm('Tirar ' + ((L[i] || {}).nome || 'este contato') + ' do modelo da proposta?')) return; L.splice(i, 1); await pmSalvar('contatos', L, 'contatos'); }
+      if (d) { const i = +d.dataset.pmctdel; if (!await DLG.confirmar('Tirar ' + ((L[i] || {}).nome || 'este contato') + ' do modelo da proposta?')) return; L.splice(i, 1); await pmSalvar('contatos', L, 'contatos'); }
     } catch (er) { toast(errMsg(er)); }
   });
   function vCustosCfg() {
@@ -1865,12 +1886,12 @@
   }
   document.addEventListener('click', async (e) => {
     const sv = e.target.closest('[data-modsave]'); if (sv) { const S = ITEMS[+sv.dataset.modsave]; const cells = JSON.parse(JSON.stringify((state.doc || {})[S] || {})); if (!Object.keys(cells).length) { toast('Configure o item antes'); return; }
-      const nome = window.prompt('Nome do modelo', txt(S, 'C28').slice(0, 60)); if (!nome) return;
+      const nome = await DLG.pedir('Nome do modelo', txt(S, 'C28').slice(0, 60)); if (!nome) return;
       const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
       try { await gravarModelo(id, { nome, desc: txt(S, 'C28'), fam: txt(S, 'C21'), cells, at: new Date().toISOString(), by: REG.me || null }); logEv({ tipo: 'Modelo de item salvo', ref: id, desc: nome + ' · ' + txt(S, 'C28'), mudancas: [] }); toast('Modelo salvo'); render(); } catch (er) { toast(errMsg(er)); } return; }
     const us = e.target.closest('[data-moduse]'); if (us) { const x = modelosItem.find((y) => y.id === us.dataset.moduse); const j = firstFree(); if (!x || j < 0) return; const S = ITEMS[j];
       state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.cells)); build(); persist(); dirty = true; listCache = new Map(); logEv({ tipo: 'Modelo de item usado', ref: docTitle(), desc: S + ' ← ' + x.nome, mudancas: [] }); ui.item = j; ui.itemFull = false; setView('item'); toast('Item criado a partir do modelo: confira e ajuste'); return; }
-    const dl = e.target.closest('[data-moddel]'); if (dl) { if (!window.confirm('Excluir este modelo?')) return; try { await gravarModelo(dl.dataset.moddel, null); logEv({ tipo: 'Modelo de item excluído', ref: dl.dataset.moddel, desc: '', mudancas: [] }); render(); } catch (er) { toast(errMsg(er)); } }
+    const dl = e.target.closest('[data-moddel]'); if (dl) { if (!await DLG.confirmar('Excluir este modelo?')) return; try { await gravarModelo(dl.dataset.moddel, null); logEv({ tipo: 'Modelo de item excluído', ref: dl.dataset.moddel, desc: '', mudancas: [] }); render(); } catch (er) { toast(errMsg(er)); } }
   });
 
   // ---------- simulador de negociação: o motor real numa cópia; a proposta oficial não muda ----------
@@ -1921,13 +1942,13 @@
   document.addEventListener('click', async (e) => {
     if (e.target.closest('[data-simrun]')) { const sc = lerSimForm(); ui.sim = sc; toast('Simulando…'); setTimeout(() => { try { const r = simular(sc); ui.simRes = resumoSim(r); ui.simDoc = r.docSim; } catch (er) { toast('Não consegui simular: ' + errMsg(er)); } render(); const c = $('#simCard'); if (c) c.scrollIntoView({ block: 'start' }); }, 20); return; }
     if (e.target.closest('[data-simclear]')) { ui.sim = null; ui.simRes = null; ui.simDoc = null; render(); return; }
-    if (e.target.closest('[data-simsave]')) { const nome = window.prompt('Nome do cenário', 'Cenário ' + ((state.cenSim || []).length + 1)); if (!nome) return; state.cenSim = (state.cenSim || []).concat([{ nome, at: new Date().toISOString(), by: REG.me || null, sc: ui.sim, res: ui.simRes }]); dirty = true; persist(); logEv({ tipo: 'Simulação salva', ref: docTitle(), desc: nome + ': ' + brl(ui.simRes.total) + ' · margem ' + pct(ui.simRes.margemPct, 1), mudancas: [] }); render(); toast('Cenário salvo (não altera a proposta)'); return; }
+    if (e.target.closest('[data-simsave]')) { const nome = await DLG.pedir('Nome do cenário', 'Cenário ' + ((state.cenSim || []).length + 1)); if (!nome) return; state.cenSim = (state.cenSim || []).concat([{ nome, at: new Date().toISOString(), by: REG.me || null, sc: ui.sim, res: ui.simRes }]); dirty = true; persist(); logEv({ tipo: 'Simulação salva', ref: docTitle(), desc: nome + ': ' + brl(ui.simRes.total) + ' · margem ' + pct(ui.simRes.margemPct, 1), mudancas: [] }); render(); toast('Cenário salvo (não altera a proposta)'); return; }
     const ld = e.target.closest('[data-simload]'); if (ld) { const c = (state.cenSim || [])[+ld.dataset.simload]; if (c) { ui.sim = c.sc; const r = simular(c.sc); ui.simRes = resumoSim(r); ui.simDoc = r.docSim; render(); } return; }
     const dl = e.target.closest('[data-simdel]'); if (dl) { state.cenSim = (state.cenSim || []).filter((_, i) => i !== +dl.dataset.simdel); dirty = true; persist(); render(); return; }
     if (e.target.closest('[data-simaprov]')) { e.preventDefault(); $('#app [data-alaprov]') ? null : null; ui.simAlvoAprov = ui.simRes.total; await abrirAprovacaoComAlvo(ui.simRes.total); return; }
     if (e.target.closest('[data-simrev]')) {
       if (!state.id) { toast('Salve a proposta primeiro'); return; } if (!ui.simDoc) return;
-      if (!window.confirm('Converter este cenário em revisão? A revisão atual fica guardada e os valores simulados viram a próxima revisão (proposta oficial).')) return;
+      if (!await DLG.confirmar('Converter este cenário em revisão? A revisão atual fica guardada e os valores simulados viram a próxima revisão (proposta oficial).')) return;
       const docSim = ui.simDoc; const res = ui.simRes;
       await revisar('cenário simulado: ' + brl(res.total) + ' · margem ' + pct(res.margemPct, 1), () => { for (const [sh, cells] of Object.entries(docSim)) { if (!PROPOSAL_SHEETS.has(sh)) continue; state.doc[sh] = Object.assign({}, cells); } build(); });
       ui.sim = null; ui.simRes = null; ui.simDoc = null; ui.step = 4; render(); return;
@@ -2698,9 +2719,9 @@
   });
   document.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-fdttira],[data-destira]'); if (!b || !canEd()) return;
-    if (b.dataset.fdttira) { const d = fdTecDe(b.dataset.fdttira); if (!d || !window.confirm('Tirar a folha de dados técnica deste insumo? O arquivo continua nos documentos.')) return;
+    if (b.dataset.fdttira) { const d = fdTecDe(b.dataset.fdttira); if (!d || !await DLG.confirmar('Tirar a folha de dados técnica deste insumo? O arquivo continua nos documentos.')) return;
       const d2 = Object.assign({}, d, { tipo: 'folha de dados (retirada do cadastro)' }); try { await fdtGrava(d2); fdtRefresh(b.dataset.fdttira); } catch (er) { toast(errMsg(er)); } return; }
-    const d = docsTodos().find((x) => x.id === b.dataset.destira); if (!d || !window.confirm('Tirar este desenho do cadastro? O arquivo continua nos documentos.')) return;
+    const d = docsTodos().find((x) => x.id === b.dataset.destira); if (!d || !await DLG.confirmar('Tirar este desenho do cadastro? O arquivo continua nos documentos.')) return;
     try { await fdtGrava(Object.assign({}, d, { tipo: 'desenho (retirado do cadastro)' })); const box = document.getElementById('desBox'); if (box) box.innerHTML = desenhosHtml(box.dataset.equip); } catch (er) { toast(errMsg(er)); }
   });
   // desenhos da família de equipamento (vale para todos os itens dela) e de cada modelo pronto (vale só para o modelo)
@@ -2732,57 +2753,144 @@
   document.addEventListener('change', async (e) => { const t = e.target; if (!t.dataset || t.dataset.escit === undefined || !canEd()) return; const key = t.dataset.escit; const v = t.value.trim();
     try { await escSalvar((T) => { if (v) T.itens[key] = v; else delete T.itens[key]; }, nomeCad(key)); toast('Descrição do escopo salva'); } catch (er) { toast(errMsg(er)); } });
   const preencher = (tpl, o) => String(tpl).replace(/\{marca\}/g, o.marca || '').replace(/\{modelo\}/g, o.modelo || '').replace(/\{qtd\}/g, o.qtd || '').replace(/\s+/g, ' ').replace(/^[\s·:-]+|[\s·:-]+$/g, '').trim();
-  // dados técnicos do cadastro que enriquecem a linha do componente principal (como a Peerless descreve a bomba e o
-  // acionador): da folha técnica do item (materiais, bocais, vedação; potência, tensão, proteção) e do ponto de trabalho
-  // lido na folha do fabricante do item. Só entra o que está escrito nas folhas.
-  const ESC_ROT = {
-    pt: { carc: 'Carcaça', rotor: 'Rotor', eixo: 'Eixo', suc: 'Sucção', rec: 'Recalque', ved: 'Vedação', trab: 'Ponto de trabalho', rot: 'Rotação', diam: 'Rotor', pot: 'Potência', tens: 'Tensão', prot: 'Proteção', efi: 'Rendimento', comb: 'Arrefecimento' },
-    en: { carc: 'Casing', rotor: 'Impeller', eixo: 'Shaft', suc: 'Suction', rec: 'Discharge', ved: 'Seal', trab: 'Duty point', rot: 'Speed', diam: 'Impeller', pot: 'Power', tens: 'Voltage', prot: 'Protection', efi: 'Efficiency', comb: 'Cooling' },
-    es: { carc: 'Carcasa', rotor: 'Impulsor', eixo: 'Eje', suc: 'Succión', rec: 'Descarga', ved: 'Sello', trab: 'Punto de trabajo', rot: 'Velocidad', diam: 'Impulsor', pot: 'Potencia', tens: 'Tensión', prot: 'Protección', efi: 'Rendimiento', comb: 'Refrigeración' } };
-  function linhasTecnicas(S, key, code, lang) {
-    const R = ESC_ROT[lang] || ESC_ROT.pt; const FB = window.PricerFabricante; const vt = (v) => { const [a, ...r] = String(v).split(' / '); return ((FB && FB.valT(a, lang)) || a) + (r.length ? ' / ' + r.join(' / ') : ''); };
-    const doc = key ? fdTecDe(key) : null; const C = []; for (const sc of ((doc || {}).fdTec || {}).secoes || []) for (const c of sc.campos || []) if (c.on !== false && String(c.v || '').trim()) C.push({ s: sc.t, k: c.k, v: c.v });
-    const ach = (reS, reK) => (C.find((c) => (!reS || reS.test(c.s)) && reK.test(c.k)) || {}).v || '';
-    const L = []; const junta = (par) => par.filter((x) => x[1]).map(([k, v]) => k + ': ' + vt(v)).join(' · ');
-    if ([11, 12, 13].includes(code)) {
-      L.push(junta([[R.carc, ach(/material/i, /casing|carcaça|volute/i)], [R.rotor, ach(/material/i, /^impeller$|^rotor$/i)], [R.eixo, ach(/material/i, /^(pump )?shaft$|^eixo$/i)]]));
-      L.push(junta([[R.suc, ach(null, /suction (nozzle|flange diameter)|sucção/i)], [R.rec, ach(null, /discharge (nozzle|flange diameter)|recalque/i)]]));
-      L.push(junta([[R.ved, ach(null, /seal type|pump seal|vedação/i)]]));
-      if (code !== 13) { const F = (((pcGet().fd || {})[S]) || {}); const d = (F.fab || {}).dados || (F.curva || {}).dados; const cp = (re) => { for (const sc of (d || {}).secoes || []) { if (sc.t === 'Project' || /NFPA/i.test(sc.t)) continue; const c = (sc.campos || []).find((x) => x.on !== false && re.test(x.k)); if (c) return c.v; } return ''; };
-        const q = cp(/^Flow(, rated)?$/), h = cp(/^Head$|^Differential head.*\(actual\)$|^Differential head \/ pressure, rated$/), rpm = cp(/^Speed(, rated)?$/), dm = cp(/^Impeller D(iameter)?(,| ).*(Designed|rated)$|^Impeller D$/);
-        if (q && h) L.push(R.trab + ': ' + q + ' × ' + h + (rpm ? ' · ' + rpm : '') + (dm ? ' · ' + R.diam + ' Ø ' + dm : '')); }
-    } else if ([1, 10].includes(code)) {
-      L.push(junta([[R.pot, ach(null, /^rated power$|^power$|potência/i)], [R.rot, ach(null, /^rated speed$|^speed$|rotação/i)], [R.tens, ach(null, /^voltage$|engine voltage|tensão/i)], [R.prot, ach(null, /protection class|grau de proteção/i)], [R.efi, ach(null, /efficiency class/i)], [R.comb, ach(null, /cooling type/i)]]));
-    }
-    return L.filter(Boolean);
-  }
-  // escopo de um item da proposta, por grupo (como o da Peerless): título do componente e as linhas cadastradas
-  // (texto do item → texto da família no banco → texto padrão do tipo → texto padrão da família), mais os dados técnicos
-  // do cadastro no componente principal e a certificação UL/FM marcada no cadastro
-  const PRINCIPAL = { 11: 0, 12: 0, 13: 0, 1: 1, 10: 1, 20: 2, 21: 2 };
+  // ---------- escopo de fornecimento no padrão da proposta LS Fire (PTC): título do componente e linhas "Rótulo: valor" ----------
+  // Cada valor vem do que o app sabe: a formação (descrição padronizada do insumo ou do kit, as outras linhas do item, a norma
+  // e o painel da descrição do equipamento), as características e a certificação do cadastro e as folhas técnicas da bomba e
+  // do motor. Linha sem valor não entra. Os textos-padrão da LS Fire (material, pintura, comunicação do painel…) estão em
+  // ESC_STD e valem até a folha técnica ou a especificação do item dizer outra coisa. Texto cadastrado no item ou na família
+  // (Cadastro → Na proposta) continua tendo prioridade.
+  const ESC_STD = { material: 'Padrão (compatível com água limpa)', pinturaBomba: 'Padrão Fornecedor — Cor: Vermelho Padrão Fornecedor', pinturaJockey: 'Padrão Fabricante — Cor: Padrão Fabricante',
+    painelLocal: 'Padrão LS Fire', comunicacao: 'Contato Seco (Sem protocolo)', ipPainel: 'IP-65', solto: 'fornecido solto e embalado' };
+  // rótulos e valores fixos em inglês e espanhol (o resto passa pela tradução da proposta)
+  const ESC_TR = {
+    en: { 'Bomba Centrífuga': 'Centrifugal Pump', 'Bomba Jockey': 'Jockey Pump', Motobomba: 'Pump set', 'Motor Diesel': 'Diesel Engine', 'Motor Elétrico': 'Electric Motor', 'Tanque de combustível diesel': 'Diesel fuel tank', 'Painel de comando do conjunto diesel': 'Diesel fire pump controller', 'Painel de comando do conjunto elétrico': 'Electric fire pump controller', 'Painel de comando da bomba jockey': 'Jockey pump controller', Baterias: 'Batteries', 'Manômetro e Manovacuômetro': 'Pressure and compound gauges', Manômetro: 'Pressure gauge', Manovacuômetro: 'Compound gauge', 'Válvula de alívio de carcaça': 'Casing relief valve',
+      Tipo: 'Type', Marca: 'Make', Modelo: 'Model', Material: 'Material', Sucção: 'Suction', Recalque: 'Discharge', Vedação: 'Seal', Lubrificação: 'Lubrication', Rotação: 'Rotation', Pintura: 'Paint', Potência: 'Power', Injeção: 'Injection', Resfriamento: 'Cooling', Acoplamento: 'Coupling', 'Painel local': 'Local panel', 'Tensão cont.': 'Control voltage', 'Kit pré-aq.': 'Pre-heater kit', 'Número de Polos': 'Number of poles', Frequência: 'Frequency', 'Grau de Proteção': 'Protection', 'Tensão alim.': 'Supply voltage', 'Grau Prot.': 'Protection', 'Leit. pressão': 'Pressure sensing', Comunicação: 'Communication', 'Norma/Cert.': 'Standard/Listing', Volume: 'Volume', Certificação: 'Listing', 'Ponto de trabalho': 'Duty point',
+      'fornecido solto e embalado': 'supplied loose and packed', 'anexo ao motor': 'attached to the engine', 'Flexível de escape': 'Exhaust flexible', 'Silencioso Industrial': 'Industrial silencer', Mecânica: 'Mechanical', Eletrônica: 'Electronic', Radiador: 'Radiator', 'Trocador de calor': 'Heat exchanger', 'Por transdutor': 'Pressure transducer', 'Por pressostato': 'Pressure switch', 'Contato Seco (Sem protocolo)': 'Dry contacts (no protocol)', 'NL (Não listado)': 'NL (not listed)', 'Padrão LS Fire': 'LS Fire standard', 'Padrão (compatível com água limpa)': 'Standard (suitable for clean water)', 'Padrão Fornecedor — Cor: Vermelho Padrão Fornecedor': 'Supplier standard — Color: supplier standard red', 'Padrão Fabricante — Cor: Padrão Fabricante': 'Manufacturer standard — Color: manufacturer standard', Sim: 'Yes', monofásico: 'single-phase', trifásico: 'three-phase', Cilindros: 'cylinders', 'Horário (Clockwise — RH)': 'Clockwise (RH)', 'Anti-horário (Counterclockwise — LH)': 'Counterclockwise (LH)', Gaxeta: 'Packing', 'Selo mecânico': 'Mechanical seal', Graxa: 'Grease', Óleo: 'Oil',
+      'Mancalizada (end-suction)': 'Bare shaft (end suction)', 'Bipartida (split case)': 'Horizontal split case', 'Mancalizada (multiestágio)': 'Bare shaft (multistage)', 'Monobloco (end-suction)': 'Close-coupled (end suction)', 'Vertical tipo turbina': 'Vertical turbine', 'Monobloco (multiestágio)': 'Close-coupled (multistage)', Especial: 'Special' },
+    es: { 'Bomba Centrífuga': 'Bomba Centrífuga', 'Bomba Jockey': 'Bomba Jockey', Motobomba: 'Motobomba', 'Motor Diesel': 'Motor Diésel', 'Motor Elétrico': 'Motor Eléctrico', 'Tanque de combustível diesel': 'Tanque de combustible diésel', 'Painel de comando do conjunto diesel': 'Tablero de control del conjunto diésel', 'Painel de comando do conjunto elétrico': 'Tablero de control del conjunto eléctrico', 'Painel de comando da bomba jockey': 'Tablero de control de la bomba jockey', Baterias: 'Baterías', 'Manômetro e Manovacuômetro': 'Manómetro y manovacuómetro', Manômetro: 'Manómetro', Manovacuômetro: 'Manovacuómetro', 'Válvula de alívio de carcaça': 'Válvula de alivio de carcasa',
+      Tipo: 'Tipo', Marca: 'Marca', Modelo: 'Modelo', Material: 'Material', Sucção: 'Succión', Recalque: 'Descarga', Vedação: 'Sello', Lubrificação: 'Lubricación', Rotação: 'Rotación', Pintura: 'Pintura', Potência: 'Potencia', Injeção: 'Inyección', Resfriamento: 'Refrigeración', Acoplamento: 'Acoplamiento', 'Painel local': 'Tablero local', 'Tensão cont.': 'Tensión de control', 'Kit pré-aq.': 'Kit precalentador', 'Número de Polos': 'Número de polos', Frequência: 'Frecuencia', 'Grau de Proteção': 'Grado de protección', 'Tensão alim.': 'Tensión de alim.', 'Grau Prot.': 'Grado de prot.', 'Leit. pressão': 'Lectura de presión', Comunicação: 'Comunicación', 'Norma/Cert.': 'Norma/Cert.', Volume: 'Volumen', Certificação: 'Certificación', 'Ponto de trabalho': 'Punto de trabajo',
+      'fornecido solto e embalado': 'suministrado suelto y embalado', 'anexo ao motor': 'junto al motor', 'Flexível de escape': 'Flexible de escape', 'Silencioso Industrial': 'Silenciador industrial', Mecânica: 'Mecánica', Eletrônica: 'Electrónica', Radiador: 'Radiador', 'Trocador de calor': 'Intercambiador de calor', 'Por transdutor': 'Por transductor', 'Por pressostato': 'Por presostato', 'Contato Seco (Sem protocolo)': 'Contacto seco (sin protocolo)', 'NL (Não listado)': 'NL (no listado)', 'Padrão LS Fire': 'Estándar LS Fire', 'Padrão (compatível com água limpa)': 'Estándar (compatible con agua limpia)', 'Padrão Fornecedor — Cor: Vermelho Padrão Fornecedor': 'Estándar del proveedor — Color: rojo estándar del proveedor', 'Padrão Fabricante — Cor: Padrão Fabricante': 'Estándar del fabricante — Color: estándar del fabricante', Sim: 'Sí', monofásico: 'monofásico', trifásico: 'trifásico', Cilindros: 'cilindros', 'Horário (Clockwise — RH)': 'Horario (Clockwise — RH)', 'Anti-horário (Counterclockwise — LH)': 'Antihorario (Counterclockwise — LH)', Gaxeta: 'Empaquetadura', 'Selo mecânico': 'Sello mecánico', Graxa: 'Grasa', Óleo: 'Aceite',
+      'Mancalizada (end-suction)': 'Con soporte (end suction)', 'Bipartida (split case)': 'Bipartida (split case)', 'Mancalizada (multiestágio)': 'Con soporte (multietapa)', 'Monobloco (end-suction)': 'Monobloque (end suction)', 'Vertical tipo turbina': 'Vertical tipo turbina', 'Monobloco (multiestágio)': 'Monobloque (multietapa)', Especial: 'Especial' } };
+  const escT = (t, lang) => { if (!lang || lang === 'pt' || !t) return t; const D = ESC_TR[lang] || {}; if (D[t]) return D[t];
+    const m = String(t).match(/^(.*?) \((fornecido solto e embalado|anexo ao motor)\)$/); if (m) return escT(m[1], lang) + ' (' + (D[m[2]] || m[2]) + ')';
+    const i = String(t).indexOf(': '); if (i > 0) return escT(t.slice(0, i), lang) + ': ' + escT(t.slice(i + 2), lang);
+    return String(t).replace(/ - (\d+) Cilindros$/, (x, n) => ' - ' + n + ' ' + (D.Cilindros || 'Cilindros')).replace(/\b(monofásico|trifásico)\b/g, (x) => D[x] || x); };
+  const ESC_INTERNO = new Set([14, 19, 22, 31, 36, 38, 40, 41]);
+  const TIPO_ESC = { '11|END SUCTION': 'Mancalizada (end-suction)', '11|SPLIT CASE': 'Bipartida (split case)', '11|MULTIESTÁGIO': 'Mancalizada (multiestágio)', '12|MONOBLOCO': 'Monobloco (end-suction)', '12|SPLIT CASE': 'Bipartida (split case)', '12|END SUCTION': 'Mancalizada (end-suction)', '12|VERTICAL TURBINA': 'Vertical tipo turbina', '13|MONOBLOCO': 'Monobloco (multiestágio)' };
+  // valor de um campo das folhas técnicas do cadastro (seções marcadas)
+  function fdCampo(key, reS, reK) { const doc = key ? fdTecDe(key) : null; for (const sc of ((doc || {}).fdTec || {}).secoes || []) { if (reS && !reS.test(sc.t)) continue; const c = (sc.campos || []).find((x) => x.on !== false && String(x.v || '').trim() && reK.test(x.k)); if (c) return c.v; } return ''; }
+  const vPt = (v) => { const FB = window.PricerFabricante; const [a, ...r] = String(v || '').split(' / '); return a ? (((FB && FB.valT(a, 'pt')) || a) + (r.length ? ' / ' + r.join(' / ') : '')) : ''; };
+  const rotPt = (v) => (/counter|anti|\bLH\b/i.test(v) ? 'Anti-horário (Counterclockwise — LH)' : /clockwise|horário|\bRH\b/i.test(v) ? 'Horário (Clockwise — RH)' : vPt(v));
   function escopoDoItem(S) {
-    const lang = pcGet().idioma || 'pt'; const G = {}; const linhas = []; for (let k = 34; k <= 63; k++) linhas.push(k); for (let k = 68; k <= 112; k++) linhas.push(k);
+    const lang = pcGet().idioma || 'pt'; const G = {}; const ks = []; for (let k = 34; k <= 63; k++) ks.push(k); for (let k = 68; k <= 112; k++) ks.push(k);
     const add = (g, ent) => { const L = (G[g] = G[g] || []); const ig = L.find((x) => x.titulo === ent.titulo && JSON.stringify(x.sub) === JSON.stringify(ent.sub)); if (ig && typeof ig.q === 'number' && typeof ent.q === 'number') ig.q += ent.q; else L.push(ent); };
-    for (const k of linhas) {
+    const comp = upNoAc(txt(S, 'C29') || txt(S, 'C27'));
+    const norma = /NFPA\s?20/.test(comp) ? 'NFPA 20' : (comp.match(/NBR\s?(\d{4,5})/) || [])[0]?.replace(/NBR\s?/, 'NBR ') || '';
+    // as linhas do item
+    const L = [];
+    for (const k of ks) {
       const d = txt(S, 'D' + k); const q = qtdNum(val(S, 'F' + k)); if (!d || !(q > 0)) continue;
       const fam = String(txt(S, 'U' + k) || txt(S, 'C' + k) || ''); const code = /^\d\d\./.test(fam) ? +fam.slice(0, 2) : 0;
-      const key = chaveCad(d); const ti = key ? escItem(key) : ''; const fe = escFam(code);
-      const ins = key && !/^k[bm]:/.test(key) ? REG.insumos.find((x) => x.id === key) : null; const kit = key && /^k[bm]:/.test(key) ? ((/^kb:/.test(key) ? REG.kitBomba : REG.kitMotor) || []).find((x) => key.endsWith(':' + x.id)) : null;
-      const pf = EP.fams[code] || null; const ptp = EP.tipos[code + '|' + String((ins && ins.tipo) || '').toUpperCase()] || null;
-      const padT = (ptp && ptp.t && (ptp.t[lang] || ptp.t.pt)) || (pf && pf.t && (pf.t[lang] || pf.t.pt)) || '';
-      if (!ti && !fe.t && !padT && (FORA_ESC.has(code) || !code)) continue;
-      const o = { marca: txt(S, 'E' + k) || (ins && ins.fab) || (kit && kit.marca) || '', modelo: d, qtd: nBR(q) }; if (/^(VARIOS|VÁRIOS|0|-)$/i.test(o.marca.trim())) o.marca = '';
-      if (o.marca && d.toUpperCase().startsWith(o.marca.toUpperCase())) o.marca = '';
-      const tpl = ti || fe.t || padT; let sub = tpl ? tpl.split('\n').map((l) => preencher(l, o)).filter(Boolean) : [[o.marca, o.modelo].filter(Boolean).join(' ')];
-      const tPad = (ptp && ptp.titulo && (ptp.titulo[lang] || ptp.titulo.pt)) || (pf && pf.titulo && (pf.titulo[lang] || pf.titulo.pt)) || '';
-      const titulo = tPad || (FD_TIT[String(code).padStart(2, '0')] ? '@' + FD_TIT[String(code).padStart(2, '0')] : FD_ADIC[String(code).padStart(2, '0')] ? '@' + FD_ADIC[String(code).padStart(2, '0')] : (famReg()[code] || {}).desc ? String(famReg()[code].desc).split(':')[0] : d);
-      if (sub.length === 1 && sub[0] === titulo) sub = [];
-      if (PRINCIPAL[code] !== undefined) sub = sub.concat(linhasTecnicas(S, key, code, lang));
-      const ce = certLinha((ins && ins.cert) || (kit && kit.cert), lang); if (ce) sub.push(ce);
-      add(fe.grupo || GRUPO_PAD[code] || 'Acessórios', { q, titulo, sub, ord: PRINCIPAL[code] ?? 9 });
+      const key = chaveCad(d); const ins = key && !/^k[bm]:/.test(key) ? REG.insumos.find((x) => x.id === key) : insPorProduto(d); const kit = key && /^k[bm]:/.test(key) ? ((/^kb:/.test(key) ? REG.kitBomba : REG.kitMotor) || []).find((x) => key.endsWith(':' + x.id)) : null;
+      let marca = txt(S, 'E' + k) || (ins && ins.fab) || (kit && kit.marca) || ''; if (/^(VARIOS|VÁRIOS|0|-)$/i.test(marca.trim())) marca = '';
+      L.push({ k, d, q, code, key, ins, kit, marca, D: upNoAc(d), usado: false });
     }
-    for (const g of especDoItem(S)) add(g.titulo === '@pintura' ? 'Bomba' : g.titulo === '@testes' ? 'Testes e ensaios' : 'Documentos e desenhos', { q: g.qtd, titulo: g.titulo, sub: g.linhas.filter((l) => l[0] !== 'descricao').map((l) => '#' + l[0] + '|' + l[1]), ord: 9 });
-    // componente principal primeiro em cada grupo (a bomba antes da base, o motor antes das baterias…)
+    const de = (codes) => L.filter((x) => codes.includes(x.code) && !x.usado);
+    // marca como se escreve: palavras curtas (siglas) em maiúsculas, o resto com inicial maiúscula ("SVE Corp", "LS Fire", "Baudouin")
+    const marcaTxt = (m) => String(m || '').trim().split(/\s+/).filter(Boolean).map((w) => (w.length <= 3 || /\d/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ').replace(/\bLs Fire\b/i, 'LS Fire').replace(/^Lsfire$/i, 'LS Fire');
+    const MARCAS = new Set(REG.insumos.map((i) => upNoAc(i.fab || '').trim()).concat((REG.kitMotor || []).map((k) => upNoAc(k.marca || '').trim())).filter((x) => x.length > 2));
+    const certTxt = (x, lg) => certLinha((x.ins && x.ins.cert) || (x.kit && x.kit.cert), lg || 'pt');
+    const temUsuario = (x) => (x.key && escItem(x.key)) || (escFam(x.code) || {}).t;
+    const usuario = (x) => { const o = { marca: x.marca, modelo: x.d, qtd: nBR(x.q) }; return (escItem(x.key) || escFam(x.code).t).split('\n').map((l) => preencher(l, o)).filter(Boolean); };
+    const linha = (rot, v) => (v ? rot + ': ' + v : '');
+    const ent = (g, x, titulo, sub, ord) => add(g, { q: x.q, titulo: escT(titulo, lang), sub: sub.filter(Boolean).map((l) => (/^Certificação: /.test(l) ? escT('Certificação', lang) + ': ' + certTxt(x, lang) : escT(l, lang))), ord });
+    const esp = especSalva(S)['35'] || {};
+    // bombas (principal, motobomba e jockey)
+    for (const x of de([11, 12, 13])) {
+      x.usado = true; const grupo = x.code === 13 ? 'Bomba jockey' : 'Bomba';
+      if (temUsuario(x)) { ent(grupo, x, x.code === 13 ? 'Bomba Jockey' : 'Bomba Centrífuga', usuario(x), 0); continue; }
+      const tipoIns = upNoAc((x.ins && x.ins.tipo) || '') || (/SPLIT CASE/.test(comp) ? 'SPLIT CASE' : /END SUCTION/.test(comp) ? 'END SUCTION' : /MONOBLOCO/.test(comp) && x.code === 13 ? 'MONOBLOCO' : '');
+      const car = (x.ins && x.ins.caract) || {}; const modelo = car.modelo || car.bomba || (x.code === 13 ? x.d.replace(/\s+\d+(?:[.,]\d+)?\s*(CV|HP)\b.*$/i, '') : x.d);
+      const pint = esp.norma || esp.cor ? 'Especial' + (esp.norma ? ' — ' + esp.norma : '') + (esp.cor ? ' — Cor: ' + esp.cor : '') : x.code === 13 ? ESC_STD.pinturaJockey : ESC_STD.pinturaBomba;
+      const F = (((pcGet().fd || {})[S]) || {}); const dd = (F.fab || {}).dados || (F.curva || {}).dados;
+      const cp = (re) => { for (const sc of (dd || {}).secoes || []) { if (sc.t === 'Project' || /NFPA/i.test(sc.t)) continue; const c = (sc.campos || []).find((y) => y.on !== false && re.test(y.k)); if (c) return c.v; } return ''; };
+      const qf = x.code !== 13 ? cp(/^Flow(, rated)?$/) : '', hf = x.code !== 13 ? cp(/^Head$|^Differential head.*\(actual\)$|^Differential head \/ pressure, rated$/) : '';
+      ent(grupo, x, x.code === 13 ? 'Bomba Jockey' : x.code === 12 ? 'Motobomba' : 'Bomba Centrífuga', [
+        linha('Tipo', TIPO_ESC[x.code + '|' + tipoIns] || ''), linha('Marca', marcaTxt(x.marca)), linha('Modelo', modelo),
+        linha('Material', vPt(fdCampo(x.key, /material/i, /casing|carcaça|volute/i)) || ESC_STD.material),
+        linha('Sucção', fdCampo(x.key, null, /suction (nozzle|flange diameter)|^sucção/i)), linha('Recalque', fdCampo(x.key, null, /discharge (nozzle|flange diameter)|^recalque/i)),
+        linha('Vedação', vPt(fdCampo(x.key, null, /seal type|pump seal|^vedação/i))), linha('Lubrificação', vPt(fdCampo(x.key, null, /lubrication|lubrificação/i))),
+        linha('Rotação', rotPt(fdCampo(x.key, null, /direction of rotation|sentido de rotação/i))), linha('Pintura', pint),
+        qf && hf ? linha('Ponto de trabalho', qf + ' × ' + hf) : '', linha('Certificação', certTxt(x))], 0);
+      // motor da motobomba e da jockey (das características do cadastro)
+      if (x.code === 12 && car.acion) ent('Acionador', x, /DIESEL/i.test(car.acion) ? 'Motor Diesel' : 'Motor Elétrico', [linha('Marca', marcaTxt(car.marca || '')), linha('Modelo', car.motor || ''), linha('Potência', car.pot ? car.pot + ' ' + (car.unid || '') : ''), linha('Número de Polos', (car.polos || '').replace(/P$/, ''))], 1);
+      // jockey: o motor vem das características do cadastro ou da descrição ("CIS RS-84 4CV"); polos pela rotação do equipamento
+      if (x.code === 13) { const pm = x.D.match(/(\d+(?:[.,]\d+)?)\s*(CV|HP)\b/); const pot = car.pot ? car.pot + ' ' + (car.unid || 'CV') : pm ? pm[1] + ' ' + pm[2] : ''; const rpmE = +((comp.match(/JOCKEY[^,]*?(\d{4})\s*RPM/) || [])[1] || 0);
+        const polos = rpmE >= 3000 ? '2' : rpmE >= 1500 ? '4' : ''; const hz = car.freq ? car.freq.replace(/HZ$/i, 'Hz') : '60Hz';
+        if (pot) ent('Bomba jockey', x, 'Motor Elétrico', [linha('Potência', pot), linha('Número de Polos', polos), linha('Frequência', hz), linha('Grau de Proteção', car.ip || '')], 1); }
+    }
+    // motor diesel, com o que é dele no item: escape, pré-aquecimento, acoplamento, painel local
+    for (const x of de([1])) {
+      x.usado = true; if (temUsuario(x)) { ent('Acionador', x, 'Motor Diesel', usuario(x), 1); continue; }
+      const car = (x.ins && x.ins.caract) || {}; const D = x.D;
+      // descrição fora do padrão ("MOTOR DIESEL SNAT 6HTAA6.5-G22 221HP 1800RPM"): tira o nome da família e a marca escrita nela
+      let resto = x.d.replace(/^MOTOR\s+DIESEL\s+/i, '').trim(); let marca = x.marca; const w0 = upNoAc(resto.split(/\s+/)[0]);
+      if (MARCAS.has(w0)) { if (!marca) marca = w0; resto = resto.split(/\s+/).slice(1).join(' '); }
+      const mod = car.modelo || resto.split(/\s+/)[0]; const cil = car.cil || (D.match(/(\d+)\s*CIL\b/) || [])[1]; const hp = car.hp || (D.match(/(\d+(?:[.,]\d+)?)\s*HP/) || [])[1]; const rpm = car.rpm || (D.match(/(?:HP\s*@?\s*|@\s*)(\d{3,4})\s*RPM/) || [])[1];
+      const inj = /\bMEC\b/.test(car.ctrl || D) ? 'Mecânica' : /\bELE/.test(car.ctrl || D.replace(/ELETRIC/g, '')) ? 'Eletrônica' : ''; const res = /TROCADOR/.test(car.arref || D) ? 'Trocador de calor' : /RADIADOR/.test(car.arref || D) ? 'Radiador' : '';
+      const vcc = car.vcc || (D.match(/\b(12|24)\s*VCC/) || [])[0] || ''; const vccT = vcc.replace(/(\d+)\s*VCC/i, '$1 VCC');
+      const ac = de([18]).find((y) => !y.usado); if (ac) ac.usado = true;
+      const pl = L.find((y) => !y.usado && /PAINEL LOCAL/.test(y.D)); if (pl) pl.usado = true;
+      const pa = de([26]).find((y) => !y.usado); if (pa) pa.usado = true;
+      const esc0 = de([16]).find((y) => !y.usado); if (esc0) esc0.usado = true;
+      const fdm = (re) => vPt(fdCampo(x.key, /engine|motor|driver/i, re));
+      ent('Acionador', x, 'Motor Diesel', [linha('Marca', marcaTxt(marca)), linha('Modelo', mod + (cil ? ' - ' + cil + ' Cilindros' : '')), linha('Potência', hp ? hp + ' HP' + (rpm ? ' @ ' + rpm + ' rpm' : '') : ''),
+        linha('Injeção', inj), linha('Resfriamento', res || fdm(/cooling type/i)), linha('Acoplamento', ac ? (/CARDAN/.test(ac.D) ? 'Tipo cardan' : /PINOS/.test(ac.D) ? 'Elástico de pinos' + (/FLANGE/.test(ac.D) ? ' com flange' : '') : [marcaTxt(ac.marca), ac.d].filter(Boolean).join(' ')) : ''),
+        linha('Painel local', pl ? ESC_STD.painelLocal : ''), linha('Tensão cont.', vccT), linha('Kit pré-aq.', pa ? pa.d.replace(/^KIT\s+/i, '') : ''),
+        esc0 && /FLEX/.test(esc0.D) ? 'Flexível de escape (anexo ao motor)' : '', esc0 && /SILENC/.test(esc0.D) ? 'Silencioso Industrial (fornecido solto e embalado)' : '', linha('Certificação', certTxt(x))], 1);
+    }
+    for (const x of de([10])) {
+      x.usado = true; if (temUsuario(x)) { ent('Acionador', x, 'Motor Elétrico', usuario(x), 1); continue; }
+      const car = (x.ins && x.ins.caract) || {}; const D = x.D;
+      const cv = car.cv || (D.match(/(\d+(?:[.,]\d+)?)\s*CV\b/) || [])[1]; const po = (car.polos || (D.match(/\b(\d)\s*P\b/) || [])[0] || '').replace(/\s*P$/, ''); const ip = car.ip || (D.match(/\bIP\s?(\d{2})\b/) || [])[0] || '';
+      const freq = car.freq ? car.freq.replace(/HZ$/i, 'Hz') : '60Hz';
+      ent('Acionador', x, 'Motor Elétrico', [linha('Marca', marcaTxt(car.marca || x.marca)), linha('Potência', cv ? cv + ' CV' : ''), linha('Número de Polos', po), linha('Frequência', freq), linha('Grau de Proteção', ip.replace(/\s/, '')), linha('Certificação', certTxt(x))], 1);
+    }
+    // tanque, painéis, baterias, instrumentos
+    for (const x of de([15])) { x.usado = true; if (temUsuario(x)) { ent('Acessórios', x, 'Tanque de combustível diesel (fornecido solto e embalado)', usuario(x), 3); continue; } const v = (x.D.match(/(\d{2,5})\s*L?\b/) || [])[1]; ent('Acessórios', x, 'Tanque de combustível diesel (fornecido solto e embalado)', [linha('Volume', v ? v + ' L' : '')], 3); }
+    const tensaoDe = (seg) => { const m = seg.match(/PAINEL[^,]*?\b(220|380|440|480)\s*(MONO|TRI)/); return m ? m[1] + 'V ' + (m[2] === 'MONO' ? 'monofásico' : 'trifásico') : ''; };
+    const segs = comp.split(/(?=\bDIESEL\b|\bELETRICA\b|\bJOCKEY\b)/);
+    const tensaoPainel = (tipo, D) => { const v = (D.match(/\b(220|380|440|480)\s*V\b/) || [])[1]; if (v) return v + 'V ' + (v === '220' ? ((/MONO/.test(D) && 'monofásico') || (/TRI/.test(D) && 'trifásico') || '') : 'trifásico').trim(); const sg = segs.find((g) => g.startsWith(tipo)); return sg ? tensaoDe(sg) : ''; };
+    for (const x of de([20, 21])) {
+      x.usado = true; const jockey = /\bJ\b|JOCKEY|\bJD\d/.test(x.D) && !/\bE[JS]\b|ED\d/.test(x.D); const diesel = x.code === 20 || /DIESEL/.test(x.D);
+      const tit = diesel ? 'Painel de comando do conjunto diesel' : jockey ? 'Painel de comando da bomba jockey' : 'Painel de comando do conjunto elétrico';
+      if (temUsuario(x)) { ent(jockey ? 'Bomba jockey' : 'Painel de comando', x, tit + ' (fornecido solto e embalado)', usuario(x), 2); continue; }
+      const nfpa = /NFPA/.test(x.D) || (!/\bNBR\b|-U-/.test(x.D) && norma === 'NFPA 20'); const nrm = nfpa ? 'NFPA 20' : /NBR|-U-/.test(x.D) ? (norma.startsWith('NBR') ? norma : 'NBR') : norma;
+      const ce = certTxt(x); const certN = ce ? ce.replace(' · ', ' / ') : 'NL (Não listado)';
+      ent(jockey ? 'Bomba jockey' : 'Painel de comando', x, tit + ' (fornecido solto e embalado)', [linha('Marca', marcaTxt(x.marca)), linha('Tensão alim.', tensaoPainel(diesel ? 'DIESEL' : jockey ? 'JOCKEY' : 'ELETRICA', x.D)), linha('Grau Prot.', /SVE/.test(upNoAc(x.marca)) ? ESC_STD.ipPainel : ''),
+        linha('Leit. pressão', nfpa ? 'Por transdutor' : nrm ? 'Por pressostato' : ''), linha('Comunicação', ESC_STD.comunicacao), linha('Norma/Cert.', nrm ? nrm + ' / ' + certN : '')], 2);
+    }
+    for (const x of de([17])) { x.usado = true; const ah = (x.D.match(/(\d+)\s*X\s*(\d+)\s*A\/?H/) || []); const m1 = L.find((y) => y.code === 1); const vcc = m1 ? ((m1.D.match(/\b(12|24)\s*VCC/) || [])[1] || '') : '';
+      ent('Acionador', x, 'Baterias' + (ah[2] ? ': ' + (vcc ? vcc + ' VCC - ' : '') + ah[1] + ' x ' + ah[2] + ' A/h' : ': ' + x.d) + ' (fornecido solto e embalado)', [], 4); }
+    { const mn = de([42]).filter((y) => !y.usado), mv = de([30]).filter((y) => !y.usado); if (mn.length && mv.length) { mn.concat(mv).forEach((y) => { y.usado = true; }); ent('Acessórios', mn[0], 'Manômetro e Manovacuômetro (fornecido solto e embalado)', [mn[0].d, mv[0].d], 5); } }
+    for (const x of de([43])) { x.usado = true; ent('Acessórios', x, 'Válvula de alívio de carcaça: Sim', [], 6); }
+    // partes internas do conjunto (base, chaves e sensores do motor, interligação, capa, tomada de pressão, cabeçote): não vão
+    // para o escopo, como na proposta LS Fire, a menos que tenham texto cadastrado
+    for (const x of L) if (!x.usado && ESC_INTERNO.has(x.code) && !temUsuario(x)) x.usado = true;
+    // o resto: texto cadastrado, texto padrão da família ou a descrição comercial do cadastro
+    for (const x of L) {
+      if (x.usado) continue; const code = x.code; const ti = x.key ? escItem(x.key) : ''; const fe = escFam(code);
+      const pf = EP.fams[code] || null; const padT = (pf && pf.t && (pf.t[lang] || pf.t.pt)) || '';
+      if (!ti && !fe.t && !padT && (FORA_ESC.has(code) || !code)) continue;
+      const o = { marca: /^LS ?FIRE$/i.test(x.marca.trim()) ? '' : marcaTxt(x.marca), modelo: x.d, qtd: nBR(x.q) }; if (o.marca && x.d.toUpperCase().startsWith(o.marca.toUpperCase())) o.marca = '';
+      const desc = x.ins && x.ins.descCom; const tpl = ti || fe.t || (desc ? '' : padT);
+      const tPad = (pf && pf.titulo && (pf.titulo[lang] || pf.titulo.pt)) || (famReg()[code] || {}).desc || x.d;
+      let sub = tpl ? tpl.split('\n').map((l) => preencher(l, o)).filter(Boolean) : desc ? [desc] : [[o.marca, o.modelo].filter(Boolean).join(' ')];
+      if (sub.length === 1 && sub[0] === tPad) sub = [];
+      const ce = certTxt(x, lang); if (ce) sub.push(escT('Certificação', lang) + ': ' + ce);
+      add(fe.grupo || GRUPO_PAD[code] || 'Acessórios', { q: x.q, titulo: tPad, sub, ord: 9 });
+    }
+    for (const g of especDoItem(S)) { if (g.titulo === '@pintura' && de([11, 12, 13]).length) continue; add(g.titulo === '@pintura' ? 'Bomba' : g.titulo === '@testes' ? 'Testes e ensaios' : 'Documentos e desenhos', { q: g.qtd, titulo: g.titulo, sub: g.linhas.filter((l) => l[0] !== 'descricao').map((l) => '#' + l[0] + '|' + l[1]), ord: 9 }); }
     return GRUPOS_ESC.filter((g) => (G[g] || []).length).map((g) => ({ g, itens: G[g].map((x, i) => [x, i]).sort((a, b) => a[0].ord - b[0].ord || a[1] - b[1]).map(([x]) => { const y = Object.assign({}, x); delete y.ord; return y; }) }));
   }
   // o que a proposta puxa do cadastro para um item: folhas técnicas de bombas e motores (somando iguais) e desenhos
@@ -3446,7 +3554,7 @@
     const p = REG.lixeira().find((x) => x.id === (r || d).dataset[r ? 'lxrest' : 'lxdel']); if (!p) return;
     try {
       if (r) { await REG.restaurarLixeira(p); logEv({ tipo: 'Proposta restaurada da lixeira', ref: p.id, desc: p.name || '', mudancas: [] }); toast('Proposta restaurada'); }
-      else { if (!window.confirm('Apagar de vez "' + (p.numero || p.name) + '"? Não dá para desfazer (só por um backup).')) return; await REG.deleteProposta(p.id, !!p.local); logEv({ tipo: 'Proposta apagada de vez', ref: p.id, desc: p.name || '', mudancas: [] }); toast('Apagada'); }
+      else { if (!await DLG.confirmar('Apagar de vez "' + (p.numero || p.name) + '"? Não dá para desfazer (só por um backup).')) return; await REG.deleteProposta(p.id, !!p.local); logEv({ tipo: 'Proposta apagada de vez', ref: p.id, desc: p.name || '', mudancas: [] }); toast('Apagada'); }
       render();
     } catch (er) { toast(errMsg(er)); }
   });
@@ -3471,7 +3579,7 @@
       <div style="display:flex;gap:8px"><button class="btn pri" id="bkOk">Restaurar o que está marcado</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
       $('#bkOk', o).onclick = async () => {
         const cols = [...o.querySelectorAll('[data-bkcol]:checked')].map((x) => x.dataset.bkcol); const subst = $('#bkSubst', o).checked; const cad = podeCad && o.querySelector('[data-bkcad]').checked;
-        if (!window.confirm('Confirmar a restauração?')) return; close(); let n = 0, pul = 0;
+        if (!await DLG.confirmar('Confirmar a restauração?')) return; close(); let n = 0, pul = 0;
         for (const k of cols) { const lsk = COLECOES.find((c) => c[0] === k)[2]; const B = b.colecoes[k] || {};
           for (const [id, body] of Object.entries(B)) { const cur = atual[k][id]; if (cur && JSON.stringify(cur) === JSON.stringify(body)) continue; if (cur && !subst) { pul++; continue; }
             if (cur && k === 'propostas') await revGravar({ propId: id, rev: revDe(cur), at: cur.at, by: cur.by || null, statusEra: cur.status || 'rascunho', motivoProxima: 'substituída por restauração de backup', total: cur.total ?? null, margemPct: cur.resumo ? cur.resumo.margemPct : null, numero: cur.numero || '', cliente: cur.cliente || '', body: cur }, '_bk' + Date.now().toString(36)).catch(() => {});
@@ -4566,9 +4674,12 @@
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
   const PNL = window.PricerPainel({ REG, esc, brl, pct, ui, render, MG: () => MG, PN: () => PN });
   // os botões de tipo da tela Início trocam a proposta aberta: pergunta antes de perder alterações não salvas
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-spvnew],[data-seqnew],[data-seqfam],[data-factsnew]'); if (!b || !dirty || assinatura() === ui.assinaturaAberta) return;
-    if (!window.confirm('A proposta aberta tem alterações não salvas. Começar uma nova mesmo assim? (as alterações se perdem)')) { e.preventDefault(); e.stopImmediatePropagation(); }
+    if (b.dataset.dlgok) { delete b.dataset.dlgok; return; }
+    // segura o clique, pergunta e, se a pessoa confirmar, refaz o clique
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (await DLG.confirmar('A proposta aberta tem alterações não salvas. Começar uma nova mesmo assim? (as alterações se perdem)')) { b.dataset.dlgok = '1'; b.click(); }
   }, true);
   const SPV = window.PricerSPV({ revisar: () => revisarModal(), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
@@ -4585,12 +4696,12 @@
   function podeCancelar() { if (state.verRev || !viewDaProposta(ui.view)) return false; const salva = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null; return !salva || dirty; }
   $('#bCancel').onclick = () => cancelar();
   document.addEventListener('click', (e) => { if (e.target.closest('[data-cancelar]')) cancelar(); });
-  function cancelar() {
+  async function cancelar() {
     if (!podeCancelar()) return;
     const salva = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
-    if (!salva) { if (dirty && !window.confirm('Cancelar a criação desta proposta? O que foi preenchido e não foi salvo será descartado.')) return;
+    if (!salva) { if (dirty && !await DLG.confirmar('Cancelar a criação desta proposta? O que foi preenchido e não foi salvo será descartado.')) return;
       loadDoc({}, ''); dirty = false; persist(); setView('inicio'); toast('Proposta nova descartada'); return; }
-    if (!window.confirm('Descartar as alterações não salvas e voltar à última versão salva?')) return;
+    if (!await DLG.confirmar('Descartar as alterações não salvas e voltar à última versão salva?')) return;
     openProposta(salva, false); dirty = false; persist(); render(); toast('Alterações descartadas: voltou à versão salva');
   }
   // salvar mostra o estado: girando enquanto grava, e volta ao normal no fim (sucesso ou erro)
@@ -4642,7 +4753,7 @@
       $('#cfGuarda', o).onclick = async () => { close(); try { await revGravar({ propId: id, rev: revDe(remoto), at: remoto.at, by: remoto.by || null, statusEra: remoto.status || 'rascunho', motivoProxima: 'versão salva por outra pessoa durante edição simultânea', total: remoto.total ?? null, margemPct: remoto.resumo ? remoto.resumo.margemPct : null, numero: remoto.numero || '', cliente: remoto.cliente || '', body: remoto }, '_c' + (remoto.ver || 0));
         state.verBase = remoto.verDoc || 0; logEv({ tipo: 'Proposta — conflito resolvido', ref: id, desc: docTitle() + ': versão de outra pessoa guardada nas revisões; a sua foi salva', mudancas: [] }); await $('#bSave').onclick(); } catch (e) { toast(errMsg(e)); } };
       $('#cfCopia', o).onclick = async () => { close(); state.id = null; state.uid = newUid(); delete state.verBase; await $('#bSave').onclick(); toast('Salva como proposta nova; a outra ficou como estava'); };
-      $('#cfAbre', o).onclick = () => { if (!window.confirm('Descartar as suas alterações?')) return; close(); openProposta(Object.assign({ id }, remoto), false); };
+      $('#cfAbre', o).onclick = async () => { if (!await DLG.confirmar('Descartar as suas alterações?')) return; close(); openProposta(Object.assign({ id }, remoto), false); };
     });
   }
   // indicador de gravação no topo

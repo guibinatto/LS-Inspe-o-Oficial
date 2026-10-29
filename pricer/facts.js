@@ -202,9 +202,9 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         ctx.persist(); ctx.render(); return; }
       if (el.dataset && el.dataset.fxcfg) { const v = parseV(el); if (v === undefined) return toast('Número inválido'); saveCfg((c) => setPath(c, el.dataset.fxcfg, v), 'FACTS: ' + el.dataset.fxcfg); }
     });
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
       const t = e.target;
-      if (t.closest('[data-factsnew]')) { const cur = st(); if (t.closest('#app .famgrid') && !cur.id && cur.doc && Object.keys(cur.doc).length > 1 && !window.confirm('Abrir uma formação FACTS nova? A proposta atual ainda não foi salva.')) return; novo(); return; }
+      if (t.closest('[data-factsnew]')) { const cur = st(); if (t.closest('#app .famgrid') && !cur.id && cur.doc && Object.keys(cur.doc).length > 1 && !(await window.PricerDlg.confirmar('Abrir uma formação FACTS nova? A proposta atual ainda não foi salva.'))) return; novo(); return; }
       if (!F()) return;
       if (t.closest('[data-fxadd]')) { const last = F().conj[F().conj.length - 1]; F().conj.push(Object.assign(clone(last), { nome: 'Outra bomba', qtd: 1 })); ctx.persist(); ctx.render(); return; }
       const rm = t.closest('[data-fxrm]'); if (rm) { F().conj.splice(+rm.dataset.fxrm, 1); ctx.persist(); ctx.render(); return; }

@@ -145,7 +145,7 @@
           } catch (e) { $('#atOk', o).disabled = false; toast((e && e.message) || 'Não consegui cadastrar'); }
         };
         $('#atNo', o).onclick = async () => {
-          const mot = window.prompt('Motivo da recusa (vai para quem pediu):'); if (!mot) return;
+          const mot = await window.PricerDlg.pedir('Motivo da recusa (vai para quem pediu):', ''); if (!mot) return;
           await gravar(x.id, Object.assign({}, x, { status: 'recusado', motivo: mot, atendidoEm: new Date().toISOString(), atendidoBy: REG.me || null }));
           await ctx.log({ tipo: 'Pedido de cadastro recusado', ref: x.id, desc: x.produto + ' — ' + mot, mudancas: [{ campo: 'Situação', de: 'aberto', para: 'recusado' }] });
           close(); toast('Pedido recusado'); ctx.render();

@@ -618,7 +618,7 @@
       ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — ' + desc, mudancas: [{ campo: (ETAPAS.find((x) => x[0] === k) || [0, k])[1], de: val ? null : 'feito', para: val ? 'feito' + (val.obs ? ' · ' + val.obs : '') : null }] });
       ctx.render();
     }
-    document.addEventListener('click', (ev) => {
+    document.addEventListener('click', async (ev) => {
       const b = ev.target.closest('[data-etp]'); if (!b || b.disabled) return;
       const [pid, k] = b.dataset.etp.split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
       const x = etapas(p).find((y) => y.k === k); if (!x) return;
@@ -630,7 +630,7 @@
         REG.patchProposta(p.id, (r) => { r.status = 'enviada'; r.etapas = Object.assign({}, r.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }); }).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
       if (x.act === 'avisar' && x.s !== 'ok') { avisarModal(p, [k]); return; }
       if (x.act !== 'marcar' && x.act !== 'avisar') return;
-      if (x.s === 'ok') { if (!window.confirm('Desmarcar "' + x.lb + '"?')) return; salvarEtapa(p, k, null, x.lb + ' desmarcada').catch((e) => toast(e.message || 'Não consegui salvar')); return; }
+      if (x.s === 'ok') { if (!await window.PricerDlg.confirmar('Desmarcar "' + x.lb + '"?')) return; salvarEtapa(p, k, null, x.lb + ' desmarcada').catch((e) => toast(e.message || 'Não consegui salvar')); return; }
       modal(`<h2>${esc(x.lb)}</h2><p class="sub" style="margin:0">${esc((p.numero || p.name || '') + ' · ' + (p.cliente || ''))}</p>
         <div class="f"><label for="etObs">Observação (opcional)</label><input id="etObs" placeholder="${k === 'financeiro' ? 'ex.: enviado por e-mail para o financeiro com o pedido' : k === 'engenharia' ? 'ex.: enviado para a engenharia lançar o custo real' : 'ex.: projeto entregue e faturado'}"></div>
         <div style="display:flex;gap:8px"><button class="btn pri" id="etOk">Marcar como feito</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
@@ -701,7 +701,7 @@
               : 'Não sei se o e-mail saiu (' + (c || 'erro') + '). Confira a pasta Enviados do Outlook antes de tentar de novo.';
           }
         };
-        g('#emMail').onclick = () => { setTimeout(() => { if (window.confirm('O e-mail foi enviado?')) { const a = sel(), to = para(); close(); fim('e-mail pelo programa de e-mail para ' + to.join(', '), a, to); } }, 600); };
+        g('#emMail').onclick = () => { setTimeout(async () => { if (await window.PricerDlg.confirmar('O e-mail foi enviado?')) { const a = sel(), to = para(); close(); fim('e-mail pelo programa de e-mail para ' + to.join(', '), a, to); } }, 600); };
         g('#emCopy').onclick = () => navigator.clipboard.writeText(g('#emAss').value + '\n\n' + g('#emTxt').value).then(() => toast('Texto copiado'), () => toast('Não consegui copiar'));
         if (o.excel) g('#emXls').onclick = () => o.excel().catch((e) => toast(e.message || 'Não consegui gerar o Excel'));
         const so = g('#emSo'); if (so) so.onclick = async () => { const a = sel(), to = para(); close(); await fim('registrado sem e-mail pelo app', a, to); };

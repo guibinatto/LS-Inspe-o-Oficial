@@ -227,6 +227,13 @@
     const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise;
     return { url: c.toDataURL('image/jpeg', 0.88), paginas: pdf.numPages };
   }
+  // páginas de um PDF como imagem, para ver o documento dentro do app
+  async function paginasImagem(file, max, escala) {
+    await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const out = [];
+    for (let i = 1; i <= Math.min(pdf.numPages, max || 20); i++) { const pg = await pdf.getPage(i); const vp = pg.getViewport({ scale: escala || 1.5 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise; out.push({ n: i, url: c.toDataURL('image/jpeg', 0.85) }); }
+    out.total = pdf.numPages; return out;
+  }
   // miniaturas das páginas (para escolher a página da curva clicando)
   async function miniaturas(file, max) {
     if (/^image\//.test(file.type || '')) { const r = await paginaImagem(file, 1); return [{ n: 1, url: r.url }]; }
@@ -235,5 +242,5 @@
     for (let i = 1; i <= Math.min(pdf.numPages, max || 16); i++) { const pg = await pdf.getPage(i); const vp = pg.getViewport({ scale: 0.32 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise; out.push({ n: i, url: c.toDataURL('image/jpeg', 0.7) }); }
     return out;
   }
-  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR, partes, paginaImagem, itensPdf, recorte, miniaturas };
+  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR, partes, paginaImagem, paginasImagem, itensPdf, recorte, miniaturas };
 })();

@@ -320,7 +320,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       let blob;
       try { if (d.assetId) blob = await (await fetch('/_blob/' + d.assetId)).blob(); else blob = await idbGet(d.id); } catch (e) { blob = null; }
       if (!blob) return toast('Não encontrei o arquivo deste documento.');
-      if (!baixar) { const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return; }
+      // abre dentro do app (a página publicada pode bloquear abas novas); o quadro tem o botão de baixar
+      if (!baixar) { if (window.PricerDlg) { window.PricerDlg.ver(blob, d.nome, () => abrirDoc(d, true)); return; } const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return; }
       const ok = await REG.save(d.nome || 'documento', blob, blob.type); if (!ok) toast('Download cancelado');
     }
     const docsDaProposta = (u) => docs.filter((d) => d.propUid && d.propUid === u);

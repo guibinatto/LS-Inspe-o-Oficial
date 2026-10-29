@@ -186,6 +186,6 @@ Linha da proposta: os botões ficam num grupo alinhado — próximo passo (desta
 ## 20. Escopo padrão e certificação
 
 - `escopo-padrao.js` (`PRICER_ESCOPO_PADRAO`): título e texto por família e por tipo (`código|TIPO`), em pt/en/es, e o grupo de cada família. Ordem: texto do item → texto da família no banco → padrão do tipo → padrão da família.
-- No componente principal (bomba, motor, painel), linhas técnicas do cadastro: materiais, bocais e vedação da folha técnica da bomba; potência, rotação, tensão, proteção e rendimento da folha do motor; ponto de trabalho da folha do fabricante do item. O componente principal vem primeiro no grupo.
+- Escopo no padrão da proposta LS Fire (PTC): título e linhas "Rótulo: valor" por componente (`escopoDoItem`), com valores da descrição padronizada e das características do cadastro, das outras linhas do item (escape, pré-aquecimento, acoplamento e painel local entram no motor diesel), da norma e do painel da descrição do equipamento e das folhas técnicas; padrões LS Fire em `ESC_STD`; partes internas em `ESC_INTERNO`; rótulos fixos em en/es em `ESC_TR`. Linha sem valor não entra.
 - Certificação no cadastro do insumo e do kit (`cert`: "UL", "FM" ou "UL / FM", marcada em caixas): sai como "Listado UL · Aprovado FM" (en "UL Listed · FM Approved") na linha do item no escopo.
 - Leitura da Sempa: título girado na margem, títulos de seção pela letra maior, rótulos de grupo (Flow / Head / Impeller D) aplicados às linhas recuadas, modelo da linha "… rpm / … m³/h / …".
