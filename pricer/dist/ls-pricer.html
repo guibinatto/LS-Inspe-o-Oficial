@@ -3808,8 +3808,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
           ${kpi('Do envio à baixa', esc(dias(d.negoc)), d.nNegoc ? d.nNegoc + ' fechada(s)' : 'nenhuma fechada')}
           ${kpi('Descontos pedidos', d.aps ? d.aps + ' pedido(s)' : '—', d.nDesc ? 'desconto médio ' + pct(d.descMedio, 1) + ' · ' + d.aprovadas + ' aprovado(s)' : 'nenhum com valor target')}
           ${kpi('Margem prevista × realizada', d.nReal ? pct(d.prev, 1) + ' → ' + pct(d.real, 1) : '—', d.nReal ? d.nReal + ' obra(s) com custo real lançado' : 'sem custo real lançado', d.nReal && d.real < d.prev - 5e-4 ? 'bad-t' : '')}
-          ${kpi('Pendências abertas', String(d.pend.abertas), `<button class="restore" data-view="pendencias">${d.pend.vencidas} vencida(s) · ${d.pend.impeditivas} impeditiva(s)</button>`, d.pend.vencidas ? 'bad-t' : '')}
-        </div>` : `<p class="sub" style="margin:8px 0 0">Nenhuma proposta ${f.div === 'todas' ? '' : f.div + ' '}criada neste período. Escolha um período maior ou comece uma proposta abaixo.</p>`}
+        </div>
+        <p class="sub" style="margin:8px 0 0">Pendências em acompanhamento: <b>${d.pend.abertas}</b> aberta(s) · <b class="${d.pend.vencidas ? 'bad-t' : ''}">${d.pend.vencidas}</b> vencida(s) · <b class="${d.pend.impeditivas ? 'bad-t' : ''}">${d.pend.impeditivas}</b> impeditiva(s) · <button class="restore" data-view="pendencias">abrir</button></p>` : `<p class="sub" style="margin:8px 0 0">Nenhuma proposta ${f.div === 'todas' ? '' : f.div + ' '}criada neste período. Escolha um período maior ou comece uma proposta abaixo.</p>`}
         <details style="margin-top:8px"><summary class="sub">Como cada número é calculado</summary><ul class="sub pnlform">
           <li><b>Período</b>: propostas criadas no período (data de criação; nas anteriores à REV22, a data da última gravação). Divisão: SEQ ou SPV.</li>
           <li><b>Etapas</b>: cada proposta conta uma vez — perdida; ganha (status ganha ou baixa registrada); em aprovação (pedido de aprovação pendente); enviada ao cliente; senão, em elaboração. Valor = soma do total salvo (com IPI).</li>

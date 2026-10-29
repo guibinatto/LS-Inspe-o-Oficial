@@ -1,0 +1,33 @@
+const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
+(async () => {
+  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+  await p.route('https://**', (r) => r.abort()); const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('dialog', (d) => d.accept());
+  await p.goto('file://' + require('path').resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1200);
+  await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(800); await p.click('#bSave'); await p.waitForTimeout(400);
+  await p.click('[data-view="inicio"]'); await p.click('.home [data-etp$="|cliente"]'); await p.waitForTimeout(400);
+  const row = () => p.$eval('.home tbody tr.click', (x) => x.innerText.replace(/\s+/g, ' '));
+  console.log('home 1:', await row());
+  await p.click('.home tbody tr.click [data-hopen]'); await p.waitForTimeout(500);
+  const sb = () => p.$eval('.sumbar', (x) => x.innerText.replace(/\s+/g, ' '));
+  console.log('aberta:', await sb());
+  // altera desconto global
+  await p.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+  await p.fill('[id$="PROPOSTA_C9"]', '5'); await p.press('[id$="PROPOSTA_C9"]', 'Tab'); await p.waitForTimeout(500);
+  await p.click('#bSave'); await p.waitForTimeout(300); console.log('modal:', await p.$eval('.modal h2', (x) => x.innerText));
+  await p.fill('#rvMot2', 'desconto global de 5%'); await p.click('#rvNova'); await p.waitForTimeout(700);
+  console.log('após salvar:', await sb());
+  await p.click('[data-view="inicio"]'); await p.waitForTimeout(300); console.log('home 2:', await row());
+  console.log('etapas:', await p.$$eval('.home .etapas .etp', (x) => x.slice(0, 3).map((e) => e.className.replace('etp ', '') + ':' + e.innerText.replace(/\s+/g, ' ')).join(' | ')));
+  await p.click('.home tbody tr.click [data-hopen]'); await p.waitForTimeout(400);
+  await p.click('[data-revs]'); await p.waitForTimeout(400); console.log('lista:', await p.$eval('.modal table', (x) => x.innerText.replace(/\t/g, ' ¦ ').replace(/\n+/g, ' // ')));
+  await p.click('[data-revver]'); await p.waitForTimeout(600); console.log('consulta:', await p.$eval('#app .banner.warn', (x) => x.innerText.replace(/\s+/g, ' ')), '|', await sb());
+  await p.click('#bSave'); await p.waitForTimeout(200); console.log('toast:', await p.$$eval('.toast', (x) => x.map((e) => e.innerText).join(' / ')));
+  await p.click('#app .banner.warn [data-revatual]'); await p.waitForTimeout(500); console.log('voltou:', await sb());
+  await p.click('[data-revs]'); await p.waitForTimeout(300); await p.click('.modal [data-revisar]'); await p.waitForTimeout(300); await p.fill('#rvMot', 'troca de motor'); await p.click('#rvOk'); await p.waitForTimeout(800);
+  console.log('revisou:', await sb());
+  await p.click('[data-revs]'); await p.waitForTimeout(400); console.log('lista 2:', await p.$$eval('.modal tbody tr', (x) => x.map((e) => e.innerText.replace(/\s+/g, ' ').slice(0, 90))));
+  await p.click('.modal [data-revrest] >> nth=1'); await p.waitForTimeout(900); console.log('restaurou:', await sb());
+  await p.click('[data-revs]'); await p.waitForTimeout(400); console.log('lista 3:', await p.$$eval('.modal tbody tr', (x) => x.map((e) => e.innerText.replace(/\s+/g, ' ').slice(0, 70))));
+  await p.screenshot({ path: __dirname + '/rev.png' });
+  console.log('erros', errs); await b.close();
+})();
