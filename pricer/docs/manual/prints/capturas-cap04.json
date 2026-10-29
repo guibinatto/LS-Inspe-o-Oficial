@@ -1,0 +1,578 @@
+{
+ "04-01": {
+  "id": "04-01",
+  "cap": 4,
+  "nome": "precificacao-itens-lista",
+  "titulo": "Aba Itens da proposta de exemplo",
+  "vp": "desktop",
+  "arquivo": "04-01-precificacao-itens-lista.png",
+  "data": "2026-10-29T04:51:23.440Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Número do item, descrição breve e código do equipamento.",
+    "sel": ".icard:nth-child(1) header",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Total com IPI do item; abaixo, quantidade, margem e origem (nacional/importado).",
+    "sel": ".icard:nth-child(1) .itotal",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Selo de alertas: \"sem alertas\", \"1 alerta\", \"2 avisos\"…",
+    "sel": ".icard:nth-child(2) .pill.bad",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Abrir (configura e precifica o item), Duplicar, Salvar como modelo e Remover (pede um segundo clique: \"Confirmar remoção\").",
+    "sel": ".icard:nth-child(1) footer",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "+ Adicionar item: modelo pronto ou montagem própria (até 10 itens).",
+    "sel": "[data-additem]",
+    "ok": true
+   }
+  ]
+ },
+ "04-02": {
+  "id": "04-02",
+  "cap": 4,
+  "nome": "precificacao-item-alerta",
+  "titulo": "Item 02 aberto: resumo do item e alerta de margem",
+  "vp": "desktop",
+  "arquivo": "04-02-precificacao-item-alerta.png",
+  "data": "2026-10-29T04:51:24.642Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "← Itens da proposta: volta à lista.",
+    "sel": ".flowhead > div > [data-step=\"2\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Unitário com IPI, total e margem do item, sempre visíveis.",
+    "sel": ".flowhead .sumbar",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Alerta: margem do item abaixo do mínimo da política.",
+    "sel": "#app ul.alerts li",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Pedir aprovação: leva o pedido à Diretoria e ao Financeiro.",
+    "sel": "#app ul.alerts [data-alaprov]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Corrigir na hora: aqui, Ajustar à margem mínima.",
+    "sel": "#app ul.alerts [data-alfix]",
+    "ok": true
+   }
+  ]
+ },
+ "04-03": {
+  "id": "04-03",
+  "cap": 4,
+  "nome": "precificacao-formacao",
+  "titulo": "Aba Formação: resumo, condições comerciais e preço por item",
+  "vp": "desktop",
+  "arquivo": "04-03-precificacao-formacao.png",
+  "data": "2026-10-29T04:51:26.141Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Preço total com IPI.",
+    "sel": "#app .stack > .kpis .kpi.lead",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Custo total e markup (venda ÷ custo).",
+    "sel": "#app .stack > .kpis .kpi:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Margem líquida e o mínimo da política.",
+    "sel": "#app .stack > .kpis .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "DIFAL do cliente: fica fora do preço.",
+    "sel": "#app .stack > .kpis .kpi:nth-child(5)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Desconto global, condição de pagamento e frete: o que mexe no preço da proposta toda.",
+    "sel": "label[for=\"c_PROPOSTA_C9\"] > span",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Situação do item: DENTRO DA POLÍTICA, ABAIXO DO PISO, MARGEM ABAIXO DO MÍNIMO.",
+    "sel": "#app tr:has([data-goitem=\"2\"]) td:nth-child(7)",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Botão do item: abre o item para ajustar desconto e margem-alvo.",
+    "sel": "#app tr:has([data-goitem=\"0\"]) [data-goitem]",
+    "ok": true
+   }
+  ]
+ },
+ "04-04": {
+  "id": "04-04",
+  "cap": 4,
+  "nome": "precificacao-simulador",
+  "titulo": "Simulador de negociação com valor final de R$ 4.000.000,00",
+  "vp": "desktop",
+  "arquivo": "04-04-precificacao-simulador.png",
+  "data": "2026-10-29T04:51:27.565Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Simulação: a proposta oficial não muda.",
+    "sel": "#simCard h2 .pill",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Desconto global (%) ou valor final negociado com IPI: com o valor, o app acha o desconto que leva a esse total.",
+    "sel": "#simAlvo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Variação de custos (%); ao lado, condição de pagamento e comissões também podem ser testadas.",
+    "sel": "#simCusto",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Botões: Simular, Salvar cenário, Converter em revisão e Restaurar o original.",
+    "sel": "#simCard [data-simclear]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Proposta oficial × simulação × diferença.",
+    "sel": "#simCard table",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Se o cenário sai da política, o app avisa e oferece \"pedir aprovação com este valor\".",
+    "sel": "#simCard .banner",
+    "ok": true
+   }
+  ]
+ },
+ "04-05": {
+  "id": "04-05",
+  "cap": 4,
+  "nome": "precificacao-conferencia",
+  "titulo": "Aba Conferência: conferência central e pedido de aprovação",
+  "vp": "desktop",
+  "arquivo": "04-05-precificacao-conferencia.png",
+  "data": "2026-10-29T04:51:31.738Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Impede seguir: trava o envio ao cliente (se a política estiver ligada).",
+    "sel": "#confCentral .kpi:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Pede tratamento ou justificativa.",
+    "sel": "#confCentral .kpi:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Só informação.",
+    "sel": "#confCentral .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Cada linha: área (Identificação, Margem e desconto, Custos…) e o problema.",
+    "sel": "#confCentral tr:nth-child(1) td:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Ir: abre o lugar onde se corrige.",
+    "sel": "#confCentral tr:nth-child(1) [data-confgo]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Pedir aprovação (valor target) da proposta toda.",
+    "sel": "#app .aprovbox [data-alaprov]",
+    "ok": true
+   }
+  ]
+ },
+ "04-06": {
+  "id": "04-06",
+  "cap": 4,
+  "nome": "precificacao-item-familia",
+  "titulo": "Item novo: escolha da família",
+  "vp": "desktop",
+  "arquivo": "04-06-precificacao-item-familia.png",
+  "data": "2026-10-29T04:51:33.472Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Família com estrutura cadastrada: mostra quantos modelos prontos existem (Skid: 3; Conjunto motobomba: 60).",
+    "sel": ".famgrid [data-fam=\"SKID\"] small",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Container: 9 modelos prontos neste cadastro.",
+    "sel": ".famgrid [data-fam=\"CONTAINER\"] small",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Sem estrutura cadastrada: o item monta só com os componentes comuns.",
+    "sel": ".famgrid .famcard.off small",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "FACTS: abre a formação própria do configurador MECON.",
+    "sel": ".famgrid [data-factsnew] small",
+    "ok": true
+   }
+  ]
+ },
+ "04-07": {
+  "id": "04-07",
+  "cap": 4,
+  "nome": "precificacao-item-equipamento",
+  "titulo": "Cartão Equipamento: modelo pronto ou montagem",
+  "vp": "desktop",
+  "arquivo": "04-07-precificacao-item-equipamento.png",
+  "data": "2026-10-29T04:51:35.471Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Modelo pronto: escolha e o item se monta sozinho.",
+    "sel": "label[for=\"c_ITEM04_C17\"] > span",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quantidade, com − e + (pode digitar).",
+    "sel": "#app .stepper",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ou monte: família…",
+    "sel": "label[for=\"c_ITEM04_C21\"] > span",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "…vazão (USgpm), pressão (mca) e norma.",
+    "sel": "label[for=\"c_ITEM04_G17\"] > span",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Acionamento (Diesel, Elétrica, Jockey) e o arranjo que sai dele (D, E, J…).",
+    "sel": "#app .arrbox .arrcode",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Conjunto diesel: bomba, potência, rotação e arrefecimento; o motor é escolhido pelo app.",
+    "sel": "#app .set h3",
+    "ok": true
+   }
+  ]
+ },
+ "04-08": {
+  "id": "04-08",
+  "cap": 4,
+  "nome": "precificacao-item-modelo-alertas",
+  "titulo": "Modelo pronto aplicado: preço calculado e avisos de código e descrição",
+  "vp": "desktop",
+  "arquivo": "04-08-precificacao-item-modelo-alertas.png",
+  "data": "2026-10-29T04:51:37.002Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Descrição gerada pela configuração.",
+    "sel": ".flowhead h1 + .sub",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Preço e margem calculados pelo motor da planilha.",
+    "sel": ".flowhead .sumbar",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Aviso: código acima de 60 caracteres (limite do ERP).",
+    "sel": "#app ul.alerts li:first-child > span",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Ver o código: abre o bloco Código e descrição.",
+    "sel": "#app ul.alerts li:first-child [data-alfix]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Seguir assim: aceita o aviso com uma justificativa (fica no histórico).",
+    "sel": "#app ul.alerts li:first-child [data-alack]",
+    "ok": true
+   }
+  ]
+ },
+ "04-09": {
+  "id": "04-09",
+  "cap": 4,
+  "nome": "precificacao-item-condicoes",
+  "titulo": "Condições deste item",
+  "vp": "desktop",
+  "arquivo": "04-09-precificacao-item-condicoes.png",
+  "data": "2026-10-29T04:51:39.124Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Desconto de negociação do item.",
+    "sel": "#c_ITEM04_C8",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Margem alvo: automática (da política); \"alterar\" para mudar.",
+    "sel": "#app details[data-keep=\"cond\"] .f:nth-child(2) .autov",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Modo de preço (fator/markup ou margem alvo).",
+    "sel": "#app details[data-keep=\"cond\"] .f:nth-child(3) .autov",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Folga de negociação.",
+    "sel": "#app details[data-keep=\"cond\"] .f:nth-child(4) .autov",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Start-up: distância (km), diárias ou valor fechado.",
+    "sel": "#c_ITEM04_C12",
+    "ok": true
+   }
+  ]
+ },
+ "04-10": {
+  "id": "04-10",
+  "cap": 4,
+  "nome": "precificacao-item-componentes",
+  "titulo": "Componentes do item (do modelo pronto)",
+  "vp": "desktop",
+  "arquivo": "04-10-precificacao-item-componentes.png",
+  "data": "2026-10-29T04:51:39.815Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Grupo (Conjunto diesel, Bomba jockey, Comuns ao equipamento) com subtotal e % do item.",
+    "sel": "#app table.comp tr.grp",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Insumo: em verde, o que a montagem escolheu; a lista é da família.",
+    "sel": "#app table.comp tbody tr:nth-child(2) td:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "\"do modelo\", \"do padrão\", \"alterado na proposta\" ou \"acrescentado na proposta\".",
+    "sel": "#app table.comp tbody tr:nth-child(2) .pill",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Custo unitário: sempre do cadastro (só leitura).",
+    "sel": "#app table.comp tbody tr:nth-child(2) td:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "\"antigo\": preço do cadastro com mais de 180 dias.",
+    "sel": "#app table.comp .pill.warn",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Custo do item (uma unidade).",
+    "sel": "#app table.comp tr.tot",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "+ Adicionar componente do cadastro (linha extra, com quantidade).",
+    "sel": "#app [data-addrow]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Pedir cadastro de insumo que não existe ou está sem preço.",
+    "sel": "#app details[data-keep=\"comp\"] .docbar [data-pedir]",
+    "ok": true
+   }
+  ]
+ },
+ "04-11": {
+  "id": "04-11",
+  "cap": 4,
+  "nome": "precificacao-custos",
+  "titulo": "Aba Custos com o item novo (linhas com informação de cotação)",
+  "vp": "desktop",
+  "arquivo": "04-11-precificacao-custos.png",
+  "data": "2026-10-29T04:51:41.248Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Custo total, número de linhas e de itens.",
+    "sel": "#app section.card:has([data-custofiltro]) .kpi:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Impeditivos: componente principal sem preço.",
+    "sel": "#app section.card:has([data-custofiltro]) .kpi:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Avisos: sem custo, cotação vencida, variação de preço.",
+    "sel": "#app section.card:has([data-custofiltro]) .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Informações (ex.: preço sem data de cotação).",
+    "sel": "#app section.card:has([data-custofiltro]) .kpi:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Só o que pede atenção / Todas as linhas.",
+    "sel": "[data-custofiltro=\"todos\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Origem do preço e, ao lado, a data da cotação (com \"vale até\") ou \"sem data\".",
+    "sel": "#app section.card:has([data-custofiltro]) tbody tr:nth-child(2) td:nth-child(6)",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Situação da linha: ✕ impeditivo, ! aviso, i informação, ✓ ok.",
+    "sel": "#app section.card:has([data-custofiltro]) tbody tr:nth-child(2) td:nth-child(8)",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "não se aplica: marca a ausência como intencional, com motivo.",
+    "sel": "#app [data-namark]",
+    "ok": true
+   }
+  ]
+ },
+ "04-12": {
+  "id": "04-12",
+  "cap": 4,
+  "nome": "precificacao-planilha-completa",
+  "titulo": "Botão Planilha completa: visão com todas as colunas da proposta",
+  "vp": "desktop",
+  "arquivo": "04-12-precificacao-planilha-completa.png",
+  "data": "2026-10-29T04:51:42.441Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Visão completa da proposta. O botão da barra superior passa a mostrar \"Visão guiada\", para voltar.",
+    "sel": "#app .stack > div:first-child h1",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Entrada: campo para digitar.",
+    "sel": "#app .legend span:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Automático: herdado ou calculado pela planilha.",
+    "sel": "#app .legend span:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Alterado à mão: valor automático trocado (↺ automático desfaz).",
+    "sel": "#app .legend span:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Mesmos totais da visão guiada.",
+    "sel": "#app .stack > .kpis .kpi.lead",
+    "ok": true
+   }
+  ]
+ }
+}

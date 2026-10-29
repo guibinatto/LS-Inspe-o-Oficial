@@ -164,7 +164,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
           ${r.ipi ? `<div>IPI (${pct(cfg().ipi, 2)})</div><div>${brl(r.ipi)}</div>` : ''}</div>
           <div class="stack">
             <div class="fields">${fld('Preço fechado (sem IPI) — opcional', inp('preco', f.preco, 'num', { ph: 'deixe vazio para usar a margem alvo' }), 'spanall')}${fld('Desconto de volume MECON', sel('volume', String(f.volume || 0), [['0', 'Nenhum'], ['0.03', '3% (10 a 20 conjuntos no ano)'], ['0.05', '5% (21 a 30 conjuntos no ano)']]), 'spanall')}</div>
-            <p class="sub" style="margin:0">Impostos e comissão vêm de Cadastro → Fiscal e Precificação (SEQ); a margem mínima é a dos equipamentos (${pct(r.minimo, 0)}). Lista MECON e fator R$/EUR ficam em Cadastro → Custos → FACTS (MECON).</p>
+            <p class="sub" style="margin:0">Impostos e comissão vêm de Cadastros → Fiscal e Precificação (SEQ); a margem mínima é a dos equipamentos (${pct(r.minimo, 0)}). Lista MECON e fator R$/EUR ficam em Cadastros → Custos → FACTS (MECON).</p>
             <div class="docbar"><button class="btn pri" data-fxtxt>Copiar texto técnico para a proposta</button></div>
           </div></div></section>
       </div>`;

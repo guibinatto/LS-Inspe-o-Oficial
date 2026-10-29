@@ -332,7 +332,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const hay = (p) => norm([p.numero, p.cliente, p.name, p.status, divOf(p), p.tipo, p.spv && (p.spv.descricao + ' ' + p.spv.local + ' ' + (p.spv.pecas || []).map((x) => x.desc + ' ' + (x.forn || '')).join(' '))].join(' '));
       const pend = { pend_fin: 'financeiro', pend_eng: 'engenharia', pend_real: 'real' };
       const sit = (p) => (ctx.situacao ? ctx.situacao(p) : [(STATUS.find((y) => y[0] === (p.status || 'rascunho')) || STATUS[0])[1], 'mute']);
-      const porSit = { abertas: (p) => ['Rascunho', 'Enviada ao cliente', 'Aguardando aprovação', 'Desconto reprovado'].includes(sit(p)[0]), aprovacao: (p) => sit(p)[0] === 'Aguardando aprovação', fechadas: (p) => ['Fechada', 'Encerrada'].includes(sit(p)[0]), perdidas: (p) => sit(p)[0] === 'Perdida' };
+      const porSit = { abertas: (p) => !['Fechada', 'Encerrada', 'Perdida'].includes(sit(p)[0]), aprovacao: (p) => /^Aprovação (?!perdeu)/.test(sit(p)[0]), fechadas: (p) => ['Fechada', 'Encerrada'].includes(sit(p)[0]), perdidas: (p) => sit(p)[0] === 'Perdida' };
       const list = all.filter((p) => (f === 'todas' || divOf(p) === f || (porSit[f] && porSit[f](p)) || (pend[f] && ctx.etapaPendente && ctx.etapaPendente(p, pend[f]))) && (!q || hay(p).includes(q)));
       const sx = stats(all); const docsHit = q ? docs.filter((d) => norm([d.nome, d.fornecedor, d.numero, (d.itens || []).map((i) => i.descricao).join(' ')].join(' ')).includes(q)).slice(0, 6) : [];
       const rows = list.slice(0, 60).map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
@@ -422,7 +422,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="docbar" style="margin-top:8px"><span class="sub">Toque para incluir ou tirar:</span>${c.tecnicos.slice(0, 12).map((t) => { const on = s.equipe.some((e) => e.tec === t.nome); return `<label class="chip"><input type="checkbox" data-sptec="${esc(t.nome)}"${on ? ' checked' : ''}> ${esc(t.nome)}</label>`; }).join('')}<button class="btn sm" data-spadd="equipe">+ Outro</button></div>
           <div class="fields" style="margin-top:14px">${fld('Distância até o local (só ida, km)', inp('dist', s.dist, 'num', { lb: 'Distância' }))}<div class="f span2"><label>&nbsp;</label><div class="sub">${r.aereo ? `Ida e volta passa de ${fmt(c.custos.limite_km, 0)} km: vai de avião, com carro locado no destino.` : `Saída: ${esc(c.custos.saida)}. Acima de ${fmt(c.custos.limite_km, 0)} km ida e volta, o app troca para avião.`} Hotel e alimentação seguem a equipe (${r.pessoas} pessoa(s), ${r.dias} dia(s)).</div></div></div>
           <div class="tw" style="margin-top:10px"><table class="t reg"><thead><tr><th>Custo</th><th>Quantidade</th><th></th><th>Preço (cadastro)</th><th>Total</th></tr></thead><tbody>${logRows}<tr class="tot"><td colspan="4">Custo da prestação do serviço</td><td class="n">${brl(r.custoServ)}</td></tr></tbody></table></div>
-          <p class="sub" style="margin:8px 0 0">Os preços de km, passagem, carro, hotel, alimentação e ART são cadastrados em <button class="restore" data-spcfg>Cadastro → Serviços</button>. A proposta guarda os preços do dia em que foi criada.</p>
+          <p class="sub" style="margin:8px 0 0">Os preços de km, passagem, carro, hotel, alimentação e ART são cadastrados em <button class="restore" data-spcfg>Cadastros → Serviços</button>. A proposta guarda os preços do dia em que foi criada.</p>
           ${precoMudou ? `<div class="banner warn">Os preços de deslocamento mudaram no cadastro depois que esta proposta foi criada. <button class="restore" data-spprecos>Usar os preços atuais</button></div>` : ''}</section>` : ''}
         ${s.blocos.pecas ? `<section class="card"><h2>Peças e materiais <span class="sub">custo ${brl(r.custoPecas)} · venda ${brl(r.Vp)}</span></h2>
           <div class="tw"><table class="t reg pecas"><thead><tr><th>Incl.</th><th>Descrição</th><th>Qtd</th><th>Moeda</th><th>Unit.</th><th>IPI</th><th>Custo unit. R$</th><th>Fator</th><th>Venda</th><th></th></tr></thead><tbody>${pRows || '<tr><td colspan="10" class="sub">Nenhuma peça. Adicione à mão ou importe um orçamento de fornecedor.</td></tr>'}</tbody></table></div>
@@ -450,7 +450,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
             </div>
             <div class="stack">
               <label class="chk"><input type="checkbox" data-sp="aprazo" data-k="bool"${s.aprazo ? ' checked' : ''}> Pagamento a prazo (+${pct(r.mk.prazo, 1)} de encargo)</label>
-              <p class="sub" style="margin:0">Impostos vêm de Cadastro → Fiscal; multiplicador, comissões e lucro mínimo, de Cadastro → Precificação. Peças pagam ICMS de ${pct(r.icms, 1)} (${esc(s.uf || 'SC')}) e IRPJ/CSLL de produto; o serviço paga ISS. Meta: lucro líquido de ${pct(r.mk.lucro_min, 0)}.</p>
+              <p class="sub" style="margin:0">Impostos vêm de Cadastros → Fiscal; multiplicador, comissões e lucro mínimo, de Cadastros → Precificação. Peças pagam ICMS de ${pct(r.icms, 1)} (${esc(s.uf || 'SC')}) e IRPJ/CSLL de produto; o serviço paga ISS. Meta: lucro líquido de ${pct(r.mk.lucro_min, 0)}.</p>
               <div class="docbar"><button class="btn pri" data-sppdf="interno">Formação de custo (PDF)</button></div>
             </div>
           </div></section>
@@ -604,7 +604,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const ok = await REG.save(name, doc.output('arraybuffer'), 'application/pdf'); if (!ok) toast('Download cancelado');
     }
 
-    // ---------- configuração SPV (Cadastro → Serviços SPV) ----------
+    // ---------- configuração SPV (Cadastros → Serviços SPV) ----------
     // configuração SPV por área: cada área edita só a sua parte
     function cfgSec(area, ed) {
       const c = cfg(); const ro = ed ? '' : ' disabled';

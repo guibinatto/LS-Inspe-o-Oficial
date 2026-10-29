@@ -36,7 +36,7 @@ Correção feita durante os testes: depois de abrir Configurações, o botão Ca
 | Dados gerais (SEQ) | Cliente com lista dos clientes já usados; ao escolher um, recupera da última proposta dele o CNPJ, a UF, o cadastro fiscal e o segmento, **somente nos campos vazios**, e avisa o que foi recuperado |
 | Itens | Quantidade com botões − e + |
 | Ficha do insumo | Características com até 4 opções viram botões de escolha (com "—" quando opcional e "outro" para valor novo); campos de texto sugerem os valores já usados; ao escolher o modelo, preenche só as características **idênticas em todos os insumos do mesmo modelo** e só campos vazios; fabricante com lista |
-| SPV | UF em lista; vendedor em lista; condição de pagamento e cliente com sugestões (cliente preenche contato e UF vazios); visitas e meses com − e + |
+| SPV | UF em lista; vendedor em lista; condição de pagamento e cliente com sugestões (o cliente conhecido preenche o contato vazio; a UF de uma SPV nova já começa preenchida com SC e não é trocada); visitas e meses com − e + |
 | Pedidos de cadastro | Atendimento escolhe a situação do item (ativo, aguardando validação, aguardando preço); fabricante com lista |
 | Pendências | Responsável com lista |
 | Regras de configuração | Valores com as opções existentes |

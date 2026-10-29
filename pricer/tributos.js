@@ -133,7 +133,7 @@
 
     // ---------- comparação na proposta ----------
     function cardProposta(snap, ctxP) {
-      const L = cenarios(); if (!L.length) return `<section class="card"><h2>Reforma tributária <span class="sub">compare com os tributos novos</span></h2><p class="sub" style="margin:0">Nenhum cenário cadastrado. O Fiscal cadastra em Cadastro → Fiscal → Cenários tributários.</p></section>`;
+      const L = cenarios(); if (!L.length) return `<section class="card"><h2>Reforma tributária <span class="sub">compare com os tributos novos</span></h2><p class="sub" style="margin:0">Nenhum cenário cadastrado. O Fiscal cadastra em Cadastros → Fiscal → Cenários tributários.</p></section>`;
       const sel = ctx.ui.cenProp && L.some((c) => c.id === ctx.ui.cenProp) ? ctx.ui.cenProp : L.slice().sort((a, b) => String(b.vigencia).localeCompare(String(a.vigencia)))[0].id; const c = L.find((x) => x.id === sel);
       const R = snap.itens.map((it) => ({ it, r: compara(c, it, ctxP) }));
       const s = (f) => R.reduce((a, x) => a + num(f(x)), 0);

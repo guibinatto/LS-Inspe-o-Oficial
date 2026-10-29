@@ -1,0 +1,383 @@
+{
+ "16-01": {
+  "id": "16-01",
+  "cap": 16,
+  "nome": "config-menu",
+  "titulo": "Menu Configurações e suas quatro abas",
+  "vp": "desktop",
+  "arquivo": "16-01-config-menu.png",
+  "data": "2026-10-29T04:41:17.799Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Configurações, no menu lateral.",
+    "sel": "#nav [data-view=\"config\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Onde os dados ficam: \"Salvo só neste navegador\" (modo local) ou \"Compartilhado com a equipe\".",
+    "sel": ".legend .pill:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Se você pode editar esta parte (aqui, a área Sistema).",
+    "sel": ".legend .pill:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Histórico de alterações.",
+    "sel": ".subtabs [data-cad=\"historico\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Responsáveis, e-mails e logo (com perfis e permissões).",
+    "sel": ".subtabs [data-cad=\"acessos\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Backup e restauração, com a lixeira.",
+    "sel": ".subtabs [data-cad=\"backup\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Planilha (avançado): as abas da planilha original.",
+    "sel": ".subtabs [data-cad=\"tabelas\"]",
+    "ok": true
+   }
+  ]
+ },
+ "16-02": {
+  "id": "16-02",
+  "cap": 16,
+  "nome": "config-historico",
+  "titulo": "Histórico com filtro de tipo e busca",
+  "vp": "desktop",
+  "arquivo": "16-02-config-historico.png",
+  "data": "2026-10-29T04:41:19.214Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Tipo: Tudo, Propostas e alertas, Baixas e custo real, Documentos, Pedidos de cadastro, Cadastro ou Acessos.",
+    "sel": "#histT",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Busca por texto (tipo, descrição, referência ou nome do campo).",
+    "sel": "#histQ",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abrangência: neste navegador (local) ou últimos 90 dias com alteração, de toda a equipe (compartilhado).",
+    "sel": "section.card:has(#histT) .sheetbar .sub",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Data, hora e quem fez (no modo local, \"neste navegador\").",
+    "sel": ".hrow .hmeta",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Tipo do registro e descrição.",
+    "sel": ".hrow .pill",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Cada campo alterado: valor anterior → valor novo.",
+    "sel": ".hrow table.mini",
+    "ok": true
+   }
+  ]
+ },
+ "16-03": {
+  "id": "16-03",
+  "cap": 16,
+  "nome": "config-perfis",
+  "titulo": "Perfis e permissões (matriz)",
+  "vp": "desktop",
+  "arquivo": "16-03-config-perfis.png",
+  "data": "2026-10-29T04:41:20.629Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "No modo local: sem login nem controle de acesso. Os perfis valem no app compartilhado.",
+    "sel": "section.card:has(table.perm) > p.sub b",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Colunas de perfil: Administrador, Diretoria Comercial, Comercial, Engenharia, Compras/Custos, Financeiro/Fiscal e Consulta. Passe o mouse no nome para ver como a pessoa ganha o perfil.",
+    "sel": "table.perm thead th:nth-child(8)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Apagar proposta de vez e restaurar backup: só o administrador.",
+    "sel": "table.perm tbody tr:nth-child(4) td:first-child",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Lançar custo real: Administrador, Engenharia e Compras/Custos.",
+    "sel": "table.perm tbody tr:nth-child(10) td:first-child",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Onde é garantido: \"banco\" (vale mesmo fora da tela) ou \"app\" (o app confere e registra, mas o banco não impede).",
+    "sel": "table.perm thead th:last-child",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Explicação de banco × app e o que vale quando ninguém foi definido nas áreas.",
+    "sel": "section.card:has(table.perm) > p.sub:last-child",
+    "ok": true
+   }
+  ]
+ },
+ "16-04": {
+  "id": "16-04",
+  "cap": 16,
+  "nome": "config-emails",
+  "titulo": "E-mails das áreas",
+  "vp": "desktop",
+  "arquivo": "16-04-config-emails.png",
+  "data": "2026-10-29T04:41:21.931Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Financeiro: recebe o aviso da baixa e o pedido de aprovação.",
+    "sel": "#av_financeiro",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Engenharia: recebe o aviso da baixa para lançar o custo real.",
+    "sel": "#av_engenharia",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Diretoria: recebe o pedido de aprovação de desconto.",
+    "sel": "#av_diretoria",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Cópia: opcional, vai em todos.",
+    "sel": "#av_cc",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Link do app: vai no texto do e-mail.",
+    "sel": "#av_link",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Vários e-mails: separe com vírgula. Grava ao sair do campo.",
+    "sel": "section.card:has(#av_financeiro) > p.sub",
+    "ok": true
+   }
+  ]
+ },
+ "16-05": {
+  "id": "16-05",
+  "cap": 16,
+  "nome": "config-logo",
+  "titulo": "Logo da empresa",
+  "vp": "desktop",
+  "arquivo": "16-05-config-logo.png",
+  "data": "2026-10-29T04:41:22.842Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Logo atual: aparece no topo do app, no memorial e nos PDFs.",
+    "sel": "section.card:has(label[for=\"logoUp\"]) .logo-plate",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Trocar logo (PNG, JPG ou SVG). Depois de trocar, aparece também \"Voltar ao original\".",
+    "sel": "label[for=\"logoUp\"]",
+    "ok": true
+   }
+  ]
+ },
+ "16-06": {
+  "id": "16-06",
+  "cap": 16,
+  "nome": "config-backup",
+  "titulo": "Backup e restauração, com a lixeira",
+  "vp": "desktop",
+  "arquivo": "16-06-config-backup.png",
+  "data": "2026-10-29T04:41:23.228Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Baixar backup completo: um arquivo .json com tudo o que o app guarda (sem os PDFs anexados).",
+    "sel": "[data-bkbaixa]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Escolher arquivo de backup (.json): só o administrador (dono do app) restaura.",
+    "sel": "label[for=\"bkArq\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "O app mostra o que vai mudar antes de gravar; por padrão só acrescenta o que não existe.",
+    "sel": "section.card:has(label[for=\"bkArq\"]) > p.sub",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Lixeira: propostas excluídas, com Restaurar e (só o administrador) Apagar de vez.",
+    "sel": "section.card:has(h2):last-child h2",
+    "ok": true
+   }
+  ]
+ },
+ "16-07": {
+  "id": "16-07",
+  "cap": 16,
+  "nome": "config-restaurar",
+  "titulo": "Janela de restauração de backup (prévia antes de gravar)",
+  "vp": "desktop",
+  "arquivo": "16-07-config-restaurar.png",
+  "data": "2026-10-29T04:41:24.438Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Data do backup e de onde veio (navegador ou banco da equipe).",
+    "sel": ".modal h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Para cada coleção: quantos registros há no arquivo, quantos são novos, diferentes do atual ou iguais.",
+    "sel": ".modal thead",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Marque o que restaurar.",
+    "sel": ".modal [data-bkcol=\"propostas\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Cadastro: no modo local substitui o cadastro inteiro deste navegador; no compartilhado fica desativado.",
+    "sel": ".modal [data-bkcad]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Substituir também os registros diferentes (a versão atual da proposta vai antes para as revisões).",
+    "sel": ".modal label.chk",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Restaurar o que está marcado: pede confirmação e recarrega o app.",
+    "sel": "#bkOk",
+    "ok": true
+   }
+  ]
+ },
+ "16-08": {
+  "id": "16-08",
+  "cap": 16,
+  "nome": "config-planilha",
+  "titulo": "Planilha (avançado), filtrada",
+  "vp": "desktop",
+  "arquivo": "16-08-config-planilha.png",
+  "data": "2026-10-29T04:41:26.909Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Aba da planilha. As abas marcadas \"(consulta)\" vêm das telas Insumos e Kits e não se editam aqui.",
+    "sel": "#selTable",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Filtrar linhas pelo texto.",
+    "sel": "#tblFilter",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Quantas células estão diferentes da planilha REV21.",
+    "sel": "section.card:has(#selTable) .sheetbar > .sub",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Célula de valor (aqui, a margem mínima): clique para editar; Enter grava, Esc cancela.",
+    "sel": ".grid td[data-a=\"C34\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Número da linha na planilha; o filtro mantém as linhas de título.",
+    "sel": ".grid tbody tr:nth-child(4) th.rh",
+    "ok": true
+   }
+  ]
+ },
+ "16-09": {
+  "id": "16-09",
+  "cap": 16,
+  "nome": "config-tema-escuro",
+  "titulo": "Tema escuro (botão de tema na barra superior)",
+  "vp": "desktop",
+  "arquivo": "16-09-config-tema-escuro.png",
+  "data": "2026-10-29T04:41:29.851Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Tema: cada clique troca entre automático, claro e escuro. Passe o mouse para ver o tema atual.",
+    "sel": "#bTheme",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Todas as telas seguem o tema escolhido.",
+    "sel": "#nav [data-view=\"config\"]",
+    "ok": true
+   }
+  ]
+ }
+}

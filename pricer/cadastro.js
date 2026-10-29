@@ -364,7 +364,7 @@
         return 'shared';
       }
       const saved = ls.get(LS.saved, {}); saved[id] = body;
-      if (!ls.set(LS.saved, saved)) { const e = new Error('O navegador não deixou gravar (sem espaço ou bloqueado). Baixe um backup em Cadastro → Sistema e libere espaço.'); e.code = 'armazenamento'; throw e; }
+      if (!ls.set(LS.saved, saved)) { const e = new Error('O navegador não deixou gravar (sem espaço ou bloqueado). Baixe um backup em Configurações → Backup e restauração e libere espaço.'); e.code = 'armazenamento'; throw e; }
       if (((ls.get(LS.saved, {})[id]) || {}).ver !== body.ver) { const e = new Error('A gravação neste navegador não se confirmou. Tente de novo.'); e.code = 'nao_confirmado'; throw e; }
       return 'local';
     }

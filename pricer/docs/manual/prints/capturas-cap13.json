@@ -1,0 +1,432 @@
+{
+ "13-01": {
+  "id": "13-01",
+  "cap": 13,
+  "nome": "pendencias-acompanhamento",
+  "titulo": "Pendências → Acompanhamento: pendências automáticas geradas ao salvar a proposta",
+  "vp": "desktop",
+  "arquivo": "13-01-pendencias-acompanhamento.png",
+  "data": "2026-10-29T04:41:23.416Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Situação: abertas, vencidas, resolvidas e não se aplica, ou todas.",
+    "sel": "#pnAcomp [data-pnf=\"st\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Filtro por departamento.",
+    "sel": "#pnAcomp [data-pnf=\"dep\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Filtro por criticidade.",
+    "sel": "#pnAcomp [data-pnf=\"crit\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Busca por código, proposta, responsável…",
+    "sel": "#pnAcomp [data-pnf=\"q\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "+ Nova pendência (manual).",
+    "sel": "#pnAcomp [data-pnnova]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Código e origem: automática (da conferência) ou manual.",
+    "sel": "#pnAcomp tbody tr:nth-child(1) td:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Prazo (fica vermelho e \"vencida\" quando passa) e prioridade.",
+    "sel": "#pnAcomp tbody tr:nth-child(1) td:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Abrir: ver e atualizar a pendência.",
+    "sel": "#pnAcomp tbody tr:nth-child(1) [data-pnabre]",
+    "ok": true
+   }
+  ]
+ },
+ "13-02": {
+  "id": "13-02",
+  "cap": 13,
+  "nome": "pendencias-detalhe",
+  "titulo": "Pendência aberta: campos, situação e histórico",
+  "vp": "desktop",
+  "arquivo": "13-02-pendencias-detalhe.png",
+  "data": "2026-10-29T04:41:24.720Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Pendência. Na automática, o texto vem da conferência e não se edita.",
+    "sel": ".modal #pnTit",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Departamento que resolve.",
+    "sel": ".modal #pnDep",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Responsável.",
+    "sel": ".modal #pnResp",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Prazo (padrão: 2 dias impeditiva, 5 atenção, 10 informativa).",
+    "sel": ".modal #pnPrazo",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Criticidade (na automática, vem da conferência).",
+    "sel": ".modal #pnCrit",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Situação: Aberta, Em andamento, Resolvida ou Não se aplica.",
+    "sel": ".modal #pnSt",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Solução ou justificativa: obrigatória para resolver ou marcar \"não se aplica\".",
+    "sel": ".modal #pnSol",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Histórico: quem mudou o quê, de → para.",
+    "sel": ".modal details summary",
+    "ok": true
+   }
+  ]
+ },
+ "13-03": {
+  "id": "13-03",
+  "cap": 13,
+  "nome": "pendencias-conferencia",
+  "titulo": "Aba Conferência: a conferência da proposta, origem das pendências automáticas",
+  "vp": "desktop",
+  "arquivo": "13-03-pendencias-conferencia.png",
+  "data": "2026-10-29T04:41:27.980Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Impede seguir: vira pendência impeditiva.",
+    "sel": "#confCentral .kpis .kpi:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Pede tratamento ou justificativa: vira pendência de atenção.",
+    "sel": "#confCentral .kpis .kpi:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Informação: não vira pendência.",
+    "sel": "#confCentral .kpis .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Área (define o departamento da pendência) e a falha.",
+    "sel": "#confCentral tbody tr:nth-child(1) td:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Ir: abre o lugar onde se corrige.",
+    "sel": "#confCentral tbody tr:nth-child(1) [data-confgo]",
+    "ok": true
+   }
+  ]
+ },
+ "13-04": {
+  "id": "13-04",
+  "cap": 13,
+  "nome": "pendencias-pedir-aprovacao",
+  "titulo": "Pedir aprovação da proposta com o valor target",
+  "vp": "desktop",
+  "arquivo": "13-04-pendencias-pedir-aprovacao.png",
+  "data": "2026-10-29T04:41:29.644Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Valor atual (com e sem IPI).",
+    "sel": ".modal .kpis .kpi:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Menor preço pela margem mínima.",
+    "sel": ".modal .kpis .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Valor target: por quanto quer fechar.",
+    "sel": ".modal #apAlvo",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "O valor é com IPI ou sem IPI.",
+    "sel": ".modal .seg",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Prévia: desconto sobre o atual e margem no target.",
+    "sel": ".modal #apPrev",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Justificativa (obrigatória).",
+    "sel": ".modal #apMot",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Continuar para o e-mail: registra o pedido e abre o aviso por e-mail.",
+    "sel": ".modal #apOk",
+    "ok": true
+   }
+  ]
+ },
+ "13-05": {
+  "id": "13-05",
+  "cap": 13,
+  "nome": "pendencias-inicio-com-quem",
+  "titulo": "Tela Início: a situação mostra com quem está a aprovação",
+  "vp": "desktop",
+  "arquivo": "13-05-pendencias-inicio-com-quem.png",
+  "data": "2026-10-29T04:41:32.773Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Situação: \"Aprovação com Diretoria e Financeiro\" enquanto ninguém decidiu.",
+    "sel": ".home tbody tr.click td:nth-child(4) .pill",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Próximo passo da proposta (aqui, analisar a aprovação).",
+    "sel": ".home tbody tr.click [data-hnext]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Etapa Aprovação na trilha da proposta, com quem está.",
+    "sel": ".home [data-etp$=\"|aprovacao\"]",
+    "ok": true
+   }
+  ]
+ },
+ "13-06": {
+  "id": "13-06",
+  "cap": 13,
+  "nome": "pendencias-minhas",
+  "titulo": "Minhas pendências: aprovações esperando cada papel",
+  "vp": "desktop",
+  "arquivo": "13-06-pendencias-minhas.png",
+  "data": "2026-10-29T04:41:33.880Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Quantas coisas esperam por você. Neste navegador, aparecem as de todas as áreas.",
+    "sel": "#app .flowhead .sub",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Aprovar descontos · Diretoria.",
+    "sel": "#app .stack > section.card:nth-of-type(1) h2",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Aprovar descontos · Financeiro.",
+    "sel": "#app .stack > section.card:nth-of-type(2) h2",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Analisar: abre a análise da aprovação.",
+    "sel": "#app .stack > section.card:nth-of-type(1) [data-apopen]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Acompanhamento: as pendências com código, prazo e responsável.",
+    "sel": "#pnAcomp h2",
+    "ok": true
+   }
+  ]
+ },
+ "13-07": {
+  "id": "13-07",
+  "cap": 13,
+  "nome": "pendencias-analise",
+  "titulo": "Margens → Aprovações: onde está e a decisão de cada papel",
+  "vp": "desktop",
+  "arquivo": "13-07-pendencias-analise.png",
+  "data": "2026-10-29T04:41:35.614Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Trilha: pedido, Diretoria, Financeiro e valor aplicado.",
+    "sel": "#app .trilha .etp:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Aprovar (comentário opcional).",
+    "sel": "#app [data-apdec$=\"|diretoria|aprovada\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Reprovar (comentário obrigatório).",
+    "sel": "#app [data-apdec$=\"|diretoria|reprovada\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "O Financeiro decide separado da Diretoria.",
+    "sel": "#app [data-apdec$=\"|financeiro|aprovada\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Abrir a proposta.",
+    "sel": "#app [data-approp]",
+    "ok": true
+   }
+  ]
+ },
+ "13-08": {
+  "id": "13-08",
+  "cap": 13,
+  "nome": "pendencias-aplicar-valor",
+  "titulo": "Aprovação concluída: aplicar o valor aprovado na proposta",
+  "vp": "desktop",
+  "arquivo": "13-08-pendencias-aplicar-valor.png",
+  "data": "2026-10-29T04:41:38.543Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Aplicar o valor aprovado na proposta: ajusta o desconto global até o valor target.",
+    "sel": "#app [data-apaplica]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "ver aprovação.",
+    "sel": "#app .aprovbox [data-apopen]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Pedir de novo, com novo valor target.",
+    "sel": "#app .aprovbox [data-alaprov]",
+    "ok": true
+   }
+  ]
+ },
+ "13-09": {
+  "id": "13-09",
+  "cap": 13,
+  "nome": "pendencias-alertas",
+  "titulo": "Alertas por item: corrigir agora ou seguir assim",
+  "vp": "desktop",
+  "arquivo": "13-09-pendencias-alertas.png",
+  "data": "2026-10-29T04:41:42.355Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Alertas por item, com a contagem por tipo.",
+    "sel": "#app details.card summary",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Alerta coberto pela aprovação: sem botões.",
+    "sel": "#app details.card li.ack",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Seguir assim: mantém, com justificativa no histórico.",
+    "sel": "#app details.card li.warn [data-alack]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "abrir: vai ao item.",
+    "sel": "#app details.card li.warn [data-goitem]",
+    "ok": true
+   }
+  ]
+ },
+ "13-10": {
+  "id": "13-10",
+  "cap": 13,
+  "nome": "pendencias-seguir-assim",
+  "titulo": "Seguir assim: a justificativa é obrigatória",
+  "vp": "desktop",
+  "arquivo": "13-10-pendencias-seguir-assim.png",
+  "data": "2026-10-29T04:41:47.268Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Por que seguir assim? (fica no histórico)",
+    "sel": ".modal #akMot",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Confirmar. Depois, salve a proposta.",
+    "sel": ".modal #akOk",
+    "ok": true
+   }
+  ]
+ }
+}

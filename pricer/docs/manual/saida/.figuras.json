@@ -1,0 +1,38 @@
+[
+ {
+  "num": "2.1",
+  "id": "02-01",
+  "titulo": "Tela inicial e menu lateral",
+  "arquivo": "02-01-navegacao-tela-inicial.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ },
+ {
+  "num": "2.2",
+  "id": "02-02",
+  "titulo": "Barra superior com a proposta aberta",
+  "arquivo": "02-02-navegacao-barra-superior.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ },
+ {
+  "num": "2.3",
+  "id": "02-03",
+  "titulo": "Menu lateral recolhido (só ícones)",
+  "arquivo": "02-03-navegacao-menu-recolhido.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ },
+ {
+  "num": "2.4",
+  "id": "02-04",
+  "titulo": "No celular: menu pelo botão ☰",
+  "arquivo": "02-04-navegacao-celular.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ }
+]

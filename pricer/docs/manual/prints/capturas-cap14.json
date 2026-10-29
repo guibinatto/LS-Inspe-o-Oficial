@@ -1,0 +1,486 @@
+{
+ "14-01": {
+  "id": "14-01",
+  "cap": 14,
+  "nome": "margens-dar-baixa",
+  "titulo": "Janela Dar baixa: proposta fechada",
+  "vp": "desktop",
+  "arquivo": "14-01-margens-dar-baixa.png",
+  "data": "2026-10-29T04:40:53.676Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Margem líquida da formação de hoje (sem IPI). É o valor que fica congelado na baixa.",
+    "sel": ".modal .kpi.lead",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Data do fechamento: vem com a data de hoje; corrija se o pedido chegou antes.",
+    "sel": "#fcData",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Pedido / OC do cliente (opcional).",
+    "sel": "#fcPed",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Valor fechado sem IPI. Se for diferente do proposto, venda, impostos e comissões acompanham; o custo não muda.",
+    "sel": "#fcVal",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Prévia: como a margem muda com o valor fechado (desconto ou acréscimo).",
+    "sel": "#fcPrev",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Baixar a planilha do fechamento em Excel ao confirmar.",
+    "sel": ".modal label.chk",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Dar baixa: grava a fotografia e muda a proposta para ganha.",
+    "sel": "#fcOk",
+    "ok": true
+   }
+  ]
+ },
+ "14-02": {
+  "id": "14-02",
+  "cap": 14,
+  "nome": "margens-avisar-areas",
+  "titulo": "Janela Avisar Financeiro e Engenharia (abre logo após a baixa)",
+  "vp": "desktop",
+  "arquivo": "14-02-margens-avisar-areas.png",
+  "data": "2026-10-29T04:40:57.569Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Áreas que recebem o aviso. Os e-mails vêm de Configurações → Responsáveis, e-mails e logo.",
+    "sel": ".modal label.chk",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Assunto e mensagem já vêm escritos com número, cliente, valor e margem fechada. Edite se quiser.",
+    "sel": "#emAss",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abrir no meu e-mail: abre o programa de e-mail do computador com tudo preenchido.",
+    "sel": "#emMail",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Baixar a planilha do fechamento para anexar.",
+    "sel": "#emXls",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Copiar o assunto e o texto.",
+    "sel": "#emCopy",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Só marcar como avisado: registra as etapas sem enviar e-mail pelo app.",
+    "sel": "#emSo",
+    "ok": true
+   }
+  ]
+ },
+ "14-03": {
+  "id": "14-03",
+  "cap": 14,
+  "nome": "margens-custo-real-topo",
+  "titulo": "Tela Custo real de uma proposta fechada (topo)",
+  "vp": "desktop",
+  "arquivo": "14-03-margens-custo-real-topo.png",
+  "data": "2026-10-29T04:40:59.626Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Volta ao painel de Margens.",
+    "sel": "[data-mgback]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Custo previsto, realizado, diferença e quanto das linhas já foi conferido.",
+    "sel": ".sumbar",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Aparece logo depois da baixa: explica como conferir o custo real.",
+    "sel": ".banner.ok",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Margem com o custo real. Este quadro aparece só para quem vê preço e margem.",
+    "sel": "#app .kpis .kpi.lead",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Ler NF ou pedido: lê o documento e sugere em que linha lançar cada item.",
+    "sel": "label[for=\"mgNf\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Fabricação concluída → enviar ao Financeiro.",
+    "sel": "[data-mgconcl]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Desfazer baixa (pede confirmação). Apaga a baixa e o custo real lançado.",
+    "sel": "[data-mgreopen]",
+    "ok": true
+   }
+  ]
+ },
+ "14-04": {
+  "id": "14-04",
+  "cap": 14,
+  "nome": "margens-custo-real-item",
+  "titulo": "Conferência do custo real de um item, linha a linha",
+  "vp": "desktop",
+  "arquivo": "14-04-margens-custo-real-item.png",
+  "data": "2026-10-29T04:41:00.656Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Resumo do item: custo previsto, realizado, diferença e linhas conferidas.",
+    "sel": "[id=\"cr_ITEM 03\"] .kpis",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Realizado (R$): vem com o valor previsto. Digite o valor real quando for diferente e saia do campo.",
+    "sel": "[id=\"cr_ITEM 03\"] input[data-real]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "\"✓ igual\": confirma que a linha custou o previsto (o selo passa a \"✓ conferido\").",
+    "sel": "[id=\"cr_ITEM 03\"] [data-rok]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "\"alterado\": o valor lançado é diferente do previsto; a diferença fica em vermelho quando o custo sobe.",
+    "sel": "[id=\"cr_ITEM 03\"] .pill.warn",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Observação da linha (NF, OS, fornecedor).",
+    "sel": "[id=\"cr_ITEM 03\"] input[data-robs]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Conferir de uma vez as linhas restantes como iguais ao previsto.",
+    "sel": "[id=\"cr_ITEM 03\"] [data-rokall]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "+ Custo não previsto: retrabalho, frete extra, peça trocada…",
+    "sel": "[id=\"cr_ITEM 03\"] [data-rexadd]",
+    "ok": true
+   }
+  ]
+ },
+ "14-05": {
+  "id": "14-05",
+  "cap": 14,
+  "nome": "margens-painel",
+  "titulo": "Menu Margens: filtros, indicadores e gráficos",
+  "vp": "desktop",
+  "arquivo": "14-05-margens-painel.png",
+  "data": "2026-10-29T04:41:02.206Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Período: últimos 12 meses, este ano ou tudo.",
+    "sel": "#mgPer",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Divisão: SEQ e SPV, só SEQ ou só SPV.",
+    "sel": "#mgDiv",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abas: Painel, Fechadas, Em aberto e Aprovações.",
+    "sel": "[data-mgtab=\"fechadas\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Margem realizada das fechadas com custo real, comparada com a prevista.",
+    "sel": "#app .kpis > .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Abaixo do mínimo: propostas em aberto com margem menor que a margem mínima.",
+    "sel": "#app .kpis > .kpi:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Custo real a lançar: fechadas com linhas ainda sem custo real.",
+    "sel": "#app [data-mgopen]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Previsto × realizado por pacote; passe o mouse nas barras para ver os valores.",
+    "sel": "section.card:has(svg[aria-label=\"margem prevista e realizada\"]) h2",
+    "ok": true
+   }
+  ]
+ },
+ "14-06": {
+  "id": "14-06",
+  "cap": 14,
+  "nome": "margens-fechadas",
+  "titulo": "Aba Fechadas",
+  "vp": "desktop",
+  "arquivo": "14-06-margens-fechadas.png",
+  "data": "2026-10-29T04:41:04.667Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Data da baixa e pedido do cliente.",
+    "sel": "section.card:has(thead) tbody td:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Margem fechada (com o valor fechado).",
+    "sel": "section.card:has(thead) tbody td:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Margem realizada: verde se ficou igual ou acima da fechada, vermelha se caiu.",
+    "sel": "section.card:has(thead) tbody td:nth-child(5)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Custo apontado: % das linhas com custo real.",
+    "sel": "section.card:has(thead) tbody td:nth-child(6)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Custo real: abre a conferência linha a linha.",
+    "sel": "section.card:has(thead) button[data-mgopen]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Excel do fechamento.",
+    "sel": "section.card:has(thead) [data-mgxls]",
+    "ok": true
+   }
+  ]
+ },
+ "14-07": {
+  "id": "14-07",
+  "cap": 14,
+  "nome": "margens-em-aberto",
+  "titulo": "Aba Em aberto",
+  "vp": "desktop",
+  "arquivo": "14-07-margens-em-aberto.png",
+  "data": "2026-10-29T04:41:05.622Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Margem da proposta; fica vermelha, com o selo \"abaixo do mínimo\", quando não atinge a margem mínima.",
+    "sel": "section.card:has(thead) tbody td:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Abrir a proposta.",
+    "sel": "section.card:has(thead) [data-hopen]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Dar baixa direto daqui.",
+    "sel": "section.card:has(thead) [data-mgclose]",
+    "ok": true
+   }
+  ]
+ },
+ "14-08": {
+  "id": "14-08",
+  "cap": 14,
+  "nome": "margens-painel-inicio",
+  "titulo": "Painel da tela Início com \"Como cada número é calculado\" aberto",
+  "vp": "desktop",
+  "arquivo": "14-08-margens-painel-inicio.png",
+  "data": "2026-10-29T04:41:06.604Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Período: 30, 90 dias, 12 meses ou todo o período (data de criação da proposta).",
+    "sel": "[data-pnl=\"per\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Divisão: SEQ e SPV, só SEQ ou só SPV.",
+    "sel": "[data-pnl=\"div\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Propostas por etapa. Clique numa barra para filtrar a lista de propostas abaixo.",
+    "sel": ".pnlbar[data-pnletapa=\"ganha\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Margem média ponderada (sobre a receita líquida).",
+    "sel": "#painel .kpis > .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Margem prevista × realizada das obras com custo real lançado.",
+    "sel": "#painel .kpis > .kpi:nth-child(8)",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Como cada número é calculado: as fórmulas, na própria tela.",
+    "sel": "#painel .pnlform",
+    "ok": true
+   }
+  ]
+ },
+ "14-09": {
+  "id": "14-09",
+  "cap": 14,
+  "nome": "margens-chips-lista",
+  "titulo": "Chips de filtro da lista de propostas (tela Início)",
+  "vp": "desktop",
+  "arquivo": "14-09-margens-chips-lista.png",
+  "data": "2026-10-29T04:41:08.704Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Em aberto: rascunhos, enviadas ao cliente e com desconto reprovado.",
+    "sel": "[data-hdiv=\"abertas\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Fechadas: com baixa (inclui as encerradas).",
+    "sel": "[data-hdiv=\"fechadas\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Falta custo real: ganhas com baixa e linhas ainda sem custo real.",
+    "sel": "[data-hdiv=\"pend_real\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Perdidas.",
+    "sel": "[data-hdiv=\"perdidas\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Situação da proposta.",
+    "sel": ".home tbody tr.click td:nth-child(4) .pill",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Próximo passo da proposta (muda conforme a situação).",
+    "sel": ".home [data-hnext]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "\"perdida\": marca a proposta como perdida, com o motivo.",
+    "sel": ".home [data-hperdida]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Etapas da proposta: formação, envio, baixa, avisos, custo real e encerramento.",
+    "sel": ".home .etapas",
+    "ok": true
+   }
+  ]
+ },
+ "14-10": {
+  "id": "14-10",
+  "cap": 14,
+  "nome": "margens-perdida",
+  "titulo": "Janela Proposta perdida",
+  "vp": "desktop",
+  "arquivo": "14-10-margens-perdida.png",
+  "data": "2026-10-29T04:41:09.680Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Motivo (obrigatório): fica no histórico e ajuda a entender as perdas.",
+    "sel": "#pdMot",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Marcar como perdida.",
+    "sel": "#pdOk2",
+    "ok": true
+   }
+  ]
+ }
+}

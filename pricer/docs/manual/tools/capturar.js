@@ -101,14 +101,16 @@ async function anotar(p, marcas) {
 // recorte: seletor (com folga) ou retângulo; amplia a altura da janela se o recorte não couber
 async function recorte(p, s, vpBase) {
   if (!s.clip) return null;
-  if (typeof s.clip === 'object') return s.clip;
+  if (typeof s.clip === 'object' && !Array.isArray(s.clip)) return s.clip;
   const pad = s.pad == null ? 10 : s.pad;
   const medir = () => p.evaluate(({ sel, nth }) => {
-    const el = [...document.querySelectorAll(sel)].filter((e) => e.getBoundingClientRect().height > 0)[nth || 0];
-    if (!el) return null;
+    // um seletor ou uma lista de seletores (o recorte cobre todos)
+    const els = (Array.isArray(sel) ? sel : [sel]).map((q) => [...document.querySelectorAll(q)].filter((e) => e.getBoundingClientRect().height > 0)[Array.isArray(sel) ? 0 : nth || 0]);
+    if (els.some((e) => !e)) return null;
     const topo = document.querySelector('header.top'); const off = topo && getComputedStyle(topo).position === 'sticky' ? topo.getBoundingClientRect().height + 8 : 8;
-    window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + scrollY - off));
-    const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, width: r.width, height: r.height };
+    window.scrollTo(0, Math.max(0, Math.min(...els.map((e) => e.getBoundingClientRect().top)) + scrollY - off));
+    const rs = els.map((e) => e.getBoundingClientRect()); const x0 = Math.min(...rs.map((r) => r.left)), y0 = Math.min(...rs.map((r) => r.top));
+    return { x: x0, y: y0, width: Math.max(...rs.map((r) => r.right)) - x0, height: Math.max(...rs.map((r) => r.bottom)) - y0 };
   }, { sel: s.clip, nth: s.clipNth });
   let r = await medir(); if (!r) return 'faltou';
   if (r.y + r.height > vpBase.height - 4) { await p.setViewportSize({ width: vpBase.width, height: Math.min(4000, Math.ceil(r.y + r.height + pad + 10)) }); await p.waitForTimeout(250); r = await medir(); }
@@ -121,12 +123,13 @@ async function recorte(p, s, vpBase) {
   const quais = process.argv.slice(2).map(Number).filter(Boolean);
   const caps = fs.readdirSync(path.join(MAN, 'fonte')).filter((f) => /^cap\d\d\.js$/.test(f)).sort()
     .map((f) => require(path.join(MAN, 'fonte', f))).filter((c) => !quais.length || quais.includes(c.n));
-  const regPath = path.join(MAN, 'prints/capturas.json');
-  const reg = fs.existsSync(regPath) ? JSON.parse(fs.readFileSync(regPath, 'utf8')) : {};
   const F = fontes();
   const b = await chromium.launch();
   for (const cap of caps) {
     if (!cap.capturas || !cap.capturas.length) continue;
+    // um registro por capítulo: capítulos diferentes podem ser capturados ao mesmo tempo
+    const regPath = path.join(MAN, 'prints', `capturas-cap${String(cap.n).padStart(2, '0')}.json`);
+    const reg = {};
     const grupos = {}; // um contexto por viewport, passos acumulados na ordem
     for (const s of cap.capturas) {
       const vpn = s.vp || 'desktop';
@@ -182,7 +185,7 @@ async function recorte(p, s, vpBase) {
       console.log((item.ok ? 'ok   ' : 'FALHA') + ' ' + nome + (item.problemas.length ? ' — ' + item.problemas.join('; ') : ''));
     }
     for (const g of Object.values(grupos)) await g.ctx.close();
+    fs.writeFileSync(regPath, JSON.stringify(Object.fromEntries(Object.entries(reg).sort()), null, 1));
   }
   await b.close();
-  fs.writeFileSync(regPath, JSON.stringify(Object.fromEntries(Object.entries(reg).sort()), null, 1));
 })();

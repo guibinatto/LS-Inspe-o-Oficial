@@ -1,0 +1,614 @@
+{
+ "06-01": {
+  "id": "06-01",
+  "cap": 6,
+  "nome": "spv-inicio-botoes",
+  "titulo": "Tela Início: botões para começar uma SPV e o FACTS",
+  "vp": "desktop",
+  "arquivo": "06-01-spv-inicio-botoes.png",
+  "data": "2026-10-29T04:36:36.256Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nova → SPV (serviço, peças, contrato) volta para esta tela, onde você escolhe o tipo.",
+    "sel": "#bNew",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quadro SPV — Serviços e pós-venda: um botão para cada tipo.",
+    "sel": ".start.spv .tag",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Cada botão abre uma SPV nova já com o primeiro modelo daquele tipo (aqui, Treinamento / start-up).",
+    "sel": "[data-spvnew=\"TRT\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Peças e sobressalentes e Locação começam sem equipe: o preço só aparece depois de lançar as peças.",
+    "sel": "[data-spvnew=\"PAR\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Inspeção / contrato: já vem com o bloco Contrato recorrente ligado.",
+    "sel": "[data-spvnew=\"ITM\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "FACTS fica no quadro SEQ (é uma solução de equipamento) e abre o configurador MECON.",
+    "sel": "[data-factsnew]",
+    "ok": true
+   }
+  ]
+ },
+ "06-02": {
+  "id": "06-02",
+  "cap": 6,
+  "nome": "spv-cabecalho-abas",
+  "titulo": "SPV aberta: resumo, abas e barra de preço",
+  "vp": "desktop",
+  "arquivo": "06-02-spv-cabecalho-abas.png",
+  "data": "2026-10-29T04:36:36.878Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Resumo fixo da proposta: valor total, margem (com o mínimo), custo, itens e pendências.",
+    "sel": ".ctxh .ctx-kpis",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Aba Serviço e pós-venda: toda a formação da SPV fica nesta tela.",
+    "sel": ".ptab[data-view=\"proposta\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Aba Histórico: situação, revisões e registro. Na SPV não existem as abas Itens e Memorial.",
+    "sel": ".ptab[data-view=\"phist\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "← Início volta para a tela inicial.",
+    "sel": ".flowhead .btn[data-view=\"inicio\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Preço e lucro líquido, com o selo \"dentro da meta\" ou \"abaixo de 40%\".",
+    "sel": ".flowhead .sumbar",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Pedir aprovação (valor target), quando o preço precisa ficar abaixo da meta.",
+    "sel": "[data-alaprov]",
+    "ok": true
+   }
+  ]
+ },
+ "06-03": {
+  "id": "06-03",
+  "cap": 6,
+  "nome": "spv-cliente-escopo",
+  "titulo": "Cartão Cliente e escopo preenchido",
+  "vp": "desktop",
+  "arquivo": "06-03-spv-cliente-escopo.png",
+  "data": "2026-10-29T04:36:38.227Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Cliente: sugere os clientes de propostas já salvas.",
+    "sel": "[data-sp=\"cliente\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "UF em lista. Define o ICMS das peças.",
+    "sel": "[data-sp=\"uf\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Vendedor: lista da equipe no app compartilhado; texto livre neste navegador.",
+    "sel": "[data-sp=\"vendedor\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Tipo da SPV (pode trocar depois).",
+    "sel": "[data-sp=\"tipo\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Pagamento: sugere as condições cadastradas; aceita texto livre.",
+    "sel": "[data-sp=\"pagamento\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Escopo do serviço: vem do modelo e vai na proposta.",
+    "sel": "textarea[data-sp=\"descricao\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Blocos: liga ou desliga Equipe e deslocamento, Peças e materiais e Contrato recorrente.",
+    "sel": "[data-spblk=\"equipe\"]",
+    "ok": true
+   }
+  ]
+ },
+ "06-04": {
+  "id": "06-04",
+  "cap": 6,
+  "nome": "spv-equipe-deslocamento",
+  "titulo": "Equipe e deslocamento (300 km só ida; alimentação alterada à mão)",
+  "vp": "desktop",
+  "arquivo": "06-04-spv-equipe-deslocamento.png",
+  "data": "2026-10-29T04:36:41.657Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Técnico: escolha na lista; a diária vem do cadastro.",
+    "sel": "select[data-sp=\"equipe.0.tec\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Dias de trabalho deste técnico.",
+    "sel": "[data-sp=\"equipe.0.dias\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Toque para incluir ou tirar um técnico da equipe.",
+    "sel": "label.chip:has([data-sptec=\"Roger\"])",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "+ Outro: linha em branco para um técnico fora da lista.",
+    "sel": "[data-spadd=\"equipe\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Distância até o local, só ida. O app dobra para ida e volta.",
+    "sel": "[data-sp=\"dist\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Quantidades calculadas sozinhas (km, hotel, alimentação, ART).",
+    "sel": "[data-sp=\"ov.km\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Quantidade alterada à mão: ↺ auto volta ao cálculo automático.",
+    "sel": "[data-spauto=\"alim_qtd\"]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Custo da prestação do serviço (mão de obra + deslocamento).",
+    "sel": "section.card:has([data-sp=\"dist\"]) tr.tot",
+    "ok": true
+   }
+  ]
+ },
+ "06-05": {
+  "id": "06-05",
+  "cap": 6,
+  "nome": "spv-pecas-materiais",
+  "titulo": "Peças e materiais depois de importar uma NF-e em XML",
+  "vp": "desktop",
+  "arquivo": "06-05-spv-pecas-materiais.png",
+  "data": "2026-10-29T04:36:43.209Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Incl.: desmarcado, a peça fica fora do preço e do custo.",
+    "sel": "[data-sp=\"pecas.0.incluso\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Descrição, com código e fornecedor lidos do documento (📎 = documento ligado).",
+    "sel": "[data-sp=\"pecas.1.desc\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Moeda: BRL, USD ou EUR (câmbio e fator de importação do cadastro).",
+    "sel": "select[data-sp=\"pecas.1.moeda\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "IPI da compra, em %.",
+    "sel": "[data-sp=\"pecas.1.ipi\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Fator de venda da peça (padrão do cadastro: 1,5).",
+    "sel": "[data-sp=\"pecas.1.fator\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "+ Peça: lança uma peça à mão.",
+    "sel": "[data-spadd=\"pecas\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Importar orçamento: lê PDF, XML da NF-e, Excel ou foto e traz os itens.",
+    "sel": "label[for=\"spImport\"]",
+    "ok": true
+   }
+  ]
+ },
+ "06-06": {
+  "id": "06-06",
+  "cap": 6,
+  "nome": "spv-alerta-lucro",
+  "titulo": "Lucro abaixo da meta: o app mostra o multiplicador necessário",
+  "vp": "desktop",
+  "arquivo": "06-06-spv-alerta-lucro.png",
+  "data": "2026-10-29T04:36:45.860Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Selo vermelho: lucro líquido abaixo do mínimo (40%).",
+    "sel": ".flowhead .sumbar .pill.bad",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Aviso com o lucro atual e o multiplicador que atinge a meta.",
+    "sel": ".banner.bad",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "aplicar: troca o multiplicador do serviço pelo valor mínimo, arredondado para cima.",
+    "sel": ".banner.bad [data-spfix]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Ou peça aprovação para vender abaixo da meta.",
+    "sel": "[data-alaprov]",
+    "ok": true
+   }
+  ]
+ },
+ "06-07": {
+  "id": "06-07",
+  "cap": 6,
+  "nome": "spv-formacao-documentos",
+  "titulo": "Formação do preço e documentos da proposta",
+  "vp": "desktop",
+  "arquivo": "06-07-spv-formacao-documentos.png",
+  "data": "2026-10-29T04:36:47.521Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Multiplicador do serviço: custo da prestação × multiplicador = venda do serviço.",
+    "sel": "[data-sp=\"mk.mult\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Venda bruta (valor da proposta) = venda do serviço + venda das peças.",
+    "sel": ".split2 .kv > div:nth-child(11)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Lucro líquido depois de impostos, comissões e custos. Meta: 40%.",
+    "sel": "section.card:has([data-sppdf]) .kv .ok-t",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Pagamento a prazo: soma o encargo de 3,5% às deduções.",
+    "sel": "label.chk:has([data-sp=\"aprazo\"]) input",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Formação de custo (PDF), de uso interno.",
+    "sel": "[data-sppdf=\"interno\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Documentos desta proposta: a NF-e importada já aparece ligada.",
+    "sel": "section.card:has(#spAttach) tbody tr",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "+ Anexar documento: orçamento, nota, contrato ou desenho.",
+    "sel": "label[for=\"spAttach\"]",
+    "ok": true
+   }
+  ]
+ },
+ "06-08": {
+  "id": "06-08",
+  "cap": 6,
+  "nome": "spv-salvar-modelo",
+  "titulo": "Janela de modelo aberta por \"Salvar esta proposta como modelo\"",
+  "vp": "desktop",
+  "arquivo": "06-08-spv-salvar-modelo.png",
+  "data": "2026-10-29T04:36:48.090Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nome do modelo (sugerido: tipo — cliente).",
+    "sel": "#moNome",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Tipo de SPV em que o modelo aparece.",
+    "sel": "#moTipo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Visitas por ano: vazio = serviço avulso; preenchido = contrato.",
+    "sel": "#moVis",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Equipe: um técnico por linha (nome; dias).",
+    "sel": "#moEq",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Peças padrão: descrição; quantidade; valor unitário.",
+    "sel": "#moPc",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Salvar modelo: passa a aparecer no cartão Modelo das SPV deste tipo.",
+    "sel": "#moSave",
+    "ok": true
+   }
+  ]
+ },
+ "06-09": {
+  "id": "06-09",
+  "cap": 6,
+  "nome": "spv-lista-duplicar",
+  "titulo": "SPV salva na lista de propostas da tela Início",
+  "vp": "desktop",
+  "arquivo": "06-09-spv-lista-duplicar.png",
+  "data": "2026-10-29T04:36:50.253Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Filtro SPV: mostra só as propostas de serviço.",
+    "sel": "[data-hdiv=\"SPV\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Divisão SPV e o tipo (SMC).",
+    "sel": "tr[data-hopen] .divb.spv",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Total salvo (preço da proposta).",
+    "sel": "tr[data-hopen] td.n",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Abrir: continua a mesma proposta.",
+    "sel": "tr[data-hopen] .btn[data-hopen]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Duplicar: cria uma cópia sem número, como rascunho e com a data de hoje.",
+    "sel": "tr[data-hopen] [data-hdup]",
+    "ok": true
+   }
+  ]
+ },
+ "06-10": {
+  "id": "06-10",
+  "cap": 6,
+  "nome": "spv-contrato-recorrente",
+  "titulo": "Inspeção / contrato: bloco Contrato recorrente",
+  "vp": "desktop",
+  "arquivo": "06-10-spv-contrato-recorrente.png",
+  "data": "2026-10-29T04:36:52.829Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Frequência pronta: Mensal, Bimestral, Trimestral, Quadrimestral, Semestral ou Anual.",
+    "sel": "[data-spvis=\"12\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "− e + mudam as visitas por ano (também aceita digitar).",
+    "sel": "[data-spstep=\"contrato.visitas|-1\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Duração do contrato em meses, com − e +.",
+    "sel": "[data-spstep=\"contrato.meses|1\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Índice de reajuste (texto).",
+    "sel": "[data-sp=\"contrato.reajuste\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Por visita: o preço formado acima vale por visita.",
+    "sel": "section.card:has([data-spvis]) .kpi:first-child",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Mensalidade = total do contrato ÷ meses.",
+    "sel": "section.card:has([data-spvis]) .kpi.lead",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Total do contrato: visitas × preço por visita + ART uma vez.",
+    "sel": "section.card:has([data-spvis]) .kpi:last-child",
+    "ok": true
+   }
+  ]
+ },
+ "06-11": {
+  "id": "06-11",
+  "cap": 6,
+  "nome": "spv-facts-conjunto",
+  "titulo": "FACTS: configuração de um conjunto (bomba)",
+  "vp": "desktop",
+  "arquivo": "06-11-spv-facts-conjunto.png",
+  "data": "2026-10-29T04:36:54.220Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Código de opções MECON montado pelas escolhas.",
+    "sel": "section.card:has([data-fx=\"conj.0.nome\"]) h2 .code",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quantidade de conjuntos iguais.",
+    "sel": "[data-fx=\"conj.0.qtd\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Acionamento: Diesel ou Elétrico (diesel abre arrefecimento e óleo).",
+    "sel": ".seg[aria-label=\"conj.0.acion\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Vedação da bomba: define os sensores de gaxeta.",
+    "sel": ".seg[aria-label=\"conj.0.selo\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Parada do teste: retrofit com stop box ou sem stop box.",
+    "sel": ".seg[aria-label=\"conj.0.parada\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Custo por conjunto em EUR e em R$.",
+    "sel": "section.card:has([data-fx=\"conj.0.nome\"]) tr.tot",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "+ Outro conjunto: outra bomba com outra configuração.",
+    "sel": "[data-fxadd]",
+    "ok": true
+   }
+  ]
+ },
+ "06-12": {
+  "id": "06-12",
+  "cap": 6,
+  "nome": "spv-facts-formacao",
+  "titulo": "FACTS: formação do preço",
+  "vp": "desktop",
+  "arquivo": "06-12-spv-facts-formacao.png",
+  "data": "2026-10-29T04:36:56.495Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Treinamento MECON em Lübeck (opcional), no cartão de serviços.",
+    "sel": "label.chip:has([data-fx=\"treino.on\"])",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Margem líquida alvo: o preço é calculado a partir dela.",
+    "sel": "[data-fx=\"margem\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Margem líquida resultante (mínimo 30%).",
+    "sel": "section.card:has([data-fxtxt]) .kv .ok-t",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Preço fechado (sem IPI): opcional; substitui o preço pela margem.",
+    "sel": ".f:has([data-fx=\"preco\"])",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Desconto de volume MECON: Nenhum, 3% ou 5%, conforme os conjuntos no ano.",
+    "sel": ".seg[aria-label=\"volume\"] label:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Copia o texto técnico para colar na proposta.",
+    "sel": "[data-fxtxt]",
+    "ok": true
+   }
+  ]
+ }
+}

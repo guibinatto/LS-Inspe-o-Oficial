@@ -1,0 +1,518 @@
+{
+ "03-01": {
+  "id": "03-01",
+  "cap": 3,
+  "nome": "proposta-nova-janela",
+  "titulo": "Janela Nova proposta",
+  "vp": "desktop",
+  "arquivo": "03-01-proposta-nova-janela.png",
+  "data": "2026-10-29T04:47:40.294Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "SEQ em branco: proposta SEQ nova, começando pelos Dados gerais (revisão 0 e data de hoje já preenchidas).",
+    "sel": "#mBlank",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "SPV (serviço, peças, contrato): volta à tela Início para escolher o tipo de SPV (ver o capítulo de SPV).",
+    "sel": "#mSpv",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Exemplo SEQ (Cocamar): carrega a proposta de exemplo, para treino.",
+    "sel": "#mExample",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Cancelar: fecha a janela sem mudar nada (Esc também fecha).",
+    "sel": "#overlay [data-close]",
+    "ok": true
+   }
+  ]
+ },
+ "03-02": {
+  "id": "03-02",
+  "cap": 3,
+  "nome": "proposta-inicio-familias",
+  "titulo": "Tela Início: botões para começar uma proposta SEQ",
+  "vp": "desktop",
+  "arquivo": "03-02-proposta-inicio-familias.png",
+  "data": "2026-10-29T04:47:41.600Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Botão de família (aqui, Conjunto motobomba): cria a proposta e já reserva o item 01 nessa família.",
+    "sel": ".start.seq [data-seqfam=\"CONJUNTO MOTOBOMBA\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Skid, Container, Especial e Jockey + painel funcionam do mesmo jeito.",
+    "sel": ".start.seq [data-seqfam=\"ESPECIAL\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Em branco: proposta SEQ sem família; o equipamento é escolhido depois, na aba Itens.",
+    "sel": ".start.seq [data-seqnew]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "FACTS: abre o configurador MECON (ver o capítulo de SPV e FACTS).",
+    "sel": ".start.seq [data-factsnew]",
+    "ok": true
+   }
+  ]
+ },
+ "03-03": {
+  "id": "03-03",
+  "cap": 3,
+  "nome": "proposta-dados-cliente",
+  "titulo": "Dados gerais, cartão Cliente, com os campos obrigatórios em destaque",
+  "vp": "desktop",
+  "arquivo": "03-03-proposta-dados-cliente.png",
+  "data": "2026-10-29T04:47:42.715Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "CNPJ / CPF: 14 dígitos (CNPJ) ou 11 (CPF). O contorno vermelho indica campo obrigatório vazio; o * marca os obrigatórios.",
+    "sel": "#cnpjIn",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Buscar na Receita: consulta o CNPJ e preenche cliente, local, UF e cadastro fiscal.",
+    "sel": "#cnpjGo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Cliente (razão social): sugere os clientes de propostas já salvas.",
+    "sel": "label[for=\"c_PROPOSTA_F5\"] > span",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Obra / local da instalação.",
+    "sel": "label[for=\"c_PROPOSTA_F6\"] > span",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "UF de destino: define o ICMS e o DIFAL.",
+    "sel": "label[for=\"c_PROPOSTA_F7\"] > span",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Cadastro fiscal do cliente (contribuinte ou não contribuinte).",
+    "sel": "label[for=\"c_PROPOSTA_J5\"] > span",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Segmento do cliente (OEM, instalador, revenda, cliente final…).",
+    "sel": "label[for=\"c_PROPOSTA_F8\"] > span",
+    "ok": true
+   }
+  ]
+ },
+ "03-04": {
+  "id": "03-04",
+  "cap": 3,
+  "nome": "proposta-dados-proposta",
+  "titulo": "Dados gerais, cartão Proposta",
+  "vp": "desktop",
+  "arquivo": "03-04-proposta-dados-proposta.png",
+  "data": "2026-10-29T04:47:45.052Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nº da proposta.",
+    "sel": "label[for=\"c_PROPOSTA_C5\"] > span",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Revisão: começa em 0 na proposta nova.",
+    "sel": "label[for=\"c_PROPOSTA_C6\"] > span",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Data: já vem com a data de hoje.",
+    "sel": "label[for=\"c_PROPOSTA_C7\"] > span",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Validade da proposta.",
+    "sel": "label[for=\"c_PROPOSTA_C10\"] > span",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Condição de pagamento: lista da planilha (mexe no preço pelo encargo financeiro).",
+    "sel": "label[for=\"c_PROPOSTA_J6\"] > span",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Norma: NFPA20, ULFM, NBR16704 ou NBR13714.",
+    "sel": "label[for=\"c_PROPOSTA_F9\"] > span",
+    "ok": true
+   }
+  ]
+ },
+ "03-05": {
+  "id": "03-05",
+  "cap": 3,
+  "nome": "proposta-vendedor-comissoes",
+  "titulo": "Dados gerais, cartão Vendedor e comissões (vendedor escolhido e AN marcado)",
+  "vp": "desktop",
+  "arquivo": "03-05-proposta-vendedor-comissoes.png",
+  "data": "2026-10-29T04:47:45.472Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Vendedor: toque no nome. A lista vem de Cadastros → Precificação (cartão Vendedores e agentes de negócio).",
+    "sel": "#app label:has(> [data-ppcell=\"C8\"])",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Comissões: Vendedor (já vem marcada na proposta nova) e Agente de negócio (AN), que você marca só se houver AN. Com AN marcado, o campo Agente de negócio fica obrigatório.",
+    "sel": "#app label:has(> [data-pcom=\"J8\"])",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Agente de negócio: toque no nome.",
+    "sel": "#app label:has(> [data-ppcell=\"L8\"])",
+    "ok": true
+   }
+  ]
+ },
+ "03-06": {
+  "id": "03-06",
+  "cap": 3,
+  "nome": "proposta-receita-sem-conexao",
+  "titulo": "Buscar na Receita sem acesso à internet",
+  "vp": "desktop",
+  "arquivo": "03-06-proposta-receita-sem-conexao.png",
+  "data": "2026-10-29T04:47:51.892Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "CNPJ digitado (aqui, um número fictício).",
+    "sel": "#cnpjIn",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Buscar na Receita.",
+    "sel": "#cnpjGo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Resultado da consulta. Sem internet, o app avisa e você preenche os dados à mão.",
+    "sel": "#cnpjMsg",
+    "ok": true
+   }
+  ]
+ },
+ "03-07": {
+  "id": "03-07",
+  "cap": 3,
+  "nome": "proposta-indicador-salvar",
+  "titulo": "Barra superior: indicador de alterações não salvas",
+  "vp": "desktop",
+  "arquivo": "03-07-proposta-indicador-salvar.png",
+  "data": "2026-10-29T04:47:54.411Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Proposta aberta: divisão, número e cliente.",
+    "sel": "#docName",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Indicador: \"● Proposta ainda não salva\" ou \"● Alterações não salvas\"; depois de salvar, \"✓ Salvo às hh:mm\".",
+    "sel": "#saveSt",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abrir: lista as propostas salvas.",
+    "sel": "#bOpen",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Salvar (ou Ctrl+S).",
+    "sel": "#bSave",
+    "ok": true
+   }
+  ]
+ },
+ "03-08": {
+  "id": "03-08",
+  "cap": 3,
+  "nome": "proposta-cabecalho-contexto",
+  "titulo": "Cabeçalho de contexto da proposta (exemplo salvo)",
+  "vp": "desktop",
+  "arquivo": "03-08-proposta-cabecalho-contexto.png",
+  "data": "2026-10-29T04:47:54.808Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Número da proposta e, abaixo, o cliente.",
+    "sel": ".ctxh .ctx-tt h1",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Revisão atual (\"Rev. 3 ▾\": ver, comparar e restaurar revisões), botão Revisar e a situação (Não salva, Rascunho, Enviada…).",
+    "sel": ".ctxh .ctx-tags",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Valor total da proposta (com IPI).",
+    "sel": ".ctx-kpis .k:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Margem líquida e o mínimo da política; fica vermelha abaixo do mínimo.",
+    "sel": ".ctx-kpis .k:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Custo total e, ao lado, o número de itens.",
+    "sel": ".ctx-kpis .k:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Pendências: da conferência e do acompanhamento.",
+    "sel": ".ctx-kpis .k:nth-child(5)",
+    "ok": true
+   }
+  ]
+ },
+ "03-09": {
+  "id": "03-09",
+  "cap": 3,
+  "nome": "proposta-abas",
+  "titulo": "Abas da proposta SEQ, com a situação de cada etapa",
+  "vp": "desktop",
+  "arquivo": "03-09-proposta-abas.png",
+  "data": "2026-10-29T04:47:58.004Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Dados gerais: cliente, proposta, vendedor, frete.",
+    "sel": ".ptabs [data-step=\"1\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Itens: equipamentos da proposta. \"✓\" = etapa concluída.",
+    "sel": ".ptabs [data-step=\"2\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Custos: origem e validade de cada custo.",
+    "sel": ".ptabs [data-step=\"3\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Formação: preço por item e simulador.",
+    "sel": ".ptabs [data-step=\"4\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Conferência: o que impede ou pede atenção. \"•\" = há avisos.",
+    "sel": ".ptabs [data-step=\"5\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Memorial de formação de preço.",
+    "sel": ".ptabs [data-view=\"memorial\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Documentos: situação, PDFs e revisões.",
+    "sel": ".ptabs [data-step=\"6\"]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Histórico da proposta.",
+    "sel": ".ptabs [data-view=\"phist\"]",
+    "ok": true
+   }
+  ]
+ },
+ "03-10": {
+  "id": "03-10",
+  "cap": 3,
+  "nome": "proposta-abrir-janela",
+  "titulo": "Janela Propostas salvas (botão Abrir)",
+  "vp": "desktop",
+  "arquivo": "03-10-proposta-abrir-janela.png",
+  "data": "2026-10-29T04:47:58.369Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Buscar por número ou cliente.",
+    "sel": "#mQ",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Abrir: carrega a proposta para edição.",
+    "sel": "#mList [data-open]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Excluir: manda para a lixeira (pede confirmação).",
+    "sel": "#mList [data-del]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Copiar proposta atual (texto).",
+    "sel": "#mCopy",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Baixar .json da proposta atual.",
+    "sel": "#mDown",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Abrir .json recebido de outra pessoa.",
+    "sel": "label[for=\"mFile\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Importar o conteúdo colado ou aberto.",
+    "sel": "#mImp",
+    "ok": true
+   }
+  ]
+ },
+ "03-11": {
+  "id": "03-11",
+  "cap": 3,
+  "nome": "proposta-inicio-lista",
+  "titulo": "Lista de propostas na tela Início",
+  "vp": "desktop",
+  "arquivo": "03-11-proposta-inicio-lista.png",
+  "data": "2026-10-29T04:47:59.781Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Divisão (SEQ ou SPV), número, revisão e cliente. Clicar na linha também abre.",
+    "sel": "#app tr[data-hopen] .divb",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Próximo passo sugerido para a proposta (aqui, Conferir PDF).",
+    "sel": "#app button[data-hnext]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abrir a proposta.",
+    "sel": "#app button[data-hopen]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Duplicar: cria uma cópia em rascunho, sem número.",
+    "sel": "#app button[data-hdup]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Marcar como perdida, com o motivo.",
+    "sel": "#app [data-hperdida]",
+    "ok": true
+   }
+  ]
+ },
+ "03-12": {
+  "id": "03-12",
+  "cap": 3,
+  "nome": "proposta-copia-duplicada",
+  "titulo": "Cópia criada pelo Duplicar: sem número e ainda não salva",
+  "vp": "desktop",
+  "arquivo": "03-12-proposta-copia-duplicada.png",
+  "data": "2026-10-29T04:48:00.846Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "A cópia fica sem número: informe o novo número em Dados gerais.",
+    "sel": ".ctxh .ctx-tt h1",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Situação \"Não salva\" até você clicar em Salvar.",
+    "sel": ".ctxh .ctx-tags > .pill",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Valores e itens iguais aos da proposta de origem.",
+    "sel": ".ctx-kpis .k:nth-child(1)",
+    "ok": true
+   }
+  ]
+ }
+}

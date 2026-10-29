@@ -366,7 +366,10 @@
   const ICO_AUTO = [[/^\+|^Nov[ao]\b|^Cadastrar|^Incluir|^Adicionar/i, 'plus'], [/^Salvar/i, 'save'], [/^Duplicar|^Copiar/i, 'copy'], [/^(Excluir|Remover|Apagar|Descartar)/i, 'trash-2'], [/^Editar/i, 'pencil'], [/^Ver\b|^Ver /i, 'eye'],
     [/^(Exportar|Baixar)/i, 'download'], [/^(Importar|Anexar|Escolher arquivo)/i, 'upload'], [/^Aprovar/i, 'circle-check'], [/^Reprovar|^Recusar/i, 'circle-x'], [/^Comparar/i, 'git-compare'], [/^(Testar|Montar e testar)/i, 'flask-conical'],
     [/^Publicar/i, 'send'], [/^(Restaurar|Desfazer|Voltar ao)/i, 'rotate-ccw'], [/^(Buscar|Pesquisar)/i, 'search'], [/^Pedir aprova/i, 'send'], [/^Revisar/i, 'refresh-cw'], [/^Abrir/i, 'external-link'], [/^Fechar$|^Cancelar$/i, 'x'], [/^Aplicar/i, 'check'], [/^Confirmar/i, 'check'], [/^Hist[óo]rico/i, 'history']];
-  function iconeAuto(root) { for (const el of (root || document).querySelectorAll('#app .btn:not([data-ico]):not([data-noico]), #overlay .btn:not([data-ico]):not([data-noico])')) { const t = (el.textContent || '').trim(); const hit = ICO_AUTO.find(([re]) => re.test(t)); el.dataset.ico = hit ? hit[1] : ''; } }
+  function iconeAuto(root) { for (const el of (root || document).querySelectorAll('#app .btn:not([data-ico]):not([data-noico]), #overlay .btn:not([data-ico]):not([data-noico])')) { const t = (el.textContent || '').trim(); if (/^[+−-]$/.test(t)) { el.dataset.ico = ''; continue; }
+      // "+ Peça": o ícone de mais substitui o sinal escrito
+      if (/^\+\s*\S/.test(t)) { const tn = [...el.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim()); if (tn && /^\s*\+\s*/.test(tn.textContent)) tn.textContent = tn.textContent.replace(/^\s*\+\s*/, ''); }
+      const hit = ICO_AUTO.find(([re]) => re.test(t)); el.dataset.ico = hit ? hit[1] : ''; } }
   function decorar(root) { iconeAuto(root); for (const el of (root || document).querySelectorAll('[data-ico]')) { if (!el.dataset.ico) continue; const n = el.dataset.ico; const cur = el.querySelector(':scope > .ico'); if (cur && cur.dataset.n === n) continue; if (cur) cur.remove(); const t = document.createElement('template'); t.innerHTML = window.ICO ? window.ICO(n) : ''; const svg = t.content.firstChild; if (!svg) continue; svg.dataset.n = n; el.insertBefore(svg, el.firstChild); } }
   function setView(v) { if ((v === 'item' || v === 'memorial') && !cabOk()) { ui.step = 1; ui.reqShow = true; v = 'proposta'; toast('Preencha o cabeçalho antes do equipamento'); } ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
@@ -395,7 +398,7 @@
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
     const salvaB = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
-    const avInteg = !['proposta', 'item', 'memorial'].includes(ui.view) ? '' : (armazFalhou ? `<div class="banner bad" style="margin:0 0 12px"><b>O navegador não está gravando</b> (${esc(armazFalhou.msg)}). O que você fizer agora pode se perder ao fechar. Baixe um backup em Cadastro → Sistema → Backup e libere espaço.</div>` : '')
+    const avInteg = !['proposta', 'item', 'memorial'].includes(ui.view) ? '' : (armazFalhou ? `<div class="banner bad" style="margin:0 0 12px"><b>O navegador não está gravando</b> (${esc(armazFalhou.msg)}). O que você fizer agora pode se perder ao fechar. Baixe um backup em Configurações → Backup e restauração e libere espaço.</div>` : '')
       + (ui.recuperado && dirty ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Recuperamos alterações não salvas</b>${typeof ui.recuperado === 'string' ? ' (última edição ' + esc(fmtAt(ui.recuperado)) + ')' : ''}. Elas estão na tela; ainda não foram gravadas.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-recsalva>Salvar agora</button>${salvaB ? '<button class="btn sm" data-recdesc>Descartar e abrir a versão salva</button>' : ''}</span></div>` : '')
       + (salvaB && state.verBase !== undefined && (salvaB.verDoc || 0) > state.verBase && !state.verRev ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${REG.mode === 'shared' ? who(salvaB.by) : 'Outra janela deste navegador'} salvou uma versão mais nova</b> desta proposta às ${esc(fmtAt(salvaB.at))}.${dirty ? ' Ao salvar, o app pede para você escolher o que fazer, sem sobrescrever.' : ''}</span>${dirty ? '' : '<span style="margin-left:auto"><button class="btn sm pri" data-recnova>Abrir a versão nova</button></span>'}</div>` : '');
     $('#app').innerHTML = avInteg + avRev + aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
@@ -643,7 +646,7 @@
   function vItem() {
     const S = ITEMS[ui.item];
     const tabs = ITEMS.map((sh, i) => `<button class="itab ${i === ui.item ? 'on' : ''} ${filled(sh) ? '' : 'empty'}" data-goitem="${i}"><b>${sh}</b><small title="${esc(txt(sh, 'C28'))}">${esc(txt(sh, 'C27') || (filled(sh) ? txt(sh, 'AR1') : 'vazio') || 'vazio')}</small></button>`).join('');
-    const f = (a, lb, o) => field(S, a, lb, o);
+    const f = (a, lb, o) => field(S, a, lb, o); const fs = (a, lb, o) => fieldS(S, a, lb, o);
     const hdr = (c) => txt(S, c);
     // bombas 1-4
     const bcols = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
@@ -796,7 +799,7 @@
     const b32 = txt(S, 'B32');
     if (/SEM VAZÃO NOMINAL/.test(b32)) add('warn', 'Sem vazão nominal: válvula de alívio, cone, medidor e barriletes não entram. Informe a vazão.', { lb: 'Informar a vazão', act: 'foco', data: 'G17' });
     if (/jockey e nenhum/.test(b32)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.', { lb: 'Escolher a jockey', act: 'foco', data: 'J19' });
-    // regras de configuração da Engenharia (Cadastro → Engenharia → Regras)
+    // regras de configuração da Engenharia (Cadastros → Engenharia → Regras)
     try { for (const x of RG.avaliar(itemRegras(S))) { add(x.sev === 'imped' ? 'bad' : x.sev === 'aviso' ? 'warn' : 'info', x.msg); const a = out.find((y) => y.msg === x.msg); if (a) a.regra = true; } } catch (e) { /* regra malformada não derruba a tela */ }
     const m = /(\d+) LINHA\(S\) ALÉM DA 30ª/.exec(b32); if (m) add('info', `${m[1]} componente(s) além da 30ª linha da planilha: já estão no custo.`);
     const lc = txt(S, 'C27').length, ld = txt(S, 'C28').length;
@@ -1063,7 +1066,7 @@
   // marcos: a versão enviada ao cliente e a aprovada ficam congeladas como estavam naquele momento
   async function congelarMarco(propId, marco) {
     try { const cur = await REG.lerProposta(propId); if (!cur) return; const corpo = JSON.parse(JSON.stringify(cur));
-      await revGravar({ propId, rev: revDe(cur), at: new Date().toISOString(), by: REG.me || null, statusEra: cur.status || 'rascunho', marco, motivoProxima: '', total: cur.total ?? null, margemPct: cur.resumo ? cur.resumo.margemPct : null, numero: cur.numero || '', cliente: cur.cliente || '', body: corpo }, '_' + marco);
+      await revGravar({ propId, rev: revDe(cur), at: new Date().toISOString(), by: REG.me || null, statusEra: marco === 'enviada' ? 'enviada' : (cur.status || 'rascunho'), marco, motivoProxima: '', total: cur.total ?? null, margemPct: cur.resumo ? cur.resumo.margemPct : null, numero: cur.numero || '', cliente: cur.cliente || '', body: corpo }, '_' + marco);
     } catch (e) { toast('Não consegui congelar a versão ' + (marco === 'aprovada' ? 'aprovada' : 'enviada') + ': ' + errMsg(e)); }
   }
   function carregarCorpo(q, extra) {
@@ -1177,7 +1180,7 @@
       <div class="kpis" style="margin-bottom:10px"><div class="kpi"><span>Custo total</span><b>${brl(L.reduce((t, x) => t + x.total, 0))}</b><em>${L.length} linhas em ${new Set(L.map((x) => x.S)).size} item(ns)</em></div><div class="kpi"><span>Impeditivos</span><b class="${sev.imped ? 'bad-t' : 'ok-t'}">${sev.imped}</b><em>componente principal sem preço</em></div><div class="kpi"><span>Avisos</span><b class="${sev.aviso ? 'warn-t' : 'ok-t'}">${sev.aviso}</b><em>sem custo, cotação vencida, variação ≥ ${pct(C.variacaoPct, 0)}</em></div><div class="kpi"><span>Informações</span><b>${sev.info}</b><em>validade ${C.validadeDias} dias (Custos)</em></div></div>
       <div class="hchips" style="margin-bottom:8px">${[['alertas', 'Só o que pede atenção'], ['todos', 'Todas as linhas']].map(([k, lb]) => `<button class="hchip${filtro === k ? ' on' : ''}" data-custofiltro="${k}">${lb}</button>`).join('')}</div>
       ${vis.length ? `<div class="tw"><table class="t"><thead><tr><th>Código</th><th>Componente</th><th>Qtd</th><th>Unitário</th><th>Total</th><th>Origem do preço</th><th>Cotação</th><th>Situação</th><th></th></tr></thead><tbody>${tab}</tbody></table></div>` : '<p class="ok-t" style="margin:0">Nenhum custo pedindo atenção.</p>'}
-      <p class="sub" style="margin:8px 0 0">Valores do cadastro em reais. "Não se aplica" registra que a ausência é intencional (fica no histórico) e tira a linha das pendências. A validade e a variação que pede atenção são ajustáveis em Cadastro → Custos.</p></section>`;
+      <p class="sub" style="margin:8px 0 0">Valores do cadastro em reais. "Não se aplica" registra que a ausência é intencional (fica no histórico) e tira a linha das pendências. A validade e a variação que pede atenção são ajustáveis em Cadastros → Custos.</p></section>`;
   }
   document.addEventListener('click', (e) => {
     const f = e.target.closest('[data-custofiltro]'); if (f) { ui.custoFiltro = f.dataset.custofiltro; render(); return; }
@@ -1348,7 +1351,7 @@
     return `<section class="card" id="confCentral"><h2>Conferência da proposta <span class="sub">campos, cliente, equipamentos, custos, fiscal, margem, aprovações, documentos e cálculo</span></h2>
       <div class="kpis" style="margin-bottom:8px">${['imped', 'aviso', 'info'].map((s) => `<div class="kpi"><span>${g[s]}</span><b class="${s === 'imped' && L.some((x) => x.sev === s) ? 'bad-t' : s === 'aviso' && L.some((x) => x.sev === s) ? 'warn-t' : 'ok-t'}">${L.filter((x) => x.sev === s).length}</b></div>`).join('')}</div>
       ${L.length ? `<div class="tw"><table class="t"><tbody>${['imped', 'aviso', 'info'].flatMap((s) => L.filter((x) => x.sev === s)).map((x) => `<tr class="${x.sev === 'imped' ? 'cf-erro' : x.sev === 'aviso' ? 'cf-aviso' : ''}"><td style="width:24px">${ic[x.sev]}</td><td><small class="sub">${esc(x.area)}</small><br>${esc(x.msg)}</td><td style="text-align:right"><button class="btn sm" data-confgo="${esc(JSON.stringify(x.go))}">Ir</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="ok-t" style="margin:0">Tudo conferido: nada impede, nada pede atenção.</p>'}
-      <p class="sub" style="margin:8px 0 0">${custosCfg().bloquearEnvio ? 'Pela política (Cadastro → Custos), "Enviar ao cliente" fica travado enquanto houver itens que impedem seguir.' : 'A política atual não trava o envio: os impeditivos ficam só como aviso.'}</p></section>`;
+      <p class="sub" style="margin:8px 0 0">${custosCfg().bloquearEnvio ? 'Pela política (Cadastros → Custos), "Enviar ao cliente" fica travado enquanto houver itens que impedem seguir.' : 'A política atual não trava o envio: os impeditivos ficam só como aviso.'}</p></section>`;
   }
   document.addEventListener('click', (e) => {
     const g = e.target.closest('[data-confgo]'); if (!g) return; let go; try { go = JSON.parse(g.dataset.confgo); } catch (er) { return; }
@@ -1386,7 +1389,8 @@
     else if (fx) { const sn = FX.snapshot(state.facts); num = state.facts.numero; cli = state.facts.cliente; tot = FX.total(); mg = sn.margemPct; mMin = sn.minimo; custo = sn.custo; nItens = sn.itens.length; }
     else { const P = 'PROPOSTA'; num = txt(P, 'C5'); cli = txt(P, 'F5'); tot = val(P, 'B16'); mg = val(P, 'J16'); mMin = val('PARÂMETROS', 'C34'); custo = val(P, 'G16'); nItens = ITEMS.filter((s, i) => used(i)).length; }
     if (!spv && !fx) { const rc = resumoConf(); pend = rc.imped + rc.aviso; } else pend = 0;
-    const pnAb = state.id ? PN.daProposta(state.id).filter(PN.aberta).length : 0;
+    // as automáticas repetem os itens da conferência: na SEQ entram só as manuais, para não contar duas vezes
+    const pnAb = state.id ? PN.daProposta(state.id).filter(PN.aberta).filter((x) => spv || fx || x.origem !== 'auto').length : 0;
     const sit = sv ? (MG.situacao ? MG.situacao(sv) : [STATUS_LB[sv.status || 'rascunho'], 'mute']) : ['Não salva', 'mute'];
     const baixa = typeof mg === 'number' && typeof mMin === 'number' && mg < mMin;
     return `<section class="ctxh${ui.ctxOpen ? ' open' : ''}" aria-label="Resumo da proposta">
@@ -1452,9 +1456,9 @@
             ${rq('F5', 'Cliente (razão social)', 'span2').replace('<input ', '<input list="dl_clientes" ')}${dlClientesHtml()}${rq('F6', 'Obra / local', 'span2')}${rq('F7', 'UF de destino')}${rq('J5', 'Cadastro fiscal', 'span2')}${rq('F8', 'Segmento')}</div></section>
         <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
         <section class="card"><h2>Vendedor e comissões</h2><div class="fields">
-            <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor</label>${chips(vs, 'C8', 'Nenhum vendedor cadastrado: cadastre em Cadastro → Precificação → Vendedores e agentes.')}</div>
+            <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor</label>${chips(vs, 'C8', 'Nenhum vendedor cadastrado: cadastre em Cadastros → Precificação → Vendedores e agentes.')}</div>
             <div class="f spanall"><label>Comissões <span class="sub">taxa da divisão (Precificação)</span></label><div class="seg"><label class="${comV ? 'on' : ''}"><input type="checkbox" data-pcom="J7"${comV ? ' checked' : ''}>Vendedor</label><label class="${comA ? 'on' : ''}"><input type="checkbox" data-pcom="J8"${comA ? ' checked' : ''}>Agente de negócio (AN)</label></div></div>
-            ${comA ? `<div class="f spanall req${falta.has('L8') ? ' miss' : ''}"><label>Agente de negócio</label>${chips(ans, 'L8', 'Nenhum AN cadastrado: cadastre em Cadastro → Precificação → Vendedores e agentes.')}</div>` : ''}</div></section>
+            ${comA ? `<div class="f spanall req${falta.has('L8') ? ' miss' : ''}"><label>Agente de negócio</label>${chips(ans, 'L8', 'Nenhum AN cadastrado: cadastre em Cadastros → Precificação → Vendedores e agentes.')}</div>` : ''}</div></section>
         <section class="card"><h2>Frete</h2><div class="fields">${rq('B13', 'Modalidade', 'span2')}${cif ? rq('D13', 'Distância (km)') + fieldS(P, 'F13', 'Valor fechado (opcional)') : ''}${field(P, 'H13', 'Frete total', { ro: true, fmt: brl })}</div></section>
         <details class="card"${keep('mais')}><summary>Mais opções <span class="sub">desconto global e R$ por km do frete</span></summary>
           <div class="fields">${fieldS(P, 'C9', 'Desconto global (vazio = sem desconto)')}${fieldS(P, 'E13', 'Frete — R$ por km')}</div></details>
@@ -1770,13 +1774,15 @@
     const M = 'MEMORIAL';
     const cols = []; for (let i = 0; i < 10; i++) if (filled(ITEMS[i])) cols.push(numToCol(3 + i));
     const rows = [];
-    for (let r = 3; r <= 38; r++) {
+    let notes = '';
+    // linhas 3–38: formação; 39–46: conferência contra as abas de item; textos longos sem valor viram nota
+    for (let r = 3; r <= 48; r++) {
       const lb = txt(M, 'B' + r); if (!lb) continue;
+      if (val(M, 'M' + r) === null && val(M, 'C' + r) === null && lb.length > 90) { notes += `<p class="sub">${esc(lb)}</p>`; continue; }
       if (val(M, 'M' + r) === null && val(M, 'C' + r) === null) { rows.push(`<tr><td colspan="${cols.length + 2}" style="font-weight:700;color:var(--or-ink)">${esc(lb)}</td></tr>`); continue; }
       const bold = /^TOTAL|Margem|Preço de venda com impostos e COM/i.test(lb);
       rows.push(`<tr class="${bold ? 'tot' : ''}"><td>${esc(lb)}</td>${cols.map((c) => `<td class="n">${show(M, c + r)}</td>`).join('')}<td class="n"><b>${show(M, 'M' + r)}</b></td></tr>`);
     }
-    let notes = ''; for (let r = 39; r <= 48; r++) { const t = txt(M, 'B' + r); if (t) notes += `<p class="sub">${esc(t)}</p>`; }
     return `<div class="stack"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><div><h1>Memorial de formação de preço</h1><div class="sub">No formato que o financeiro pede: custos, impostos, comissão, margem e o demonstrativo — por item e total da proposta.</div></div><div class="docbar"><span class="sub">Documentos para o financeiro</span><button class="btn sm pri" data-doc="memorial">Memorial (PDF)</button><button class="btn sm" data-doc="fcipdf">FCI (PDF)</button><button class="btn sm" data-doc="fcixlsx">FCI (Excel)</button></div></div>
       <section class="card"><div class="tw"><table class="t"><thead><tr><th>Linha</th>${cols.map((c) => `<th>ITEM ${String(colToNum(c) - 2).padStart(2, '0')}</th>`).join('')}<th>Total da proposta</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${notes}</section></div>`;
   }
@@ -1792,7 +1798,7 @@
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
     ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições'], ['campos', 'Campos por família'], ['sinonimos', 'Sinônimos e abreviações']]],
-    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
+    ['sistema', 'Sistema', 'Histórico, responsáveis e e-mails, backup e restauração e planilha (avançado)', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
@@ -1911,7 +1917,7 @@
     const CAMPOS = [['situacao', 'Situação'], ['fab', 'Fabricante'], ['tipo', 'Tipo/config.'], ['origem', 'Origem (NAC/IMP)'], ['reajuste', 'Reajuste de preço (%)'], ['dataCot', 'Data da cotação'], ['fonte', 'Origem do preço']];
     modal(`<h2>Edição em massa · ${ids.length} insumo(s)</h2>
       <div class="fields"><div class="f"><label for="ltCampo">Campo</label><select id="ltCampo">${CAMPOS.map(([k, lb]) => `<option value="${k}">${esc(lb)}</option>`).join('')}</select></div><div class="f span2" id="ltValWrap"></div></div>
-      <div id="ltPrev"></div><p class="sub" style="margin:0">O nome (descrição técnica) não se edita em massa: ele é a chave das fórmulas. Cada alteração fica no histórico e o lote inteiro pode ser desfeito em Sistema → Histórico.</p>
+      <div id="ltPrev"></div><p class="sub" style="margin:0">O nome (descrição técnica) não se edita em massa: ele é a chave das fórmulas. Cada alteração fica no histórico e o lote inteiro pode ser desfeito em Configurações → Histórico.</p>
       <div style="display:flex;gap:8px"><button class="btn pri" id="ltOk" disabled>Aplicar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
       const g = (s) => $(s, o);
       const drawVal = () => { const k = g('#ltCampo').value;
@@ -1928,7 +1934,7 @@
         g('#ltOk').disabled = !ch.length; g('#ltOk').textContent = 'Aplicar em ' + ch.length; };
       g('#ltCampo').onchange = drawVal; drawVal();
       g('#ltOk').onclick = async () => { const b = g('#ltOk'); if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar: alterar ' + ch.length + ' insumo(s)'; return; } b.disabled = true;
-        try { const r = await REG.saveInsumosLote(ch.map((c) => ({ id: c.id, campos: c.campos, de: c.de })), CAMPOS.find((x) => x[0] === g('#ltCampo').value)[1] + ' em ' + ch.length + ' insumo(s)', 'Edição em massa'); selIns.clear(); close(); render(); toast(r.n + ' insumo(s) alterado(s). Para desfazer: Sistema → Histórico.'); }
+        try { const r = await REG.saveInsumosLote(ch.map((c) => ({ id: c.id, campos: c.campos, de: c.de })), CAMPOS.find((x) => x[0] === g('#ltCampo').value)[1] + ' em ' + ch.length + ' insumo(s)', 'Edição em massa'); selIns.clear(); close(); render(); toast(r.n + ' insumo(s) alterado(s). Para desfazer: Configurações → Histórico.'); }
         catch (er) { b.disabled = false; toast(errMsg(er)); } };
     });
   }
@@ -2577,7 +2583,7 @@
   }
   async function acSave(mut, desc) { const a = JSON.parse(JSON.stringify(REG.acessos || {})); mut(a); try { await REG.setAcessos(a, desc); toast('Responsáveis atualizados'); } catch (e) { toast(errMsg(e)); } }
   document.addEventListener('click', (e) => {
-    if (ui.view !== 'cadastro' || ui.cad !== 'acessos') return;
+    if (!['cadastro', 'config'].includes(ui.view) || ui.cad !== 'acessos') return;
     const rm = e.target.closest('[data-acrm]'); if (rm) { const [k, id] = rm.dataset.acrm.split('|'); acSave((a) => { a[k] = (a[k] || []).filter((x) => x !== id); }, 'Responsável removido de ' + areaName(k)); return; }
     const ad = e.target.closest('[data-acadd]'); if (!ad) return; const k = ad.dataset.acadd;
     modal(`<h2>Incluir em ${esc(areaName(k))}</h2><input type="search" id="acQ" placeholder="Nome ou e-mail de alguém da organização" aria-label="Buscar pessoa" autocomplete="off"><div class="list" id="acList"><p class="sub">Digite para buscar.</p></div><div><button class="btn" data-close>Fechar</button></div>`, (o, close) => {
@@ -2644,7 +2650,7 @@
     const podeCad = REG.mode === 'local';
     modal(`<h2>Restaurar backup de ${esc(fmtAt(b.criadoEm))}</h2><p class="sub" style="margin:0">Gerado ${esc(b.rev || '')} · ${b.modo === 'shared' ? 'banco da equipe' : 'navegador'}.</p>
       <div class="tw"><table class="t"><thead><tr><th></th><th>O que</th><th>No arquivo</th><th>Novos</th><th>Diferentes do atual</th><th>Iguais</th></tr></thead><tbody>${linhas.map((x) => `<tr><td><input type="checkbox" data-bkcol="${x.k}"${x.total ? ' checked' : ' disabled'}></td><td>${esc(x.lb)}</td><td class="n">${x.total}</td><td class="n">${x.novos}</td><td class="n">${x.dif}</td><td class="n">${x.iguais}</td></tr>`).join('')}
-        <tr><td><input type="checkbox" data-bkcad${podeCad ? '' : ' disabled'}></td><td>Cadastro (insumos, kits, tabelas)</td><td class="n" colspan="4">${podeCad ? 'substitui o cadastro deste navegador inteiro' : 'no banco da equipe, o cadastro se restaura pelo Cadastro → Importar preços e pelas tabelas; aqui só as coleções acima'}</td></tr></tbody></table></div>
+        <tr><td><input type="checkbox" data-bkcad${podeCad ? '' : ' disabled'}></td><td>Cadastro (insumos, kits, tabelas)</td><td class="n" colspan="4">${podeCad ? 'substitui o cadastro deste navegador inteiro' : 'no banco da equipe, o cadastro se restaura pelo Cadastros → Importar preços e pelas tabelas; aqui só as coleções acima'}</td></tr></tbody></table></div>
       <label class="chk"><input type="checkbox" id="bkSubst"> Substituir também os registros diferentes (a versão atual de cada proposta vai antes para as revisões)</label>
       <div style="display:flex;gap:8px"><button class="btn pri" id="bkOk">Restaurar o que está marcado</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
       $('#bkOk', o).onclick = async () => {
@@ -2669,7 +2675,7 @@
 
   function vHistorico() {
     const q = (ui.histQ || '').trim().toLowerCase(); const T = ui.histT || '';
-    const grupoH = (t) => /^(Proposta|Status|Alerta|Aprovação)/.test(t) ? 'propostas' : /^(Baixa|Custo real|Execução)/.test(t) ? 'margens' : /^Documento/.test(t) ? 'documentos' : /^Pedido/.test(t) ? 'pedidos' : /^Acessos/.test(t) ? 'acessos' : 'cadastro';
+    const grupoH = (t) => /^(Proposta|Status|Alerta|Aprovação|Etapa da proposta|Revisão|Pendência)/.test(t) ? 'propostas' : /^(Baixa|Custo real|Execução)/.test(t) ? 'margens' : /^Documento/.test(t) ? 'documentos' : /^Pedido/.test(t) ? 'pedidos' : /^(Acessos|Backup|Restauração)/.test(t) ? 'acessos' : 'cadastro';
     const list = REG.historico.filter((h) => !T || grupoH(h.tipo || '') === T).filter((h) => !q || [h.tipo, h.desc, h.ref, ...(h.mudancas || []).map((m) => m.campo)].join(' ').toLowerCase().includes(q)).slice(0, 250);
     const items = list.map((h) => {
       const muds = h.mudancas || []; const many = muds.length > 12;
@@ -3128,7 +3134,7 @@
       impactoRascunho((i, n) => { const el = $('#riRes', o); if (el) el.textContent = 'Testando modelos prontos: ' + i + ' de ' + n + '…'; }).then((r) => {
         const el = $('#riRes', o); if (!el) return;
         el.className = 'banner ' + (r.out.length ? 'warn' : 'ok');
-        el.innerHTML = r.out.length ? `<b>${r.out.length} de ${r.n} modelo(s) pronto(s) mudam:</b><ul class="uso">${r.out.slice(0, 20).map((x) => `<li><b>${esc(x.m.nome)}</b> ${x.erro ? '<span class="bad-t">' + esc(x.erro) + '</span>' : `custo ${brl(x.a)} → ${brl(x.b)}${x.mais.length ? ' · entra: ' + esc(x.mais.join(', ')) : ''}${x.menos.length ? ' · sai: ' + esc(x.menos.join(', ')) : ''}`}</li>`).join('')}</ul>Propostas com preços da época não mudam; rascunhos passam a montar com a estrutura nova.` : `Testados ${r.n} modelo(s) pronto(s) das estruturas alteradas: nenhum muda de custo nem de componentes.`;
+        el.innerHTML = r.out.length ? `<b>${r.out.length} de ${r.n} modelo(s) pronto(s) mudam:</b><ul class="uso">${r.out.slice(0, 20).map((x) => `<li><b>${esc(x.m.nome)}</b> ${x.erro ? '<span class="bad-t">' + esc(x.erro) + '</span>' : `custo ${brl(x.a)} → ${brl(x.b)}${x.mais.length ? ' · entra: ' + esc(x.mais.join(', ')) : ''}${x.menos.length ? ' · sai: ' + esc(x.menos.join(', ')) : ''}`}</li>`).join('')}</ul>Atenção: os preços da época congelam só os preços. A composição dos itens não fica congelada: toda proposta que monta pela estrutura (inclusive enviadas e aprovadas, ao serem reabertas) passa a usar a estrutura nova.` : `Testados ${r.n} modelo(s) pronto(s) das estruturas alteradas: nenhum muda de custo nem de componentes.`;
         const pb = $('#riPub', o); if (pb) { pb.disabled = false; pb.onclick = async () => { pb.disabled = true; try { const R = rascunho(); const descs = ((((REG.tabelas || {}).ESTR_RASCUNHO || {}).desc) || []).slice(-5);
           await REG.setCells(MO, R, 'Publicado: ' + (descs.join('; ') || Object.keys(R).length + ' célula(s)'), baseOf(MO)); await REG.setTable('ESTR_RASCUNHO', { cells: {}, desc: [] }, 'Rascunho de estrutura publicado', []); ui.estrRasc = false; close(); toast('Estrutura publicada'); render(); } catch (er) { pb.disabled = false; toast(errMsg(er)); } }; }
       });
@@ -3522,7 +3528,7 @@
     try { await REG.setCells(sh, ch, (sh === PA ? 'Parâmetros' : sh) + ' ' + a, baseOf(sh)); if (ui.tblAdd) ui.tblAdd = null; } catch (err) { toast(errMsg(err)); }
   });
   document.addEventListener('click', (e) => {
-    if (ui.view !== 'cadastro') return;
+    if (ui.view !== 'cadastro' && ui.view !== 'config') return;
     const ad = e.target.closest('[data-rowadd]'); if (ad) { ui.tblAdd = ad.dataset.rowadd; render(); const inp = document.querySelector('tr.newrow input, tr.newrow select'); if (inp) inp.focus(); return; }
     const dl = e.target.closest('[data-rowdel]'); if (dl) { if (!dl.dataset.sure) { dl.dataset.sure = 1; dl.textContent = 'confirmar'; return; } const [id, r] = dl.dataset.rowdel.split('|'); rowDelete(id, +r); return; }
     const fe = e.target.closest('[data-famedit]'); if (fe) { famModal(fe.dataset.famedit); return; }
@@ -3678,7 +3684,8 @@
     o.querySelector('.modal').addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close(); });
     bind && bind(o, close);
   }
-  function loadDoc(doc, name, id, extra) { state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); }
+  function loadDoc(doc, name, id, extra) { state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); ui.assinaturaAberta = assinatura(); setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }
+  const assinatura = () => JSON.stringify([state.doc, state.spv, state.facts]);
   function docTitle() {
     if (isSpv()) return [state.spv.numero, state.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome';
     if (isFacts()) return ['FACTS', state.facts.numero, state.facts.cliente].filter(Boolean).join(' · ');
@@ -3703,7 +3710,7 @@
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
   const PN = window.PricerPendencias({ REG, esc, toast, modal, ui, render, log: logEv, fillNames: (o) => fillNames(o), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); } });
   const FX = window.PricerFacts({ confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
-    setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
+    setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
   // pendências de cadastro (pedidos de preço) e do fiscal (NCM por família, alíquotas a definir)
   function pendExtra() {
@@ -3732,15 +3739,20 @@
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
   const PNL = window.PricerPainel({ REG, esc, brl, pct, ui, render, MG: () => MG, PN: () => PN });
+  // os botões de tipo da tela Início trocam a proposta aberta: pergunta antes de perder alterações não salvas
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-spvnew],[data-seqnew],[data-seqfam],[data-factsnew]'); if (!b || !dirty || assinatura() === ui.assinaturaAberta) return;
+    if (!window.confirm('A proposta aberta tem alterações não salvas. Começar uma nova mesmo assim? (as alterações se perdem)')) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
   const SPV = window.PricerSPV({ clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
-    getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
+    getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
 
   $('#bMode').onclick = () => { ui.simple = !ui.simple; ui.propFull = false; ui.itemFull = false; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
   $('#bNew').onclick = () => modal(`<h2>Nova proposta</h2><p class="sub">A proposta atual continua salva se você já clicou em Salvar. Alterações não salvas se perdem.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">SEQ em branco</button><button class="btn pri" id="mSpv">SPV (serviço, peças, contrato)</button><button class="btn" id="mExample">Exemplo SEQ (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
-    (o, close) => { $('#mBlank', o).onclick = () => { close(); newSeq(); }; $('#mSpv', o).onclick = () => { close(); setView('inicio'); const t = document.querySelector('.tchips'); if (t) t.scrollIntoView({ block: 'center' }); toast('Escolha o tipo de SPV'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
+    (o, close) => { $('#mBlank', o).onclick = () => { close(); newSeq(); }; $('#mSpv', o).onclick = () => { close(); setView('inicio'); const t = document.querySelector('[data-spvnew]'); if (t) t.closest('.card, section, div').scrollIntoView({ block: 'center' }); toast('Escolha o tipo de SPV'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
 
   // salvar mostra o estado: girando enquanto grava, e volta ao normal no fim (sucesso ou erro)
   $('#bSave').onclick = async (ev) => { const sb = $('#bSave'); if (sb.classList.contains('busy')) return; sb.classList.add('busy'); sb.dataset.ico = 'loader-circle'; decorar(sb.parentElement);
@@ -3824,7 +3836,7 @@
   $('#bOpen').onclick = () => {
     const list = REG.listPropostas();
     const shared = REG.mode === 'shared';
-    const rows = list.map((p) => `<div class="row"><div style="min-width:0"><span class="divb ${p.div === 'SPV' ? 'spv' : 'seq'}">${p.div || 'SEQ'}</span> <b>${esc(p.name)}</b><br><small>${fmtAt(p.at)} · ${typeof p.total === 'number' ? brl(p.total) : '—'}${shared && !p.local ? ' · ' + who(p.by) : ''}${p.local ? ' · <span class="pill mute">neste navegador</span>' : ''}</small></div><div style="display:flex;gap:6px"><button class="btn sm pri" data-open="${esc(p.id)}">Abrir</button>${REG.podeExcluir(p) ? `<button class="btn sm" data-del="${esc(p.id)}" title="Vai para a lixeira (Cadastro → Sistema → Backup); dá para restaurar">Excluir</button>` : ''}</div></div>`).join('')
+    const rows = list.map((p) => `<div class="row"><div style="min-width:0"><span class="divb ${p.div === 'SPV' ? 'spv' : 'seq'}">${p.div || 'SEQ'}</span> <b>${esc(p.name)}</b><br><small>${fmtAt(p.at)} · ${typeof p.total === 'number' ? brl(p.total) : '—'}${shared && !p.local ? ' · ' + who(p.by) : ''}${p.local ? ' · <span class="pill mute">neste navegador</span>' : ''}</small></div><div style="display:flex;gap:6px"><button class="btn sm pri" data-open="${esc(p.id)}">Abrir</button>${REG.podeExcluir(p) ? `<button class="btn sm" data-del="${esc(p.id)}" title="Vai para a lixeira (Configurações → Backup e restauração); dá para restaurar">Excluir</button>` : ''}</div></div>`).join('')
       || `<p class="sub">Nenhuma proposta salva ${shared ? 'pela equipe' : 'neste navegador'} ainda.</p>`;
     modal(`<h2>Propostas salvas</h2>
       ${shared ? '<p class="sub">Propostas da equipe: quem tem acesso ao app vê e abre todas. Salvar de novo atualiza a mesma proposta.</p>' : '<p class="sub">Este arquivo guarda as propostas só neste navegador.</p>'}
@@ -3843,7 +3855,7 @@
       o.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => {
         if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar'; b.classList.add('pri'); return; }
         const p = byId[b.dataset.del];
-        try { await REG.moverLixeira(p, ''); logEv({ tipo: 'Proposta excluída (lixeira)', ref: p.id, desc: p.name || '', mudancas: [] }); b.closest('.row').remove(); toast('Proposta na lixeira. Dá para restaurar em Cadastro → Sistema → Backup.'); if (state.id === p.id) { state.id = null; persist(); } } catch (err) { toast(errMsg(err)); }
+        try { await REG.moverLixeira(p, ''); logEv({ tipo: 'Proposta excluída (lixeira)', ref: p.id, desc: p.name || '', mudancas: [] }); b.closest('.row').remove(); toast('Proposta na lixeira. Dá para restaurar em Configurações → Backup e restauração.'); if (state.id === p.id) { state.id = null; persist(); } } catch (err) { toast(errMsg(err)); }
       });
       const payload = () => JSON.stringify(Object.assign({ app: 'ls-pricer', rev: MODEL.source, name: docTitle(), doc: state.doc }, isSpv() ? { div: 'SPV', spv: state.spv } : isFacts() ? { sol: 'FACTS', facts: state.facts } : {}), null, 1);
       $('#mCopy', o).onclick = () => { const t = payload(); $('#mTxt', o).value = t; navigator.clipboard.writeText(t).then(() => toast('Copiado'), () => { $('#mTxt', o).select(); toast('Selecionado — use Ctrl+C'); }); };

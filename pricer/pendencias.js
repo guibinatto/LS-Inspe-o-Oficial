@@ -38,7 +38,7 @@
       if (shared()) { if (!REG.canSaveShared) throw new Error('Sem permissão para gravar pendências (acesso só de leitura).'); await REG.db.doc('pendencias/' + id).set(body); }
       else {
         let all = {}; try { all = JSON.parse(localStorage.getItem(LSK) || '{}'); } catch (e) { all = {}; }
-        all[id] = body; try { localStorage.setItem(LSK, JSON.stringify(all)); } catch (e) { throw new Error('O navegador não deixou gravar a pendência (sem espaço). Baixe um backup em Cadastro → Sistema.'); }
+        all[id] = body; try { localStorage.setItem(LSK, JSON.stringify(all)); } catch (e) { throw new Error('O navegador não deixou gravar a pendência (sem espaço). Baixe um backup em Configurações → Backup e restauração.'); }
       }
       const i = lista.findIndex((x) => x.id === id); const rec2 = Object.assign({ id }, body); if (i >= 0) lista[i] = rec2; else lista.unshift(rec2);
     }
