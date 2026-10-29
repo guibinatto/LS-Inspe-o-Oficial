@@ -348,6 +348,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         <div class="hero"><div><h1>Formação de preço</h1><div class="sub">Busque uma proposta antiga ou comece uma nova.</div></div>
           <div class="hsearch"><input id="homeQ" type="search" placeholder="Buscar por cliente, número, peça, fornecedor…" value="${esc(ui.homeQ || '')}" aria-label="Buscar propostas e documentos" autocomplete="off"></div></div>
         ${(() => { const c = ctx.current && ctx.current(); return c ? `<div class="contcard"><div><span class="divb ${c.div.toLowerCase()}">${c.div}</span> <b>Continuar: ${esc(c.label)}</b>${typeof c.total === 'number' && c.total ? ` <span class="sub">· ${brl(c.total)}</span>` : ''}</div><button class="btn sm pri" data-view="proposta">Continuar editando →</button></div>` : ''; })()}
+        ${ctx.pendencias ? ctx.pendencias() : ''}
         ${ctx.home ? ctx.home() : ''}
         <div class="starts">
           <div class="start seq"><span class="tag">SEQ</span><b>Soluções e equipamentos</b><small>Escolha o que vai formar</small><div class="tchips">

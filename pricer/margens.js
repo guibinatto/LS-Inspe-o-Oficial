@@ -862,7 +862,47 @@
         }); }
     });
 
-    return { conferidaOk, liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
+    // ---------- minhas pendências: o que espera por mim, por papel ----------
+    const dias = (iso) => { const d = Math.floor((Date.now() - Date.parse(iso)) / 864e5); return isFinite(d) ? (d <= 0 ? 'hoje' : d === 1 ? 'há 1 dia' : 'há ' + d + ' dias') : ''; };
+    const aprovadorDe = (papel) => { if (REG.mode === 'local' || REG.isOwner) return true; const l = (REG.acessos || {})['ap_' + papel] || []; return l.length ? l.includes(REG.me) : !!REG.canEditCadastro; };
+    function secoesPendencias() {
+      ensure(); ensureA(); const S = []; const props = REG.listPropostas() || [];
+      const nomeP = (id) => { const q = props.find((x) => x.id === id); return q ? (q.numero || q.name || '') + (q.cliente ? ' · ' + q.cliente : '') : ''; };
+      for (const [k, lb] of PAPEIS) {
+        if (!aprovadorDe(k)) continue;
+        const L = aprov.filter((a) => estadoA(a) === 'pendente' && !(a.decisoes || {})[k]).map((a) => ({ titulo: (a.numero || a.nome || '') + (a.cliente ? ' · ' + a.cliente : ''), sub: a.alvo ? `target ${brl(a.alvo.vendaSem * ipiRatio(a.snap))} · desconto ${pct(1 - a.alvo.k, 1)} · margem ${pct(escala(a.snap, kAlvo(a)).margemPct, 1)}` : 'margem ' + pct(a.snap.margemPct, 1), desde: a.at, btn: ['Analisar', `data-apopen="${esc(a.id)}"`] }));
+        S.push({ k: 'ap_' + k, titulo: 'Aprovar descontos', papel: lb, itens: L });
+      }
+      if (aprovadorDe('financeiro')) S.push({ k: 'fin_rel', titulo: 'Relatórios previsto × realizado para conferir', papel: 'Financeiro',
+        itens: fech.filter((F) => F.execucao === 'fabricação concluída' && !F.finConferido).map((F) => { const R = realizado(F); return { titulo: (F.numero || F.nome || '') + (F.cliente ? ' · ' + F.cliente : ''), sub: `previsto ${brl(R.custo)} · realizado ${brl(R.custoReal)} (${R.custoReal - R.custo >= 0 ? '+' : '−'}${brl(Math.abs(R.custoReal - R.custo)).replace('R$ ', '')})`, desde: F.concluidaEm || F.fechadoEm, btn: ['Ver relatório', `data-mgopen="${esc(F.id)}"`], btn2: ['Conferido', `data-finok="${esc(F.id)}"`] }; }) });
+      if (canReal()) S.push({ k: 'real', titulo: 'Custo real a lançar', papel: 'Engenharia e Custos',
+        itens: fech.filter((F) => liberaReal(F.id)).map((F) => ({ F, R: realizado(F) })).filter((x) => x.R.cobertura < 1 - 1e-9).map(({ F, R }) => ({ titulo: (F.numero || F.nome || '') + (F.cliente ? ' · ' + F.cliente : ''), sub: `${R.apontadas} de ${R.linhas} linhas conferidas · ${F.execucao || 'em andamento'}`, desde: F.fechadoEm, btn: ['Lançar custo real', `data-mgreal="${esc(F.id)}"`] })) });
+      for (const x of (ctx.pendExtra ? ctx.pendExtra() : [])) S.push(x);
+      // minhas propostas: o próximo passo que é meu (não o que espera por outra pessoa)
+      const minhas = props.filter((q) => (REG.mode === 'local' || !q.by || q.by === REG.me) && q.status !== 'perdida').map((q) => ({ q, nx: proximo(q) })).filter((x) => x.nx && !['aprovacao', 'encerrar', 'real'].includes(x.nx.act));
+      S.push({ k: 'minhas', titulo: 'Minhas propostas', papel: 'Comercial', itens: minhas.map(({ q, nx }) => ({ titulo: (q.numero || q.name || '') + (q.cliente ? ' · ' + q.cliente : ''), sub: situacao(q)[0], desde: q.at, btn: [nx.lb, `data-hnext="${esc(q.id)}|${nx.act}"`] })) });
+      return S;
+    }
+    const nPendencias = () => secoesPendencias().reduce((t, x) => t + x.itens.length, 0);
+    function vPendencias() {
+      const S = secoesPendencias(); const tot = S.reduce((t, x) => t + x.itens.length, 0);
+      const sec = (x) => `<section class="card"><h2>${esc(x.titulo)} <span class="pill ${x.itens.length ? 'warn' : 'ok'}">${x.itens.length || 'nada pendente'}</span> <span class="sub">${esc(x.papel)}</span></h2>
+        ${x.itens.length ? `<div class="tw"><table class="t"><tbody>${x.itens.sort((a, b) => String(a.desde).localeCompare(String(b.desde))).map((i) => `<tr><td><b>${esc(i.titulo)}</b><br><small class="sub">${esc(i.sub || '')}</small></td><td class="sub" style="white-space:nowrap">${esc(dias(i.desde))}</td><td style="text-align:right;white-space:nowrap"><button class="btn sm pri" ${i.btn[1]}>${esc(i.btn[0])}</button>${i.btn2 ? ` <button class="btn sm" ${i.btn2[1]}>${esc(i.btn2[0])}</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
+      const comItens = S.filter((x) => x.itens.length), vazias = S.filter((x) => !x.itens.length);
+      const quem = REG.mode === 'local' ? 'Neste navegador você vê as pendências de todas as áreas.' : REG.areasConfiguradas() || Object.keys(REG.acessos || {}).some((k) => /^ap_/.test(k)) ? 'Mostrando as áreas e aprovações em que você está (Cadastro → Sistema → Responsáveis).' : 'Ninguém foi definido por área ainda: todo Editor vê todas as pendências. Defina em Cadastro → Sistema → Responsáveis.';
+      return `<div class="stack"><div class="flowhead"><div><h1>Minhas pendências</h1><div class="sub">${tot ? tot + ' coisa(s) esperando por você, as mais antigas primeiro.' : 'Nada esperando por você agora.'} ${esc(quem)}</div></div></div>
+        ${comItens.map(sec).join('')}${vazias.length ? `<section class="card"><h2>Em dia</h2><div style="display:flex;gap:6px;flex-wrap:wrap">${vazias.map((x) => `<span class="pill ok">✓ ${esc(x.titulo)} · ${esc(x.papel)}</span>`).join('')}</div></section>` : ''}</div>`;
+    }
+    // resumo para a tela inicial
+    function resumoPendencias() {
+      const S = secoesPendencias().filter((x) => x.itens.length); if (!S.length) return '';
+      return `<div class="pendbar"><b>Esperando por você:</b> ${S.map((x) => `<button class="pill warn apselo" data-view="pendencias">${x.itens.length} · ${esc(x.titulo.toLowerCase())}${/^ap_/.test(x.k) ? ' (' + esc(x.papel) + ')' : ''}</button>`).join(' ')}</div>`;
+    }
+    document.addEventListener('click', async (ev) => {
+      const fo = ev.target.closest('[data-finok]'); if (!fo) return; const F = fech.find((f) => f.id === fo.dataset.finok); if (!F) return;
+      try { await gravar(F.id, Object.assign({}, F, { finConferido: { at: new Date().toISOString(), by: REG.me || null } })); ctx.log && ctx.log({ tipo: 'Custo real', ref: F.id, desc: (F.numero || F.nome || '') + ' — relatório previsto × realizado conferido pelo Financeiro', mudancas: [] }); if (!shared()) ctx.render(); toast('Marcado como conferido'); } catch (e) { toast((e && e.message) || 'Não consegui salvar'); }
+    });
+    return { vPendencias, resumoPendencias, nPendencias, conferidaOk, liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();

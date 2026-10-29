@@ -373,6 +373,7 @@ input.rin.pend{color:var(--ink3);font-style:italic}.rok{all:unset;cursor:pointer
 .apselo{cursor:pointer;border:0;font:inherit;font-size:12px;font-weight:700}.etapas.trilha .etp{cursor:default}.etp.bad .etc{background:var(--bad);border-color:var(--bad);color:#fff}.etp.bad{color:var(--bad)}
 table.cent td{vertical-align:top}table.cent select{max-width:190px}table.cent .chk{display:inline-flex;gap:3px;margin-right:6px;white-space:nowrap}
 .warn-t{color:var(--warn)}tr.cf-erro td{background:var(--bad-bg)}tr.cf-aviso td{background:var(--warn-bg)}
+.pendbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--card);font-size:13.5px}
 ul.uso{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
 table.porte td.ptxt{white-space:normal;min-width:110px;font-size:12.5px;line-height:1.3;vertical-align:top}
 .pedit{all:unset;cursor:pointer;display:block;border:1px dashed var(--line2);border-radius:6px;padding:4px 6px;word-break:break-word}.pedit:hover,.pedit:focus-visible{border-color:var(--or);background:var(--or-soft)}.cnpjrow input{flex:1 1 auto;min-width:0}
@@ -413,6 +414,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
     <div class="doc-name" id="docName"></div>
     <nav class="nav" id="nav" aria-label="Seções">
       <button data-view="inicio">Início</button>
+      <button data-view="pendencias">Pendências</button>
       <button data-view="proposta">Proposta</button>
       <button data-view="item" data-seqonly>Itens</button>
       <button data-view="memorial" data-seqonly>Memorial</button>

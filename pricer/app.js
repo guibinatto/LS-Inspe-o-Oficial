@@ -259,9 +259,10 @@
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
     const full = !outro && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
     const views = spv ? { proposta: SPV.vSpv } : fx ? { proposta: FX.vFacts } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
-    const html = Object.assign({ inicio: SPV.vHome, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
+    const html = Object.assign({ inicio: SPV.vHome, pendencias: MG.vPendencias, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
     MG.ensure(); SPV.ensureDocs(); PD.ensure();
     { const nb = document.querySelector('#nav [data-view="cadastro"]'); const n = REG.areaOk('custos') ? PD.abertos().length : 0; if (nb) nb.innerHTML = 'Cadastro' + (n ? ` <span class="nbadge" title="${n} pedido(s) de cadastro em aberto">${n}</span>` : ''); }
+    { const pb = document.querySelector('#nav [data-view="pendencias"]'); const n = MG.nPendencias(); if (pb) pb.innerHTML = 'Pendências' + (n ? ` <span class="nbadge" title="${n} pendência(s) esperando você">${n}</span>` : ''); }
     { const mb = document.querySelector('#nav [data-view="margens"]'); const n = MG.pendentesAprov(); if (mb) mb.innerHTML = 'Margens' + (n ? ` <span class="nbadge" title="${n} aprovação(ões) de desconto esperando você">${n}</span>` : ''); }
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
@@ -2441,7 +2442,21 @@
   const FX = window.PricerFacts({ confCard: () => confCard(), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
-  const MG = window.PricerMargens({ abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
+  // pendências de cadastro (pedidos de preço) e do fiscal (NCM por família, alíquotas a definir)
+  function pendExtra() {
+    const S = [];
+    if (REG.areaOk('custos')) S.push({ k: 'pedidos', titulo: 'Pedidos de cadastro', papel: 'Custos', itens: PD.abertos().map((x) => ({ titulo: x.produto || x.desc || 'Pedido de cadastro', sub: [x.fam, x.propNome].filter(Boolean).join(' · '), desde: x.at, btn: ['Atender', 'data-pendgo="cadastro|pedidos"'] })) });
+    if (REG.areaOk('fiscal')) {
+      const map = Object.assign({}, REG.FISCAL_FAM_PADRAO, ((REG.tabelas || {}).FISCAL_FAM || {}).map || {});
+      const semNcm = listFor('ITEM 01', 'C21').filter((f) => f && f !== 'FABRICANTES' && !(map[f] || {}).ncm).map((f) => ({ titulo: 'Família sem NCM: ' + (FAM_SEQ_LB[f] || f), sub: 'o item fica sem NCM e sem IPI', desde: '', btn: ['Cadastrar NCM', 'data-pendgo="cadastro|fiscal"'] }));
+      const falta = TB.cenarios().filter((c) => c.status !== 'confirmado').map((c) => ({ c, f: (c.tributos || []).filter((t) => !t.fonte && t.modo !== 'nao' && (t.aliq === null || t.aliq === undefined)).map((t) => t.sigla) })).filter((x) => x.f.length)
+        .map(({ c, f }) => ({ titulo: 'Cenário tributário: ' + c.nome, sub: 'alíquota a definir: ' + f.join(', '), desde: '', btn: ['Completar', `data-pendgo="cadastro|cenarios" data-cenpend="${esc(c.id)}"`] }));
+      S.push({ k: 'fiscal', titulo: 'Cadastro fiscal', papel: 'Fiscal', itens: semNcm.concat(falta) });
+    }
+    return S;
+  }
+  document.addEventListener('click', (e) => { const g = e.target.closest('[data-pendgo]'); if (!g) return; const [v, c] = g.dataset.pendgo.split('|'); if (g.dataset.cenpend) ui.cenSel = g.dataset.cenpend; ui.view = v; if (c) ui.cad = c; store.set(SK.view, ui); render(); window.scrollTo(0, 0); });
+  const MG = window.PricerMargens({ pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
     // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas
@@ -2451,7 +2466,7 @@
     ui.step = 1; setView('proposta'); toast(fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
-  const SPV = window.PricerSPV({ confCard: () => confCard(), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ pendencias: () => MG.resumoPendencias(), confCard: () => confCard(), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
