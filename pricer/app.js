@@ -4366,6 +4366,15 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">SEQ em branco</button><button class="btn pri" id="mSpv">SPV (serviço, peças, contrato)</button><button class="btn" id="mExample">Exemplo SEQ (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
     (o, close) => { $('#mBlank', o).onclick = () => { close(); newSeq(); }; $('#mSpv', o).onclick = () => { close(); setView('inicio'); const t = document.querySelector('[data-spvnew]'); if (t) t.closest('.card, section, div').scrollIntoView({ block: 'center' }); toast('Escolha o tipo de SPV'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
 
+  // cancelar: na proposta nova, desiste da criação e volta ao início; na salva, descarta as alterações e reabre a última versão salva
+  $('#bCancel').onclick = () => {
+    if (!dirty || state.verRev) return;
+    const salva = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    if (!salva) { if (!window.confirm('Cancelar a criação desta proposta? O que foi preenchido e não foi salvo será descartado.')) return;
+      loadDoc({}, ''); dirty = false; persist(); setView('inicio'); toast('Proposta nova descartada'); return; }
+    if (!window.confirm('Descartar as alterações não salvas e voltar à última versão salva?')) return;
+    openProposta(salva, false); dirty = false; persist(); render(); toast('Alterações descartadas: voltou à versão salva');
+  };
   // salvar mostra o estado: girando enquanto grava, e volta ao normal no fim (sucesso ou erro)
   $('#bSave').onclick = async (ev) => { const sb = $('#bSave'); if (sb.classList.contains('busy')) return; sb.classList.add('busy'); sb.dataset.ico = 'loader-circle'; decorar(sb.parentElement);
     try { return await salvar0(ev); } finally { sb.classList.remove('busy'); sb.dataset.ico = 'save'; decorar(sb.parentElement); } };
@@ -4429,6 +4438,7 @@
     else if (dirty) { cls = 'warn'; t = state.id ? '● Alterações não salvas' : '● Proposta ainda não salva'; }
     else if (state.id) t = '✓ Salvo' + (ui.salvoEm ? ' às ' + hm(ui.salvoEm) : '');
     el.className = 'savest ' + cls; el.textContent = t; el.hidden = !t || ['inicio', 'cadastro', 'pendencias', 'guia'].includes(ui.view) && !armazFalhou;
+    { const bc = $('#bCancel'); if (bc) bc.hidden = !(dirty && !state.verRev && viewDaProposta(ui.view)); }
     el.title = cls === 'warn' ? 'Clique em Salvar para gravar. O rascunho fica guardado neste navegador.' : '';
   }
   // rascunho: o estado em edição já fica no navegador; marca se há alteração pendente para recuperar depois
