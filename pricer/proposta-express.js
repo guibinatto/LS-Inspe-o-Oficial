@@ -10,17 +10,17 @@
   const P = window.PricerProposta; const I = P._i; const FB = () => window.PricerFabricante || null;
   const ESC = [47, 47, 47], LAR = [228, 101, 14], LAR0 = [199, 56, 21], BANDA = [236, 236, 236], LINHA = [214, 214, 214], CINZA = [110, 110, 110], CLARO = [247, 247, 247];
   const X = {
-    pt: { doc_tc: 'Proposta técnica e comercial', doc_com: 'Proposta comercial', doc_tec: 'Proposta técnica', resumo: 'Resumo da proposta', dadosProp: 'Dados da proposta', fornec: 'Resumo do fornecimento', valorTotal: 'Valor total', sobre: 'Sobre a LS Fire', ident: 'Identificação do item', desemp: 'Folha de dados de desempenho', constr: 'Folha de dados construtiva',
+    pt: { componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descrição', unitSem: 'Unitário sem impostos', totSem: 'Total sem impostos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totais', notaImp: 'ICMS, PIS e COFINS estão incluídos no preço (por dentro); o IPI é somado ao preço com impostos. Alíquotas e NCM conforme a formação desta proposta.', doc_tc: 'Proposta técnica e comercial', doc_com: 'Proposta comercial', doc_tec: 'Proposta técnica', resumo: 'Resumo da proposta', dadosProp: 'Dados da proposta', fornec: 'Resumo do fornecimento', valorTotal: 'Valor total', sobre: 'Sobre a LS Fire', ident: 'Identificação do item', desemp: 'Folha de dados de desempenho', constr: 'Folha de dados construtiva',
       adic: 'Dados adicionais de desempenho', curva: 'Curva de desempenho', curvas: 'Curvas em várias rotações', arranjo: 'Arranjo geral', desenho: 'Desenho', escopo: 'Escopo de fornecimento', lsfire: 'Itens da formação LS Fire', especs: 'Especificações',
       hidr: 'Dados hidráulicos', fdB: 'Bomba (folha de dados)', fdM: 'Acionador (folha de dados)', planilha: 'Planilha de preços', cond: 'Condições comerciais', notas: 'Notas, desvios e exclusões', termos: 'Termos e condições', contatos: 'Contatos', comiss: 'Comissionamento e start-up', prazos: 'Prazos', docs: 'Escopo de documentos',
       qtd: 'Qtd', descr: 'Descrição', item: 'Item', codigo: 'Código', un: 'Un.', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unitário c/ impostos', tot: 'Total c/ impostos', ponto: 'Ponto de trabalho', equip: 'Equipamento', fonte: 'Dados do fabricante ({f}), conferidos pela LS Fire.', semFab: 'Dados da formação LS Fire.',
       proposta: 'Proposta', rev: 'Revisão', data: 'Data', validade: 'Validade', vendedor: 'Contato comercial', norma: 'Norma', pagamento: 'Pagamento', frete: 'Frete', prazo: 'Prazo', obs: 'Observações', quantidade: 'Quantidade', tag: 'Tag', modelo: 'Modelo', fabr: 'Fabricante' },
-    en: { doc_tc: 'Technical and commercial proposal', doc_com: 'Commercial proposal', doc_tec: 'Technical proposal', resumo: 'Proposal summary', dadosProp: 'Proposal data', fornec: 'Scope summary', valorTotal: 'Total amount', sobre: 'About LS Fire', ident: 'Item identification', desemp: 'Performance datasheet', constr: 'Construction datasheet',
+    en: { componente: 'Component', marca: 'Brand', modeloDesc: 'Model / description', unitSem: 'Unit price excl. taxes', totSem: 'Total excl. taxes', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totals', notaImp: 'ICMS, PIS and COFINS are included in the price; IPI is added on top. Tax rates and NCM as per this proposal.', doc_tc: 'Technical and commercial proposal', doc_com: 'Commercial proposal', doc_tec: 'Technical proposal', resumo: 'Proposal summary', dadosProp: 'Proposal data', fornec: 'Scope summary', valorTotal: 'Total amount', sobre: 'About LS Fire', ident: 'Item identification', desemp: 'Performance datasheet', constr: 'Construction datasheet',
       adic: 'Additional performance data', curva: 'Performance curve', curvas: 'Multi-speed curves', arranjo: 'General arrangement', desenho: 'Drawing', escopo: 'Scope of supply', lsfire: 'LS Fire package items', especs: 'Specifications',
       hidr: 'Hydraulic data', fdB: 'Pump (datasheet)', fdM: 'Driver (datasheet)', planilha: 'Price schedule', cond: 'Commercial conditions', notas: 'Notes, deviations and exclusions', termos: 'Terms and conditions', contatos: 'Contacts', comiss: 'Commissioning and start-up', prazos: 'Lead times', docs: 'Documentation scope',
       qtd: 'Qty', descr: 'Description', item: 'Item', codigo: 'Code', un: 'Unit', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unit price incl. taxes', tot: 'Total incl. taxes', ponto: 'Duty point', equip: 'Equipment', fonte: 'Manufacturer data ({f}), checked by LS Fire.', semFab: 'LS Fire package data.',
       proposta: 'Proposal', rev: 'Revision', data: 'Date', validade: 'Validity', vendedor: 'Sales contact', norma: 'Standard', pagamento: 'Payment', frete: 'Freight', prazo: 'Lead time', obs: 'Remarks', quantidade: 'Quantity', tag: 'Tag', modelo: 'Model', fabr: 'Manufacturer' },
-    es: { doc_tc: 'Propuesta técnica y comercial', doc_com: 'Propuesta comercial', doc_tec: 'Propuesta técnica', resumo: 'Resumen de la propuesta', dadosProp: 'Datos de la propuesta', fornec: 'Resumen del suministro', valorTotal: 'Valor total', sobre: 'Sobre LS Fire', ident: 'Identificación del ítem', desemp: 'Hoja de datos de desempeño', constr: 'Hoja de datos constructiva',
+    es: { componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descripción', unitSem: 'Unitario sin impuestos', totSem: 'Total sin impuestos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totales', notaImp: 'ICMS, PIS y COFINS están incluidos en el precio; el IPI se suma al precio con impuestos. Alícuotas y NCM según esta propuesta.', doc_tc: 'Propuesta técnica y comercial', doc_com: 'Propuesta comercial', doc_tec: 'Propuesta técnica', resumo: 'Resumen de la propuesta', dadosProp: 'Datos de la propuesta', fornec: 'Resumen del suministro', valorTotal: 'Valor total', sobre: 'Sobre LS Fire', ident: 'Identificación del ítem', desemp: 'Hoja de datos de desempeño', constr: 'Hoja de datos constructiva',
       adic: 'Datos adicionales de desempeño', curva: 'Curva de desempeño', curvas: 'Curvas a varias velocidades', arranjo: 'Disposición general', desenho: 'Plano', escopo: 'Alcance del suministro', lsfire: 'Ítems del conjunto LS Fire', especs: 'Especificaciones',
       hidr: 'Datos hidráulicos', fdB: 'Bomba (hoja de datos)', fdM: 'Accionador (hoja de datos)', planilha: 'Planilla de precios', cond: 'Condiciones comerciales', notas: 'Notas, desvíos y exclusiones', termos: 'Términos y condiciones', contatos: 'Contactos', comiss: 'Puesta en marcha', prazos: 'Plazos', docs: 'Alcance de documentos',
       qtd: 'Cant.', descr: 'Descripción', item: 'Ítem', codigo: 'Código', un: 'Unid.', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unitario c/ impuestos', tot: 'Total c/ impuestos', ponto: 'Punto de trabajo', equip: 'Equipo', fonte: 'Datos del fabricante ({f}), verificados por LS Fire.', semFab: 'Datos del conjunto LS Fire.',
@@ -40,6 +40,7 @@
     const nf = (d) => new Intl.NumberFormat(I.LOC[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
     const usd = O.moeda && O.moeda.cod === 'USD' && Number(O.moeda.taxa) > 0;
     const din = (v) => (usd ? 'US$ ' : 'R$ ') + nf(2).format(typeof v === 'number' && isFinite(v) ? (usd ? v / Number(O.moeda.taxa) : v) : 0);
+    const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
     const pct = (v) => (typeof v === 'number' && isFinite(v) ? nf(2).format(v * 100) + '%' : '—');
     const qtdTxt = (v) => (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : nf(2).format(v)) : String(v || ''));
     const numL = (s) => (lang !== 'en' || typeof s !== 'string' ? s : s.replace(/\b\d{1,3}(?:\.\d{3})+(?:,\d+)?\b|\b\d+,\d+\b/g, (m) => m.replace(/\./g, '\u0000').replace(',', '.').replace(/\u0000/g, ',')));
@@ -88,11 +89,12 @@
     function faixa(s, xx, w) { doc.setFillColor(...BANDA); doc.rect(xx, y, w, 5.4, 'F'); doc.setFillColor(...LAR); doc.rect(xx, y, 1.2, 5.4, 'F'); F('bold', 7.6, ESC); T(s, xx + 2.8, y + 3.75); y += 6.4; }
     function subtitulo(s) { precisa(12); F('bold', 10.4, ESC); T(s, X0, y + 4.2); doc.setFillColor(...LAR); doc.rect(X0, y + 5.6, 14, 0.6, 'F'); y += 8.6; }
     // pares rótulo : valor numa coluna
-    function altPares(L, w) { let h = 0; for (const [k, v] of L) { F('normal', 6.9); const a = quebra(k, w * 0.5 - 2).length; F('bold', 7); const b = quebra(String(v), w * 0.5 - 2).length; h += Math.max(a, b) * 3.05 + 1.25; } return h; }
+    const RK = 0.4; // parte da coluna para o rótulo
+    function altPares(L, w) { let h = 0; for (const [k, v] of L) { F('normal', 6.9); const a = quebra(k, w * RK - 2).length; F('bold', 7); const b = quebra(String(v), w * (1 - RK) - 2).length; h += Math.max(a, b) * 3.05 + 1.25; } return h; }
     function pares(L, xx, w) {
       for (const [k, v] of L) {
-        F('normal', 6.9); const a = quebra(k, w * 0.5 - 2); F('bold', 7); const b = quebra(String(v), w * 0.5 - 2); const h = Math.max(a.length, b.length) * 3.05 + 1.25;
-        F('normal', 6.9, CINZA); a.forEach((q, i) => T(q, xx + 1.4, y + 2.7 + i * 3.05)); F('bold', 7, [20, 20, 20]); b.forEach((q, i) => T(q, xx + w * 0.5, y + 2.7 + i * 3.05));
+        F('normal', 6.9); const a = quebra(k, w * RK - 2); F('bold', 7); const b = quebra(String(v), w * (1 - RK) - 2); const h = Math.max(a.length, b.length) * 3.05 + 1.25;
+        F('normal', 6.9, CINZA); a.forEach((q, i) => T(q, xx + 1.4, y + 2.7 + i * 3.05)); F('bold', 7, [20, 20, 20]); b.forEach((q, i) => T(q, xx + w * RK, y + 2.7 + i * 3.05));
         doc.setDrawColor(...LINHA); doc.setLineWidth(0.15); doc.line(xx, y + h, xx + w, y + h); y += h;
       }
     }
@@ -116,15 +118,19 @@
     // tabela simples com cabeçalho escuro
     function tabela(cab, linhas, larg, o = {}) {
       const xs = [X0]; for (const w of larg) xs.push(xs[xs.length - 1] + w);
-      const hdr = () => { F('bold', 6.6); const hl = cab.map((t, i) => quebra(t, larg[i] - 2)); const hh = Math.max(...hl.map((q) => q.length)) * 2.8 + 2.4; precisa(hh + 5); doc.setFillColor(...ESC); doc.rect(X0, y, xs[xs.length - 1] - X0, hh, 'F'); F('bold', 6.6, [255, 255, 255]); hl.forEach((q, i) => q.forEach((t, k) => T(t, i === 0 || o.esq?.includes(i) ? xs[i] + 1.2 : xs[i + 1] - 1.2, y + 3 + k * 2.8, { align: i === 0 || o.esq?.includes(i) ? 'left' : 'right' }))); y += hh; };
+      const al = (i) => (o.centro?.includes(i) ? 'center' : i === 0 || o.esq?.includes(i) ? 'left' : 'right');
+      const ax = (i) => (al(i) === 'center' ? (xs[i] + xs[i + 1]) / 2 : al(i) === 'left' ? xs[i] + 1.2 : xs[i + 1] - 1.2);
+      const fz = o.fonte || 6.9;
+      const hdr = () => { F('bold', 6.6); const hl = cab.map((t, i) => quebra(t, larg[i] - 2)); const hh = Math.max(...hl.map((q) => q.length)) * 2.8 + 2.4; precisa(hh + 5); doc.setFillColor(...ESC); doc.rect(X0, y, xs[xs.length - 1] - X0, hh, 'F'); F('bold', 6.6, [255, 255, 255]); hl.forEach((q, i) => q.forEach((t, k) => T(t, ax(i), y + 3 + k * 2.8, { align: al(i) }))); y += hh; };
       hdr();
       linhas.forEach((ln, j) => {
-        F('normal', 6.9); const cel = ln.map((t, i) => quebra(String(t ?? ''), larg[i] - 2)); const h = Math.max(...cel.map((q) => q.length)) * 3 + 1.6;
-        if (y + h > LIM) { pagina(titulo); hdr(); }
+        F('normal', fz); const cel = ln.map((t, i) => quebra(String(t ?? ''), larg[i] - 2)); const h = Math.max(...cel.map((q) => q.length)) * (fz * 0.43) + 1.8;
+        if (y + h > LIM) { pagina(titulo, o.paisagem); hdr(); }
         if (j % 2) { doc.setFillColor(...CLARO); doc.rect(X0, y, xs[xs.length - 1] - X0, h, 'F'); }
-        cel.forEach((q, i) => { F(o.negrito?.includes(i) ? 'bold' : 'normal', 6.9, [25, 25, 25]); q.forEach((t, k) => T(t, i === 0 || o.esq?.includes(i) ? xs[i] + 1.2 : xs[i + 1] - 1.2, y + 2.8 + k * 3, { align: i === 0 || o.esq?.includes(i) ? 'left' : 'right' })); });
+        cel.forEach((q, i) => { F(o.negrito?.includes(i) ? 'bold' : 'normal', fz, [25, 25, 25]); q.forEach((t, k) => T(t, ax(i), y + 2.9 + k * (fz * 0.43), { align: al(i) })); });
         doc.setDrawColor(...LINHA); doc.setLineWidth(0.15); doc.line(X0, y + h, xs[xs.length - 1], y + h); y += h;
       });
+      if (o.total) { F('bold', fz); const h = 6; precisa(h + 2); doc.setFillColor(...BANDA); doc.rect(X0, y, xs[xs.length - 1] - X0, h, 'F'); o.total.forEach((t, i) => { if (t == null || t === '') return; F('bold', fz, ESC); T(String(t), ax(i), y + 4, { align: al(i) }); }); y += h; }
       y += 3;
     }
     // escopo no formato Qtd | Descrição, com recuo por nível
@@ -152,15 +158,16 @@
     // ---------- páginas ----------
     const fabDe = (it) => (O.fab || {})[it.key] || null;
     const tituloPag = (t) => { for (const [re, k] of TIT_PAG) if (re.test(t || '')) return x[k]; return trF(t, 'val') || t; };
+    const cnpjF = (c) => { const d = String(c || '').replace(/\D/g, ''); return d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : c; };
     function resumo() {
       pagina(x.resumo);
-      const esq = [[I.R[lang].cliente.replace(':', ''), E.cliente], [r.razao.replace(':', ''), E.razao], [r.cnpj.replace(':', ''), E.cnpj], [r.aosCuid.replace(':', ''), E.aosCuidados], [r.projObra.replace(':', ''), tr(E.obra)], [r.cidade.replace(':', ''), E.cidade]].filter((p) => p[1]);
+      const esq = [[I.R[lang].cliente.replace(':', ''), E.cliente], [r.razao.replace(':', ''), E.razao], [r.cnpj.replace(':', ''), cnpjF(E.cnpj)], [r.aosCuid.replace(':', ''), E.aosCuidados], [r.projObra.replace(':', ''), tr(E.obra)], [r.cidade.replace(':', ''), E.cidade]].filter((p) => p[1]);
       const dir = [[x.proposta, D.numero || '—'], [x.rev, String(D.rev ?? '')], [x.data, I.dataLang(D.data, lang)], [x.validade, I.dataLang(D.validade, lang)], [x.norma, (D.flags || {}).normaTxt || ''], [x.vendedor, D.vendedor || '']].filter((p) => p[1]);
       colunas([{ t: r.cliente.replace(':', ''), pares: esq }, { t: x.dadosProp, pares: dir }]); y += 2;
       subtitulo(x.fornec);
       const cab = comPreco ? [x.item, x.qtd, x.equip, x.ponto, x.tot] : [x.item, x.qtd, x.equip, x.ponto];
       const larg = comPreco ? [12, 12, 92, 40, 30] : [12, 12, 112, 50];
-      tabela(cab, D.itens.map((it, i) => [String(i + 1), qtdTxt(it.qtd), [E.codigos[it.key] || it.codigo, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)].filter(Boolean).join(' — '), numL(it.condicao || ''), comPreco ? din(it.total) : null].filter((v) => v !== null)), larg, { esq: [2, 3], negrito: [0] });
+      tabela(cab, D.itens.map((it, i) => [String(i + 1), qtdTxt(it.qtd), [E.codigos[it.key] || it.codigo, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)].filter(Boolean).join(' — '), numL(it.condicao || ''), comPreco ? din(it.total) : null].filter((v) => v !== null)), larg, { esq: [2, 3], centro: [1], negrito: [0] });
       if (comPreco) { precisa(12); doc.setFillColor(...LAR); doc.rect(X0, y, LW, 8, 'F'); F('bold', 9.4, [255, 255, 255]); T(x.valorTotal.toUpperCase(), X0 + 3, y + 5.4); T(din(D.total), X1 - 3, y + 5.4, { align: 'right' }); y += 11;
         if (usd) { const nt = r.moeda.replace('{taxa}', nf(4).format(Number(O.moeda.taxa))).replace('{data}', O.moeda.data ? r.moedaData.replace('{d}', I.dataLang(O.moeda.data, lang)) : ''); paragrafo(nt, { sz: 6.6, cor: CINZA }); } }
       if (tem('condicoes')) { y += 2; colunas([{ t: x.cond, pares: [[x.pagamento, tr(E.pagamento) || '—'], [x.frete, tr(E.frete) || '—'], [x.prazo, prazoTxt().join(' · ') || r.combinar], [x.validade, I.dataLang(D.validade, lang) || '—']] }]); }
@@ -207,16 +214,41 @@
         F('bold', 8, ESC); for (const q of quebra([cod, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)].filter(Boolean).join(' — '), LW)) { T(q, X0, y + 3); y += 3.8; } F('normal', 7.2, CINZA); T([x.quantidade + ': ' + qtdTxt(it.qtd) + (it.un ? ' ' + it.un : ''), it.condicao ? x.ponto + ': ' + numL(it.condicao) : ''].filter(Boolean).join('   ·   '), X0, y + 3); y += 7;
         const gs = dados ? (dados.escopo || []).filter((g) => g.on !== false) : [];
         for (const g of gs) escopo(trF(g.g, 'sec') || g.g, g.linhas.filter((l) => l.on !== false).map((l) => ({ q: l.q, n: l.n, t: trF(l.t, 'lin') })));
-        const ls = []; for (const c of (fd.componentes || []).concat(fd.adicionais || [])) { ls.push({ q: qtdTxt(c.qtd), n: 0, t: fdT(c.titulo) }); for (const l of c.linhas || []) ls.push({ n: 2, t: Array.isArray(l) ? fdT('@' + l[0]) + ': ' + fdV(l[1]) : l }); }
-        if (ls.length && !(FA && FA.semLs)) escopo(x.lsfire, ls);
+        // itens da formação: uma linha por componente (Qtd | Componente | Marca | Modelo/descrição); iguais somam a quantidade
+        const ls = [];
+        for (const c of (fd.componentes || []).concat(fd.adicionais || [])) {
+          const L = c.linhas || []; const marca = (L.find((l) => Array.isArray(l) && l[0] === 'marca') || [])[1] || '';
+          const resto = L.filter((l) => !(Array.isArray(l) && l[0] === 'marca')).map((l) => (Array.isArray(l) ? (['modelo', 'descricao'].includes(l[0]) ? fdV(l[1]) : fdT('@' + l[0]) + ' ' + fdV(l[1])) : l)).join(' · ');
+          const nome = fdT(c.titulo); const ig = ls.find((z) => z.nome === nome && z.marca === marca && z.desc === resto);
+          if (ig && typeof ig.q === 'number' && typeof c.qtd === 'number') ig.q += c.qtd; else ls.push({ q: c.qtd, nome, marca, desc: resto });
+        }
+        if (ls.length && !(FA && FA.semLs)) { precisa(20); F('bold', 9.6, ESC); T(x.lsfire, X0, y + 4); y += 6;
+          tabela([x.qtd, x.componente, x.marca, x.modeloDesc], ls.map((z) => [qtdTxt(z.q), z.nome, z.marca, z.desc]), [14, 50, 34, LW - 98], { centro: [0], esq: [1, 2, 3], negrito: [1] }); }
         if ((it.espec || []).length) { const le = []; for (const g of it.espec) { le.push({ q: qtdTxt(g.qtd), n: 0, t: fdT(g.titulo) }); for (const l of g.linhas || []) le.push({ n: 2, t: fdT('@' + l[0]) + ': ' + tr(l[1]) }); } escopo(x.especs, le); }
         const nt = I.linhasDe(E.notasItem[it.key]); if (nt.length) { subtitulo(r.notasItem); marcadores(nt.map(tr)); }
       });
     }
     function planilha() {
-      pagina(x.planilha);
-      const cab = [x.item, x.codigo, x.descr, x.qtd, x.un, x.ncm, x.icms, x.ipi, x.unit, x.tot]; const larg = [9, 20, 61, 10, 10, 15, 11, 10, 20, 20];
-      tabela(cab, D.itens.map((it, i) => [String(i + 1), E.codigos[it.key] || it.codigo || '', D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve), qtdTxt(it.qtd), it.un || '', it.ncm || '', pct(it.icms), it.ipi == null ? '—' : pct(it.ipi), din(it.unit), din(it.total)]), larg, { esq: [1, 2], negrito: [9] });
+      pagina(x.planilha, true);
+      const temCod = D.itens.some((it) => E.codigos[it.key] || it.codigo); const seq = D.itens.some((it) => typeof it.unitSemImp === 'number');
+      const desc = (it) => (D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve));
+      const vv = (v) => (typeof v === 'number' && isFinite(v) ? din(v) : '—');
+      if (seq) {
+        // em paisagem: preço sem impostos, impostos por dentro (ICMS, PIS, COFINS), IPI por fora e o total; NCM e alíquotas da formação
+        const cols = [[x.item, 8], temCod ? [x.codigo, 19] : null, [x.descr, 0], [x.ncm, 17], [x.qtd, 13], [x.unitSem, 25], [x.totSem, 27], [x.icms, 12], [x.pisCof, 15], [x.impR, 25], [x.ipi, 11], [x.ipiR, 21], [x.tot, 28]].filter(Boolean);
+        const fixo = cols.reduce((t, c) => t + c[1], 0); cols.find((c) => c[1] === 0)[1] = LW - fixo;
+        const iD = cols.findIndex((c) => c[0] === x.descr), iQ = cols.findIndex((c) => c[0] === x.qtd), iN = cols.findIndex((c) => c[0] === x.ncm);
+        const linhas = D.itens.map((it, k) => { const pc2 = (num(it.pis) + num(it.cofins)); const imp = typeof it.totalSemIpi === 'number' && typeof it.totalSemImp === 'number' ? it.totalSemIpi - it.totalSemImp : null;
+          return [String(k + 1), temCod ? E.codigos[it.key] || it.codigo || '' : null, desc(it), it.ncm || '', qtdTxt(it.qtd) + (it.un ? ' ' + it.un : ''), vv(it.unitSemImp), vv(it.totalSemImp), pct(it.icms), pc2 ? pct(pc2) : '—', vv(imp), it.ipi == null ? '—' : pct(it.ipi), vv(it.ipiValor), vv(it.total)].filter((v, c) => !(c === 1 && !temCod)); });
+        const Tt = D.totais || {}; const tot = cols.map(() => ''); tot[iD] = x.totais.toUpperCase();
+        tot[cols.findIndex((c) => c[0] === x.totSem)] = vv(Tt.semImp); tot[cols.findIndex((c) => c[0] === x.impR)] = typeof Tt.semIpi === 'number' && typeof Tt.semImp === 'number' ? din(Tt.semIpi - Tt.semImp) : '—';
+        tot[cols.findIndex((c) => c[0] === x.ipiR)] = vv(Tt.ipi); tot[cols.length - 1] = vv(D.total);
+        tabela(cols.map((c) => c[0]), linhas, cols.map((c) => c[1]), { esq: [iD].concat(temCod ? [1] : []), centro: [iQ, iN], negrito: [cols.length - 1], fonte: 7.2, paisagem: true, total: tot });
+        paragrafo(x.notaImp, { sz: 6.6, cor: CINZA });
+      } else {
+        const cab = [x.item, x.codigo, x.descr, x.qtd, x.un, x.ncm, x.icms, x.ipi, x.unit, x.tot]; const larg = [9, 22, 0, 12, 11, 18, 13, 12, 32, 32]; larg[2] = LW - larg.reduce((t, w) => t + w, 0);
+        tabela(cab, D.itens.map((it, i) => [String(i + 1), E.codigos[it.key] || it.codigo || '', desc(it), qtdTxt(it.qtd), it.un || '', it.ncm || '', pct(it.icms), it.ipi == null ? '—' : pct(it.ipi), vv(it.unit), vv(it.total)]), larg, { esq: [1, 2], centro: [3, 4, 5], negrito: [9], fonte: 7.2, paisagem: true });
+      }
       precisa(12); doc.setFillColor(...LAR); doc.rect(X0, y, LW, 8, 'F'); F('bold', 9.4, [255, 255, 255]); T(x.valorTotal.toUpperCase(), X0 + 3, y + 5.4); T(din(D.total), X1 - 3, y + 5.4, { align: 'right' }); y += 11;
       if (usd) { const nt = r.moeda.replace('{taxa}', nf(4).format(Number(O.moeda.taxa))).replace('{data}', O.moeda.data ? r.moedaData.replace('{d}', I.dataLang(O.moeda.data, lang)) : ''); paragrafo(nt, { sz: 6.6, cor: CINZA }); }
     }

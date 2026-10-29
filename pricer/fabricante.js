@@ -20,6 +20,8 @@
   }
   // rótulo e valor de um pedaço de coluna: pelo ":" ou pelo maior espaço entre pedaços
   function par(ts) {
+    // "Rótulo : valor" num pedaço só
+    if (ts.length === 1) { const m = ts[0].s.match(/^([^:]{2,60}?)\s+:\s*(.*)$/); if (m) return [m[1].trim(), m[2].trim()]; }
     const i = ts.findIndex((t) => /^:/.test(t.s));
     if (i > 0) { const v = [Object.assign({}, ts[i], { s: ts[i].s.replace(/^:\s*/, '') })].concat(ts.slice(i + 1)).filter((t) => t.s); return [junta(ts.slice(0, i)), junta(v)]; }
     if (ts.length < 2) return null;
@@ -50,7 +52,9 @@
   function ler(paginas) {
     const out = { fabricante: '', paginas: [], secoes: [], tabelas: [], escopo: [] };
     const todo = paginas.map((p) => p.itens.map((i) => i.s).join(' ')).join(' ');
-    out.fabricante = /Peerless/i.test(todo) ? 'Peerless' : /Clarke/i.test(todo) && !/Pump/i.test(todo) ? 'Clarke' : '';
+    // fabricante: o nome conhecido que mais aparece no documento
+    const FABS = ['Peerless', 'Sempa', 'KSB', 'Grundfos', 'Patterson', 'Aurora', 'Ruhrpumpen', 'Flowserve', 'Imbil', 'Schneider', 'WEG', 'Mark', 'Clarke', 'Cummins', 'Tornatech', 'Metron', 'Firetrol', 'Xylem', 'Armstrong', 'SPP', 'Pentair', 'Fairbanks'];
+    out.fabricante = FABS.map((f) => [f, (todo.match(new RegExp('\\b' + f + '\\b', 'gi')) || []).length]).filter((x) => x[1]).sort((a, b) => b[1] - a[1] || (a[0] === 'Clarke' ? 1 : -1))[0]?.[0] || '';
     const vistos = new Set(); let identOk = false;
     const sec = (t, n) => { let s = out.secoes.find((x) => x.t === t); if (!s) { s = { t, pag: n, campos: [] }; out.secoes.push(s); } return s; };
     for (const pg of paginas) {
@@ -62,14 +66,17 @@
       const corte = (rows.find((r) => /Performance based on test|rated point is the only/i.test(junta(r.ts))) || {}).y || 1e9;
       const txt = rows.map((r) => junta(r.ts)).join('\n');
       const escopo = ehEscopo;
-      const curva = /Curve/i.test(tit);
+      const txtPg = pg.itens.map((i) => i.s).join(' ');
+      const nPares = rows.filter((r) => r.ts.some((t) => /^:/.test(t.s))).length;
+      const eixos = /\bQ\s*\[|\bH\s*\[\s*m|\[\s*m[³3]\s*\/\s*h\s*\]|Flow\s*-\s*US|NPSH\s*\[|\bP\s*\[\s*kW/i.test(txtPg);
+      const curva = /Curve|Curva|Kennlinie|Characteristic/i.test(tit) || (eixos && nPares < 8 && pg.itens.length < 220);
       const desenho = /Arrangement|Dimension|Drawing/i.test(tit) || (!tit && pg.itens.length < 120 && !/:/.test(txt));
       const tipo = escopo ? 'escopo' : curva ? 'curva' : desenho ? 'desenho' : 'dados';
       if (!out.pontos) out.pontos = acharPontos(rows, pg.n);
       const P = { n: pg.n, titulo: tit || (desenho ? 'Desenho' : 'Página ' + pg.n), tipo, w: pg.w, h: pg.h };
       if (curva) {
         // área do gráfico: abaixo do aviso do fabricante até o eixo de vazão
-        const ax = pg.itens.filter((i) => (i.s === 'Flow' || /^Flow\s*-/.test(i.s)) && i.h >= 8.5).sort((a, b) => a.y - b.y)[0];
+        const ax = pg.itens.filter((i) => ((i.s === 'Flow' || /^Flow\s*-/.test(i.s)) && i.h >= 8.5) || /^Q\s*\[/.test(i.s)).sort((a, b) => b.y - a.y)[0];
         const tabY = ax ? (pg.itens.filter((i) => i.y > ax.y + 2 && /^(Customer|Project name|Tag Number)$/.test(i.s)).sort((a, b) => a.y - b.y)[0] || {}).y : null;
         const aviso = pg.itens.filter((i) => /buyer\.?$|tolerance\.?$|Hyd Inst/i.test(i.s) && (!ax || i.y < ax.y)).sort((a, b) => b.y - a.y)[0];
         const y0 = aviso ? aviso.y + 4 : (pg.itens.find((i) => i.s === tit) || { y: 60 }).y + 10; const y1 = ax ? Math.min(ax.y + 7, tabY ? tabY - 9 : 1e9) : pg.h * 0.62;
@@ -94,7 +101,8 @@
       if (tipo !== 'dados') continue;
       // tabelas numéricas (desempenho por vazão, dados de desempenho): linhas com 4 ou mais pedaços espalhados
       const meio = pg.w / 2; const secAtual = { e: null, d: null }; let tab = null; let ultimo = { e: null, d: null }; let ident = true;
-      for (const r of rows) {
+      const temParAbaixo = (ri, lado) => { for (let k = ri + 1; k < Math.min(rows.length, ri + 3); k++) { const ts = rows[k].ts.filter((t) => (lado === 'e' ? t.x < meio - 4 : t.x >= meio - 4)); if (ts.some((t) => /^:/.test(t.s) || /\S\s+:\s/.test(t.s))) return true; if (ts.length) return false; } return false; };
+      for (let ri = 0; ri < rows.length; ri++) { const r = rows[ri];
         if (r.y >= dadosAte - 2) break;
         if (r.ts.some((t) => /^@/.test(t.s))) continue;
         const ehTab = r.ts.length >= 4 && r.ts.filter((t) => num(t.s)).length >= 3 && !r.ts.some((t) => /^:/.test(t.s));
@@ -111,8 +119,9 @@
           const x0 = lado === 'e' ? 30 : meio; const x1 = lado === 'e' ? meio : pg.w - 30; const p = par(ts);
           const centro = ts.length === 1 ? Math.abs(ts[0].x + ts[0].w / 2 - (x0 + x1) / 2) : 99;
           const cont = ultimo[lado] && /\s(a|de|do|da|e|and|of|the|with|for)$|[-,/]$/.test(ultimo[lado].v || ultimo[lado].k);
-          if (!p && !cont && ts.length === 1 && centro < 16 && ts[0].x - x0 > 40 && !/^:/.test(ts[0].s) && !num(ts[0].s)) {
-            const nome = ts[0].s; if (tab && !tab.linhas.length) tab.t = nome; else { secAtual[lado] = nome; ident = false; } ultimo[lado] = null; continue; }
+          const esq = !p && ts.length === 1 && /^[A-Z][A-Za-z][A-Za-z /&()-]{1,40}$/.test(ts[0].s) && ts[0].x - x0 < 40 && (r.ts.length === 1 || lado === 'd' || r.ts.filter((t) => t.x >= meio - 4).length === 0) && temParAbaixo(ri, lado);
+          if ((!p && !cont && ts.length === 1 && centro < 16 && ts[0].x - x0 > 40 && !/^:/.test(ts[0].s) && !num(ts[0].s)) || esq) {
+            const nome = ts[0].s; if (tab && !tab.linhas.length) tab.t = nome; else { secAtual[lado] = nome; if (esq && r.ts.length === 1) { secAtual.e = nome; secAtual.d = nome; ultimo.e = null; ultimo.d = null; } ident = false; } ultimo[lado] = null; continue; }
           const s = secAtual[lado] || (ident ? 'Project' : '');
           if (!p) {
             if (ts.length !== 1 || /^:/.test(ts[0].s)) continue; const naColunaRot = ts[0].x - x0 < 40; const c = ultimo[lado];
@@ -146,6 +155,7 @@
     Testing: ['Testes', 'Pruebas'], 'Approximate Weights': ['Pesos aproximados', 'Pesos aproximados'], 'Performance Data': ['Dados de desempenho', 'Datos de desempeño'],
     'Stage, Speed and Solids Limits': ['Limites de estágios, rotação e sólidos', 'Límites de etapas, velocidad y sólidos'], 'Mechanical Limits': ['Limites mecânicos', 'Límites mecánicos'],
     'Typical Driver Data': ['Dados típicos do acionador', 'Datos típicos del accionador'], 'Various Performance Data': ['Dados de desempenho', 'Datos de desempeño'], Project: ['Identificação', 'Identificación'],
+    'Operation Data': ['Dados de operação', 'Datos de operación'], 'Pump Data': ['Dados da bomba', 'Datos de la bomba'], 'Pump Material': ['Materiais da bomba', 'Materiales de la bomba'], 'Shaft Seal': ['Vedação do eixo', 'Sello del eje'], 'Technical Data': ['Dados técnicos', 'Datos técnicos'],
     Pump: ['Bomba', 'Bomba'], Driver: ['Acionador', 'Accionador'], Controller: ['Painel de comando', 'Tablero de control'], Accessories: ['Acessórios', 'Accesorios'],
   };
   const ROT = {
@@ -177,6 +187,11 @@
     'Flexible exhaust connection': ['Conexão flexível do escape', 'Conexión flexible del escape'], 'Drive shaft type': ['Eixo cardã', 'Eje cardán'], Tank: ['Tanque', 'Tanque'], 'Torsional coupling': ['Acoplamento torcional', 'Acoplamiento torsional'], Batteries: ['Baterias', 'Baterías'],
     'Rack and cables': ['Suporte e cabos', 'Soporte y cables'], 'Cooling loop size': ['Linha de arrefecimento', 'Línea de refrigeración'], 'Cooling loop material': ['Material da linha de arrefecimento', 'Material de la línea de refrigeración'], 'ULC fuel lines': ['Linhas de combustível ULC', 'Líneas de combustible ULC'],
     'Fuel system': ['Sistema de combustível', 'Sistema de combustible'], Ventiliation: ['Ventilação', 'Ventilación'], 'Base mounted controller adapter': ['Adaptador do painel na base', 'Adaptador del tablero en la base'],
+    'Pump Type': ['Tipo de bomba', 'Tipo de bomba'], Flow: ['Vazão', 'Caudal'], Head: ['Altura manométrica', 'Altura manométrica'], 'Static Head': ['Altura estática', 'Altura estática'], Fluid: ['Fluido', 'Fluido'], Density: ['Densidade', 'Densidad'],
+    'Kinematic Viscosity': ['Viscosidade cinemática', 'Viscosidad cinemática'], Temperature: ['Temperatura', 'Temperatura'], Speed: ['Rotação', 'Velocidad'], 'Number of Stages': ['Número de estágios', 'Número de etapas'], 'Max. Casing Pressure': ['Pressão máx. da carcaça', 'Presión máx. de la carcasa'],
+    'Max. Operation Pressure': ['Pressão máx. de operação', 'Presión máx. de operación'], 'Head (Q=0)': ['Altura em shutoff (Q=0)', 'Altura a válvula cerrada (Q=0)'], 'Shaft Power': ['Potência no eixo', 'Potencia en el eje'], 'Maximum Shaft Power': ['Potência máx. no eixo', 'Potencia máx. en el eje'],
+    NPSHr: ['NPSH requerido', 'NPSH requerido'], 'Volute Casing': ['Carcaça (voluta)', 'Carcasa (voluta)'], 'Seal Box': ['Caixa de selagem', 'Caja de sellado'], Shaft: ['Eixo', 'Eje'], 'Bearing Housing': ['Caixa de rolamentos', 'Caja de rodamientos'], 'Wear Ring': ['Anel de desgaste', 'Anillo de desgaste'],
+    'Sleeve Set': ['Luva do eixo', 'Camisa del eje'], 'Seal Type': ['Tipo de vedação', 'Tipo de sello'], Type: ['Tipo', 'Tipo'], 'Impeller D Designed': ['Diâmetro do rotor (projeto)', 'Diámetro del impulsor (diseño)'],
     'Rated power (based on duty point)': ['Potência no ponto de trabalho', 'Potencia en el punto de trabajo'], 'Max power (non-overloading)': ['Potência máxima (sem sobrecarga)', 'Potencia máxima (sin sobrecarga)'], 'NPSH required': ['NPSH requerido', 'NPSH requerido'],
   };
   const VAL = {
@@ -185,6 +200,7 @@
     'Single Row': ['Uma carreira', 'Una hilera'], 'Silicon Brass': ['Latão ao silício', 'Latón al silicio'], 'Carbon steel': ['Aço carbono', 'Acero al carbono'], 'Bismuth tin bronze': ['Bronze estanho-bismuto', 'Bronce estaño-bismuto'], Integral: ['Integral', 'Integral'],
     'Heat exchanger cooled': ['Trocador de calor', 'Intercambiador de calor'], 'Radiator cooled': ['Radiador', 'Radiador'], 'Mounted on base with driver': ['Montada na base com o acionador', 'Montada en la base con el accionador'], 'Standard ventilation': ['Ventilação padrão', 'Ventilación estándar'],
     Steel: ['Aço', 'Acero'], Standard: ['Padrão', 'Estándar'], 'Peerless Fire Red': ['Vermelho Peerless', 'Rojo Peerless'], 'Non-witnessed': ['Não testemunhado', 'No presenciada'], 'Non-witnessed per HI 14.6 1U': ['Não testemunhado (HI 14.6 1U)', 'No presenciada (HI 14.6 1U)'],
+    'Double Suction Pump': ['Bipartida (dupla sucção)', 'Bipartida (doble succión)'], Water: ['Água', 'Agua'], 'Soft Packing': ['Gaxeta', 'Empaquetadura'],
     'Diesel engine': ['Motor diesel', 'Motor diésel'], 'Electric motor': ['Motor elétrico', 'Motor eléctrico'], 'Fire Pump System': ['Sistema de bomba de incêndio', 'Sistema de bomba contra incendio'], UL: ['UL', 'UL'],
   };
   const idx = (lang) => (lang === 'pt' ? 0 : lang === 'es' ? 1 : -1);

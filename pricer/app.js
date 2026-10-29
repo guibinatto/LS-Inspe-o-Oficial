@@ -1241,14 +1241,14 @@
       const vn = val(S, 'AR4');
       const condicao = [...new Set(bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => nBR(b.vz) + ' m³/h x ' + nBR(b.pr) + ' mca'))].join(' · ');
       const acion = { DIESEL: '#diesel', ELETRICA: '#eletrica', ELETRICO: '#eletrica', JOCKEY: '#jockeyA' };
-      itens.push({ key: S, codigo: (pcGet().codigos || {})[S] || '', qtd: num0(val(P, 'F' + r)) || 1, un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
+      itens.push({ key: S, codigo: (pcGet().codigos || {})[S] || '', qtd: num0(val(P, 'F' + r)) || 1, unitSemImp: val(P, 'J' + r), totalSemImp: val(P, 'K' + r), totalSemIpi: val(P, 'M' + r), ipiValor: val(P, 'N' + r), pis: val(P, 'S' + r), cofins: val(P, 'T' + r), un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
         unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S),
         folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ n: k + 1, acion: acion[b.ac] || b.ac.toLowerCase(), cfg: b.cfg ? TIPO_BOMBA[upNoAc(b.cfg)] || b.cfg.toLowerCase() : '',
           dados: [['modelo', b.mod], ['vazaoNom', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['vazaoProj', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['pressao', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['rotacao', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['potencia', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
     });
     const f6 = txt(P, 'F6'); const ac = f6.match(/\s*[·\-–—|,;]?\s*a\/c\.?\s*(.+)$/i);
     return { tipo: 'SEQ', numero: txt(P, 'C5'), rev: txt(P, 'C6'), data: txt(P, 'C7'), validade: txt(P, 'C10'), cliente: txt(P, 'F5'), razao: txt(P, 'F5'), cnpj: txt(P, 'L5'), contato: ac ? ac[1].trim() : '', obra: ac ? f6.slice(0, ac.index).trim() : f6, cidade: '',
-      pagamento: txt(P, 'J6'), frete: txt(P, 'B13'), prazo: '', exclusoes: '', vendedor: txt(P, 'C8'), total: val(P, 'P43'), itens,
+      pagamento: txt(P, 'J6'), frete: txt(P, 'B13'), prazo: '', exclusoes: '', vendedor: txt(P, 'C8'), total: val(P, 'P43'), totais: { semImp: val(P, 'K43'), semIpi: val(P, 'M43'), ipi: val(P, 'N43') }, itens,
       flags: Object.assign(fl, { normaTxt: [...new Set([...normas].map(PRP.normaTxt))].join(' / ') || 'NFPA 20' }) };
   }
   const cambioPadrao = () => { try { return Number(SPV.cfg().mk.cambio_usd) || 0; } catch (e) { return 0; } };
@@ -1327,7 +1327,7 @@
       if (!x) return `<div class="fdslot"><div class="lbl">${esc(lb)}</div><label class="drop" for="fdup_${k}"><b>Solte aqui o PDF ou a imagem</b><span class="sub">${k === 'curva' ? 'a página escolhida entra na folha de dados da proposta' : 'o app lê os dados (vazão, rotação, rotor, sucção, recalque…) para você conferir'}</span><input id="fdup_${k}" type="file" accept=".pdf,image/*" data-fdup="${esc(S)}|${k}"${ro} hidden></label></div>`;
       const campos = x.campos || [];
       return `<div class="fdslot"><div class="lbl">${esc(lb)}: <b>${esc(x.nome || '')}</b> <button class="linkbtn" data-fdopen="${esc(x.docId)}">abrir</button>${ro ? '' : ` · <button class="linkbtn" data-fdtira="${esc(S)}|${k}">tirar</button>`}</div>
-        ${k === 'curva' ? `<div class="fields"><div class="f"><label for="fdpg_${k}">Página do PDF</label><input id="fdpg_${k}" data-fdpag="${esc(S)}" inputmode="numeric" value="${esc(x.pag || 1)}"${ro}>${x.paginas ? `<small class="sub">de ${x.paginas}</small>` : ''}</div></div>`
+        ${k === 'curva' ? `<div class="fields"><div class="f"><label for="fdpg_${k}">Página do PDF</label><input id="fdpg_${k}" data-fdpag="${esc(S)}" inputmode="numeric" value="${esc(x.pag || 1)}"${ro}>${x.paginas ? `<small class="sub">de ${x.paginas}</small>` : ''}</div></div>${(x.paginas || 1) > 1 ? `<small class="sub">Clique na página da curva:</small>${thumbsHtml(S, 'curva', x.pag || 1)}` : ''}`
         : `${campos.length ? `<div class="tw"><table class="t"><thead><tr><th>Vai na proposta</th><th>Campo</th><th>Valor</th><th></th></tr></thead><tbody>${campos.map((c, i) => `<tr><td><input type="checkbox" data-fdon="${esc(S)}|${k}|${i}"${c.on !== false ? ' checked' : ''}${ro} aria-label="Incluir ${esc(c.k)}"></td><td class="in"><input data-fdk="${esc(S)}|${k}|${i}" value="${esc(c.k)}"${ro} aria-label="Campo"></td><td class="in"><input data-fdv="${esc(S)}|${k}|${i}" value="${esc(c.v)}"${ro} aria-label="Valor"></td><td>${ro ? '' : `<button class="btn sm" data-fddel="${esc(S)}|${k}|${i}" aria-label="Tirar a linha">×</button>`}</td></tr>`).join('')}</tbody></table></div>` : `<p class="sub" style="margin:4px 0">${x.lido === false ? 'Não consegui ler dados deste arquivo.' : 'Nenhum campo reconhecido.'} Inclua os campos à mão${claudeOk() ? ' ou leia com Claude' : ''}.</p>`}
           ${ro ? '' : `<div class="docbar" style="margin-top:6px"><button class="btn sm" data-fdadd="${esc(S)}|${k}" data-ico="plus">Incluir campo</button><button class="btn sm" data-fdler="${esc(S)}|${k}">Ler de novo</button>${claudeOk() ? `<button class="btn sm" data-fdclaude="${esc(S)}|${k}">Ler com Claude</button>` : ''}</div>`}`}</div>`; };
     return `<details class="card"${keep('fdprop')}><summary>Proposta: código do produto e folha de dados <span class="sub">${esc([(pc.codigos || {})[S] ? 'código ' + pc.codigos[S] : 'sem código', st].filter(Boolean).join(' · '))}</span></summary>
@@ -1353,7 +1353,7 @@
         return `<div class="f spanall" style="margin-top:8px"><label>Curva na proposta</label><div class="seg" role="radiogroup"><label class="${ls ? 'on' : ''}"><input type="radio" name="fabcm_${esc(S)}" data-fabcm="${esc(S)}" value="ls"${ls ? ' checked' : ''}${ro}>Redesenhada no padrão LS Fire</label><label class="${ls ? '' : 'on'}"><input type="radio" name="fabcm_${esc(S)}" data-fabcm="${esc(S)}" value="fab"${ls ? '' : ' checked'}${ro}>Imagem do fabricante</label></div>
           <small class="sub">${ls ? `Traçada com os ${d.pontos.pts.length} pontos da tabela da página ${d.pontos.pag} (vazão, altura, rendimento e potência), com o ponto de trabalho e os pontos da NFPA 20 que vieram na folha.` : 'Usa a página escolhida abaixo, recortada na área do gráfico.'}</small>
           ${ls ? `<img data-fabprev="${esc(S)}" alt="Prévia da curva redesenhada" style="width:100%;max-width:760px;margin-top:8px;border:1px solid var(--line);border-radius:8px;background:#fff">` : ''}</div>`; })()}
-      <div class="fields" style="margin-top:8px"><div class="f span2"><label for="fabcv_${S.replace(/\W/g, '')}">Curva do fabricante (imagem)</label><select id="fabcv_${S.replace(/\W/g, '')}" data-fabcurva="${esc(S)}"${ro}><option value="">nenhuma</option>${d.paginas.filter((q) => q.tipo === 'curva').map((q) => `<option value="${q.n}"${F0.curvaPag === q.n ? ' selected' : ''}>página ${q.n}: ${esc(q.titulo)}</option>`).join('')}</select></div>
+      <div class="fields" style="margin-top:8px"><div class="f span2"><label for="fabcv_${S.replace(/\W/g, '')}">Curva do fabricante (imagem)</label><select id="fabcv_${S.replace(/\W/g, '')}" data-fabcurva="${esc(S)}"${ro}><option value="">nenhuma</option>${d.paginas.map((q) => `<option value="${q.n}"${F0.curvaPag === q.n ? ' selected' : ''}>página ${q.n}: ${esc(q.titulo)}${q.tipo === 'curva' ? ' (curva)' : ''}</option>`).join('')}</select>${F0.curvaModo === 'fab' || !(window.PricerCurva && window.PricerCurva.temPontos(d)) ? `<small class="sub">ou clique na página:</small>${thumbsHtml(S, 'fab', F0.curvaPag)}` : ''}</div>
         <div class="f span2"><label>Páginas que entram como imagem</label><div class="chks" style="display:flex;flex-direction:column;gap:4px">${pags.map((q) => `<label class="chk"><input type="checkbox" data-fabpag="${esc(S)}|${q.n}"${(F0.pags || {})[q.n] ? ' checked' : ''}${ro}> página ${q.n}: ${esc(q.titulo)} <small class="sub">${TIPO_PAG[q.tipo]}</small></label>`).join('') || '<span class="sub">nenhuma</span>'}</div></div>
         <div class="f span2"><label>Escopo da proposta</label><div class="chks" style="display:flex;flex-direction:column;gap:4px"><label class="chk"><input type="checkbox" data-fabls="${esc(S)}"${F0.semLs ? '' : ' checked'}${ro}> Incluir também os itens da formação LS Fire</label></div><small class="sub">desmarque se o escopo do fabricante já cobre tudo</small></div></div>
       ${d.secoes.map((x, si) => `<details class="sub2"${keep('fab_' + S + '_' + si)}><summary>${esc(x.t === 'Project' ? 'Identificação (não vai por padrão)' : x.t)}${x.t !== 'Project' && window.PricerFabricante && window.PricerFabricante.secT(x.t, 'pt') && window.PricerFabricante.secT(x.t, 'pt') !== x.t ? ' <span class="sub">· ' + esc(window.PricerFabricante.secT(x.t, 'pt')) + '</span>' : ''} <span class="sub">${x.campos.filter((c) => c.on !== false).length}/${x.campos.length} · página ${x.pag}</span></summary>
@@ -1399,6 +1399,19 @@
     toast(nC ? nC + ' campos, ' + dados.escopo.length + ' grupos de escopo e ' + dados.paginas.filter((q) => q.tipo !== 'dados').length + ' páginas de curva/desenho: confira antes de gerar' : 'Arquivo guardado; não reconheci dados nesta folha');
     if ((pcGet().idioma || 'pt') !== 'en' && pcGet().estilo === 'fd') traduzirAgora();
   }
+  // miniaturas das páginas de um arquivo do item, para clicar na página da curva
+  const thumbsCache = {};
+  const thumbsHtml = (S, k, sel) => { queueMicrotask(() => fillThumbs(S, k)); return `<div class="thumbs" data-thumbs="${esc(S)}|${k}" data-sel="${sel || ''}"><span class="sub">carregando as páginas…</span></div>`; };
+  async function fillThumbs(S, k) {
+    const x = (((pcGet().fd || {})[S]) || {})[k]; if (!x || !x.docId) return;
+    try { if (!thumbsCache[x.docId]) { const file = await fdArquivo(S, k); if (!file) return; thumbsCache[x.docId] = await window.PricerLeitor.miniaturas(file, 16); }
+      const el = document.querySelector(`[data-thumbs="${CSS.escape(S + '|' + k)}"]`); if (!el) return; const sel = +el.dataset.sel || 0;
+      el.innerHTML = thumbsCache[x.docId].map((t) => `<button type="button" class="${t.n === sel ? 'on' : ''}" data-thumbpg="${esc(S)}|${k}|${t.n}" title="Usar a página ${t.n} como curva"${state.verRev ? ' disabled' : ''}><img src="${t.url}" alt="Página ${t.n}"><span>p. ${t.n}</span></button>`).join('');
+    } catch (er) { const el = document.querySelector(`[data-thumbs="${CSS.escape(S + '|' + k)}"]`); if (el) el.innerHTML = '<span class="sub">Não consegui mostrar as páginas.</span>'; }
+  }
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-thumbpg]'); if (!b || state.verRev) return; const [S, k, n] = b.dataset.thumbpg.split('|');
+    if (k === 'curva') { const x = Object.assign({}, (((pcGet().fd || {})[S]) || {}).curva || {}); x.pag = +n; fdPut(S, 'curva', x); } else fabMut(S, (F0) => { F0.curvaPag = +n; });
+    render(); toast('Curva: página ' + n); });
   const fabCurvaLS = (F0) => F0 && F0.curvaModo !== 'fab' && window.PricerCurva && window.PricerCurva.temPontos(F0.dados);
   // prévia da curva redesenhada no item (gera depois que a tela é montada; guarda por item)
   const prevCurva = {};
@@ -1414,7 +1427,7 @@
     if (ds.fabon || ds.fabv) { const [S, si, ci] = (ds.fabon || ds.fabv).split('|'); fabMut(S, (F0) => { const c = F0.dados.secoes[+si].campos[+ci]; if (ds.fabon) c.on = t.checked; else c.v = t.value.trim(); }); if (ds.fabon) render(); return; }
     if (ds.fabg) { const [S, gi] = ds.fabg.split('|'); fabMut(S, (F0) => { F0.dados.escopo[+gi].on = t.checked; }); render(); return; }
     if (ds.fabpag) { const [S, n] = ds.fabpag.split('|'); fabMut(S, (F0) => { F0.pags = Object.assign({}, F0.pags, { [n]: t.checked }); if (!t.checked) delete F0.pags[n]; }); return; }
-    if (ds.fabcurva !== undefined) { fabMut(ds.fabcurva, (F0) => { F0.curvaPag = t.value ? +t.value : null; }); return; }
+    if (ds.fabcurva !== undefined) { fabMut(ds.fabcurva, (F0) => { F0.curvaPag = t.value ? +t.value : null; }); render(); return; }
     if (ds.fabls !== undefined) { fabMut(ds.fabls, (F0) => { F0.semLs = !t.checked; }); return; }
     if (ds.fabcm !== undefined) { fabMut(ds.fabcm, (F0) => { F0.curvaModo = t.value; }); render(); return; }
   });
@@ -1433,7 +1446,9 @@
         toast('Guardando o arquivo…');
         const docId = await SPV.salvarDoc({ tipo: k === 'curva' ? 'curva da bomba' : 'folha de dados', nome: file.name, propUid: state.uid || null, propNome: docTitle(), item: S, etapa: 'Proposta', notas: (k === 'fab' ? 'Folha de dados completa do fabricante' : (FD_KIND.find((x) => x[0] === k) || [0, ''])[1]) + ' · ' + S, itens: [] }, file);
         if (k === 'fab') { await fabLerArquivo(S, file, { docId, nome: file.name }); return; }
-        if (k === 'curva') { let paginas = 1; try { paginas = (await window.PricerLeitor.paginaImagem(file, 1, 0.3)).paginas; } catch (er) { /* a página é escolhida depois */ } fdPut(S, k, { docId, nome: file.name, pag: 1, paginas }); toast('Curva guardada'); render(); return; }
+        if (k === 'curva') { let paginas = 1, pag = 1;
+          try { paginas = (await window.PricerLeitor.paginaImagem(file, 1, 0.3)).paginas; if (paginas > 1) { const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20)); const cv = d.paginas.find((q) => q.tipo === 'curva'); if (cv) pag = cv.n; } } catch (er) { /* a página é escolhida depois */ }
+          fdPut(S, k, { docId, nome: file.name, pag, paginas }); toast(paginas > 1 ? 'Curva guardada: página ' + pag + (pag === 1 ? ' (confira e clique na página certa, se for outra)' : '') : 'Curva guardada'); render(); return; }
         let campos = [], lido = true; try { toast('Lendo a folha de dados…'); campos = await fdLer(S, k, file, false); } catch (er) { lido = false; }
         fdPut(S, k, { docId, nome: file.name, campos, lido }); render();
         toast(campos.length ? campos.length + ' campo(s) lidos: confira antes de gerar a proposta' : 'Arquivo guardado; nenhum campo reconhecido');
