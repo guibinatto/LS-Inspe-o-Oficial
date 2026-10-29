@@ -441,7 +441,10 @@
     const margem = val(P, 'J16'); const mMin = val('PARÂMETROS', 'C34');
     const res = [[47, 'brl'], [48, 'brl'], [49, 'brl'], [50, 'brl'], [51, 'brl', 1], null, [53, 'pct2'], [54, 'pct2'], [55, 'pct2'], [56, 'pct2', 1], null, [58, 'pct2'], [59, 'pct2'], [60, 'pct2', 1], null, [62, 'pct2', 1], null, [64, 'brl'], [65, 'pct4'], [66, 'brl'], [67, 'brl', 1], null, [69, 'txt'], [70, 'pct2']];
     const fm = { brl, pct2: (v) => pct(v, 2), pct4: (v) => pct(v, 4), txt: (v) => fmtNum(v) };
-    const kv = res.map((x) => x ? `<div>${x[2] ? '<b>' : ''}${esc(txt(P, 'C' + x[0]))}${x[2] ? '</b>' : ''}</div><div>${esc(fm[x[1]](val(P, 'E' + x[0])))}</div>` : '<div class="sep"></div>').join('');
+    // grupos do resultado: cada um é uma lista rótulo → valor (o separador dentro da lista trocava rótulo e valor de lado)
+    const grupos = []; let g = []; for (const x of res) { if (x) g.push(x); else { grupos.push(g); g = []; } } grupos.push(g);
+    const kvG = (L) => `<div class="kv res">${L.map((x) => `<div>${x[2] ? '<b>' : ''}${esc(txt(P, 'C' + x[0]))}${x[2] ? '</b>' : ''}</div><div${x[2] ? ' class="tot"' : ''}>${esc(fm[x[1]](val(P, 'E' + x[0])))}</div>`).join('')}</div>`;
+    const kv = `<div class="resgrid"><div><h3 class="resh">Custos</h3>${kvG(grupos[0])}</div><div><h3 class="resh">Impostos, comissão e margem</h3>${kvG(grupos[1])}<div class="ressep"></div>${kvG(grupos[2])}<div class="ressep"></div>${kvG(grupos[3])}</div><div><h3 class="resh">Preço, IPI e origem</h3>${kvG(grupos[4])}<div class="ressep"></div>${kvG(grupos[5])}<small class="sub">Origem do pacote pela regra da FCI: conteúdo de importação acima de ${esc(pct(val('PARÂMETROS', 'C9'), 0))} = IMPORTADO, senão NACIONAL.</small></div></div>`;
     const demo = [73, 74, 75, 76, 77, 78].map((r) => `<div>${esc(txt(P, 'C' + r))}${val(P, 'F' + r) !== null ? ` <small class="sub">(${pct(val(P, 'F' + r), 2)})</small>` : ''}</div><div>${brl(val(P, 'E' + r))}</div>`).join('');
     const fora = [82, 83, 84, 85, 86].map((r) => `<div>${esc(txt(P, 'C' + r))}</div><div class="${r === 83 && Math.abs(val(P, 'E83')) > 0.005 ? 'bad-t' : ''}">${brl(val(P, 'E' + r))}</div>`).join('');
     return `<div class="stack">
@@ -474,12 +477,10 @@
         <div class="tw"><table class="t itens"><thead><tr><th>Item</th><th>Margem e situação</th><th class="n">Valores</th><th>Descrição, código e fiscal</th></tr></thead><tbody>${rows}</tbody></table></div>
         <p class="sub">${esc(txt(P, 'B44'))}</p>
       </section>
-      <div class="fields wide" style="align-items:start">
-        <section class="card"><h2>Resultado consolidado</h2><div class="kv">${kv}</div></section>
-        <div class="stack">
-          <section class="card"><h2>Demonstrativo — base sem IPI</h2><div class="kv">${demo}</div></section>
-          <section class="card"><h2>Fora do preço e conferências</h2><div class="kv">${fora}</div></section>
-        </div>
+      <section class="card"><h2>Resultado consolidado</h2>${kv}</section>
+      <div class="resgrid2">
+        <section class="card"><h2>Demonstrativo — base sem IPI</h2><div class="kv res">${demo}</div></section>
+        <section class="card"><h2>Fora do preço e conferências</h2><div class="kv res">${fora}</div></section>
       </div>
     </div>`;
   }

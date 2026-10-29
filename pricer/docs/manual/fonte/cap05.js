@@ -119,7 +119,7 @@ module.exports = {
       ['Preço de venda com impostos — SEM IPI (total), Quantidade, Preço unitário — SEM IPI', 'Preço antes do IPI.'],
       ['IPI (%), IPI (R$)', 'IPI é por fora: não entra no total de impostos nem na margem.'],
       ['Preço de venda com impostos e COM IPI (total) / unitário', 'O valor ao cliente. O total da proposta é o **Valor total** do cabeçalho.'],
-      ['Origem do conjunto, Conteúdo de importação (CI)', 'Do mesmo cálculo da FCI. No total, a origem é MISTO quando há itens nacionais e importados.'],
+      ['Origem do conjunto, Conteúdo de importação (CI)', 'Do mesmo cálculo da FCI. No total, a origem do pacote segue a mesma regra: conteúdo de importação acima de 40% é IMPORTADO, senão NACIONAL (nunca "misto").'],
       ['Demonstrativo', 'Preço com impostos (sem IPI) − impostos = preço sem impostos; − custos − comissão = margem líquida em R$.'],
     ] },
     { t: 'p', x: 'A nota no fim do Memorial explica a regra: "A margem é aplicada sobre o custo, como o financeiro pede: o preço de cada item sai de TOTAL CUSTOS ÷ (1 − comissão − margem alvo) ÷ (1 − impostos), e start-up e frete entram no TOTAL CUSTOS, recebendo margem e comissão como qualquer outro custo."' },
@@ -130,7 +130,7 @@ module.exports = {
       ['TOTAL COMISSÃO', '2,25%', '2,25%', '2,25%', '2,25%'],
       ['Margem Liquida', '34,55%', '20,64%', '17,67%', '33,16%'],
       ['Preço de venda com impostos e COM IPI (total)', '3.815.671,76', '430.514,16', '12.114,08', '4.258.300,00'],
-      ['Origem do conjunto', 'IMPORTADO', 'NACIONAL', 'IMPORTADO', 'MISTO'],
+      ['Origem do conjunto', 'IMPORTADO', 'NACIONAL', 'IMPORTADO', 'IMPORTADO'],
     ] },
     { t: 'tut', titulo: 'Conferir o preço de um item pelo Memorial', objetivo: 'Entender de onde sai o preço de um item e checar a margem.', quem: 'Qualquer pessoa com acesso à proposta (Leitor, Contribuidor, Editor ou dono). No modo local não há controle de acesso.', pre: ['Proposta SEQ com pelo menos um item com preço.'], passos: [
       'Abra a proposta e clique na aba **Memorial**.',
