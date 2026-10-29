@@ -512,10 +512,11 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 .etp small{font-size:10.5px;color:var(--ink3)}
 .etp.ok{color:var(--ink2)}.etp.ok .etc{background:var(--ok);border-color:var(--ok);color:#fff}
 .etp.parcial .etc{border-color:var(--warn);color:var(--warn)}.etp.parcial{color:var(--warn)}
+.etp.pulada .etc{border-style:dashed;color:var(--ink3)}.etp.pulada{opacity:.8}.etp.off{opacity:.6}
 .etp.next .etc{border-color:var(--or);background:var(--or-soft);box-shadow:0 0 0 3px var(--or-soft)}.etp.next{color:var(--or-ink)}.etp.next .etl{text-decoration:underline;text-underline-offset:3px}
 .etp.off{opacity:.4;cursor:default}
 .etp:disabled{cursor:default}
-@media (max-width:640px){.etp{font-size:11px;padding:0 1px}.etp small{display:none}.etp:not(.next) .etl{display:none}.etp.next .etl{white-space:nowrap}.etapas{padding-bottom:16px}.etp.next .etl{position:absolute;top:28px}}
+@media (max-width:640px){.etp{font-size:11px;padding:0 1px}.etp small{display:none}.etp:not(.next) .etl{display:none}.etp.next .etl{white-space:nowrap}.etapas{padding-bottom:16px}.etp.next .etl{position:absolute;top:28px}.etp.next:first-child .etl{left:0}.etp.next:last-child .etl{right:0}.etp.next:nth-child(2) .etl{left:-14px}}
 @media (max-width:640px){.home .tw table.t{min-width:0}.home table.t,.home table.t tbody{display:block}.home table.t thead{display:none}
 .home table.t tr{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px}.home table.t td{border:0;padding:4px 6px}
 .home table.t tr.click{border-top:1px solid var(--line);padding-top:6px}.home table.t tr.click td:nth-child(2){flex:1 1 60%}.home table.t td.hacts,.home table.t tr.etrow td{width:100%;flex:1 1 100%}}
@@ -4766,16 +4767,23 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     });
 
     // ---------- etapas da proposta (página inicial) ----------
-    const ETAPAS = [['formacao', 'Formação'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Financeiro avisado'], ['engenharia', 'Engenharia avisada'], ['real', 'Custo real lançado'], ['encerrada', 'Encerrada']];
+    const ETAPAS = [['formacao', 'Conferência ok'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Financeiro avisado'], ['engenharia', 'Engenharia avisada'], ['real', 'Custo real lançado'], ['encerrada', 'Encerrada']];
     const dt = (iso) => { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); } catch (e) { return ''; } };
     function etapas(p) {
       ensure(); const F = fechDe(p.id); const e = p.etapas || {}; const st = p.status || 'rascunho'; const perdida = st === 'perdida';
       const R = F ? realizado(F) : null; const ap = aprovDe(p.id);
-      const lista = ETAPAS.slice(); lista.splice(1, 0, ['conferida', 'PDF conferido']); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
+      const lista = ETAPAS.slice(); lista.splice(1, 0, ['conferida', 'Finalizada']); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
       return lista.map(([k, lb]) => {
         let s = 'pend', info = '', act = null;
-        if (k === 'formacao') { s = 'ok'; info = dt(p.at); }
-        else if (k === 'conferida') { const c = p.conferencia; act = 'conferir'; if (conferidaOk(p)) { s = 'ok'; info = dt(c.at); } else if (c) { s = 'parcial'; info = c.ok ? 'desatualizada' : 'divergências'; } else if (st !== 'rascunho' || F) { s = 'off'; info = 'não conferido'; } }
+        if (k === 'formacao') {
+          // 1ª etapa: a conferência da proposta (gravada ao salvar) sem nada que impeça ou peça tratamento
+          const c = p.checagem; act = 'conferir';
+          if (p.div === 'SPV' || p.facts) { s = 'ok'; info = dt(p.at); }
+          else if (!c) { if (st !== 'rascunho' || F) { s = 'ok'; info = dt(p.at); } else info = 'salve para conferir'; }
+          else if (c.imped) { s = 'bad'; info = c.imped + ' impede(m)'; }
+          else if (c.aviso) { s = 'parcial'; info = c.aviso + ' aviso(s)'; }
+          else { s = 'ok'; info = dt(c.at || p.at); } }
+        else if (k === 'conferida') { const c = p.conferencia; act = 'conferir'; if (conferidaOk(p)) { s = 'ok'; info = dt(c.at); } else if (c) { s = 'parcial'; info = c.ok ? 'PDF desatualizado' : 'PDF com divergências'; } else if (st !== 'rascunho' || F) { s = 'off'; info = 'PDF não conferido'; } else info = 'conferir o PDF'; }
         else if (k === 'aprovacao') { const ea = estadoA(ap); act = 'aprovacao'; if (ea === 'aprovada' && !F && premissaMudou(ap, p.resumo)) { s = 'parcial'; info = 'perdeu a validade: ' + premissaMudou(ap, p.resumo); } else if (ea === 'aprovada') { s = ap.alvo && !ap.aplicadoEm && !F ? 'parcial' : 'ok'; info = s === 'ok' ? 'aprovada' : 'falta aplicar'; } else if (ea === 'reprovada') { s = 'parcial'; info = 'reprovada'; } else { s = 'parcial'; info = comQuem(ap); } }
         else if (k === 'cliente') { if (['enviada', 'negociacao', 'ganha', 'perdida'].includes(st) || F) { s = 'ok'; info = e.cliente ? dt(e.cliente.at) : ''; } else act = 'cliente'; }
         else if (perdida) { s = 'off'; info = k === 'baixa' ? 'perdida' : ''; }
@@ -4788,11 +4796,16 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         return { k, lb, s, info, act, obs: e[k] && e[k].obs };
       });
     }
-    const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial'); };
+    const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial' || x.s === 'bad'); };
     function etapasHtml(p) {
-      const L = etapas(p); const prox = L.find((x) => x.s === 'pend' || x.s === 'parcial');
-      return `<div class="etapas" style="--n:${L.length}">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
-        <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
+      const L = etapas(p);
+      // etapa não feita antes de uma já feita = pulada (–); depois = ainda não chegou (vazia)
+      let ultOk = -1; L.forEach((x, i) => { if (x.s === 'ok') ultOk = i; }); L.forEach((x, i) => { if (x.s === 'off' && i < ultOk) x.s = 'pulada'; });
+      // a próxima é a primeira em aberto depois da última concluída (as de trás continuam com o seu estado)
+      const aberta = (x) => x.s === 'pend' || x.s === 'parcial' || x.s === 'bad';
+      const prox = L.find((x, i) => i > ultOk && aberta(x)) || L.find(aberta);
+      return `<div class="etapas" style="--n:${L.length}">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' && x.s !== 'pulada' ? ' disabled' : ''}>
+        <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : x.s === 'bad' ? '!' : x.s === 'pulada' ? '–' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
     }
     async function salvarEtapa(p, k, val, desc) {
       await REG.patchProposta(p.id, (r) => { r.etapas = Object.assign({}, r.etapas || {}); if (val) r.etapas[k] = val; else delete r.etapas[k]; });
@@ -5100,7 +5113,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       if (st === 'perdida') return ['Perdida', 'bad']; if (F && (e.encerrada || F.execucao === 'encerrada')) return ['Encerrada', 'ok'];
       if (F) return ['Fechada', 'ok'];
       const ap = aprovDe(p.id); if (ap) { const e2 = estadoA(ap); if (e2 === 'pendente') return ['Aprovação ' + comQuem(ap), 'warn']; if (e2 === 'reprovada') return ['Desconto reprovado', 'bad']; if (premissaMudou(ap, p.resumo)) return ['Aprovação perdeu a validade', 'bad']; if (ap.alvo && !ap.aplicadoEm) return ['Desconto aprovado · falta aplicar', 'ok']; }
-      if (st === 'enviada' || st === 'negociacao') return ['Enviada ao cliente', 'warn']; return ['Rascunho', 'mute'];
+      if (st === 'enviada' || st === 'negociacao') return ['Enviada ao cliente', 'warn']; return ['Em aberto', 'mute'];
     }
     document.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-hnext]'); const pd = ev.target.closest('[data-hperdida]'); if (!b && !pd) return;

@@ -122,7 +122,7 @@ module.exports = {
 
     { t: 'h', x: 'Aba Documentos (emissão)' },
     { t: 'fig', id: '05-05' },
-    { t: 'p', x: 'A aba **Documentos** é a última etapa. Ela tem três cartões: **Situação e próximo passo** (a trilha Formação → PDF conferido → Enviada ao cliente → Fechada (baixa) → …, com o botão do próximo passo), **Documentos da proposta** (PDFs e a lista de documentos ligados, onde entra o PDF conferido) e **Revisões**. Antes de salvar, ela mostra "Salve a proposta para acompanhar as etapas." e "Salve a proposta para ter revisões.".' },
+    { t: 'p', x: 'A aba **Documentos** é a última etapa. Ela tem três cartões: **Situação e próximo passo** (a trilha Conferência ok → Finalizada → Enviada ao cliente → Fechada (baixa) → …, com o botão do próximo passo), **Documentos da proposta** (PDFs e a lista de documentos ligados, onde entra o PDF conferido) e **Revisões**. Antes de salvar, ela mostra "Salve a proposta para acompanhar as etapas." e "Salve a proposta para ter revisões.".' },
     { t: 'tut', titulo: 'Gerar o Memorial e a FCI', objetivo: 'Baixar os documentos para o financeiro.', quem: 'Qualquer pessoa com acesso à proposta. No modo local não há controle de acesso.', pre: ['Proposta com itens precificados.', 'Acesso à internet (o app baixa a biblioteca que monta o PDF e o Excel).'], passos: [
       'Abra a aba **Documentos** (ou a aba **Memorial**).',
       { x: 'Clique em **Memorial (PDF)**, **FCI (PDF)** ou **FCI (Excel)**.', fig: '05-05' },
@@ -140,7 +140,7 @@ module.exports = {
       { x: 'Arraste o PDF para "Solte aqui o PDF da proposta comercial" ou clique para escolher.', fig: '05-07' },
       'Leia o resultado. Tudo certo: "Tudo confere com a formação." e o PDF é salvo nos documentos da proposta. Com divergência: "N ponto(s) a corrigir", com a tabela O que / Na formação / No PDF.',
       'Corrija a proposta ou o PDF e confira de novo. Se a divergência estiver certa, clique em **As divergências estão certas: aceitar e salvar o PDF** e escreva o motivo.',
-    ], resultado: 'A situação passa a "conferida ✓ <data>" (ou "com ressalva") e o PDF aparece em Documentos da proposta. Na tela Início, a etapa "PDF conferido" fica marcada.', atencao: 'Se a proposta mudar depois, a situação vira "conferência desatualizada: a proposta mudou depois" e a Conferência central volta a pedir atenção.', dica: 'Um PDF escaneado (só imagem) pode dar "O PDF não tem texto legível.".' },
+    ], resultado: 'A situação passa a "conferida ✓ <data>" (ou "com ressalva") e o PDF aparece em Documentos da proposta. Na tela Início, a etapa "Finalizada" fica marcada.', atencao: 'Se a proposta mudar depois, a situação vira "conferência desatualizada: a proposta mudou depois" e a Conferência central volta a pedir atenção.', dica: 'Um PDF escaneado (só imagem) pode dar "O PDF não tem texto legível.".' },
     { t: 'nv', x: 'A leitura real de um PDF e o resultado da conferência não foram validados nas capturas: o leitor de PDF é baixado da internet na hora (pdf.js) e as capturas rodam sem acesso externo. O fluxo foi conferido no código (conferencia.js) e é coberto pelo teste conf_test da REV22.' },
   ],
   glossario: [

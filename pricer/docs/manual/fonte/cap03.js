@@ -88,7 +88,7 @@ module.exports = {
       clip: '.ctxh', pad: 10,
       marcas: [
         { sel: '.ctxh .ctx-tt h1', txt: 'Número da proposta e, abaixo, o cliente.', pos: 't' },
-        { sel: '.ctxh .ctx-tags', txt: 'Revisão atual ("Rev. 3 ▾": ver, comparar e restaurar revisões), botão Revisar e a situação (Não salva, Rascunho, Enviada…).', pos: 'r' },
+        { sel: '.ctxh .ctx-tags', txt: 'Revisão atual ("Rev. 3 ▾": ver, comparar e restaurar revisões), botão Revisar e a situação (Não salva, Em aberto, Enviada ao cliente, Aprovação com…, Fechada…).', pos: 'r' },
         { sel: '.ctx-kpis .k:nth-child(1)', txt: 'Valor total da proposta (com IPI).', pos: 't' },
         { sel: '.ctx-kpis .k:nth-child(2)', txt: 'Margem líquida e o mínimo da política; fica vermelha abaixo do mínimo.', pos: 't' },
         { sel: '.ctx-kpis .k:nth-child(3)', txt: 'Custo total e, ao lado, o número de itens.', pos: 't' },
@@ -254,3 +254,23 @@ module.exports = {
     ['AN (agente de negócio)', 'Terceiro que recebe comissão na proposta, além do vendedor.'],
   ],
 };
+
+// ---- trilha de etapas da proposta ----
+module.exports.conteudo.push(
+  { t: 'h', x: 'A trilha de etapas da proposta' },
+  { t: 'p', x: 'Cada proposta na lista da tela **Início** tem uma trilha de círculos, uma por etapa, e a **situação** ao lado do valor (Em aberto, Aprovação com …, Enviada ao cliente, Fechada, Encerrada, Perdida). A etapa seguinte à última concluída fica destacada em laranja, com o nome embaixo (no celular, só ela mostra o nome); no computador, passe o mouse sobre um círculo para ver o nome e a data.' },
+  { t: 'tab', cab: ['Etapa', 'Fica marcada (✓) quando'], lin: [
+    ['Conferência ok', 'A conferência da proposta, gravada ao salvar, não tem nada que impeça nem aviso pendente. Com avisos, mostra ◐ e "N aviso(s)"; com impeditivos, ! e "N impede(m)"'],
+    ['Aprovação', 'Só aparece se houve pedido de aprovação de valor target: ✓ quando aprovada e aplicada'],
+    ['Finalizada', 'O PDF da proposta foi conferido (aba Conferência) e continua valendo para a versão salva'],
+    ['Enviada ao cliente', 'A proposta foi marcada como enviada'],
+    ['Fechada (baixa)', 'Foi dada a baixa (ganha)'],
+    ['Financeiro avisado / Engenharia avisada', 'As áreas foram avisadas depois da baixa'],
+    ['Custo real lançado', 'O custo real cobre 100% da proposta'],
+    ['Encerrada', 'A execução foi encerrada'],
+  ] },
+  { t: 'tab', cab: ['Símbolo', 'Significado'], lin: [
+    ['✓ verde', 'Etapa concluída'], ['◐ amarelo', 'Em andamento ou com ressalva (avisos, aprovação esperando decisão, PDF desatualizado)'], ['! vermelho', 'Há algo que impede seguir'],
+    ['– tracejado', 'Etapa pulada: ficou para trás sem ser feita (por exemplo, a proposta foi enviada sem conferir o PDF)'], ['○ vazio', 'Ainda não chegou'],
+  ] },
+);

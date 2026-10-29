@@ -83,3 +83,13 @@ A execução de cada procedimento para as capturas do manual encontrou estes pro
 | Aviso só por linha, na aba Custos ("cotação vencida") | Faixa **N insumo(s) desta proposta com preço vencido** no topo das abas **Custos** e **Formação**, com o botão **Atualizar no cadastro**, que abre a lista de insumos filtrada só nos insumos daquela proposta |
 
 Regras: o aviso da proposta considera só as linhas com preço vindo do cadastro (não as digitadas na proposta) e não aparece em propostas com preços da época (enviadas, aprovadas, ganhas), que não usam o preço de hoje. Insumos sem nenhuma data (894 dos 938 do cadastro padrão, vindos da planilha REV21) aparecem como **sem data** e não contam como vencidos até receberem um preço novo. A regressão de cálculo continua com 0 diferença: nada disso muda valores, só datas e avisos.
+
+## 8. Trilha de etapas da proposta (tela Início)
+
+| Antes | Depois |
+|---|---|
+| 1ª etapa "Formação" sempre marcada, mesmo sem nada conferido | **Conferência ok**: ✓ só quando a conferência gravada ao salvar não tem impeditivos nem avisos; ◐ com avisos; ! com impeditivos |
+| 2ª etapa "PDF conferido" vazia, sem explicação, mesmo com a proposta já fechada | **Finalizada** (PDF conferido). Se ficou para trás sem ser feita, aparece **tracejada (–)** como etapa pulada |
+| Situação "Rascunho" | **Em aberto** (as demais seguem: Aprovação com…, Enviada ao cliente, Fechada, Encerrada, Perdida) |
+| A etapa destacada podia ser uma lá de trás (ex.: em proposta fechada, a conferência) | A destacada é a primeira em aberto **depois da última concluída** |
+| No celular, o nome da 1ª etapa saía cortado | Nome alinhado à borda |

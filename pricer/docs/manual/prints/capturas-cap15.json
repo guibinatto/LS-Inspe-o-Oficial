@@ -6,7 +6,7 @@
   "titulo": "Cabeçalho da proposta: revisão atual e botão Revisar",
   "vp": "desktop",
   "arquivo": "15-01-revisoes-cabecalho.png",
-  "data": "2026-10-29T11:34:18.643Z",
+  "data": "2026-10-29T11:50:18.224Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -37,7 +37,7 @@
   "titulo": "Revisar a proposta: o motivo fica registrado",
   "vp": "desktop",
   "arquivo": "15-02-revisoes-revisar.png",
-  "data": "2026-10-29T11:34:20.086Z",
+  "data": "2026-10-29T11:50:19.754Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -62,7 +62,7 @@
   "titulo": "Salvar uma proposta já enviada: nova revisão ou só correção",
   "vp": "desktop",
   "arquivo": "15-03-revisoes-salvar-enviada.png",
-  "data": "2026-10-29T11:34:24.889Z",
+  "data": "2026-10-29T11:50:24.504Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -99,7 +99,7 @@
   "titulo": "Lista de revisões: ver, restaurar, comparar",
   "vp": "desktop",
   "arquivo": "15-04-revisoes-lista.png",
-  "data": "2026-10-29T11:34:31.698Z",
+  "data": "2026-10-29T11:50:31.511Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -160,7 +160,7 @@
   "titulo": "Comparação entre a revisão 3 e a atual",
   "vp": "desktop",
   "arquivo": "15-05-revisoes-comparar.png",
-  "data": "2026-10-29T11:34:33.038Z",
+  "data": "2026-10-29T11:50:32.884Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -203,7 +203,7 @@
   "titulo": "Consultando uma revisão anterior (só leitura)",
   "vp": "desktop",
   "arquivo": "15-06-revisoes-consulta.png",
-  "data": "2026-10-29T11:34:34.305Z",
+  "data": "2026-10-29T11:50:34.198Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -240,7 +240,7 @@
   "titulo": "Aba Histórico da proposta: registro de tudo o que aconteceu com ela",
   "vp": "desktop",
   "arquivo": "15-07-revisoes-historico-proposta.png",
-  "data": "2026-10-29T11:34:37.834Z",
+  "data": "2026-10-29T11:50:37.932Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -277,7 +277,7 @@
   "titulo": "Configurações → Histórico: todas as alterações, com filtro e busca",
   "vp": "desktop",
   "arquivo": "15-08-revisoes-historico-geral.png",
-  "data": "2026-10-29T11:34:41.801Z",
+  "data": "2026-10-29T11:50:42.023Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -314,7 +314,7 @@
   "titulo": "Abrir → Propostas salvas: Excluir manda para a lixeira",
   "vp": "desktop",
   "arquivo": "15-09-revisoes-excluir.png",
-  "data": "2026-10-29T11:34:44.330Z",
+  "data": "2026-10-29T11:50:44.599Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -345,7 +345,7 @@
   "titulo": "Configurações → Backup e restauração → Lixeira",
   "vp": "desktop",
   "arquivo": "15-10-revisoes-lixeira.png",
-  "data": "2026-10-29T11:34:46.814Z",
+  "data": "2026-10-29T11:50:47.058Z",
   "ok": true,
   "problemas": [],
   "marcas": [

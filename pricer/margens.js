@@ -538,16 +538,23 @@
     });
 
     // ---------- etapas da proposta (página inicial) ----------
-    const ETAPAS = [['formacao', 'Formação'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Financeiro avisado'], ['engenharia', 'Engenharia avisada'], ['real', 'Custo real lançado'], ['encerrada', 'Encerrada']];
+    const ETAPAS = [['formacao', 'Conferência ok'], ['cliente', 'Enviada ao cliente'], ['baixa', 'Fechada (baixa)'], ['financeiro', 'Financeiro avisado'], ['engenharia', 'Engenharia avisada'], ['real', 'Custo real lançado'], ['encerrada', 'Encerrada']];
     const dt = (iso) => { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); } catch (e) { return ''; } };
     function etapas(p) {
       ensure(); const F = fechDe(p.id); const e = p.etapas || {}; const st = p.status || 'rascunho'; const perdida = st === 'perdida';
       const R = F ? realizado(F) : null; const ap = aprovDe(p.id);
-      const lista = ETAPAS.slice(); lista.splice(1, 0, ['conferida', 'PDF conferido']); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
+      const lista = ETAPAS.slice(); lista.splice(1, 0, ['conferida', 'Finalizada']); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
       return lista.map(([k, lb]) => {
         let s = 'pend', info = '', act = null;
-        if (k === 'formacao') { s = 'ok'; info = dt(p.at); }
-        else if (k === 'conferida') { const c = p.conferencia; act = 'conferir'; if (conferidaOk(p)) { s = 'ok'; info = dt(c.at); } else if (c) { s = 'parcial'; info = c.ok ? 'desatualizada' : 'divergências'; } else if (st !== 'rascunho' || F) { s = 'off'; info = 'não conferido'; } }
+        if (k === 'formacao') {
+          // 1ª etapa: a conferência da proposta (gravada ao salvar) sem nada que impeça ou peça tratamento
+          const c = p.checagem; act = 'conferir';
+          if (p.div === 'SPV' || p.facts) { s = 'ok'; info = dt(p.at); }
+          else if (!c) { if (st !== 'rascunho' || F) { s = 'ok'; info = dt(p.at); } else info = 'salve para conferir'; }
+          else if (c.imped) { s = 'bad'; info = c.imped + ' impede(m)'; }
+          else if (c.aviso) { s = 'parcial'; info = c.aviso + ' aviso(s)'; }
+          else { s = 'ok'; info = dt(c.at || p.at); } }
+        else if (k === 'conferida') { const c = p.conferencia; act = 'conferir'; if (conferidaOk(p)) { s = 'ok'; info = dt(c.at); } else if (c) { s = 'parcial'; info = c.ok ? 'PDF desatualizado' : 'PDF com divergências'; } else if (st !== 'rascunho' || F) { s = 'off'; info = 'PDF não conferido'; } else info = 'conferir o PDF'; }
         else if (k === 'aprovacao') { const ea = estadoA(ap); act = 'aprovacao'; if (ea === 'aprovada' && !F && premissaMudou(ap, p.resumo)) { s = 'parcial'; info = 'perdeu a validade: ' + premissaMudou(ap, p.resumo); } else if (ea === 'aprovada') { s = ap.alvo && !ap.aplicadoEm && !F ? 'parcial' : 'ok'; info = s === 'ok' ? 'aprovada' : 'falta aplicar'; } else if (ea === 'reprovada') { s = 'parcial'; info = 'reprovada'; } else { s = 'parcial'; info = comQuem(ap); } }
         else if (k === 'cliente') { if (['enviada', 'negociacao', 'ganha', 'perdida'].includes(st) || F) { s = 'ok'; info = e.cliente ? dt(e.cliente.at) : ''; } else act = 'cliente'; }
         else if (perdida) { s = 'off'; info = k === 'baixa' ? 'perdida' : ''; }
@@ -560,11 +567,16 @@
         return { k, lb, s, info, act, obs: e[k] && e[k].obs };
       });
     }
-    const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial'); };
+    const etapaPendente = (p, k) => { const x = etapas(p).find((y) => y.k === k); return x && (x.s === 'pend' || x.s === 'parcial' || x.s === 'bad'); };
     function etapasHtml(p) {
-      const L = etapas(p); const prox = L.find((x) => x.s === 'pend' || x.s === 'parcial');
-      return `<div class="etapas" style="--n:${L.length}">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' ? ' disabled' : ''}>
-        <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
+      const L = etapas(p);
+      // etapa não feita antes de uma já feita = pulada (–); depois = ainda não chegou (vazia)
+      let ultOk = -1; L.forEach((x, i) => { if (x.s === 'ok') ultOk = i; }); L.forEach((x, i) => { if (x.s === 'off' && i < ultOk) x.s = 'pulada'; });
+      // a próxima é a primeira em aberto depois da última concluída (as de trás continuam com o seu estado)
+      const aberta = (x) => x.s === 'pend' || x.s === 'parcial' || x.s === 'bad';
+      const prox = L.find((x, i) => i > ultOk && aberta(x)) || L.find(aberta);
+      return `<div class="etapas" style="--n:${L.length}">${L.map((x) => `<button class="etp ${x.s}${prox === x ? ' next' : ''}" data-etp="${esc(p.id)}|${x.k}" title="${esc(x.lb + (x.obs ? ' — ' + x.obs : '') + (x.act === 'marcar' || x.act === 'avisar' ? (x.s === 'ok' ? ' (clique para desmarcar)' : x.act === 'avisar' ? ' (avisar por e-mail)' : ' (clique para marcar)') : x.act === 'real' ? ' (abrir custo real)' : x.act === 'baixa' ? ' (dar baixa)' : x.act === 'cliente' ? ' (marcar como enviada)' : ''))}"${x.s === 'off' || !x.act && x.s !== 'ok' && x.s !== 'pulada' ? ' disabled' : ''}>
+        <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : x.s === 'bad' ? '!' : x.s === 'pulada' ? '–' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
     }
     async function salvarEtapa(p, k, val, desc) {
       await REG.patchProposta(p.id, (r) => { r.etapas = Object.assign({}, r.etapas || {}); if (val) r.etapas[k] = val; else delete r.etapas[k]; });
@@ -872,7 +884,7 @@
       if (st === 'perdida') return ['Perdida', 'bad']; if (F && (e.encerrada || F.execucao === 'encerrada')) return ['Encerrada', 'ok'];
       if (F) return ['Fechada', 'ok'];
       const ap = aprovDe(p.id); if (ap) { const e2 = estadoA(ap); if (e2 === 'pendente') return ['Aprovação ' + comQuem(ap), 'warn']; if (e2 === 'reprovada') return ['Desconto reprovado', 'bad']; if (premissaMudou(ap, p.resumo)) return ['Aprovação perdeu a validade', 'bad']; if (ap.alvo && !ap.aplicadoEm) return ['Desconto aprovado · falta aplicar', 'ok']; }
-      if (st === 'enviada' || st === 'negociacao') return ['Enviada ao cliente', 'warn']; return ['Rascunho', 'mute'];
+      if (st === 'enviada' || st === 'negociacao') return ['Enviada ao cliente', 'warn']; return ['Em aberto', 'mute'];
     }
     document.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-hnext]'); const pd = ev.target.closest('[data-hperdida]'); if (!b && !pd) return;
