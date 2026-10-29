@@ -1350,7 +1350,10 @@
   }
   const curvaOk = (d) => !!(d && window.PricerCurva && window.PricerCurva.temPontos(d));
   const logoCurva = () => (window.PRICER_PROPOSTA_ASSETS || { img: {} }).img['logo-cab'];
-  const fonteCurva = (d) => (d.pontos.vetor ? 'lida do gráfico da página ' + d.pontos.pag + ' (' + d.pontos.pts.length + ' pontos, com ' + ['eff', 'p', 'npsh'].filter((k) => d.pontos.pts.some((p) => typeof p[k] === 'number')).map((k) => ({ eff: 'rendimento', p: 'potência', npsh: 'NPSH' })[k]).concat(d.pontos.outros && d.pontos.outros.length ? [d.pontos.outros.length + ' outros diâmetros de rotor'] : []).join(', ') + ')'
+  // pontos de trabalho da formação do item (m³/h × mca de cada bomba): a curva usa o que cai sobre ela quando a folha não diz
+  const trabItem = (S) => { const L = []; for (let b = 23; b <= 26; b++) { const vz = val(S, 'K' + b), pr = val(S, 'L' + b); if (txt(S, 'C' + b) && typeof vz === 'number' && vz > 0 && typeof pr === 'number' && pr > 0) L.push({ q: vz, h: pr, uq: 'm³/h', uh: 'mca' }); } return L; };
+  const optCurva = (S, lang) => ({ lang, logo: logoCurva(), trabalho: trabItem(S) });
+  const fonteCurva = (d) => (d.pontos.ocr ? 'lida do gráfico da página ' + d.pontos.pag + ' com os números dos eixos reconhecidos na imagem (o PDF não tem texto): confira os valores na prévia (' : '') + (d.pontos.vetor ? (d.pontos.ocr ? '' : 'lida do gráfico da página ' + d.pontos.pag + ' (') + d.pontos.pts.length + ' pontos, com ' + ['eff', 'p', 'npsh'].filter((k) => d.pontos.pts.some((p) => typeof p[k] === 'number')).map((k) => ({ eff: 'rendimento', p: 'potência', npsh: 'NPSH' })[k]).concat(d.pontos.outros && d.pontos.outros.length ? [d.pontos.outros.length + ' outros diâmetros de rotor'] : []).join(', ') + ')'
     : d.pontos.chave ? 'pelos pontos informados na folha (shutoff, mínima, trabalho, nominal e máxima): só a curva de altura' : 'com os ' + d.pontos.pts.length + ' pontos da tabela da página ' + d.pontos.pag);
   const SEM_CURVA = 'Não consegui ler a curva deste arquivo (o PDF não traz o gráfico em vetor nem a tabela de pontos, ou é uma imagem/escaneado). A curva não entra na proposta: peça ao fabricante o PDF original da seleção.';
   function curvaSlotHtml(S, x) {
@@ -1362,13 +1365,13 @@
   const lendoCurva = {};
   async function curvaSlotLer(S) {
     if (lendoCurva[S]) return; lendoCurva[S] = true;
-    try { const file = await fdArquivo(S, 'curva'); if (!file) return; const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20));
+    try { const file = await fdArquivo(S, 'curva'); if (!file) return; const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20, toast));
       const x = Object.assign({}, (((pcGet().fd || {})[S]) || {}).curva || {}); x.dados = { fabricante: d.fabricante, secoes: d.secoes, pontos: d.pontos, pontosPag: d.pontosPag || {}, selecao: d.selecao || '' }; fdPut(S, 'curva', x); render();
     } catch (er) { toast('Não consegui ler a curva: ' + errMsg(er)); } finally { lendoCurva[S] = false; }
   }
   // lê só a curva de um arquivo já guardado (anexado antes da leitura do gráfico em vetor)
   async function relerCurva(S, k) {
-    try { const file = await fdArquivo(S, k); if (!file || !(/pdf/i.test(file.type) || /\.pdf$/i.test(file.name))) return null; const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20));
+    try { const file = await fdArquivo(S, k); if (!file || !(/pdf/i.test(file.type) || /\.pdf$/i.test(file.name))) return null; const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20, toast));
       return Object.assign({}, d, { pontosPag: d.pontosPag || {}, selecao: d.selecao || '' }); } catch (e) { return null; }
   }
   // folha do fabricante lida antes da leitura do gráfico: lê a curva de novo (uma vez) e guarda
@@ -1382,7 +1385,7 @@
   const prevCv = {};
   async function curvaPrevia(S, k, d) {
     const lang = pcGet().idioma || 'pt'; const ch = lang + '|' + JSON.stringify(d.pontos) + '|' + (d.secoes || []).length; const id = S + '|' + k;
-    if (!prevCv[id] || prevCv[id].ch !== ch) prevCv[id] = { ch, url: await window.PricerCurva.desenhar(d, { lang, logo: logoCurva() }) };
+    if (!prevCv[id] || prevCv[id].ch !== ch) prevCv[id] = { ch, url: await window.PricerCurva.desenhar(d, optCurva(S, lang)) };
     const el = document.querySelector(`img[data-cvprev="${CSS.escape(id)}"]`); if (el) el.src = prevCv[id].url;
   }
   // folha de dados completa do fabricante (ex.: Peerless Express): lida por posição do texto; tudo fica para conferir
@@ -1396,7 +1399,7 @@
     const pags = d.paginas.filter((q) => ['curva', 'desenho', 'anexo'].includes(q.tipo));
     const cmp = fabConfere(S, d);
     return `<div class="fdslot" style="margin-bottom:10px"><div class="lbl">Folha de dados completa do fabricante: <b>${esc(F0.nome || '')}</b> <button class="linkbtn" data-fdopen="${esc(F0.docId)}">abrir</button>${ro ? '' : ` · <button class="linkbtn" data-fdtira="${esc(S)}|fab">tirar</button> · <button class="linkbtn" data-fabler="${esc(S)}">ler de novo</button>`}</div>${intro}
-      <div class="kv pcro"><div>Fabricante e modelo</div><div>${esc([d.fabricante, mod].filter(Boolean).join(' · ') || '—')}</div><div>Lido</div><div>${d.paginas.length} páginas · ${d.secoes.length} seções · ${nOn} de ${nC} campos marcados · ${d.escopo.length} grupos de escopo · ${d.tabelas.length} tabela(s)</div></div>
+      <div class="kv pcro"><div>Fabricante e modelo</div><div>${esc([d.fabricante, mod].filter(Boolean).join(' · ') || '—')}</div><div>Lido</div><div>${(d.paginas || []).some((q) => q.ocr) ? '<span class="pill warn">texto reconhecido na imagem (o PDF não tem texto): confira tudo</span> ' : ''}${d.ocrErro ? '<span class="pill warn">o PDF não tem texto e o reconhecimento de imagem não funcionou aqui: ' + esc(d.ocrErro.slice(0, 80)) + '</span> ' : ''}${d.paginas.length} páginas · ${d.secoes.length} seções · ${nOn} de ${nC} campos marcados · ${d.escopo.length} grupos de escopo · ${d.tabelas.length} tabela(s)</div></div>
       ${cmp.length ? `<div class="banner warn" style="margin:8px 0">${cmp.map(esc).join('<br>')}</div>` : ''}
       ${(() => { const dc = curvaDados(d, F0.curvaPag); const cps = Object.keys(d.pontosPag || {}).map(Number);
         const sel = cps.length > 1 ? `<div class="f" style="max-width:360px;margin-top:6px"><label for="fabcv_${S.replace(/\W/g, '')}">Página da curva</label><select id="fabcv_${S.replace(/\W/g, '')}" data-fabcurva="${esc(S)}"${ro}>${cps.map((n) => `<option value="${n}"${F0.curvaPag === n ? ' selected' : ''}>página ${n}: ${esc((d.paginas.find((q) => q.n === n) || {}).titulo || '')}</option>`).join('')}</select></div>` : '';
@@ -1444,7 +1447,7 @@
   }
   async function fabLerArquivo(S, file, base) {
     toast('Lendo a folha de dados do fabricante…');
-    const pgs = await window.PricerLeitor.itensPdf(file, 40); const dados = window.PricerFabricante.ler(pgs);
+    const pgs = await window.PricerLeitor.itensPdf(file, 40, toast); const dados = window.PricerFabricante.ler(pgs);
     const cv = (dados.pontos && dados.pontos.pag ? dados.paginas.find((q) => q.n === dados.pontos.pag) : null) || dados.paginas.find((q) => q.tipo === 'curva' && !/Multi/i.test(q.titulo)) || dados.paginas.find((q) => q.tipo === 'curva');
     const pags = {}; for (const q of dados.paginas) if (q.tipo === 'desenho' && /Arrangement/i.test(q.titulo)) pags[q.n] = true;
     for (const g of dados.escopo || []) g.on = false;
@@ -1494,7 +1497,7 @@
         if (k === 'fab') { await fabLerArquivo(S, file, { docId, nome: file.name }); return; }
         if (k === 'curva') { let paginas = 1, pag = 1, dados = null;
           try { paginas = (await window.PricerLeitor.paginaImagem(file, 1, 0.3)).paginas;
-            if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) { const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20)); dados = { fabricante: d.fabricante, secoes: d.secoes, pontos: d.pontos, pontosPag: d.pontosPag || {}, selecao: d.selecao || '' };
+            if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) { const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20, toast)); dados = { fabricante: d.fabricante, secoes: d.secoes, pontos: d.pontos, pontosPag: d.pontosPag || {}, selecao: d.selecao || '' };
               const cv = d.pontos && d.pontos.pag ? { n: d.pontos.pag } : d.paginas.find((q) => q.tipo === 'curva'); if (cv) pag = cv.n; } } catch (er) { /* a página é escolhida depois */ }
           fdPut(S, k, { docId, nome: file.name, pag, paginas, dados: dados || { secoes: [], pontos: null, pontosPag: {} } });
           toast(curvaOk(curvaDados(dados, pag)) ? 'Curva lida (página ' + pag + '): confira a prévia no padrão LS Fire' : 'Arquivo guardado, mas não consegui ler a curva'); render(); return; }
@@ -1577,7 +1580,7 @@
     if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; let dc = curvaDados(cv.dados, cv.pag || 1);
       // curva anexada antes da leitura do gráfico (ou lida sem resultado): lê o arquivo de novo agora
       if (!curvaOk(dc)) { const d2 = await relerCurva(it.key, 'curva'); if (d2) { dc = curvaDados(d2, cv.pag || 1) || curvaDados(d2, null); if (curvaOk(dc)) { const x = Object.assign({}, cv, { dados: d2 }); fdPut(it.key, 'curva', x); } } }
-      try { if (curvaOk(dc)) curvas[it.key] = await window.PricerCurva.desenhar(dc, { lang, logo: logoCurva() }); else semCurva.push(it.key); } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
+      try { if (curvaOk(dc)) curvas[it.key] = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); else semCurva.push(it.key); } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
     let tr = (s) => s, aviso = ''; const fd = pc.estilo === 'fd';
     if (lang !== 'pt' || (fd && textosFabTodos(D, pcGet(), lang).length)) ({ tr, aviso } = await tradutor(D, pcGet(), lang));
     // padrão Folha de dados: curva recortada e páginas escolhidas da folha do fabricante, como imagem
@@ -1590,7 +1593,7 @@
           if (!curvaOk(dc)) { const d2 = await relerCurva(it.key, 'fab'); if (d2) { dc = curvaDados(d2, d2.pontos && d2.pontos.pag); if (curvaOk(dc)) fabMut(it.key, (G) => { G.dados.pontos = d2.pontos; G.dados.pontosPag = d2.pontosPag; G.curvaPag = d2.pontos.pag || G.curvaPag; });
             // folha guardada sem nada lido (leitura antiga ou que falhou): usa a leitura nova inteira
             if (!(F0.dados.secoes || []).length && (d2.secoes || []).length) { for (const g of d2.escopo || []) g.on = false; out.dados = d2; fabMut(it.key, (G) => { G.dados = d2; G.curvaPag = (d2.pontos && d2.pontos.pag) || G.curvaPag; }); } } }
-          if (curvaOk(dc)) out.curva = await window.PricerCurva.desenhar(dc, { lang, logo: logoCurva() }); else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
+          if (curvaOk(dc)) out.curva = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
         if (!fd) { if (out.curva) curvas[it.key] = out.curva; continue; }
         for (const q of F0.dados.paginas) if ((F0.pags || {})[q.n]) out.paginas[q.n] = { url: await L.recorte(file, q.n, null, 2.2), w: q.w, h: q.h };
         fab[it.key] = out; } catch (er) { toast('Não consegui preparar a folha do fabricante de ' + it.key + ': ' + errMsg(er)); } }
@@ -2706,7 +2709,7 @@
     const t = e.target; if (!t.dataset) return; const ds = t.dataset;
     if (ds.fdtup) { const insId = ds.fdtup; const file = t.files && t.files[0]; t.value = ''; if (!file || !canEd()) return;
       try { toast('Lendo a folha de dados…'); const uso = usoCad(insId);
-        const dados = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 30)); const fdTec = fdTecMarca(dados, uso);
+        const dados = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 30, toast)); const fdTec = fdTecMarca(dados, uso);
         const id = await SPV.salvarDoc({ tipo: FDTEC, nome: file.name, insumos: [insId], uso, fdTec, etapa: 'Cadastro', notas: 'Folha de dados técnica · ' + nomeCad(insId), itens: [] }, file);
         fdtLocal[id] = Object.assign({ id }, (SPV.docs() || []).find((x) => x.id === id) || { tipo: FDTEC, nome: file.name, insumos: [insId], uso, fdTec });
         fdtRefresh(insId); toast(fdTec.secoes.length ? 'Folha lida: confira o que vai para a proposta' : 'Folha guardada; não reconheci campos'); } catch (er) { toast(errMsg(er)); }

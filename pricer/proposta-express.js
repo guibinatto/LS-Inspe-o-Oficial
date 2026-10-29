@@ -93,10 +93,10 @@
     // pares rótulo : valor numa coluna
     const RK = 0.4; // parte da coluna para o rótulo
     function altPares(L, w) { let h = 0; for (const [k, v] of L) { F('normal', 6.9); const a = quebra(k, w * RK - 2).length; F('bold', 7); const b = quebra(String(v), w * (1 - RK) - 2).length; h += Math.max(a, b) * 3.05 + 1.25; } return h; }
-    function pares(L, xx, w) {
+    function pares(L, xx, w, rk = RK) {
       for (const [k, v] of L) {
-        F('normal', 6.9); const a = quebra(k, w * RK - 2); F('bold', 7); const b = quebra(String(v), w * (1 - RK) - 2); const h = Math.max(a.length, b.length) * 3.05 + 1.25;
-        F('normal', 6.9, CINZA); a.forEach((q, i) => T(q, xx + 1.4, y + 2.7 + i * 3.05)); F('bold', 7, [20, 20, 20]); b.forEach((q, i) => T(q, xx + w * RK, y + 2.7 + i * 3.05));
+        F('normal', 6.9); const a = quebra(k, w * rk - 2); F('bold', 7); const b = quebra(String(v), w * (1 - rk) - 2); const h = Math.max(a.length, b.length) * 3.05 + 1.25;
+        F('normal', 6.9, CINZA); a.forEach((q, i) => T(q, xx + 1.4, y + 2.7 + i * 3.05)); F('bold', 7, [20, 20, 20]); b.forEach((q, i) => T(q, xx + w * rk, y + 2.7 + i * 3.05));
         doc.setDrawColor(...LINHA); doc.setLineWidth(0.15); doc.line(xx, y + h, xx + w, y + h); y += h;
       }
     }
@@ -104,6 +104,8 @@
     function colunas(secs) {
       const cw = (LW - 5) / 2; const xs = [X0, X0 + cw + 5]; let ys = [y, y];
       for (const s of secs.filter((q) => q.pares.length)) {
+        // seção em largura total (ex.: condições comerciais do resumo)
+        if (s.larga) { y = Math.max(ys[0], ys[1]); if (y + 6.4 + altPares(s.pares.slice(0, 2), LW) > LIM) pagina(titulo); faixa(s.t, X0, LW); pares(s.pares, X0, LW, 0.2); ys = [y + 2.4, y + 2.4]; continue; }
         let L = s.pares.slice(); let c = s.col !== undefined ? s.col : ys[0] <= ys[1] ? 0 : 1;
         while (L.length) {
           y = ys[c]; const cabe = []; let h = 6.4; for (const p of L) { const hp = altPares([p], cw); if (y + h + hp > LIM) break; h += hp; cabe.push(p); }
@@ -172,7 +174,7 @@
       tabela(cab, D.itens.map((it, i) => [String(i + 1), qtdTxt(it.qtd), [E.codigos[it.key] || it.codigo, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)].filter(Boolean).join(' — '), numL(it.condicao || ''), comPreco ? din(it.total) : null].filter((v) => v !== null)), larg, { esq: [2, 3], centro: [1], negrito: [0] });
       if (comPreco) { precisa(12); doc.setFillColor(...LAR); doc.rect(X0, y, LW, 8, 'F'); F('bold', 9.4, [255, 255, 255]); T(x.valorTotal.toUpperCase(), X0 + 3, y + 5.4); T(din(D.total), X1 - 3, y + 5.4, { align: 'right' }); y += 11;
         if (usd) { const nt = r.moeda.replace('{taxa}', nf(4).format(Number(O.moeda.taxa))).replace('{data}', O.moeda.data ? r.moedaData.replace('{d}', I.dataLang(O.moeda.data, lang)) : ''); paragrafo(nt, { sz: 6.6, cor: CINZA }); } }
-      if (tem('condicoes')) { y += 2; colunas([{ t: x.cond, pares: [[x.pagamento, tr(E.pagamento) || '—'], [x.frete, tr(E.frete) || '—'], [x.prazo, prazoTxt().join(' · ') || r.combinar], [x.validade, I.dataLang(D.validade, lang) || '—']] }]); }
+      if (tem('condicoes')) { y += 2; colunas([{ t: x.cond, larga: true, pares: [[x.pagamento, tr(E.pagamento) || '—'], [x.frete, tr(E.frete) || '—'], [x.prazo, prazoTxt().join(' · ') || r.combinar], [x.validade, I.dataLang(D.validade, lang) || '—']] }]); }
       if (tem('conheca') && (M.somos || []).length) { y += 3; precisa(30); faixa(x.sobre, X0, LW); paragrafo((M.somos || [])[0], { sz: 7.4, lh: 3.5 }); }
       const selos = (O.img && O.img.selos) || AS.img.selos; if (selos && y < LIM - 26) { const p = doc.getImageProperties(selos); const w = 56, h = w * p.height / p.width; doc.addImage(selos, fmtImg(selos), X1 - w, LIM - h - 1, w, h, 'selos', 'FAST'); }
     }

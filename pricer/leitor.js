@@ -10,6 +10,9 @@
     pdfworker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
     exceljs: 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
     tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+    tessWorker: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+    tessCore: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
+    tessLang: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/',
   };
   const loaded = {};
   const load = (src) => loaded[src] || (loaded[src] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('Não consegui carregar ' + src.split('/').pop() + '. Verifique a internet.')); }; document.head.appendChild(s); }));
@@ -57,11 +60,34 @@
     }
     return { linhas, pages };
   }
+  // tudo do mesmo CDN (as páginas publicadas só carregam de CDNs conhecidos)
+  const tessOpts = (lang) => ({ workerPath: CDN.tessWorker, corePath: CDN.tessCore, langPath: CDN.tessLang + lang + '@1.0.0/4.0.0_best_int' });
+  let tessW = null;
+  const tessWorker = () => (tessW || (tessW = (async () => { await load(CDN.tesseract); return window.Tesseract.createWorker('eng', 1, tessOpts('eng')); })().catch((e) => { tessW = null; throw e; })));
+  // página sem texto (PDF "editado" com o texto virado desenho, ou escaneado): lê a imagem da página e devolve as palavras
+  // com a posição, no mesmo formato do texto do PDF (pontos a partir do topo); palavras próximas na linha formam um pedaço
+  async function itensOcr(pg) {
+    const E = 3; const vp = pg.getViewport({ scale: E }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise;
+    // modo "texto esparso": acha as palavras soltas (números dos eixos, rótulos) sem se confundir com a grade das tabelas e gráficos
+    const w = await tessWorker(); await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' }); const r = await w.recognize(c);
+    const ws = ((r.data && r.data.words) || []).filter((x) => String(x.text || '').trim() && (x.confidence == null || x.confidence > 30)).map((x) => ({ s: x.text, x0: x.bbox.x0, x1: x.bbox.x1, y0: x.bbox.y0, y1: x.bbox.y1 }));
+    // linhas: palavras com a base na mesma altura; pedaços: palavras vizinhas na linha (espaço pequeno)
+    ws.sort((a, b) => a.y1 - b.y1 || a.x0 - b.x0); const linhas = [];
+    for (const x of ws) { const hh = x.y1 - x.y0; const L = linhas.find((l) => Math.abs(l.y - x.y1) < Math.max(4 * E, hh * 0.45)); if (L) L.ws.push(x); else linhas.push({ y: x.y1, ws: [x] }); }
+    const out = [];
+    for (const L of linhas) { L.ws.sort((a, b) => a.x0 - b.x0); let cur = null;
+      for (const x of L.ws) { const hh = x.y1 - x.y0;
+        if (cur && x.x0 - cur.x1 < Math.max(4 * E, Math.min(hh, cur.hh) * 0.75)) { cur.s += ' ' + x.s; cur.x1 = x.x1; cur.hh = Math.max(cur.hh, hh); cur.y0 = Math.min(cur.y0, x.y0); cur.yb = Math.max(cur.yb, x.y1); continue; }
+        if (cur) out.push(cur); cur = { s: x.s, x0: x.x0, x1: x.x1, y1: L.y, hh, y0: x.y0, yb: x.y1 }; }
+      if (cur) out.push(cur); }
+    // yc: centro da caixa da palavra (mais preciso que a base estimada, para calibrar os eixos dos gráficos)
+    return out.map((q) => ({ x: q.x0 / E, y: q.y1 / E, yc: Math.round(((q.y0 + q.yb) / 2 / E) * 10) / 10, w: (q.x1 - q.x0) / E, h: Math.round((q.hh / E / 0.72) * 10) / 10, s: q.s.replace(/\s+/g, ' ').trim(), ocr: true }));
+  }
   async function ocr(images, onStatus) {
     await load(CDN.tesseract); const T = window.Tesseract; const linhas = [];
     for (let i = 0; i < images.length; i++) {
       onStatus && onStatus(`Lendo a imagem ${i + 1} de ${images.length} (reconhecimento de texto, pode levar ~30 s)…`);
-      const r = await T.recognize(images[i], 'por'); linhas.push(...String(r.data.text || '').split(/\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean));
+      const r = await T.recognize(images[i], 'por', tessOpts('por')); linhas.push(...String(r.data.text || '').split(/\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean));
     }
     return linhas;
   }
@@ -163,14 +189,16 @@
   }
   // texto de todas as páginas com posição (x e y a partir do topo, em pontos) e tamanho da fonte: base para ler
   // folhas de dados de fabricante em colunas, com faixas de seção
-  async function itensPdf(file, maxPag) {
+  async function itensPdf(file, maxPag, onStatus) {
     await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
-    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const out = [];
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const out = []; let nOcr = 0;
     for (let i = 1; i <= Math.min(pdf.numPages, maxPag || 30); i++) {
       const pg = await pdf.getPage(i); const vp = pg.getViewport({ scale: 1 }); const tc = await pg.getTextContent();
       // texto girado (ex.: título na margem da Sempa) é marcado: não tem altura de linha
       const itens = tc.items.filter((it) => it.str && it.str.trim()).map((it) => Object.assign({ x: it.transform[4], y: vp.height - it.transform[5], w: it.width, h: Math.abs(it.transform[3]) || it.height || 8, s: it.str.replace(/\s+/g, ' ').trim() }, Math.abs(it.transform[1]) > 0.01 ? { rot: true } : {}));
       const P = { n: i, w: vp.width, h: vp.height, itens };
+      // sem texto: reconhece a imagem da página (no máximo 6 páginas; a pessoa confere o que foi lido)
+      if (itens.map((x) => x.s).join('').length < 20 && nOcr < 6) { nOcr++; try { onStatus && onStatus('A página ' + i + ' não tem texto: lendo a imagem (pode levar ~20 s)…'); P.itens = await itensOcr(pg); P.ocr = true; } catch (e) { P.ocrErro = String((e && e.message) || e); } }
       try { P.vet = await vetoresPg(lib, pg, vp); } catch (e) { /* sem desenho vetorial: a curva sai dos pontos informados */ }
       out.push(P);
     }

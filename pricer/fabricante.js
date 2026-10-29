@@ -101,14 +101,16 @@
     for (const i of nums) { const k = Math.round((i.x + i.w) / 2); (porBorda[k] = porBorda[k] || []).push(i); }
     const col = Object.values(porBorda).sort((a, b) => b.length - a.length)[0]; if (!col || col.length < 6) return null;
     const xEixo = Math.max(...col.map((i) => i.x + i.w));
-    const ticks = col.slice().sort((a, b) => a.y - b.y).map((i) => ({ v: nr(i.s), y: snap(i.y - i.h * 0.35, hz, 3.5) }));
-    const grupos = []; for (const t of ticks) { const g = grupos[grupos.length - 1]; if (g && t.v < g[g.length - 1].v) g.push(t); else grupos.push([t]); }
+    const ticks = col.slice().sort((a, b) => a.y - b.y).map((i) => ({ v: nr(i.s), y: snap(i.yc != null ? i.yc : i.y - i.h * 0.35, hz, 3.5) }));
+    // um painel por sequência decrescente; um salto grande de espaçamento também separa (ex.: potência … 150 e NPSH 12 …)
+    const grupos = []; for (const t of ticks) { const g = grupos[grupos.length - 1]; const dy = g && g.length >= 2 ? (g[g.length - 1].y - g[0].y) / (g.length - 1) : null;
+      if (g && t.v < g[g.length - 1].v && !(dy && t.y - g[g.length - 1].y > dy * 1.6)) g.push(t); else grupos.push([t]); }
     // eixo x: a linha de números crescentes logo abaixo dos painéis
     const linhasX = {}; for (const i of nums) if (i.x > xEixo) { const k = Math.round(i.y); (linhasX[k] = linhasX[k] || []).push(i); }
     const rx = Object.values(linhasX).filter((L) => L.length >= 4).map((L) => L.sort((a, b) => a.x - b.x)).filter((L) => L.every((i, k) => !k || nr(i.s) > nr(L[k - 1].s))).sort((a, b) => b.length - a.length)[0];
     if (!rx) return null;
     // reta pelos números do eixo, tirando no máximo um número fora da linha
-    const ajusta = (P) => { const r = ajusta0(P); if (r.err === 0 || P.length < 4) return r; let pior = -1, e = -1; P.forEach(([x, y], i) => { const d = Math.abs(r.a * x + r.b - y); if (d > e) { e = d; pior = i; } }); const r2 = ajusta0(P.filter((_, i) => i !== pior)); return r2.err < r.err / 3 ? r2 : r; };
+    const ajusta = (P, n = 2) => { const r = ajusta0(P); if (r.err === 0 || P.length < 4 || !n) return r; let pior = -1, e = -1; P.forEach(([x, y], i) => { const d = Math.abs(r.a * x + r.b - y); if (d > e) { e = d; pior = i; } }); const r2 = ajusta(P.filter((_, i) => i !== pior), n - 1); return r2.err < r.err / 2 ? r2 : r; };
     const ajusta0 = (P) => { const n = P.length, mx = P.reduce((s, p) => s + p[0], 0) / n, my = P.reduce((s, p) => s + p[1], 0) / n; let sxx = 0, sxy = 0; for (const [x, y] of P) { sxx += (x - mx) * (x - mx); sxy += (x - mx) * (y - my); } const a = sxy / sxx; const b = my - a * mx; const err = Math.max(...P.map(([x, y]) => Math.abs(a * x + b - y))); return { a, b, err }; };
     const fx = ajusta(rx.map((i) => [snap(i.x + i.w / 2, vt, 3.5), nr(i.s)])); const passoX = Math.abs(nr(rx[1].s) - nr(rx[0].s)); if (!(fx.a > 0) || fx.err > passoX * 0.06) return null;
     const textoLinha = (y0, y1) => its.filter((i) => i.y >= y0 && i.y <= y1 && i.x >= xEixo - 2 && i.x < xEixo + 160 && /[A-Za-z%η]/.test(i.s)).sort((a, b) => a.y - b.y || a.x - b.x);
@@ -145,7 +147,8 @@
     const pts = series.h.map(([qq, h]) => { const o = { q: arr(Math.max(0, qq)), h: arr(h) }; for (const k of ['eff', 'p', 'npsh']) { const v = interp(series[k], qq); if (v !== undefined) o[k] = arr(v); } return o; }).filter((p, i, A) => !i || p.q > A[i - 1].q);
     const tq = its.find((i) => /^Q\s*[\[(]/.test(i.s) || /^(Flow|Vazão|Caudal)\s*[\[(]/i.test(i.s)); const uq = tq ? (tq.s.match(/[\[(]\s*([^\])]+?)\s*[\])]/) || [])[1] : '';
     const unid = { q: (uq || '').replace(/m3/i, 'm³') }; for (const pn of paineis) if (pn.u) unid[pn.k] = pn.u;
-    return { pag: pg.n, vetor: true, unid, pts, outros: outros.sort((a, b) => parseFloat(b.rot) - parseFloat(a.rot)) };
+    // números lidos por OCR: os diâmetros escritos na ponta dos tracejados não são confiáveis ("Ø430" vira "7430")
+    return Object.assign({ pag: pg.n, vetor: true, unid, pts, outros: pg.ocr ? [] : outros.sort((a, b) => parseFloat(b.rot) - parseFloat(a.rot)) }, pg.ocr ? { ocr: true } : {});
   }
   function ler(paginas) {
     const out = { fabricante: '', paginas: [], secoes: [], tabelas: [], escopo: [] };
@@ -156,7 +159,7 @@
     const vistos = new Set(); let identOk = false;
     const sec = (t, n) => { let s = out.secoes.find((x) => x.t === t); if (!s) { s = { t, pag: n, campos: [] }; out.secoes.push(s); } return s; };
     for (const pg of paginas) {
-      const T0 = tituloDe(pg); const tit = T0.t;
+      const T0 = pg.ocr ? { t: '', y: -99 } : tituloDe(pg); const tit = T0.t;
       // corta o gráfico que algumas folhas trazem embaixo dos dados (começa no aviso de aceitação do teste)
       const todas = linhas(pg).filter((r) => r.y > pg.h * 0.035 && r.y < pg.h - 36 && !RODAPE.test(junta(r.ts)));
       const ehEscopo = todas.some((r) => r.ts.length >= 2 && r.ts[0].s === 'Qty' && /^Description/.test(r.ts[1].s));
@@ -167,13 +170,16 @@
       const txtPg = pg.itens.map((i) => i.s).join(' ');
       const nPares = rows.filter((r) => r.ts.some((t) => /^:/.test(t.s))).length;
       const eixos = /\bQ\s*\[|\bH\s*\[\s*m|\[\s*m[³3]\s*\/\s*h\s*\]|Flow\s*-\s*US|NPSH\s*\[|\bP\s*\[\s*kW|\bQ\s*\(\s*(m[³3]|l\/s|gpm|US)|\bH\s*\(\s*(m|ft)\s*\)|NPSH\s*\(\s*(m|ft)\s*\)/i.test(txtPg);
-      const curva = /Curve|Curva|Kennlinie|Characteristic|Hydraulic/i.test(tit) || (eixos && nPares < 10 && pg.itens.length < 220);
+      // página de curva: pelo título, pelos eixos escritos ou, sem isso (ex.: texto lido por OCR), porque o gráfico em vetor calibra
+      const cvV = !ehEscopo && pg.vet ? curvasVetor(pg) : null;
+      const curva = /Curve|Curva|Kennlinie|Characteristic|Hydraulic/i.test(tit) || (eixos && nPares < 10 && pg.itens.length < 220) || !!cvV;
       const desenho = /Arrangement|Dimension|Drawing/i.test(tit) || (!tit && pg.itens.length < 120 && !/:/.test(txt));
       const tipo = escopo ? 'escopo' : curva ? 'curva' : desenho ? 'desenho' : 'dados';
       if (!out.pontos) out.pontos = acharPontos(rows, pg.n);
       // curva em vetor: lida em toda página de curva (a pessoa escolhe a página; a primeira lida é a padrão)
-      if (curva && pg.vet) { const cv = curvasVetor(pg); if (cv) { (out.pontosPag = out.pontosPag || {})[pg.n] = cv; if (!out.pontos) out.pontos = cv; } }
-      const P = { n: pg.n, titulo: tit || (desenho ? 'Desenho' : 'Página ' + pg.n), tipo, w: pg.w, h: pg.h };
+      if (curva && pg.vet) { const cv = cvV; if (cv) { (out.pontosPag = out.pontosPag || {})[pg.n] = cv; if (!out.pontos) out.pontos = cv; } }
+      const P = Object.assign({ n: pg.n, titulo: tit || (desenho ? 'Desenho' : 'Página ' + pg.n), tipo, w: pg.w, h: pg.h }, pg.ocr ? { ocr: true } : {});
+      if (pg.ocrErro && !out.ocrErro) out.ocrErro = pg.ocrErro;
       if (curva) {
         // área do gráfico: abaixo do aviso do fabricante até o eixo de vazão
         const ax = pg.itens.filter((i) => ((i.s === 'Flow' || /^Flow\s*-/.test(i.s)) && i.h >= 8.5) || /^Q\s*[\[(]/.test(i.s)).sort((a, b) => b.y - a.y)[0];
@@ -283,6 +289,10 @@
     }
     for (const s of out.secoes) s.campos = s.campos.filter((c) => c.k && (s.t !== 'Project' || String(c.v || '').trim())).map((c) => { delete c.pend; return c; });
     if (!out.pontos) out.pontos = pontosChave(out);
+    // unidades da curva que o gráfico não escreveu (ou o OCR não leu): as da própria folha (vazão, altura, potência)
+    if (out.pontos && out.pontos.vetor) { const U = out.pontos.unid = out.pontos.unid || {}; const C = []; for (const s of out.secoes) for (const c of s.campos) C.push(c);
+      const un = (re, reU) => { for (const c of C) if (re.test(c.k)) { const m = String(c.v).match(reU); if (m) return m[0]; } return ''; };
+      if (!U.q) U.q = (un(/^Flow/i, /m[³3*¥?]\s*\/\s*h|m[*¥?]h\b|USgpm|gpm|l\/s/i) || un(/./, /m[³3]\s*\/\s*h|m[*¥?]\s*\/?\s*h\b|USgpm/i) || '').replace(/^m.*h$/i, 'm³/h'); if (!U.h) U.h = un(/^Head/i, /\b(m|ft)\s*$/i) || 'm'; if (!U.p) U.p = un(/Power/i, /\b(kW|hp)\b/i); if (!U.eff) U.eff = '%'; }
     out.secoes = out.secoes.filter((s) => s.campos.length);
     for (const P of out.paginas) if (P.tipo === 'dados' && !out.secoes.some((s) => s.pag === P.n)) P.tipo = 'anexo';
     out.tabelas = out.tabelas.filter((t) => t.linhas.length >= 2);

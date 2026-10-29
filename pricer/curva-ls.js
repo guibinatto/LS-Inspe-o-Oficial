@@ -6,9 +6,9 @@
   'use strict';
   const LAR = '#E4650E', ESC = '#2F2F2F', TXT = '#3A3A3A', MUTED = '#7A7A7A', GRID = '#E6E6E6', EIXO = '#BDBDBD';
   const L = {
-    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)', vetor: 'Curvas traçadas pela LS Fire a partir do gráfico da folha de dados do fabricante', npsh: 'NPSH requerido', diam: 'Ø' },
-    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)', vetor: 'Curves plotted by LS Fire from the manufacturer datasheet chart', npsh: 'NPSH required', diam: 'Ø' },
-    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)', vetor: 'Curvas trazadas por LS Fire a partir del gráfico de la hoja de datos del fabricante', npsh: 'NPSH requerido', diam: 'Ø' },
+    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)', vetor: 'Curvas traçadas pela LS Fire a partir do gráfico da folha de dados do fabricante', npsh: 'NPSH requerido', diam: 'Ø', form: '(formação LS Fire)' },
+    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)', vetor: 'Curves plotted by LS Fire from the manufacturer datasheet chart', npsh: 'NPSH required', diam: 'Ø', form: '(LS Fire selection)' },
+    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)', vetor: 'Curvas trazadas por LS Fire a partir del gráfico de la hoja de datos del fabricante', npsh: 'NPSH requerido', diam: 'Ø', form: '(selección LS Fire)' },
   };
   const LOC = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' };
   let fonteOk = null;
@@ -48,7 +48,12 @@
     const topo = 190, base = H - 190, gap = series.length > 3 ? 58 : 64; const alt = base - topo - gap * (series.length - 1); const soma = series.reduce((a, s) => a + s[2], 0);
     let y = topo; const paineis = series.map(([k, nome, f]) => { const h = alt * f / soma; const p = { k, nome, y0: y, y1: y + h }; y += h + gap; return p; });
     // dados do ponto de trabalho e da NFPA 20 (só o que estiver na folha)
-    const qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0] || nums(campo(dados, /Operat/i, /^Flow$/))[0]; const hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0] || nums(campo(dados, /Operat/i, /^Head$/))[0];
+    let qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0] || nums(campo(dados, /Operat/i, /^Flow$/))[0]; let hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0] || nums(campo(dados, /Operat/i, /^Head$/))[0];
+    // sem o ponto de trabalho na folha: o da formação que cai sobre a curva (até 10% de diferença na altura), na unidade da curva
+    let trabForm = false;
+    if (!(qT && hT) && (o.trabalho || []).length) { const fq = /gpm/i.test(U.q) ? 4.402868 : /l\/s/i.test(U.q) ? 1 / 3.6 : 1; const ph = pts.filter((p) => typeof p.h === 'number'); const fh = monotona(ph.map((p) => p.q), ph.map((p) => p.h));
+      let best = null; for (const t of o.trabalho) { const q = t.q * fq; if (q < ph[0].q || q > ph[ph.length - 1].q) continue; const d = Math.abs(fh(q) - t.h) / t.h; if (d <= 0.1 && (!best || d < best.d)) best = { q, h: t.h, d }; }
+      if (best) { qT = best.q; hT = best.h; trabForm = true; } }
     const qN = nums(campo(dados, /NFPA/i, /^Flow, rated$/))[0], hN = nums(campo(dados, /NFPA/i, /^Head, rated$/))[0];
     const sh = nums(campo(dados, /NFPA/i, /^Head at shutoff/)), h150 = nums(campo(dados, /NFPA/i, /^Head at 150%/)), q150 = nums(campo(dados, /NFPA/i, /^Flow at 150%/))[0];
     for (const pn of paineis) {
@@ -85,7 +90,7 @@
       if (sh[0]) { ponto(sx(0), ph.sy(sh[0]), false); }
       if (qN && hN && Math.abs(qN - (qT || 0)) / qN > 0.01) { ponto(sx(qN), ph.sy(hN), false); rotulo(t.nfpa + ': ' + fq(qN) + ' · ' + fh(hN), sx(qN), ph.sy(hN) + 52, 'e'); }
       if (P.chave) for (const p of pts) { g.fillStyle = LAR; g.beginPath(); g.arc(sx(p.q), ph.sy(p.h), 9, 0, Math.PI * 2); g.fill(); }
-      if (qT && hT) { const xx = sx(qT), yy = ph.sy(hT); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, ph.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true); rotulo(t.trab + ': ' + fq(qT) + ' · ' + fh(hT), xx, yy + 54, P.chave ? 'e' : 'd'); }
+      if (qT && hT) { const xx = sx(qT), yy = ph.sy(hT); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, ph.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true); rotulo(t.trab + ': ' + fq(qT) + ' · ' + fh(hT) + (trabForm ? ' ' + t.form : ''), xx, yy + 54, P.chave ? 'e' : 'd'); }
     }
     // ponto de trabalho também nos outros painéis (valor lido na curva do fabricante)
     if (qT) for (const pn of paineis) { if (pn.k === 'h' || !pn.f) continue; const ps = pts.filter((p) => typeof p[pn.k] === 'number'); if (!ps.length || qT < ps[0].q || qT > ps[ps.length - 1].q) continue;

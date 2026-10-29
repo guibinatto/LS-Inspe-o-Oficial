@@ -189,3 +189,12 @@ Linha da proposta: os botões ficam num grupo alinhado — próximo passo (desta
 - Escopo no padrão da proposta LS Fire (PTC): título e linhas "Rótulo: valor" por componente (`escopoDoItem`), com valores da descrição padronizada e das características do cadastro, das outras linhas do item (escape, pré-aquecimento, acoplamento e painel local entram no motor diesel), da norma e do painel da descrição do equipamento e das folhas técnicas; padrões LS Fire em `ESC_STD`; partes internas em `ESC_INTERNO`; rótulos fixos em en/es em `ESC_TR`. Linha sem valor não entra.
 - Certificação no cadastro do insumo e do kit (`cert`: "UL", "FM" ou "UL / FM", marcada em caixas): sai como "Listado UL · Aprovado FM" (en "UL Listed · FM Approved") na linha do item no escopo.
 - Leitura da Sempa: título girado na margem, títulos de seção pela letra maior, rótulos de grupo (Flow / Head / Impeller D) aplicados às linhas recuadas, modelo da linha "… rpm / … m³/h / …".
+
+## 21. PDF sem texto, confirmações e resumo
+
+- `PricerLeitor.itensPdf(file, max, onStatus)`: página com menos de 20 caracteres de texto é lida por OCR (tesseract.js 5.1.1, modo de texto esparso, idioma inglês, tudo do cdn.jsdelivr.net), no máximo 6 páginas; palavras agrupadas em linhas e pedaços, com `yc` (centro da caixa) para calibrar os eixos. A página fica com `ocr: true`; falha fica em `ocrErro` e aparece no bloco.
+- `curvasVetor` também marca a página como curva quando o gráfico calibra (sem título legível); painéis separados também por salto de espaçamento; até dois números fora da reta; unidades que faltam vêm da folha; em OCR, sem os rótulos de diâmetro.
+- `PricerCurva.desenhar(dados, { trabalho })`: sem ponto de trabalho na folha, usa o da formação que cai sobre a curva (≤ 10%).
+- `dialogo.js` (`PricerDlg`): `confirmar`/`pedir` tentam a janela do navegador e, se ela voltar bloqueada na hora, perguntam num quadro do app; `ver` mostra documentos dentro do app.
+- Resumo da proposta (padrão Folha de dados): condições comerciais em largura total (`colunas([{ larga: true }])`).
+
