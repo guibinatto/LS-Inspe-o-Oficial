@@ -6,7 +6,7 @@
   "titulo": "Tela inicial e menu lateral",
   "vp": "desktop",
   "arquivo": "02-01-navegacao-tela-inicial.png",
-  "data": "2026-10-29T11:49:53.716Z",
+  "data": "2026-10-29T12:10:42.603Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -36,36 +36,30 @@
    },
    {
     "n": 5,
-    "txt": "Documentos: orçamentos, notas, contratos e desenhos ligados às propostas.",
-    "sel": "#nav [data-view=\"documentos\"]",
-    "ok": true
-   },
-   {
-    "n": 6,
     "txt": "Margens: propostas fechadas, indicadores e custo real.",
     "sel": "#nav [data-view=\"margens\"]",
     "ok": true
    },
    {
-    "n": 7,
+    "n": 6,
     "txt": "Cadastros: insumos, estruturas, kits, tabelas e regras.",
     "sel": "#nav [data-view=\"cadastro\"]",
     "ok": true
    },
    {
-    "n": 8,
+    "n": 7,
     "txt": "Configurações: histórico, responsáveis, backup e planilha.",
     "sel": "#nav [data-view=\"config\"]",
     "ok": true
    },
    {
-    "n": 9,
+    "n": 8,
     "txt": "Ajuda: guia de campos da planilha original.",
     "sel": "#nav [data-view=\"guia\"]",
     "ok": true
    },
    {
-    "n": 10,
+    "n": 9,
     "txt": "Recolher/expandir o menu lateral.",
     "sel": "#bSideCol",
     "ok": true
@@ -79,7 +73,7 @@
   "titulo": "Barra superior com a proposta aberta",
   "vp": "desktop",
   "arquivo": "02-02-navegacao-barra-superior.png",
-  "data": "2026-10-29T11:49:54.568Z",
+  "data": "2026-10-29T12:10:43.766Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -128,7 +122,7 @@
   "titulo": "Menu lateral recolhido (só ícones)",
   "vp": "desktop",
   "arquivo": "02-03-navegacao-menu-recolhido.png",
-  "data": "2026-10-29T11:49:56.734Z",
+  "data": "2026-10-29T12:10:45.664Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -153,7 +147,7 @@
   "titulo": "No celular: menu pelo botão ☰",
   "vp": "celular",
   "arquivo": "02-04-navegacao-celular.png",
-  "data": "2026-10-29T11:50:01.877Z",
+  "data": "2026-10-29T12:10:51.019Z",
   "ok": true,
   "problemas": [],
   "marcas": [

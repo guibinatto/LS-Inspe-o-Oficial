@@ -35,7 +35,10 @@ function ajudantes(p, vp) {
     exemplo: async () => { await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(900); },
     salvar: async () => { await p.click('#bSave'); await p.waitForTimeout(700); },
     menu: async () => { if (vp === 'celular') { await p.click('#bMenu'); await p.waitForTimeout(300); } },
-    nav: async (v) => { await h.menu(); await p.click(`#nav [data-view="${v}"]`); await p.waitForTimeout(600); },
+    nav: async (v) => {
+      // telas fora do menu lateral (ex.: Documentos) abrem pelos atalhos da tela Início
+      if (!(await p.$(`#nav [data-view="${v}"]`))) { await h.menu(); await p.click('#nav [data-view="inicio"]'); await p.waitForTimeout(500); await p.click(`#app [data-view="${v}"]`); await p.waitForTimeout(600); return; }
+      await h.menu(); await p.click(`#nav [data-view="${v}"]`); await p.waitForTimeout(600); },
     aba: async (n) => { await p.click(typeof n === 'number' ? `.ptab[data-step="${n}"]` : `.ptab[data-view="${n}"]`); await p.waitForTimeout(600); },
     cad: async (t) => { await p.click(`[data-cad="${t}"]`); await p.waitForTimeout(500); },
     esc: async () => { await p.keyboard.press('Escape'); await p.waitForTimeout(250); },

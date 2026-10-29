@@ -29,6 +29,6 @@ const L = __dirname + '/libs/';
   console.log('ok → ', await p.$eval('#confCard .banner', (x) => x.innerText), '|', await p.$eval('#confCard .pill', (x) => x.innerText));
   console.log('avisos/erros:', await p.$$eval('#confCard tr.cf-erro, #confCard tr.cf-aviso', (x) => x.map((e) => e.innerText.replace(/\s+/g, ' ').slice(0, 130))));
   await p.click('[data-view="inicio"]'); await p.waitForTimeout(300); console.log('home depois:', await p.$eval('.home tbody tr.click .hacts', (x) => x.innerText.replace(/\s+/g, ' ')), '|', await p.$eval('.home .etapas', (x) => x.innerText.replace(/\s+/g, ' ')));
-  await p.click('[data-view="documentos"]'); await p.waitForTimeout(400); console.log('documentos:', (await p.$eval('#app', (x) => x.innerText)).includes('prop_ok.pdf'));
+  await p.click('#nav [data-view="inicio"]'); await p.waitForTimeout(400); await p.click('#app [data-view="documentos"]'); await p.waitForTimeout(400); console.log('documentos:', (await p.$eval('#app', (x) => x.innerText)).includes('prop_ok.pdf'));
   console.log('erros', errs); await b.close();
 })();

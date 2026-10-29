@@ -380,7 +380,7 @@ details.card > summary .sub{font-family:var(--f-body);text-transform:none;letter
 /* início, SPV e documentos */
 .home .hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
 .home .hero h1{font-size:30px}
-.hsearch{flex:1 1 360px;max-width:620px}
+.hsearch{flex:1 1 360px;max-width:620px;display:flex;gap:8px;align-items:center}.hsearch input{flex:1 1 auto;min-width:0}.hsearch .btn{flex:0 0 auto}
 .hsearch input{width:100%;border:1px solid var(--line2);background:var(--card);border-radius:10px;padding:12px 14px;font-size:16px;box-shadow:var(--shadow)}
 .hsearch input:focus{border-color:var(--or);outline:none}
 .starts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -531,7 +531,6 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
     <button data-view="inicio" data-ico="house" title="Início"><span class="nl">Início</span></button>
     <button data-view="proposta" data-ico="file-text" title="Proposta aberta"><span class="nl">Propostas</span></button>
     <button data-view="pendencias" data-ico="clipboard-list" title="Pendências"><span class="nl">Pendências</span></button>
-    <button data-view="documentos" data-ico="folder-open" title="Documentos"><span class="nl">Documentos</span></button>
     <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens"><span class="nl">Margens</span></button>
     <button data-view="cadastro" data-ico="database" title="Cadastros"><span class="nl">Cadastros</span></button>
     <button data-view="config" data-ico="settings-2" title="Configurações"><span class="nl">Configurações</span></button>

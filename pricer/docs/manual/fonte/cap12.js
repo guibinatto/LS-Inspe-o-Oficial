@@ -43,7 +43,7 @@ module.exports = {
     await h.exemplo(); await h.salvar();
   },
   capturas: [
-    { id: '12-01', nome: 'documentos-biblioteca', titulo: 'Menu Documentos: área para soltar o arquivo, busca e filtro por tipo', clip: '#app > .stack', pad: 8,
+    { id: '12-01', nome: 'documentos-biblioteca', titulo: 'Tela Documentos: área para soltar o arquivo, busca e filtro por tipo', clip: '#app > .stack', pad: 8,
       prep: async (p, h) => { await h.nav('documentos'); await h.topo(); },
       marcas: [
         { sel: '#docDrop', txt: 'Solte aqui o arquivo (PDF, XML da NF-e, Excel ou foto) ou clique para escolher.', pos: 't' },
@@ -137,7 +137,7 @@ module.exports = {
   conteudo: [
     { t: 'p', x: 'Este capítulo mostra onde ficam os documentos da proposta (orçamentos de fornecedores, notas fiscais, pedidos de compra, contratos, desenhos e a própria proposta enviada), como ligá-los à proposta certa, onde ficam as cotações de cada fornecedor e como conferir o PDF da proposta comercial antes de enviá-lo ao cliente.' },
     { t: 'tab', cab: ['Onde', 'O que fica lá'], lin: [
-      ['Menu **Documentos**', 'Biblioteca com todos os documentos, de todas as propostas. É onde se anexa um arquivo e se liga a uma proposta, revisão, item e etapa.'],
+      ['Tela **Documentos** (aba Documentos da proposta → **Anexar ou ver todos os documentos**; ficha do insumo → **Todos os documentos**; tela Início → botão **Documentos**, ao lado da busca)', 'Biblioteca com todos os documentos, de todas as propostas. É onde se anexa um arquivo e se liga a uma proposta, revisão, item e etapa.'],
       ['Proposta → aba **Documentos**', 'Os documentos ligados àquela proposta (inclusive o PDF conferido) e os botões Memorial (PDF), FCI (PDF) e FCI (Excel).'],
       ['Proposta → aba **Conferência** → Conferência do PDF da proposta', 'Confere o PDF comercial com a formação. Se confere, o PDF é salvo nos documentos da proposta.'],
       ['**Cadastros** → Custos → **Fornecedores e fabricantes**', 'Lista de fornecedores montada a partir das cotações dos insumos e dos documentos. Não é um cadastro à parte: não há tela para criar fornecedor.'],
@@ -146,7 +146,7 @@ module.exports = {
     { t: 'aviso', x: 'No modo local, documentos e arquivos ficam só neste navegador e os arquivos anexados **não entram no backup** (só os dados do documento). No modo compartilhado eles ficam no banco da equipe e anexar exige acesso de Editor; quem não tem vê o aviso "Para anexar arquivos é preciso acesso de Editor ao app. Você ainda pode consultar os documentos."' },
 
     { t: 'h', x: 'A biblioteca de documentos' },
-    { t: 'p', x: 'O menu **Documentos** reúne tudo o que foi anexado. A busca procura no nome do arquivo, fornecedor, número, proposta, observações, itens do cadastro ligados e na descrição e código dos itens lidos do documento.' },
+    { t: 'p', x: 'O tela **Documentos** reúne tudo o que foi anexado. A busca procura no nome do arquivo, fornecedor, número, proposta, observações, itens do cadastro ligados e na descrição e código dos itens lidos do documento.' },
     { t: 'fig', id: '12-01' },
     { t: 'p', x: 'Ao soltar um arquivo, o app tenta ler sozinho fornecedor, número, data, valores e itens: o XML da NF-e é lido de forma exata; PDF com texto, Excel/CSV e foto (reconhecimento de texto) também são lidos no próprio navegador. A janela **Novo documento** abre já preenchida com o que foi lido, para você conferir e completar.' },
     { t: 'nv', x: 'Leitura de PDF, Excel e foto: nas capturas deste manual só foi exercitado o XML de NF-e (sem internet). A leitura de PDF, planilha e foto depende de bibliotecas baixadas na hora (pdf.js, ExcelJS, tesseract.js), e a leitura "com Claude" só existe no modo compartilhado quando a leitura local não acha itens. Quando nada é lido, a janela mostra "Não consegui ler esse arquivo. Preencha os dados à mão (XML da NF-e é o formato mais seguro)."' },
@@ -218,9 +218,9 @@ module.exports = {
     { t: 'nv', x: 'Nas capturas, o pdf.js foi servido de uma cópia local (o ambiente de captura não tem internet). Em uso normal o app baixa o pdf.js do cdnjs na primeira conferência; sem internet aparece "Não consegui ler o PDF: …". A leitura de PDF escaneado (reconhecimento de texto) não foi exercitada.' },
 
     { t: 'h', x: 'Aba Documentos da proposta' },
-    { t: 'p', x: 'Na proposta SEQ, a aba **Documentos** mostra a situação e o próximo passo, os botões **Memorial (PDF)**, **FCI (PDF)**, **FCI (Excel)** e **Ver todas as colunas**, a lista de documentos ligados (com tipo, número, fornecedor, revisão, item, etapa e data) e o quadro **Revisões**. Nesta aba não há botão de anexar: anexe pelo menu **Documentos** e escolha a proposta. Na proposta SPV, o quadro **Documentos desta proposta** tem o botão **+ Anexar documento**.' },
+    { t: 'p', x: 'Na proposta SEQ, a aba **Documentos** mostra a situação e o próximo passo, os botões **Memorial (PDF)**, **FCI (PDF)**, **FCI (Excel)** e **Ver todas as colunas**, a lista de documentos ligados (com tipo, número, fornecedor, revisão, item, etapa e data) e o quadro **Revisões**. Nesta aba não há botão de anexar: anexe pelo tela **Documentos** e escolha a proposta. Na proposta SPV, o quadro **Documentos desta proposta** tem o botão **+ Anexar documento**.' },
     { t: 'fig', id: '12-08' },
-    { t: 'nota', x: 'Na lista da aba Documentos da proposta o tipo aparece pelo código interno (por exemplo "nota", "proposta"), e não pelo nome usado no menu Documentos ("Nota fiscal", "Proposta enviada").' },
+    { t: 'nota', x: 'Na lista da aba Documentos da proposta o tipo aparece pelo código interno (por exemplo "nota", "proposta"), e não pelo nome usado na tela Documentos ("Nota fiscal", "Proposta enviada").' },
   ],
   glossario: [
     ['Documento', 'Arquivo anexado (orçamento, nota, pedido, contrato, desenho, proposta enviada) com os dados lidos e a ligação a proposta, revisão, item, etapa e insumos.'],

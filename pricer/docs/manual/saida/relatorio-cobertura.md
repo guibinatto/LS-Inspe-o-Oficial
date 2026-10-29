@@ -46,7 +46,6 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | Início | sim |
 | Proposta aberta | sim |
 | Pendências | sim |
-| Documentos | sim |
 | Margens | sim |
 | Cadastros | sim |
 | Configurações | sim |
@@ -209,7 +208,7 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 11-07 | 11-07-modelos-regras-lista.png | Regras de configuração: a regra salva em rascunho | desktop | validada |
 | 11-08 | 11-08-modelos-spv.png | Proposta SPV: Salvar esta proposta como modelo | desktop | validada |
 | 11-09 | 11-09-modelos-codificacao.png | Engenharia → Codificação: padrões e a tabela Configurações de bomba | desktop | validada |
-| 12-01 | 12-01-documentos-biblioteca.png | Menu Documentos: área para soltar o arquivo, busca e filtro por tipo | desktop | validada |
+| 12-01 | 12-01-documentos-biblioteca.png | Tela Documentos: área para soltar o arquivo, busca e filtro por tipo | desktop | validada |
 | 12-02 | 12-02-documentos-novo.png | Novo documento lido de um XML de NF-e, ligado à proposta, à revisão, ao item e à etapa | desktop | validada |
 | 12-03 | 12-03-documentos-lista.png | Documento salvo na lista, com a ligação à proposta | desktop | validada |
 | 12-04 | 12-04-documentos-ficha-insumo-fornecedores.png | Ficha do insumo: seção Fornecedores e cotações | desktop | validada |
@@ -313,7 +312,7 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | # | Verificação | Resultado |
 |---|---|---|
 | 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 69 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
-| 2 | Os menus existem? | Sim: os 8 itens do menu lateral citados no manual são os do arquivo index.html. |
+| 2 | Os menus existem? | Sim: os 7 itens do menu lateral citados no manual são os do arquivo index.html. |
 | 3 | Os caminhos de navegação estão corretos? | Sim: cada caminho foi percorrido pela ferramenta de captura antes de cada foto (os passos clicam nos elementos reais). |
 | 4 | Os prints correspondem aos procedimentos? | Sim: cada figura é gerada pelos passos do próprio tutorial. |
 | 5 | As marcações estão posicionadas corretamente? | 151 de 151 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |

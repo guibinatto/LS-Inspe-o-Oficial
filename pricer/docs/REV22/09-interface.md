@@ -8,7 +8,7 @@ Capturas antes e depois: `interface/antes/` e `interface/depois/` (computador 14
 
 | Antes | Depois |
 |---|---|
-| Barra superior com Início, Proposta, Itens, Memorial, Pendências, Documentos, Margens, Cadastro, Guia | Menu lateral com ícones: Início, Propostas, Pendências, Documentos, Margens, Cadastros, Configurações, Ajuda |
+| Barra superior com Início, Proposta, Itens, Memorial, Pendências, Documentos, Margens, Cadastro, Guia | Menu lateral com ícones: Início, Propostas, Pendências, Margens, Cadastros, Configurações, Ajuda (Documentos saiu do menu: abre pela proposta, pela ficha do insumo e pelo botão ao lado da busca da tela Início) |
 | Itens e Memorial apareciam mesmo sem proposta SEQ aberta (e numa SPV) | Itens e Memorial são abas **da proposta SEQ**: Dados gerais, Itens, Custos, Formação, Conferência, Memorial, Documentos, Histórico |
 | SPV e FACTS com as mesmas entradas do SEQ | SPV e FACTS mostram só o que se aplica: Proposta e Histórico |
 | Sistema (histórico, responsáveis, backup, planilha) dentro de Cadastro | Em **Configurações**; Cadastros fica só com os cadastros |
@@ -93,3 +93,7 @@ Regras: o aviso da proposta considera só as linhas com preço vindo do cadastro
 | Situação "Rascunho" | **Em aberto** (as demais seguem: Aprovação com…, Enviada ao cliente, Fechada, Encerrada, Perdida) |
 | A etapa destacada podia ser uma lá de trás (ex.: em proposta fechada, a conferência) | A destacada é a primeira em aberto **depois da última concluída** |
 | No celular, o nome da 1ª etapa saía cortado | Nome alinhado à borda |
+
+## 9. Documentos fora do menu principal
+
+A tela **Documentos** saiu do menu lateral, que ficou com 7 entradas. Nada foi apagado: a biblioteca continua igual e abre por três atalhos — **Anexar ou ver todos os documentos** (aba Documentos da proposta SEQ), **Todos os documentos** (ficha do insumo) e o botão **Documentos (N)** ao lado da busca da tela Início. Com uma proposta aberta, a tela mostra **Voltar à proposta**.

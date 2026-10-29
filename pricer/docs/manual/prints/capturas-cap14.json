@@ -6,7 +6,7 @@
   "titulo": "Janela Dar baixa: proposta fechada",
   "vp": "desktop",
   "arquivo": "14-01-margens-dar-baixa.png",
-  "data": "2026-10-29T11:49:54.087Z",
+  "data": "2026-10-29T12:11:59.701Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -61,7 +61,7 @@
   "titulo": "Janela Avisar Financeiro e Engenharia (abre logo após a baixa)",
   "vp": "desktop",
   "arquivo": "14-02-margens-avisar-areas.png",
-  "data": "2026-10-29T11:49:58.332Z",
+  "data": "2026-10-29T12:12:03.799Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -110,7 +110,7 @@
   "titulo": "Tela Custo real de uma proposta fechada (topo)",
   "vp": "desktop",
   "arquivo": "14-03-margens-custo-real-topo.png",
-  "data": "2026-10-29T11:50:00.651Z",
+  "data": "2026-10-29T12:12:05.762Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -165,7 +165,7 @@
   "titulo": "Conferência do custo real de um item, linha a linha",
   "vp": "desktop",
   "arquivo": "14-04-margens-custo-real-item.png",
-  "data": "2026-10-29T11:50:01.759Z",
+  "data": "2026-10-29T12:12:06.828Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -220,7 +220,7 @@
   "titulo": "Menu Margens: filtros, indicadores e gráficos",
   "vp": "desktop",
   "arquivo": "14-05-margens-painel.png",
-  "data": "2026-10-29T11:50:03.596Z",
+  "data": "2026-10-29T12:12:08.366Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -275,7 +275,7 @@
   "titulo": "Aba Fechadas",
   "vp": "desktop",
   "arquivo": "14-06-margens-fechadas.png",
-  "data": "2026-10-29T11:50:06.190Z",
+  "data": "2026-10-29T12:12:10.750Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -324,7 +324,7 @@
   "titulo": "Aba Em aberto",
   "vp": "desktop",
   "arquivo": "14-07-margens-em-aberto.png",
-  "data": "2026-10-29T11:50:07.168Z",
+  "data": "2026-10-29T12:12:11.715Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -355,7 +355,7 @@
   "titulo": "Painel da tela Início com \"Como cada número é calculado\" aberto",
   "vp": "desktop",
   "arquivo": "14-08-margens-painel-inicio.png",
-  "data": "2026-10-29T11:50:08.214Z",
+  "data": "2026-10-29T12:12:12.730Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -404,7 +404,7 @@
   "titulo": "Chips de filtro da lista de propostas (tela Início)",
   "vp": "desktop",
   "arquivo": "14-09-margens-chips-lista.png",
-  "data": "2026-10-29T11:50:10.441Z",
+  "data": "2026-10-29T12:12:14.699Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -465,7 +465,7 @@
   "titulo": "Janela Proposta perdida",
   "vp": "desktop",
   "arquivo": "14-10-margens-perdida.png",
-  "data": "2026-10-29T11:50:11.625Z",
+  "data": "2026-10-29T12:12:15.633Z",
   "ok": true,
   "problemas": [],
   "marcas": [

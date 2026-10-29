@@ -23,7 +23,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   await p.click('#bOpen'); await p.waitForTimeout(200); await p.keyboard.press('Escape'); await p.waitForTimeout(100); console.log('6 esc fechou:', await p.$eval('#overlay', (x) => x.innerHTML === ''));
   await p.keyboard.press('Control+s'); await p.waitForTimeout(800); console.log('7 ctrl+s:', await toast());
   // documento com revisão/item/etapa
-  await p.click('[data-view="documentos"]'); await p.waitForTimeout(300);
+  await p.click('#nav [data-view="inicio"]'); await p.waitForTimeout(400); await p.click('#app [data-view="documentos"]'); await p.waitForTimeout(300);
   console.log('8 docs page ok:', !!(await p.$('#docQ')));
   console.log('erros', errs); await b.close();
 })();

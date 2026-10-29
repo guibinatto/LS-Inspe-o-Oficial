@@ -1522,7 +1522,7 @@
       const docsP = (() => { try { return SPV.docsDaProposta(state.uid); } catch (e) { return []; } })();
       body = `<section class="card"><h2>Situação e próximo passo</h2>${sv ? MG.etapasHtml(sv) : '<p class="sub" style="margin:0">Salve a proposta para acompanhar as etapas.</p>'}
           ${nx ? `<div class="docbar" style="margin-top:8px"><button class="btn pri" data-hnext="${esc(sv.id)}|${nx.act}">${esc(nx.lb)}</button></div>` : ''}</section>
-        <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button></div>
+        <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button><button class="btn" data-view="documentos" data-ico="folder-open">Anexar ou ver todos os documentos</button></div>
           ${docsP.length ? `<div class="tw" style="margin-top:8px"><table class="t"><tbody>${docsP.map((d) => `<tr><td>${esc(d.nome || '')}<br><small class="sub">${esc([d.tipo, d.numero, d.fornecedor, d.rev != null && !isNaN(d.rev) ? 'rev. ' + d.rev : '', d.item, d.etapa].filter(Boolean).join(' · '))}</small></td><td class="sub">${esc(fmtAt(d.at))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:8px 0 0">Nenhum documento ligado ainda (o PDF conferido entra aqui).</p>'}</section>
         <section class="card"><h2>Revisões</h2><div class="docbar">${state.id ? '<button class="btn" data-revs>Ver e comparar revisões</button><button class="btn" data-revisar>Revisar (nova revisão)</button>' : '<span class="sub">Salve a proposta para ter revisões.</span>'}</div></section>
         ${nav(5, 0)}`;
@@ -2085,7 +2085,7 @@
       </div>
       ${!isNew ? ondeUsadoHtml(rec) : ''}
       ${!isNew ? `<h2>Histórico de preço</h2>${hpHtml}` : ''}
-      ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden></div>` : ''}
+      ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden><button class="btn sm" data-close data-view="documentos" data-ico="folder-open">Todos os documentos</button></div>` : ''}
       ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
     (o, close) => {
       fillNames(o);
