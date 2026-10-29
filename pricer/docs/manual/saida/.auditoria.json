@@ -25,6 +25,14 @@
    "Próximo: <etapa> →"
   ],
   [
+   5,
+   "Gerar proposta (PDF)"
+  ],
+  [
+   5,
+   "Cadastros → Cadastro geral → Modelo da proposta"
+  ],
+  [
    6,
    "lucro líquido mínimo de 40%"
   ],
@@ -282,8 +290,8 @@
   ]
  ],
  "faltaCad": [],
- "totFig": 153,
- "totOk": 153,
+ "totFig": 154,
+ "totOk": 154,
  "totTut": 88,
  "totNv": 31
 }

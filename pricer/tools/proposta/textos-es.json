@@ -1,0 +1,196 @@
+{
+  "somos": [
+    "Especialistas en soluciones de bombeo para sistemas de protección contra incendios. Sabemos que la bomba contra incendios es el corazón del sistema: es ella la que mantiene el agua en movimiento, asegura la presión y el caudal y garantiza que, en el momento crítico, todo el sistema responda con eficiencia.",
+    "Suministramos conjuntos de bombas contra incendios y otros equipos de seguridad con los más altos estándares de calidad y tecnología. Nuestra misión es suministrar soluciones completas, confiables e innovadoras, adaptadas a las necesidades de cada cliente. Lo logramos combinando un equipo de especialistas dedicados, proveedores confiables, procesos de calidad estandarizados y equipos totalmente compatibles con las regulaciones nacionales e internacionales."
+  ],
+  "solucoes": [
+    { "img": "sol-cmb", "t": "CMB", "x": "Los conjuntos motobomba son ideales para aplicaciones con infraestructura existente o que requieren flexibilidad en la instalación. Permiten la integración en campo, brindando versatilidad y reducción de los costos iniciales." },
+    { "img": "sol-skid", "t": "Skid", "x": "Los sistemas en skid integran todos los componentes de una casa de bombas en una base metálica única, lista y probada en fábrica. Este enfoque disminuye el tiempo de montaje, asegurando calidad y confiabilidad y reduciendo la necesidad de mano de obra especializada." },
+    { "img": "sol-container", "t": "Contenedor", "x": "La solución en contenedor es una evolución de la casa de bombas: un sistema encapsulado, diseñado y probado en fábrica. Lista para operar, ofrece la máxima protección a los equipos y puede instalarse rápidamente, incluso en lugares remotos o con infraestructura limitada." }
+  ],
+  "notaPagamento": "Los pagos vinculados a eventos contractuales (DTC-Dibujo Técnico Conceptual, APE-Aviso de Listo para Expedición u otros hitos definidos en la propuesta) vencen en la fecha en que ocurre el respectivo evento. Cualquier plazo adicional para el pago deberá estar expresamente previsto en la condición de pago contratada.",
+  "atencao": [
+    "Este documento tiene carácter informativo y no sustituye los Términos y Condiciones LS Fire",
+    "Se recomienda la lectura íntegra del instrumento contractual antes de la formalización del pedido."
+  ],
+  "comissionamento": {
+    "incluso": [
+      "Técnico autorizado LS FIRE en campo",
+      "Verificación de la instalación del equipo",
+      "Comisionamiento del conjunto motobomba",
+      "Puesta en marcha (start-up) asistida",
+      "Pruebas operativas y ajustes",
+      "Capacitación práctica del equipo",
+      "{diarias}",
+      "Atención en horario comercial",
+      "Programación sujeta a checklist aprobado",
+      "Ejecución dentro de un plazo de hasta 4 meses después del suministro",
+      "Gastos de traslado, hospedaje y alimentación incluidos en este período"
+    ],
+    "adicionais": [
+      "Jornadas adicionales",
+      "Atención fuera del horario comercial",
+      "Costos previamente acordados"
+    ],
+    "responsabilidades": [
+      "Instalación mecánica, eléctrica e hidráulica",
+      "Infraestructura y montaje",
+      "Sistema liberado y apto para pruebas"
+    ]
+  },
+  "notasSeq": [
+    "Nuestros servicios de soldadura se ejecutan de conformidad con la AWS D1.1, para estructuras metálicas; la ASME Sección VIII, División 1, para la fabricación de tanques metálicos; y la ASME B31.1 y la ASME B31.3, para sistemas de tuberías industriales.",
+    "Los conjuntos motobomba cumplen con la norma {norma}, {certificacao}.",
+    "Las curvas de las bombas se definen de conformidad con la NFPA 20.",
+    "La presión máxima en condición de Shut-off está limitada al 140% de la presión nominal.",
+    "[diesel] La definición del motor diésel considera la pérdida de potencia por altitud, de acuerdo con la NFPA 20.",
+    "[diesel] El dimensionamiento del tanque de combustible se realiza de acuerdo con la NFPA 20.",
+    "Los tableros de mando eléctricos se diseñan y fabrican de conformidad con la NR 10.",
+    "Los elementos giratorios están protegidos por cubiertas metálicas, en cumplimiento de la NR 12.",
+    "Queda excluida de este alcance de suministro la interconexión hidráulica y eléctrica de la Casa de Bombas con la red del cliente, así como la instalación del silenciador.",
+    "Quedan excluidos de este alcance de suministro los proyectos de ámbito civil y la infraestructura necesaria para alojar el Contenedor, el Skid o el Conjunto Motobomba.",
+    "No está incluida la aprobación ante los organismos ambientales competentes.",
+    "Queda excluido de nuestro alcance el suministro de variador de frecuencia.",
+    "La válvula eliminadora de aire o ventosa está fuera de nuestro alcance de suministro. En caso de que el tipo de bomba ofertada sea End Suction, conforme a los criterios de la NFPA 20, su utilización no es necesaria.",
+    "La alineación y la nivelación del conjunto motobomba, entre motor y bomba, se realizan en la fábrica de LS Fire y posteriormente son verificadas in situ por el técnico de LS Fire, después de la instalación realizada por el cliente o por el instalador responsable.",
+    "No son aplicables repuestos para montaje, comisionamiento y arranque.",
+    "Se aplica la garantía estándar LS Fire.",
+    "Cualquier ítem no descrito claramente en nuestra propuesta queda excluido de nuestro alcance de suministro.",
+    "[start-up] Comisionamiento y puesta en marcha (start-up) incluidos.",
+    "[sem start-up] Comisionamiento y puesta en marcha (start-up) no incluidos.",
+    "El plazo de entrega comienza a contarse a partir de la recepción del pedido formal, así como de la confirmación del pago del anticipo, cuando corresponda."
+  ],
+  "notasServico": [
+    "[contrato] La vigencia contractual será de {meses} meses, contemplando {visitas} visitas técnicas;",
+    "[campo] Las fechas de las visitas deberán acordarse previamente entre LS Fire y el contratante;",
+    "[campo] El cliente deberá proporcionar acceso seguro a la Casa de Bombas, así como las autorizaciones, permisos de trabajo, bloqueos, condiciones de SSMA y ventanas de parada necesarias para la ejecución de las actividades;",
+    "[contrato] El alcance contempla inspección, mantenimiento preventivo, capacitación operativa y prueba de desempeño según lo descrito en esta propuesta;",
+    "Los servicios correctivos, reparaciones, adecuaciones y sustituciones de componentes identificados durante las inspecciones no están incluidos, y podrán presupuestarse por separado mediante evaluación técnica;",
+    "[contrato] El Kit de Mantenimiento Preventivo contempla únicamente los materiales aplicables a los modelos de los motores instalados. Los eventuales componentes adicionales serán objeto de un presupuesto complementario;",
+    "[contrato] El cambio de aceite, filtros y refrigerante se realizará conforme a las especificaciones y recomendaciones aplicables a los equipos;",
+    "[contrato] La capacitación se realizará durante una de las visitas previstas, sujeta a la disponibilidad del equipo indicado por el cliente;",
+    "[contrato] Para la realización de la prueba de desempeño, el sistema deberá estar operativo y contar con disponibilidad de agua suficiente durante todo el período del ensayo;",
+    "[contrato] El cliente deberá garantizar condiciones adecuadas para la circulación, el retorno o el descarte del agua utilizada durante la prueba de desempeño;",
+    "[contrato] En caso de que las condiciones de la instalación impidan obtener los puntos necesarios para el levantamiento de la curva de la bomba, esta limitación se registrará en el informe técnico;",
+    "[contrato] La comparación de desempeño se realizará con base en la curva nominal del fabricante, cuando esta esté disponible y sea compatible con el equipo instalado;",
+    "[contrato] El resultado de la prueba de desempeño representa las condiciones del equipo y de la instalación en el momento de la ejecución del ensayo;",
+    "La calibración, reparación o sustitución de instrumentos existentes no están incluidas, salvo cuando se describan expresamente en esta propuesta;",
+    "[contrato] La inspección de las tuberías, válvulas, tanque de combustible, ventilación, drenaje y demás componentes de la Casa de Bombas se realizará de forma visual y funcional, dentro de los límites de acceso disponibles;",
+    "No están incluidos ensayos destructivos, desmontajes completos, evaluaciones estructurales, servicios civiles ni adecuaciones hidráulicas y eléctricas;",
+    "La ART se emitirá exclusivamente para los servicios ejecutados por LS Fire y contemplados en esta propuesta;",
+    "[contrato] El registro en el RedBook y los informes técnicos se elaborarán con base en las condiciones verificadas durante cada atención;",
+    "[contrato] Las eventuales irregularidades identificadas serán clasificadas y presentadas al cliente para su seguimiento y la definición de las acciones necesarias;",
+    "[contrato] La identificación de una irregularidad no implica su corrección automática dentro de este contrato;",
+    "[contrato] La ejecución de las inspecciones y mantenimientos preventivos no elimina la necesidad de las verificaciones y pruebas rutinarias que sean responsabilidad del propietario u operador de la instalación;",
+    "[campo] En caso de indisponibilidad del equipo, falta de agua, imposibilidad de acceso, falta de autorización o cualquier condición que impida la ejecución de la actividad programada, deberá acordarse una nueva fecha entre las partes;",
+    "Cualquier material, servicio o actividad no descrito claramente en esta propuesta deberá considerarse fuera del alcance del suministro.",
+    "Este valor solo es válido para estas condiciones de pago; en caso de cambio de las condiciones de pago, LS Fire deberá revisar los valores."
+  ],
+  "observacoesServico": [
+    "GARANTÍA DE LOS SERVICIOS – 90 DÍAS: La garantía de los servicios será de 90 (noventa) días, limitada a vicios de ejecución comprobadamente atribuibles a LS Fire;",
+    "JORNADAS ADICIONALES: La propuesta contempla únicamente las jornadas previstas en el alcance. En caso de que el técnico deba permanecer más allá del período contratado, las jornadas adicionales se cobrarán por separado, por un valor de R$ 4.000,00 (cuatro mil reales) por jornada, más los eventuales gastos adicionales;",
+    "HORARIO DE TRABAJO: Los servicios se realizarán en horario comercial, de lunes a viernes, de 08:00 a 18:00, con 1 (una) hora de intervalo para el almuerzo. Los trabajos realizados fuera de este período deberán autorizarse previamente y podrán generar costos adicionales;",
+    "ACCESO Y CONDICIONES DE TRABAJO: La contratante deberá proporcionar acceso seguro al equipo, condiciones adecuadas para la ejecución de los servicios y, cuando sea necesario, apoyo local para el equipo técnico;",
+    "SERVICIOS ADICIONALES / PROBLEMAS IDENTIFICADOS: Cualquier servicio no previsto en el alcance, incluidas reparaciones, sustitución de componentes o actividades adicionales identificadas durante la ejecución, será informado previamente a la contratante y presupuestado por separado;",
+    "CONDICIONES PREEXISTENTES: LS Fire no se responsabiliza por problemas preexistentes, interferencias de terceros o condiciones de la instalación que impidan o dificulten la ejecución de los servicios según lo previsto inicialmente;",
+    "TRASLADO, HOSPEDAJE Y ALIMENTACIÓN: Los gastos de traslado, hospedaje y alimentación de los técnicos están contemplados dentro del período y de las condiciones previstas en el alcance. En caso de que sea necesario extender la permanencia del equipo técnico por motivos no atribuibles a LS Fire, los gastos adicionales resultantes se cobrarán por separado;",
+    "LIMITACIONES DE LA GARANTÍA: La garantía de los servicios no contempla fallas derivadas de intervenciones de terceros, modificaciones posteriores en la instalación, operación inadecuada del equipo o falta de mantenimiento adecuado."
+  ],
+  "pecas": {
+    "escopo": [
+      "Suministro de piezas, materiales y componentes según los ítems, cantidades y especificaciones descritos en la presente propuesta comercial, destinados a atender la solicitud presentada por el cliente.",
+      "Los ítems se suministrarán de acuerdo con las especificaciones disponibles, pudiendo contemplar piezas originales, similares o equivalentes, según se indique individualmente en la propuesta.",
+      "Cuando corresponda, la atención podrá contemplar servicios, alquileres, soporte técnico o capacitaciones, siempre que estén expresamente descritos en el presupuesto."
+    ],
+    "notas": [
+      "Los ítems relacionados en la propuesta corresponden a las piezas y materiales previstos para el suministro;",
+      "El suministro se realizará según las cantidades y especificaciones descritas en el presupuesto;",
+      "Las eventuales modificaciones de fabricante, modelo o especificación estarán sujetas a disponibilidad y aprobación previa;",
+      "La disponibilidad y el plazo de entrega de los ítems estarán sujetos a las condiciones de stock y de suministro;",
+      "Las necesidades adicionales identificadas después de la aprobación de la propuesta no están contempladas y se evaluarán por separado;",
+      "La aplicación, instalación o sustitución de las piezas no está incluida, salvo cuando se indique expresamente en el alcance."
+    ],
+    "desvios": [
+      "No están incluidas piezas, materiales o componentes que no estén expresamente relacionados en la propuesta;",
+      "Los eventuales ítems adicionales necesarios para la ejecución o el funcionamiento del conjunto se presentarán por separado;",
+      "Las modificaciones de cantidad o especificación solicitadas después de la aprobación podrán generar una revisión de valores y plazo;",
+      "Los gastos o actividades no previstos en el alcance se considerarán aparte, mediante aprobación."
+    ],
+    "exclusoes": [
+      "Cualquier ítem no descrito claramente en la propuesta queda excluido del alcance."
+    ]
+  },
+  "prazos": {
+    "intro": "El plazo total de entrega se compone del plazo de fabricación (indicado en la propuesta) más el tiempo de transporte hasta el destino. El cómputo se inicia después del cumplimiento íntegro de las condiciones de inicio del pedido.",
+    "siglas": [
+      ["DAPC", "Días calendario después de la Orden de Compra", "Inicio del cómputo del plazo de fabricación"],
+      ["DAE", "Días calendario después de la Expedición del equipo", "Plazo de entrega efectiva en el destino"],
+      ["ARDA", "Después de la Recepción de los Dibujos Aprobados", "Cuando se exige la aprobación previa del comprador, suspende el cómputo del DAPC"]
+    ],
+    "inicio": [
+      "Orden de Compra (OC) formalizada y firmada",
+      "Aprobación de la documentación técnica por parte del comprador",
+      "Confirmación del pago del anticipo (si corresponde)",
+      "Resolución de pendientes técnicos y comerciales"
+    ],
+    "suspensao": [
+      "Pendiente de aprobación previa (activa el cómputo en ARDA)",
+      "Atraso en el pago de cuotas",
+      "Falta de respuesta a solicitudes formales",
+      "Modificaciones de alcance después del inicio de la fabricación",
+      "Eventos de fuerza mayor"
+    ],
+    "recebimento": "RECEPCIÓN: En el acto de la recepción, el CLIENTE debe verificar los bultos y la integridad de los embalajes. Cualquier avería visible debe registrarse en el comprobante de entrega del transportista y comunicarse a LS Fire dentro de las 24 horas, con registro fotográfico. La ausencia de observaciones imposibilita la activación del seguro de transporte."
+  },
+  "escopoDocs": {
+    "cab": ["Entregable", "Plazo (días) (N5)", "Base del Plazo", "Sujeto a Penalidad (N3)", "Requiere Aprobación Previa (N4)", "Tipo de Entrega", "Forma parte del Manual IOM"],
+    "grupos": [
+      ["DOCUMENTOS TÉCNICOS Y COMERCIALES", [
+        ["Dibujo Técnico Ejecutivo (DTE)", "hasta 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Databook del Suministro", "hasta 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Tabla de Cargas Eléctricas", "hasta 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Proyecto Eléctrico de Control", "hasta 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Curva de Desempeño de la Bomba (Q-H / Q-BHP / Q-η)", "hasta 60", "DAPC", "No", "No", "DIG", "No"]
+      ]],
+      ["FICHAS TÉCNICAS Y CATÁLOGOS DE COMPONENTES", [
+        ["Ficha Técnica de la Bomba (Datasheet)", "hasta 60", "DAPC", "No", "No", "DIG", "No"],
+        ["[eletrica] Catálogo Dimensional del Motor Eléctrico", "hasta 60", "DAPC", "No", "No", "DIG", "No"],
+        ["[diesel] Catálogo / Manual Técnico del Motor Diésel", "hasta 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Hoja de Datos del Tablero de Control", "hasta 60", "DAPC", "No", "No", "DIG", "No"]
+      ]]
+    ],
+    "basePrazo": [
+      "DAPC - Días calendario después de la recepción de la Orden de Compra",
+      "DART - Días calendario después de la realización de los ensayos",
+      "DAE - Días calendario después de la expedición del equipo",
+      "ARDA - Después de la recepción de los dibujos aprobados por el cliente"
+    ],
+    "tipoEntrega": [
+      "DIG - Archivo digital en formato PDF — estándar LS Fire",
+      "IMP - Ejemplar impreso (hard copy)",
+      "IOM - Manual de Instalación, Operación y Mantenimiento",
+      "DWG - Archivo editable AutoCAD (.dwg) — disponible para dibujos de ingeniería",
+      "EDT - Archivo editable (Excel / Word) — hojas de datos y documentos técnicos",
+      "CLT - Formato / estándar del cliente — previo suministro de la plantilla y acuerdo previo"
+    ],
+    "adicionais": [
+      "Documentos adicionales no listados en este índice",
+      "Documentación en el formato estándar del cliente",
+      "Encuadernaciones adicionales",
+      "Dictámenes técnicos, certificaciones e informes especiales no previstos en el alcance contratado",
+      "Para cualquier entregable no listado en este índice, consultar a LS Fire para su evaluación y cotización",
+      "Las reuniones técnicas (presenciales o por videoconferencia) no están incluidas en el alcance estándar, salvo acuerdo previo registrado en la propuesta. Ejemplos: Kickoff del proyecto, reuniones de seguimiento, revisión y aprobación de documentos, presentación técnica del proyecto y alineaciones comerciales."
+    ],
+    "notas": [
+      "N1 — \"Si aplica\" indica que la emisión del entregable está condicionada a uno o más de los siguientes factores: tipo y configuración del equipo suministrado; ítems expresamente contratados en el alcance; exigencias de la norma técnica aplicable al producto; o estándar de suministro LS Fire. La definición de aplicabilidad es establecida por LS Fire o según acuerdo previo registrado en la propuesta comercial.",
+      "N2 — Todos los entregables se emiten en el formato estándar LS Fire (PDF), salvo acuerdo formal en contrario.",
+      "N3 — Las penalidades de plazo, cuando correspondan, se negocian y registran en la propuesta comercial.",
+      "N4 — En caso de que cualquier entregable requiera aprobación previa, el plazo de expedición del equipo pasa a ser ARDA.",
+      "N5 — Plazos en días hábiles. Cuando exista un documento certificado por un subproveedor, prevalece el mayor entre el plazo contractual y el plazo del subproveedor más 20 días hábiles.",
+      "* — El Manual IOM se emite en Dig. + 1 ejemplar Imp. Copias adicionales bajo consulta.",
+      "** — El Databook se emite preferentemente en formato digital (Dig.). La versión impresa (Imp.) puede suministrarse mediante solicitud y acuerdo previo registrado en la propuesta.",
+      "N6 — Los dictámenes técnicos y certificaciones especiales se emiten exclusivamente cuando son aplicables al tipo de equipo suministrado y mediante solicitud formal del cliente. Los plazos y condiciones deben consultarse con LS Fire antes de la contratación.",
+      "Las reemisiones solicitadas por el comprador se cobran según la tabla vigente, excepto en caso de error atribuible a LS Fire"
+    ]
+  }
+}

@@ -6,7 +6,7 @@
   "titulo": "Aba Memorial: título e documentos para o financeiro",
   "vp": "desktop",
   "arquivo": "05-01-memorial-cabecalho.png",
-  "data": "2026-10-29T16:59:14.754Z",
+  "data": "2026-10-29T17:48:10.992Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -43,7 +43,7 @@
   "titulo": "Memorial do exemplo: custos, impostos, comissão e margem",
   "vp": "desktop",
   "arquivo": "05-02-memorial-custos-margem.png",
-  "data": "2026-10-29T16:59:15.855Z",
+  "data": "2026-10-29T17:48:12.098Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -92,7 +92,7 @@
   "titulo": "Memorial do exemplo: preços, IPI, origem e demonstrativo",
   "vp": "desktop",
   "arquivo": "05-03-memorial-precos-demonstrativo.png",
-  "data": "2026-10-29T16:59:16.403Z",
+  "data": "2026-10-29T17:48:12.613Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -141,7 +141,7 @@
   "titulo": "Fim do Memorial: linhas de conferência e a nota de cálculo",
   "vp": "desktop",
   "arquivo": "05-04-memorial-notas.png",
-  "data": "2026-10-29T16:59:16.916Z",
+  "data": "2026-10-29T17:48:13.137Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -178,7 +178,7 @@
   "titulo": "Aba Documentos (proposta salva)",
   "vp": "desktop",
   "arquivo": "05-05-memorial-aba-documentos.png",
-  "data": "2026-10-29T16:59:17.390Z",
+  "data": "2026-10-29T17:48:13.625Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -221,7 +221,7 @@
   "titulo": "Memorial (PDF) sem acesso à internet: aviso do app",
   "vp": "desktop",
   "arquivo": "05-06-memorial-pdf-sem-internet.png",
-  "data": "2026-10-29T16:59:20.249Z",
+  "data": "2026-10-29T17:48:16.662Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -246,7 +246,7 @@
   "titulo": "Conferência do PDF da proposta (aba Conferência)",
   "vp": "desktop",
   "arquivo": "05-07-memorial-conferencia-pdf.png",
-  "data": "2026-10-29T16:59:21.641Z",
+  "data": "2026-10-29T17:48:18.037Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -277,7 +277,7 @@
   "titulo": "Bloco FCI do item 01",
   "vp": "desktop",
   "arquivo": "05-08-memorial-item-fci.png",
-  "data": "2026-10-29T16:59:22.731Z",
+  "data": "2026-10-29T17:48:19.161Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -326,38 +326,50 @@
   "titulo": "Aba Documentos: cartão Proposta técnica e comercial",
   "vp": "desktop",
   "arquivo": "05-09-proposta-ptc-cartao.png",
-  "data": "2026-10-29T16:59:25.252Z",
+  "data": "2026-10-29T17:48:21.718Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Gerar proposta (PDF): monta a PTC com os números desta formação.",
-    "sel": "#pcCard [data-pcgerar]",
+    "txt": "Documento: técnica e comercial, comercial (sem folha de dados) ou técnica (sem preços).",
+    "sel": "#pcCard .pcopts .f:nth-child(1) .seg",
     "ok": true
    },
    {
     "n": 2,
-    "txt": "Aos cuidados de e Projeto/Obra vêm de Obra / local (o que vem depois de \"a/c\").",
-    "sel": "#pc_aosCuidados",
+    "txt": "Idioma: português, inglês ou espanhol.",
+    "sel": "#pcCard .pcopts .f:nth-child(2) .seg",
     "ok": true
    },
    {
     "n": 3,
-    "txt": "Código do produto (ERP) de cada item; sem ele, a coluna Código sai vazia.",
-    "sel": "#pcCard [data-pccod=\"ITEM 01\"]",
+    "txt": "Moeda: real ou dólar (com a taxa do dia).",
+    "sel": "#pcCard .pcopts .f:nth-child(3) .seg",
     "ok": true
    },
    {
     "n": 4,
-    "txt": "Fabricação + entrega viram \"Prazo Total: N dias.\".",
-    "sel": "#pc_prazoFab",
+    "txt": "Gera o PDF com os números desta formação.",
+    "sel": "#pcCard [data-pcgerar]",
     "ok": true
    },
    {
     "n": 5,
-    "txt": "Condição de pagamento e frete vêm de Dados gerais; dá para ajustar o texto só no PDF.",
-    "sel": "#pc_pagamento",
+    "txt": "Cabeçalho e condições só para conferir: vêm de Dados gerais e da formação.",
+    "sel": "#pcCard .pcro",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Para mudar, volte a Dados gerais.",
+    "sel": "#pcCard [data-step=\"1\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Código, folha de dados e curva ficam em cada item.",
+    "sel": "#pcCard [data-goitem]",
     "ok": true
    }
   ]
@@ -369,32 +381,75 @@
   "titulo": "Cadastros → Cadastro geral → Modelo da proposta",
   "vp": "desktop",
   "arquivo": "05-10-proposta-ptc-modelo.png",
-  "data": "2026-10-29T16:59:27.157Z",
+  "data": "2026-10-29T17:48:23.594Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Textos padrão e contatos usados no PDF de todas as propostas.",
-    "sel": "#app section.card:has([data-pmct]) h2",
+    "txt": "Estrutura, imagens, textos padrão e contatos do PDF de todas as propostas.",
+    "sel": "#app section.card:has([data-pmlay]) h2",
     "ok": true
    },
    {
     "n": 2,
-    "txt": "\"Sempre\": o contato entra em todas as propostas.",
-    "sel": "#app [data-pmct=\"0|sempre\"]",
+    "txt": "Muda a ordem das seções.",
+    "sel": "#app [data-pmord=\"conheca|1\"]",
     "ok": true
    },
    {
     "n": 3,
-    "txt": "Incluir contato.",
-    "sel": "#app [data-pmctadd]",
+    "txt": "O que entra em cada tipo de documento.",
+    "sel": "#app [data-pmlay=\"com|termos\"]",
     "ok": true
    },
    {
     "n": 4,
-    "txt": "Notas, comissionamento e prazos (SEQ); serviços e peças (SPV); termos e condições.",
-    "sel": "#app details[data-keep=\"pm_Equipamentos (SEQ)\"] summary",
+    "txt": "Imagens: trocar, tamanho, alinhamento e posição.",
+    "sel": "#app details[data-keep=\"pm_img\"] summary",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Textos padrão em português, inglês ou espanhol.",
+    "sel": "#app .pmtextos .seg",
+    "ok": true
+   }
+  ]
+ },
+ "05-11": {
+  "id": "05-11",
+  "cap": 5,
+  "nome": "proposta-ptc-item",
+  "titulo": "Item: código do produto, folha de dados e curva da bomba",
+  "vp": "desktop",
+  "arquivo": "05-11-proposta-ptc-item.png",
+  "data": "2026-10-29T17:48:25.949Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Código do produto (ERP): sai na coluna Código.",
+    "sel": "#app details[data-keep=\"fdprop\"] [data-pccod]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Notas deste item na folha de dados.",
+    "sel": "#app details[data-keep=\"fdprop\"] [data-pcni]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Folha de dados da bomba: o app lê os dados para você conferir.",
+    "sel": "#app details[data-keep=\"fdprop\"] .fdslot:nth-child(1) .drop",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Curva da bomba: entra na folha de dados da proposta.",
+    "sel": "#app details[data-keep=\"fdprop\"] .fdslot:nth-child(3) .drop",
     "ok": true
    }
   ]

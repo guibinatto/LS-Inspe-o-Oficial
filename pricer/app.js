@@ -1121,30 +1121,34 @@
 
   // ---------- proposta técnica e comercial (modelo PTC LS Fire): o que a formação diz ----------
   const PRP = window.PricerProposta;
-  // folha de dados: o que entra de cada família de insumo (o resto é interno: base, mão de obra, embalagem…)
-  const FD_TIT = { '01': 'Motor Diesel', '10': 'Motor Elétrico', '11': 'Bomba Centrífuga', '12': 'Motobomba', '13': 'Bomba Jockey', '15': 'Tanque de combustível diesel', '16': 'Silencioso / escapamento', '17': 'Baterias', '19': 'Chave de partida', '20': 'Painel de comando', '21': 'Painel de comando', '22': 'Sensores', '26': 'Kit de pré-aquecimento', '29': 'Pressostato', '30': 'Manovacuômetro', '40': 'Cabeçote', '42': 'Manômetro', '43': 'Kit de recirculação', '45': 'Acessórios do tanque' };
-  const FD_ADIC = { '23': 'Válvula de alívio', '24': 'Cone de descarga', '25': 'Medidor de vazão', '27': 'Barrilete de sucção', '28': 'Barrilete de recalque', '44': 'Kit válvula de ar' };
-  const FD_SEMFAM = [[/A\/H\b|BATERIA/, 'Baterias'], [/ACOPLAMENTO/, 'Acoplamento'], [/PAINEL LOCAL/, 'Painel local'], [/TROCADOR/, 'Trocador de calor'], [/VALVULA DE ALIVIO/, 'Válvula de alívio'], [/GAVETA/, 'Válvula gaveta'], [/BORBOLETA/, 'Válvula borboleta'], [/RENTENCAO|RETENCAO/, 'Válvula de retenção'], [/FLOW/, 'Medidor de vazão']];
+  // folha de dados: o que entra de cada família de insumo (o resto é interno: base, mão de obra, embalagem…); títulos e valores vão como chave e o PDF põe no idioma
+  const FD_TIT = { '01': 'motorDiesel', '10': 'motorEletrico', '11': 'bombaCent', '12': 'motobomba', '13': 'jockey', '15': 'tanque', '16': 'silencioso', '17': 'baterias', '19': 'chave', '20': 'painel', '21': 'painel', '22': 'sensores', '26': 'preaq', '29': 'pressostato', '30': 'manovac', '40': 'cabecote', '42': 'manometro', '43': 'recirc', '45': 'acessTanque' };
+  const FD_ADIC = { '23': 'valvAlivio', '24': 'cone', '25': 'medidor', '27': 'barrSuc', '28': 'barrRec', '44': 'valvAr' };
+  const FD_SEMFAM = [[/A\/H\b|BATERIA/, 'baterias'], [/ACOPLAMENTO/, 'acoplamento'], [/PAINEL LOCAL/, 'painelLocal'], [/TROCADOR/, 'trocadorT'], [/VALVULA DE ALIVIO/, 'valvAlivio'], [/GAVETA/, 'vGaveta'], [/BORBOLETA/, 'vBorb'], [/RENTENCAO|RETENCAO/, 'vRet'], [/FLOW/, 'medidor']];
   const FD_FORA = new Set(['14', '18', '31', '32', '33', '34', '35', '36', '37', '38', '39', '41']);
-  const TIPO_BOMBA = { 'END SUCTION': 'Mancalizada (end-suction)', 'SPLIT CASE': 'Bipartida (split case)', MONOBLOCO: 'Monobloco', 'IN LINE': 'In-line', INLINE: 'In-line', VERTICAL: 'Turbina vertical' };
+  const TIPO_BOMBA = { 'END SUCTION': '#endsuction', 'SPLIT CASE': '#splitcase', MONOBLOCO: '#monobloco', 'IN LINE': '#inline', INLINE: '#inline', VERTICAL: '#vertical' };
   const nBR = (v) => (typeof v === 'number' && isFinite(v) ? NF[Number.isInteger(v) ? 0 : Math.abs(v * 10 - Math.round(v * 10)) < 1e-9 ? 1 : 2].format(v) : String(v || ''));
   const upNoAc = (s) => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   // atributos da folha de dados tirados da descrição do insumo e do cadastro (nada além do que o app sabe)
   function fdLinhas(cod, desc, fab, ins) {
     const d = upNoAc(desc); const L = [];
-    if (['11', '12', '13'].includes(cod) && ins && ins.tipo) L.push('Tipo: ' + (TIPO_BOMBA[upNoAc(ins.tipo)] || ins.tipo));
-    if (fab && !/^(VARIOS|0|-)$/.test(upNoAc(fab).trim())) L.push('Marca: ' + fab);
-    L.push('Modelo: ' + desc);
+    if (['11', '12', '13'].includes(cod) && ins && ins.tipo) L.push(['tipo', TIPO_BOMBA[upNoAc(ins.tipo)] || ins.tipo]);
+    if (fab && !/^(VARIOS|0|-)$/.test(upNoAc(fab).trim())) L.push(['marca', fab]);
+    L.push(['modelo', desc]);
     if (cod === '01') {
-      const m = d.match(/(\d+(?:[.,]\d+)?)\s*HP\s*@?\s*(\d{3,4})\s*RPM/); if (m) L.push('Potência: ' + m[1] + ' HP @ ' + m[2] + ' rpm');
-      const c = d.match(/(\d+)\s*CIL\b/); if (c) L.push('Cilindros: ' + c[1]);
-      if (/RADIADOR/.test(d)) L.push('Resfriamento: Radiador'); else if (/TROCADOR/.test(d)) L.push('Resfriamento: Trocador de calor');
-      if (/\bMEC\b/.test(d)) L.push('Injeção: Mecânica'); else if (/\bELET/.test(d)) L.push('Injeção: Eletrônica');
+      const m = d.match(/(\d+(?:[.,]\d+)?)\s*HP\s*@?\s*(\d{3,4})\s*RPM/); if (m) L.push(['potencia', m[1] + ' HP @ ' + m[2] + ' rpm']);
+      const c = d.match(/(\d+)\s*CIL\b/); if (c) L.push(['cilindros', c[1]]);
+      if (/RADIADOR/.test(d)) L.push(['resfr', '#radiador']); else if (/TROCADOR/.test(d)) L.push(['resfr', '#trocador']);
+      if (/\bMEC\b/.test(d)) L.push(['injecao', '#mecanica']); else if (/\bELET/.test(d)) L.push(['injecao', '#eletronica']);
     }
-    if (cod === '10') { const p = d.match(/(\d+(?:[.,]\d+)?)\s*CV\b/); if (p) L.push('Potência: ' + p[1] + ' CV'); const po = d.match(/\b(\d{1,2})\s*P(?:OLOS)?\b/); if (po) L.push('Número de polos: ' + po[1]); const ip = d.match(/IPW?\s?(\d{2})\b/); if (ip) L.push('Grau de proteção: IP' + ip[1]); }
-    if (['01', '20', '21', '22'].includes(cod)) { const v = d.match(/\b(12|24)\s*VCC/); if (v) L.push('Tensão cont.: ' + v[1] + ' VCC'); }
+    if (cod === '10') { const p = d.match(/(\d+(?:[.,]\d+)?)\s*CV\b/); if (p) L.push(['potencia', p[1] + ' CV']); const po = d.match(/\b(\d{1,2})\s*P(?:OLOS)?\b/); if (po) L.push(['polos', po[1]]); const ip = d.match(/IPW?\s?(\d{2})\b/); if (ip) L.push(['ip', 'IP' + ip[1]]); }
+    if (['01', '20', '21', '22'].includes(cod)) { const v = d.match(/\b(12|24)\s*VCC/); if (v) L.push(['tensao', v[1] + ' VCC']); }
     return L;
   }
+  const pcGet = () => state.propCom || {};
+  function pcSet(k, v) { const pc = Object.assign({}, pcGet()); if (v === undefined) delete pc[k]; else pc[k] = v; state.propCom = pc; dirty = true; persist(); atualizaSaveSt(); }
+  // folhas de dados (bomba e motor) que a pessoa conferiu no item: só os campos marcados vão para a proposta
+  const fdDoItem = (S) => { const f = (pcGet().fd || {})[S] || {}; const sel = (x) => ((x && x.campos) || []).filter((c) => c.on !== false && c.v).map((c) => [c.k, c.v]); return { bomba: sel(f.bomba), motor: sel(f.motor) }; };
   function propostaDados() {
     if (isSpv()) return SPV.propostaDados(state.spv);
     if (isFacts()) return FX.propostaDados(state.facts);
@@ -1167,70 +1171,208 @@
         const ins = insPorProduto(d); const fab = txt(S, 'E' + k) || (ins && ins.fab) || '';
         const ehAdic = FD_ADIC[cod] || (!cod && /VALV|FLOW|CONE|BARRILETE/.test(upNoAc(d)));
         const semFam = !cod ? (FD_SEMFAM.find((x) => x[0].test(upNoAc(d))) || [0, ''])[1] : '';
-        const titulo = FD_TIT[cod] ? (cod === '20' && fl.diesel ? 'Painel de comando do conjunto diesel' : FD_TIT[cod]) : FD_ADIC[cod] || semFam || d;
-        (ehAdic ? adic : comps).push({ qtd: q, titulo, linhas: cod ? fdLinhas(cod, d, fab, ins) : [].concat(fab && !/^(VARIOS|0)$/.test(upNoAc(fab)) ? ['Marca: ' + fab] : [], semFam ? ['Descrição: ' + d] : []) });
+        const titulo = FD_TIT[cod] ? '@' + (cod === '20' && fl.diesel ? 'painelDiesel' : FD_TIT[cod]) : FD_ADIC[cod] ? '@' + FD_ADIC[cod] : semFam ? '@' + semFam : d;
+        (ehAdic ? adic : comps).push({ qtd: q, titulo, linhas: cod ? fdLinhas(cod, d, fab, ins) : [].concat(fab && !/^(VARIOS|0)$/.test(upNoAc(fab)) ? [['marca', fab]] : [], semFam ? [['descricao', d]] : []) });
       }
       const vn = val(S, 'AR4');
       const condicao = [...new Set(bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => nBR(b.vz) + ' m³/h x ' + nBR(b.pr) + ' mca'))].join(' · ');
-      const acion = { DIESEL: 'diesel', ELETRICA: 'elétrica', ELETRICO: 'elétrica', JOCKEY: 'jockey' };
-      itens.push({ key: S, codigo: '', qtd: num0(val(P, 'F' + r)) || 1, un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
-        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '',
-        folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ titulo: 'Bomba ' + (k + 1) + ' — ' + (acion[b.ac] || b.ac.toLowerCase()) + (b.cfg ? ' · ' + b.cfg.toLowerCase() : ''),
-          dados: [['Modelo', b.mod], ['Vazão nominal', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['Vazão de projeto', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['Pressão diferencial', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['Rotação', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['Potência', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
+      const acion = { DIESEL: '#diesel', ELETRICA: '#eletrica', ELETRICO: '#eletrica', JOCKEY: '#jockeyA' };
+      itens.push({ key: S, codigo: (pcGet().codigos || {})[S] || '', qtd: num0(val(P, 'F' + r)) || 1, un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
+        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S),
+        folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ n: k + 1, acion: acion[b.ac] || b.ac.toLowerCase(), cfg: b.cfg ? TIPO_BOMBA[upNoAc(b.cfg)] || b.cfg.toLowerCase() : '',
+          dados: [['modelo', b.mod], ['vazaoNom', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['vazaoProj', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['pressao', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['rotacao', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['potencia', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
     });
     const f6 = txt(P, 'F6'); const ac = f6.match(/\s*[·\-–—|,;]?\s*a\/c\.?\s*(.+)$/i);
     return { tipo: 'SEQ', numero: txt(P, 'C5'), rev: txt(P, 'C6'), data: txt(P, 'C7'), validade: txt(P, 'C10'), cliente: txt(P, 'F5'), razao: txt(P, 'F5'), cnpj: txt(P, 'L5'), contato: ac ? ac[1].trim() : '', obra: ac ? f6.slice(0, ac.index).trim() : f6, cidade: '',
       pagamento: txt(P, 'J6'), frete: txt(P, 'B13'), prazo: '', exclusoes: '', vendedor: txt(P, 'C8'), total: val(P, 'P43'), itens,
       flags: Object.assign(fl, { normaTxt: [...new Set([...normas].map(PRP.normaTxt))].join(' / ') || 'NFPA 20' }) };
   }
-  const pcGet = () => state.propCom || {};
-  function pcSet(k, v) { const pc = Object.assign({}, pcGet()); if (v === undefined) delete pc[k]; else pc[k] = v; state.propCom = pc; dirty = true; persist(); atualizaSaveSt(); }
+  const cambioPadrao = () => { try { return Number(SPV.cfg().mk.cambio_usd) || 0; } catch (e) { return 0; } };
+  const hojeISO = () => new Date().toISOString().slice(0, 10);
+  // o que vai no documento e não existe na formação: aparece em Dados gerais (SEQ) e nos dados da SPV
+  function pcCampo(k, lb, o = {}) {
+    const pc = pcGet(); const v = pc[k] ?? ''; const ro = state.verRev ? ' disabled' : '';
+    if (o.area) return `<div class="f ${o.cls || 'spanall'}"><label for="pcf_${k}">${esc(lb)}</label><textarea id="pcf_${k}" data-pc="${k}" rows="${o.rows || 2}" placeholder="${esc(o.ph || '')}"${ro}>${esc(v)}</textarea>${o.dica ? `<small class="sub">${esc(o.dica)}</small>` : ''}</div>`;
+    return `<div class="f ${o.cls || ''}"><label for="pcf_${k}">${esc(lb)}</label><input id="pcf_${k}" data-pc="${k}" value="${esc(v)}"${o.num ? ' inputmode="numeric"' : ''} placeholder="${esc(o.ph || '')}"${ro}>${o.dica ? `<small class="sub">${esc(o.dica)}</small>` : ''}</div>`;
+  }
+  function docPropostaCampos(D) {
+    const seq = D.tipo === 'SEQ';
+    return `<section class="card"><h2>Para o documento da proposta <span class="sub">vai no PDF gerado na aba ${seq ? 'Documentos' : 'da proposta'}</span></h2><div class="fields">
+      ${pcCampo('clienteCurto', 'Nome do cliente no topo das páginas', { cls: 'span2', ph: D.cliente || 'igual ao cliente', dica: 'ex.: COCAMAR SEDE; vazio = nome do cliente' })}${pcCampo('aosCuidados', 'Aos cuidados de', { ph: D.contato || 'nome do contato' })}${pcCampo('cidade', 'Cidade da obra', { ph: 'ex.: MARINGÁ-PR' })}
+      ${seq ? pcCampo('prazoFab', 'Prazo de fabricação (dias, DAPC)', { num: true }) + pcCampo('prazoEnt', 'Prazo de entrega (dias, DAE)', { num: true }) : ''}${pcCampo('prazoTexto', seq ? 'Prazo — texto livre (opcional)' : 'Prazo na proposta (opcional)', { area: true, ph: seq ? 'Fabricação + entrega viram "Prazo Total: N dias."' : D.prazo || 'ex.: Prazo para primeira visita: 40 dias.' })}
+      ${seq ? pcCampo('observacoes', 'Observações da proposta', { area: true, rows: 3, ph: 'ex.: o detalhe da condição de pagamento' }) : ''}</div></section>`;
+  }
+  const TIPO_LB = Object.fromEntries(PRP.TIPOS); const LANG_LB = Object.fromEntries(PRP.IDIOMAS);
   function propComCard() {
-    let D, E, M; try { D = propostaDados(); M = PRP.modelo(REG); E = PRP.efetivo(D, pcGet(), M); } catch (e) { return ''; }
-    const pc = pcGet(); const ro = state.verRev ? ' disabled' : '';
+    let D, E, M; const pc = pcGet(); const tipo = pc.tipoDoc || 'tc', lang = pc.idioma || 'pt';
+    try { D = propostaDados(); M = PRP.modelo(REG, lang); E = PRP.efetivo(D, pc, M, lang); } catch (e) { return ''; }
+    const ro = state.verRev ? ' disabled' : ''; const seq = D.tipo === 'SEQ';
     const has = (k) => Object.prototype.hasOwnProperty.call(pc, k);
     const reset = (k) => (has(k) ? ` <button type="button" class="linkbtn" data-pcreset="${k}">voltar ao padrão</button>` : '');
-    const inp = (k, lb, o = {}) => `<div class="f ${o.cls || ''}"><label for="pc_${k}">${esc(lb)}${reset(k)}</label><input id="pc_${k}" data-pc="${k}" value="${esc(E[k] ?? '')}"${o.num ? ' inputmode="numeric"' : ''}${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}${ro}>${o.dica ? `<small class="sub">${esc(o.dica)}</small>` : ''}</div>`;
-    const area = (k, lb, dica, rows) => `<div class="f spanall"><label for="pc_${k}">${esc(lb)}${reset(k)}</label><textarea id="pc_${k}" data-pc="${k}" rows="${rows || Math.min(12, Math.max(3, String(E[k] || '').split('\n').length + 1))}"${ro}>${esc(E[k] || '')}</textarea>${dica ? `<small class="sub">${esc(dica)}</small>` : ''}</div>`;
-    const sec = [['solucoes', 'Soluções LS Fire (CMB, skid e container)', D.tipo === 'SEQ'], ['folha', 'Folha de dados de cada item', D.tipo === 'SEQ'], ['comiss', 'Comissionamento e start-up', D.tipo === 'SEQ'], ['prazos', 'Prazos e condições', D.tipo === 'SEQ'], ['docs', 'Escopo de documentos', D.tipo === 'SEQ'], ['termos', 'Termos e condições', true]].filter((x) => x[2]);
-    const faltam = [!D.numero && 'número da proposta', !E.aosCuidados && 'aos cuidados de', !E.pagamento && 'condição de pagamento', D.tipo === 'SEQ' && !(Number(E.prazoFab) || Number(E.prazoEnt) || E.prazoTexto) && 'prazo'].filter(Boolean);
+    const seg = (nome, ops, cur) => `<div class="seg" role="radiogroup">${ops.map(([k, lb]) => `<label class="${k === cur ? 'on' : ''}"><input type="radio" name="pc_${nome}" data-pcopt="${nome}" value="${k}"${k === cur ? ' checked' : ''}${ro}>${esc(lb)}</label>`).join('')}</div>`;
+    const moeda = pc.moeda || {}; const usd = moeda.cod === 'USD';
+    const fab = Number(E.prazoFab) || 0, ent = Number(E.prazoEnt) || 0;
+    const prazo = [fab ? 'fabricação ' + fab + ' dias' : '', ent ? 'entrega ' + ent + ' dias' : '', fab || ent ? 'total ' + (fab + ent) + ' dias' : '', E.prazoTexto].filter(Boolean).join(' · ');
+    const kvs = [['Cliente (topo das páginas)', E.cliente], ['Razão social', E.razao], ['CNPJ', E.cnpj], ['Aos cuidados de', E.aosCuidados], ['Projeto/Obra', E.obra], ['Cidade da obra', E.cidade], ['Número e revisão', (D.numero || '—') + ' · rev. ' + (D.rev ?? '')], ['Data', PRP.dataBR(D.data)], ['Validade', PRP.dataBR(D.validade)], ['Condição de pagamento', E.pagamento], ['Frete', E.frete], ['Prazo', prazo]];
+    const faltam = kvs.filter(([lb, v]) => !v && ['Aos cuidados de', 'Condição de pagamento', 'Prazo'].includes(lb)).map((x) => x[0].toLowerCase());
+    const ir = seq ? `<button class="btn sm" data-step="1" data-ico="pencil">Alterar em Dados gerais</button>` : `<button class="btn sm" data-pctopo data-ico="pencil">Alterar nos dados da proposta</button>`;
+    const SEC = PRP.secoes(D, pc, M, tipo); const base = Object.assign({}, PRP.LAYOUT.tipos[tipo], ((M.layout || {}).tipos || {})[tipo] || {}); const own = ((pc.secoes || {})[tipo]) || {};
+    const secOps = PRP.SECOES.filter(([k]) => !['capa', 'planilha'].includes(k) && !(D.tipo !== 'SEQ' && PRP.SO_SEQ.has(k)));
+    const fdSt = (S) => { const f = (pc.fd || {})[S] || {}; return ['bomba', 'motor', 'curva'].map((k) => `${{ bomba: 'bomba', motor: 'motor', curva: 'curva' }[k]} ${f[k] ? '<span class="ok-t">✓</span>' : '—'}`).join(' · '); };
+    const tr = ((pc.trad || {})[lang]) || {}; const trK = Object.keys(tr);
     const salva = propostaAtual();
+    const Ept = lang === 'pt' ? E : PRP.efetivo(D, pc, PRP.modelo(REG, 'pt'), 'pt');
+    const area = (k, lb, dica) => `<div class="f spanall"><label for="pc_${k}">${esc(lb)}${reset(k)}</label><textarea id="pc_${k}" data-pc="${k}" rows="${Math.min(12, Math.max(2, String(Ept[k] || '').split('\n').length + 1))}"${ro}>${esc(Ept[k] || '')}</textarea>${dica ? `<small class="sub">${esc(dica)}</small>` : ''}</div>`;
     return `<section class="card" id="pcCard"><h2>Proposta técnica e comercial <span class="sub">PDF no modelo LS Fire (PTC), com os números desta formação</span></h2>
-      <p class="sub" style="margin:0 0 8px">Itens, quantidades, impostos, NCM, preços e total saem da formação; os textos padrão vêm de Cadastros → Cadastro geral → Modelo da proposta. O que você ajustar aqui fica salvo nesta proposta.</p>
-      ${faltam.length ? `<div class="banner warn" style="margin:0 0 8px">Falta preencher: ${esc(faltam.join(', '))}. Dá para gerar assim mesmo (sai "—").</div>` : ''}
-      <div class="docbar"><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta (PDF)</button><span class="sub">${D.itens.length} item(ns) · total ${esc(brl(D.total))}${salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos'}</span></div>
-      <details class="sub2"${keep('pc_cab')}><summary>Cliente e obra</summary><div class="fields">${inp('cliente', 'Cliente (topo das páginas)', { cls: 'span2' })}${inp('razao', 'Razão social', { cls: 'span2' })}${inp('cnpj', 'CNPJ')}${inp('aosCuidados', 'Aos cuidados de')}${inp('obra', 'Projeto/Obra', { cls: 'span2' })}${inp('cidade', 'Cidade da obra', { ph: 'ex.: SANTOS-SP' })}</div></details>
-      <details class="sub2"${keep('pc_itens')}><summary>Itens: código do produto${D.tipo === 'SEQ' ? ' e notas da folha de dados' : ''}</summary>
-        <div class="tw"><table class="t"><thead><tr><th>#</th><th>Descrição breve</th><th class="num">Qtd</th><th class="num">Total</th><th>Código do produto</th>${D.tipo === 'SEQ' ? '<th>Notas da folha de dados</th>' : ''}</tr></thead><tbody>${D.itens.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.breve || '')}</td><td class="num">${esc(nBR(it.qtd))}</td><td class="num">${esc(brl(it.total))}</td>
-          <td class="in"><input data-pccod="${esc(it.key)}" value="${esc(E.codigos[it.key] ?? it.codigo ?? '')}" placeholder="ex.: 004-00242" aria-label="Código do produto do item ${i + 1}"${ro}></td>${D.tipo === 'SEQ' ? `<td class="in"><input data-pcni="${esc(it.key)}" value="${esc(E.notasItem[it.key] || '')}" placeholder="opcional" aria-label="Notas do item ${i + 1}"${ro}></td>` : ''}</tr>`).join('')}</tbody></table></div>
-        <small class="sub">O código é o do cadastro de produtos (ERP); sem ele, a coluna sai vazia.</small></details>
-      <details class="sub2"${keep('pc_cond')}><summary>Condições: pagamento, prazo, frete e observações</summary><div class="fields">${inp('pagamento', 'Condição de pagamento', { cls: 'spanall' })}${D.tipo !== 'SPV' ? inp('prazoFab', 'Prazo de fabricação (dias, DAPC)', { num: true }) + inp('prazoEnt', 'Prazo de entrega (dias, DAE)', { num: true }) : ''}${area('prazoTexto', D.tipo === 'SPV' ? 'Prazo' : 'Prazo — texto livre (opcional)', D.tipo === 'SPV' ? 'ex.: Prazo para primeira visita: 40 dias.' : 'Fabricação + entrega viram "Prazo Total: N dias."; use o texto para algo diferente.', 2)}${inp('frete', 'Frete', { cls: 'spanall' })}${area('observacoes', 'Observações', D.tipo === 'SPV' ? 'Uma por linha; vêm do modelo de serviços.' : 'ex.: o detalhe da condição de pagamento.')}</div></details>
-      <details class="sub2"${keep('pc_notas')}><summary>Notas, desvios e exclusões</summary><div class="fields">${area('notas', 'Notas', 'Uma por linha. O padrão já considera o que a proposta tem (diesel, elétrica, start-up, norma).')}${area('desvios', 'Desvios', '', 2)}${area('exclusoes', 'Exclusões', '', 2)}</div></details>
-      <details class="sub2"${keep('pc_sec')}><summary>Seções e contatos</summary><div class="fields"><div class="f span2"><label>Seções</label><div class="chks" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px">${sec.map(([k, lb]) => `<label class="chk"><input type="checkbox" data-pcsec="${k}"${E.secoes[k] ? ' checked' : ''}${ro}> ${esc(lb)}</label>`).join('')}</div></div>
+      <div class="pcopts">
+        <div class="f"><label>Documento</label>${seg('tipoDoc', PRP.TIPOS, tipo)}</div>
+        <div class="f"><label>Idioma</label>${seg('idioma', PRP.IDIOMAS, lang)}</div>
+        <div class="f"><label>Moeda</label>${seg('moeda', [['BRL', 'Real (R$)'], ['USD', 'Dólar (US$)']], usd ? 'USD' : 'BRL')}</div>
+        ${usd ? `<div class="f"><label for="pc_taxa">R$ por US$ 1,00</label><input id="pc_taxa" data-pcmoeda="taxa" inputmode="decimal" value="${esc(moeda.taxa ? NF[4].format(moeda.taxa) : '')}" placeholder="${esc(cambioPadrao() ? NF[4].format(cambioPadrao()) : '')}"${ro}><small class="sub">vazio = câmbio do cadastro (${esc(cambioPadrao() ? NF[4].format(cambioPadrao()) : 'não definido')})</small></div><div class="f"><label for="pc_taxad">Data da taxa</label><input id="pc_taxad" type="date" data-pcmoeda="data" value="${esc(moeda.data || hojeISO())}"${ro}></div>` : ''}
+      </div>
+      ${faltam.length ? `<div class="banner warn" style="margin:8px 0">Falta preencher: ${esc(faltam.join(', '))}. ${seq ? 'Preencha em Dados gerais.' : 'Preencha nos dados da proposta, acima.'}</div>` : ''}
+      <div class="docbar" style="margin:8px 0 4px"><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button><span class="sub">${D.itens.length} item(ns) · total ${esc(brl(D.total))} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
+      ${lang !== 'pt' ? `<p class="sub" style="margin:0 0 6px">Textos padrão e rótulos saem traduzidos com o modelo. Descrições, condição de pagamento, frete e textos ajustados nesta proposta são traduzidos automaticamente ao gerar (quando a tradução automática está disponível) e ficam para revisão abaixo.</p>` : ''}
+      <details class="sub2"${openSet.pc_cab === false ? '' : ' open'} data-keep="pc_cab"><summary>Cabeçalho e condições <span class="sub">vêm de ${seq ? 'Dados gerais e da formação' : 'dados da proposta'}</span></summary>
+        <div class="kv pcro">${kvs.map(([lb, v]) => `<div>${esc(lb)}</div><div>${v ? esc(v) : '<span class="sub">—</span>'}</div>`).join('')}</div>
+        <div class="docbar" style="margin-top:8px">${ir}</div></details>
+      <details class="sub2"${keep('pc_itens')}><summary>Itens <span class="sub">${seq ? 'código, folha de dados e curva ficam em cada item' : 'vêm da proposta'}</span></summary>
+        <div class="tw"><table class="t"><thead><tr><th>#</th><th>Código</th><th>Descrição breve</th><th class="num">Qtd</th><th class="num">Total</th>${seq ? '<th>Folha de dados</th><th></th>' : ''}</tr></thead><tbody>${D.itens.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.codigo || '—')}</td><td>${esc(it.breve || '')}</td><td class="num">${esc(nBR(it.qtd))}</td><td class="num">${esc(brl(it.total))}</td>${seq ? `<td class="sub">${fdSt(it.key)}</td><td><button class="btn sm" data-goitem="${ITEMS.indexOf(it.key)}">Abrir item</button></td>` : ''}</tr>`).join('')}</tbody></table></div></details>
+      <details class="sub2"${keep('pc_notas')}><summary>Textos desta proposta <span class="sub">notas, desvios e exclusões${seq ? '' : ' e observações'}</span></summary><div class="fields">
+        ${area('notas', 'Notas', 'Uma por linha. O padrão já considera o que a proposta tem (diesel, elétrica, start-up, norma).' + (lang !== 'pt' ? ' Escreva em português: o texto ajustado é traduzido ao gerar.' : ''))}${area('desvios', 'Desvios')}${area('exclusoes', 'Exclusões')}${seq ? '' : area('observacoes', 'Observações')}</div>
+        <div class="docbar"><button class="btn sm" data-pcmodelo data-ico="settings-2">Textos padrão, estrutura e imagens: Modelo da proposta</button></div></details>
+      <details class="sub2"${keep('pc_sec')}><summary>Seções e contatos <span class="sub">${esc(TIPO_LB[tipo])}: ${SEC.length} seções</span></summary><div class="fields">
+        <div class="f span2"><label>Seções do documento ${esc(TIPO_LB[tipo].toLowerCase())}${(pc.secoes || {})[tipo] ? ` <button type="button" class="linkbtn" data-pcsecreset="${tipo}">voltar ao modelo</button>` : ''}</label><div class="chks" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px">${secOps.map(([k, lb]) => `<label class="chk"><input type="checkbox" data-pcsec="${tipo}|${k}"${(own[k] ?? base[k]) ? ' checked' : ''}${ro}> ${esc(lb)}${k === 'comiss' && !(D.flags || {}).startup ? ' <small class="sub">(sem start-up nos itens)</small>' : ''}</label>`).join('')}</div><small class="sub">A ordem e o padrão de cada tipo ficam no Modelo da proposta.</small></div>
         <div class="f span2"><label>Contatos no fim da proposta${reset('contatos')}</label><div class="chks" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px">${(M.contatos || []).map((c) => `<label class="chk"><input type="checkbox" data-pcct="${esc(c.nome)}"${(E.contatos || []).includes(c.nome) ? ' checked' : ''}${ro}> ${esc(c.nome)} <small class="sub">${esc(c.cargo || '')}</small></label>`).join('') || '<span class="sub">Nenhum contato no modelo da proposta.</span>'}</div></div></div></details>
+      ${lang !== 'pt' ? `<details class="sub2"${keep('pc_tr')}><summary>Traduções desta proposta (${esc(LANG_LB[lang])}) <span class="sub">${trK.length ? trK.length + ' texto(s) para revisar' : 'geradas ao clicar em Gerar'}</span></summary>${trK.length ? `<div class="tw"><table class="t"><thead><tr><th>Português</th><th>${esc(LANG_LB[lang])}</th></tr></thead><tbody>${trK.map((o, i) => `<tr><td class="sub">${esc(o)}</td><td class="in"><textarea data-pctr="${lang}|${i}" rows="${Math.min(6, Math.max(1, Math.ceil(String(tr[o]).length / 70)))}"${ro}>${esc(tr[o])}</textarea></td></tr>`).join('')}</tbody></table></div><div class="docbar" style="margin-top:6px"><button class="btn sm" data-pctrlimpa="${lang}">Traduzir de novo ao gerar</button></div>` : '<p class="sub" style="margin:0">Ao gerar, os textos da formação são traduzidos e aparecem aqui para revisão.</p>'}</details>` : ''}
     </section>`;
   }
+  // ---------- folha de dados, curva e código do produto no item (SEQ) ----------
+  const FD_KIND = [['bomba', 'Folha de dados da bomba'], ['motor', 'Folha de dados do motor'], ['curva', 'Curva da bomba']];
+  function itemPropCard(S) {
+    const pc = pcGet(); const f = (pc.fd || {})[S] || {}; const ro = state.verRev ? ' disabled' : '';
+    const st = FD_KIND.map(([k, lb]) => (f[k] ? lb.replace(/^Folha de dados d[ao] /, 'FD ').replace('Curva da bomba', 'curva') + ' ✓' : '')).filter(Boolean).join(' · ');
+    const slot = ([k, lb]) => { const x = f[k];
+      if (!x) return `<div class="fdslot"><div class="lbl">${esc(lb)}</div><label class="drop" for="fdup_${k}"><b>Solte aqui o PDF ou a imagem</b><span class="sub">${k === 'curva' ? 'a página escolhida entra na folha de dados da proposta' : 'o app lê os dados (vazão, rotação, rotor, sucção, recalque…) para você conferir'}</span><input id="fdup_${k}" type="file" accept=".pdf,image/*" data-fdup="${esc(S)}|${k}"${ro} hidden></label></div>`;
+      const campos = x.campos || [];
+      return `<div class="fdslot"><div class="lbl">${esc(lb)}: <b>${esc(x.nome || '')}</b> <button class="linkbtn" data-fdopen="${esc(x.docId)}">abrir</button>${ro ? '' : ` · <button class="linkbtn" data-fdtira="${esc(S)}|${k}">tirar</button>`}</div>
+        ${k === 'curva' ? `<div class="fields"><div class="f"><label for="fdpg_${k}">Página do PDF</label><input id="fdpg_${k}" data-fdpag="${esc(S)}" inputmode="numeric" value="${esc(x.pag || 1)}"${ro}>${x.paginas ? `<small class="sub">de ${x.paginas}</small>` : ''}</div></div>`
+        : `${campos.length ? `<div class="tw"><table class="t"><thead><tr><th>Vai na proposta</th><th>Campo</th><th>Valor</th><th></th></tr></thead><tbody>${campos.map((c, i) => `<tr><td><input type="checkbox" data-fdon="${esc(S)}|${k}|${i}"${c.on !== false ? ' checked' : ''}${ro} aria-label="Incluir ${esc(c.k)}"></td><td class="in"><input data-fdk="${esc(S)}|${k}|${i}" value="${esc(c.k)}"${ro} aria-label="Campo"></td><td class="in"><input data-fdv="${esc(S)}|${k}|${i}" value="${esc(c.v)}"${ro} aria-label="Valor"></td><td>${ro ? '' : `<button class="btn sm" data-fddel="${esc(S)}|${k}|${i}" aria-label="Tirar a linha">×</button>`}</td></tr>`).join('')}</tbody></table></div>` : `<p class="sub" style="margin:4px 0">${x.lido === false ? 'Não consegui ler dados deste arquivo.' : 'Nenhum campo reconhecido.'} Inclua os campos à mão${claudeOk() ? ' ou leia com Claude' : ''}.</p>`}
+          ${ro ? '' : `<div class="docbar" style="margin-top:6px"><button class="btn sm" data-fdadd="${esc(S)}|${k}" data-ico="plus">Incluir campo</button><button class="btn sm" data-fdler="${esc(S)}|${k}">Ler de novo</button>${claudeOk() ? `<button class="btn sm" data-fdclaude="${esc(S)}|${k}">Ler com Claude</button>` : ''}</div>`}`}</div>`; };
+    return `<details class="card"${keep('fdprop')}><summary>Proposta: código do produto e folha de dados <span class="sub">${esc([(pc.codigos || {})[S] ? 'código ' + pc.codigos[S] : 'sem código', st].filter(Boolean).join(' · '))}</span></summary>
+      <div class="fields"><div class="f"><label for="pccod_${S.replace(/\W/g, '')}">Código do produto (ERP)</label><input id="pccod_${S.replace(/\W/g, '')}" data-pccod="${esc(S)}" value="${esc((pc.codigos || {})[S] || '')}" placeholder="ex.: 004-00242"${ro}><small class="sub">sai na coluna Código da planilha de preços</small></div>
+        <div class="f span2"><label for="pcni_${S.replace(/\W/g, '')}">Notas, desvios e observações deste item</label><textarea id="pcni_${S.replace(/\W/g, '')}" data-pcni="${esc(S)}" rows="2"${ro}>${esc((pc.notasItem || {})[S] || '')}</textarea><small class="sub">saem na folha de dados do item</small></div></div>
+      <div class="fdgrid">${FD_KIND.map(slot).join('')}</div></details>`;
+  }
+  let sampleP;
+  const claudeOk = () => !!(window.claude && window.claude.use);
+  const sampleFn = () => (sampleP || (sampleP = (async () => { try { return claudeOk() ? await window.claude.use('sample') : null; } catch (e) { return null; } })()));
+  async function docBlob(id) { try { return await SPV.blobDoc(id); } catch (e) { return null; } }
+  const blobURL = (b) => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(b); });
+  function fdPut(S, k, v) { const fd = JSON.parse(JSON.stringify(pcGet().fd || {})); fd[S] = fd[S] || {}; if (v === undefined) delete fd[S][k]; else fd[S][k] = v; pcSet('fd', fd); }
+  async function fdLer(S, k, file, comClaude) {
+    let campos = [];
+    if (comClaude) {
+      const sample = await sampleFn(); if (!sample) throw new Error('A leitura com Claude não está disponível aqui.');
+      toast('Lendo com Claude…'); let texto = '';
+      try { texto = (await window.PricerLeitor.partes(file)).map((r) => r.join(' | ')).join('\n'); } catch (e) { texto = ''; }
+      const res = await sample.json(`Extraia da folha de dados (datasheet) de ${k === 'bomba' ? 'uma bomba de incêndio' : 'um motor (diesel ou elétrico)'} os campos técnicos que estiverem no texto. Use rótulos curtos em português (ex.: Fabricante, Modelo, Vazão, Altura manométrica, Rotação, Diâmetro do rotor, Potência, Rendimento, NPSH requerido, Sucção, Recalque, Vedação, Material da carcaça, Tensão, Frequência, Número de polos, Grau de proteção). Copie os valores como estão, com as unidades; não invente nada que não esteja no texto. Responda só JSON: {"campos": [{"campo": "...", "valor": "..."}]}.\n\nTEXTO:\n${texto.slice(0, 24000)}`);
+      campos = ((res && res.campos) || []).filter((c) => c && c.campo && c.valor).slice(0, 40).map((c) => ({ k: String(c.campo).slice(0, 40), v: String(c.valor).slice(0, 80), on: true }));
+    } else {
+      const rows = await window.PricerLeitor.partes(file); campos = PRP.lerFolhaDados(rows, k);
+    }
+    return campos;
+  }
+  async function fdArquivo(S, k) { const x = (((pcGet().fd || {})[S]) || {})[k]; if (!x) return null; const b = await docBlob(x.docId); return b ? new File([b], x.nome || 'arquivo', { type: b.type || (/\.pdf$/i.test(x.nome || '') ? 'application/pdf' : '') }) : null; }
+  document.addEventListener('change', async (e) => {
+    const t = e.target; if (!t.dataset || state.verRev) return;
+    if (t.dataset.fdup) {
+      const [S, k] = t.dataset.fdup.split('|'); const file = t.files && t.files[0]; t.value = ''; if (!file) return;
+      try {
+        toast('Guardando o arquivo…');
+        const docId = await SPV.salvarDoc({ tipo: k === 'curva' ? 'curva da bomba' : 'folha de dados', nome: file.name, propUid: state.uid || null, propNome: docTitle(), item: S, etapa: 'Proposta', notas: (FD_KIND.find((x) => x[0] === k) || [0, ''])[1] + ' · ' + S, itens: [] }, file);
+        if (k === 'curva') { let paginas = 1; try { paginas = (await window.PricerLeitor.paginaImagem(file, 1, 0.3)).paginas; } catch (er) { /* a página é escolhida depois */ } fdPut(S, k, { docId, nome: file.name, pag: 1, paginas }); toast('Curva guardada'); render(); return; }
+        let campos = [], lido = true; try { toast('Lendo a folha de dados…'); campos = await fdLer(S, k, file, false); } catch (er) { lido = false; }
+        fdPut(S, k, { docId, nome: file.name, campos, lido }); render();
+        toast(campos.length ? campos.length + ' campo(s) lidos: confira antes de gerar a proposta' : 'Arquivo guardado; nenhum campo reconhecido');
+      } catch (er) { toast(errMsg(er)); }
+      return;
+    }
+    const pega = (a) => { const [S, k, i] = a.split('|'); const fd = JSON.parse(JSON.stringify(pcGet().fd || {})); const x = ((fd[S] || {})[k]) || null; return { S, k, i: +i, fd, x }; };
+    if (t.dataset.fdon || t.dataset.fdk || t.dataset.fdv) { const { S, k, i, fd, x } = pega(t.dataset.fdon || t.dataset.fdk || t.dataset.fdv); if (!x || !x.campos || !x.campos[i]) return; if (t.dataset.fdon) x.campos[i].on = t.checked; else if (t.dataset.fdk) x.campos[i].k = t.value.trim(); else x.campos[i].v = t.value.trim(); fd[S][k] = x; pcSet('fd', fd); return; }
+    if (t.dataset.fdpag) { const S = t.dataset.fdpag; const x = Object.assign({}, (((pcGet().fd || {})[S]) || {}).curva || {}); const n = parseInt(t.value, 10); x.pag = n > 0 ? Math.min(n, x.paginas || n) : 1; fdPut(S, 'curva', x); render(); }
+  });
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-fdopen],[data-fdtira],[data-fddel],[data-fdadd],[data-fdler],[data-fdclaude]'); if (!b) return;
+    if (b.dataset.fdopen) { const d = (SPV.docs() || []).find((x) => x.id === b.dataset.fdopen); if (d) SPV.abrirDoc(d, false); else toast('Não encontrei o arquivo.'); return; }
+    if (state.verRev) return;
+    const [S, k, i] = (b.dataset.fdtira || b.dataset.fddel || b.dataset.fdadd || b.dataset.fdler || b.dataset.fdclaude).split('|');
+    if (b.dataset.fdtira) { if (!window.confirm('Tirar este arquivo da proposta? (ele continua nos documentos)')) return; fdPut(S, k, undefined); render(); return; }
+    const x = JSON.parse(JSON.stringify((((pcGet().fd || {})[S]) || {})[k] || {}));
+    if (b.dataset.fddel) { (x.campos || []).splice(+i, 1); fdPut(S, k, x); render(); return; }
+    if (b.dataset.fdadd) { x.campos = (x.campos || []).concat([{ k: 'Campo', v: '', on: true }]); fdPut(S, k, x); render(); return; }
+    try { const file = await fdArquivo(S, k); if (!file) { toast('Não encontrei o arquivo.'); return; } const campos = await fdLer(S, k, file, !!b.dataset.fdclaude); x.campos = campos; x.lido = true; fdPut(S, k, x); render(); toast(campos.length ? campos.length + ' campo(s) lidos: confira' : 'Nenhum campo reconhecido'); } catch (er) { toast(errMsg(er)); }
+  });
+  // ---------- tradução dos textos da formação (descrições, pagamento, frete, textos ajustados) ----------
+  async function tradutor(D, pc, lang) {
+    const lista = PRP.dinamicos(D, pc); const cache = Object.assign({}, ((pc.trad || {})[lang]) || {}); const falta = lista.filter((s) => !cache[s]);
+    let aviso = '';
+    if (falta.length) {
+      const sample = await sampleFn();
+      if (!sample) aviso = 'Tradução automática indisponível aqui: descrições e textos da formação ficaram em português.';
+      else {
+        const alvo = lang === 'en' ? 'inglês' : 'espanhol';
+        for (let i = 0; i < falta.length; i += 40) {
+          const lote = falta.slice(i, i + 40);
+          try {
+            const res = await sample.json(`Traduza do português do Brasil para o ${alvo} os textos abaixo, de uma proposta técnica e comercial de bombas de incêndio (NFPA 20, NFPA 25). Mantenha códigos, números, unidades, siglas, normas, modelos e nomes próprios como estão. Responda só JSON: {"t": ["tradução 1", "tradução 2", ...]} com o mesmo número de itens e na mesma ordem.\n\nTEXTOS:\n${JSON.stringify(lote)}`);
+            const t = (res && res.t) || []; lote.forEach((s, j) => { if (t[j]) cache[s] = String(t[j]); });
+          } catch (er) { aviso = 'Parte da tradução automática falhou: alguns textos ficaram em português.'; }
+        }
+        pcSet('trad', Object.assign({}, pc.trad || {}, { [lang]: cache }));
+      }
+    }
+    return { tr: (s) => cache[s] || s, aviso };
+  }
+  async function gerarProposta() {
+    const pc = pcGet(); const tipo = pc.tipoDoc || 'tc', lang = pc.idioma || 'pt';
+    const D = propostaDados(); if (!D.itens.length) { toast('Nenhum item com preço para a proposta'); return; }
+    const M = PRP.modelo(REG, lang); toast('Montando a proposta…');
+    const img = {}; for (const [k, c] of Object.entries(M.imagens || {})) if (c && c.docId) { const b = await docBlob(c.docId); if (b) img[k] = await blobURL(b); }
+    const curvas = {};
+    if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; try { const file = await fdArquivo(it.key, 'curva'); if (file) curvas[it.key] = (await window.PricerLeitor.paginaImagem(file, cv.pag || 1, 2)).url; } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
+    let tr = (s) => s, aviso = '';
+    if (lang !== 'pt') ({ tr, aviso } = await tradutor(D, pcGet(), lang));
+    const moeda = pc.moeda && pc.moeda.cod === 'USD' ? { cod: 'USD', taxa: Number(pc.moeda.taxa) || cambioPadrao(), data: pc.moeda.data || hojeISO() } : { cod: 'BRL' };
+    if (moeda.cod === 'USD' && !(moeda.taxa > 0)) { toast('Informe a taxa do dólar (R$ por US$ 1,00)'); return; }
+    const r = await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr });
+    const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
+    logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
+    const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });
+    if (p && !dirty && !state.verRev && tipo !== 'tec' && lang === 'pt' && moeda.cod === 'BRL') await CF.rodar(file);
+    else if (p && !state.verRev) { try { await SPV.salvarDoc({ tipo: 'proposta', nome: r.nome, propUid: p.uid || null, propNome: p.name || '', numero: (p.numero || '') + ' rev. ' + revAtual(), rev: revAtual(), etapa: 'Emissão', notas: 'Proposta ' + TIPO_LB[tipo].toLowerCase() + ' gerada pelo app (' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$' : '') + ')', itens: [] }, file); } catch (er) { /* o download já foi feito */ } toast((ok ? 'PDF gerado (' + r.paginas + ' páginas) e guardado nos documentos' : 'Download cancelado') + (aviso ? '. ' + aviso : '')); }
+    else toast((ok ? 'PDF gerado (' + r.paginas + ' páginas). Salve a proposta para guardar o PDF nos documentos.' : 'Download cancelado') + (aviso ? ' ' + aviso : ''));
+    render();
+  }
   document.addEventListener('change', (e) => {
-    const t = e.target; if (!t.closest || !t.closest('#pcCard') || state.verRev) return;
-    if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } pcSet(k, v); render(); return; }
+    const t = e.target; if (!t.dataset || state.verRev) return;
+    if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } if (v === '' && ['clienteCurto', 'aosCuidados', 'cidade', 'prazoFab', 'prazoEnt', 'prazoTexto', 'observacoes'].includes(k)) v = undefined; pcSet(k, v); if (t.closest('#pcCard')) render(); return; }
+    if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : 'idioma', t.value); render(); return; }
+    if (t.dataset.pcmoeda) { const m = Object.assign({}, pcGet().moeda || {}); if (t.dataset.pcmoeda === 'taxa') { const n = parseInput(t.value, 'num'); m.taxa = typeof n === 'number' && n > 0 ? n : undefined; } else m.data = t.value; pcSet('moeda', m); render(); return; }
     if (t.dataset.pccod !== undefined) { pcSet('codigos', Object.assign({}, pcGet().codigos || {}, { [t.dataset.pccod]: t.value.trim() })); return; }
     if (t.dataset.pcni !== undefined) { pcSet('notasItem', Object.assign({}, pcGet().notasItem || {}, { [t.dataset.pcni]: t.value.trim() })); return; }
-    if (t.dataset.pcsec) { pcSet('secoes', Object.assign({}, pcGet().secoes || {}, { [t.dataset.pcsec]: t.checked })); return; }
+    if (t.dataset.pcsec) { const [tp, k] = t.dataset.pcsec.split('|'); const sec = JSON.parse(JSON.stringify(pcGet().secoes || {})); sec[tp] = Object.assign({}, sec[tp] || {}, { [k]: t.checked }); pcSet('secoes', sec); render(); return; }
+    if (t.dataset.pctr) { const [lg, i] = t.dataset.pctr.split('|'); const tr = Object.assign({}, ((pcGet().trad || {})[lg]) || {}); const o = Object.keys(tr)[+i]; if (o === undefined) return; tr[o] = t.value; pcSet('trad', Object.assign({}, pcGet().trad || {}, { [lg]: tr })); return; }
     if (t.dataset.pcct !== undefined) { let D, E; try { D = propostaDados(); E = PRP.efetivo(D, pcGet(), PRP.modelo(REG)); } catch (er) { return; } const set = new Set(E.contatos || []); if (t.checked) set.add(t.dataset.pcct); else set.delete(t.dataset.pcct); pcSet('contatos', [...set]); }
   });
   document.addEventListener('click', async (e) => {
     const rs = e.target.closest('[data-pcreset]'); if (rs) { e.preventDefault(); pcSet(rs.dataset.pcreset, undefined); render(); return; }
+    const sr = e.target.closest('[data-pcsecreset]'); if (sr) { const sec = Object.assign({}, pcGet().secoes || {}); delete sec[sr.dataset.pcsecreset]; pcSet('secoes', sec); render(); return; }
+    const tl = e.target.closest('[data-pctrlimpa]'); if (tl) { const tr = Object.assign({}, pcGet().trad || {}); delete tr[tl.dataset.pctrlimpa]; pcSet('trad', tr); render(); return; }
+    if (e.target.closest('[data-pctopo]')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (e.target.closest('[data-pcmodelo]')) { ui.cad = 'propmodelo'; setView('cadastro'); return; }
     if (!e.target.closest('[data-pcgerar]')) return;
-    try {
-      const D = propostaDados(); if (!D.itens.length) { toast('Nenhum item com preço para a proposta'); return; }
-      toast('Montando a proposta…');
-      const r = await PRP.montar(D, pcGet(), PRP.modelo(REG));
-      const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
-      logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + r.paginas + ' páginas)', mudancas: [] });
-      const p = propostaAtual();
-      if (p && !dirty && !state.verRev) await CF.rodar(new File([r.bytes], r.nome, { type: 'application/pdf' }));
-      else toast(ok ? 'PDF gerado (' + r.paginas + ' páginas). Salve a proposta para o PDF ser conferido e guardado nos documentos.' : 'Download cancelado');
-    } catch (er) { toast(errMsg(er)); }
+    try { await gerarProposta(); } catch (er) { toast(errMsg(er)); }
   });
 
   // selo "Rev. N" no topo da proposta
@@ -1340,41 +1482,91 @@
     if (tipo === 'termos') { const out = []; for (const l of t.split('\n').map((x) => x.trim()).filter(Boolean)) { if (/^##\s*/.test(l)) out.push({ t: l.replace(/^##\s*/, ''), p: [] }); else { if (!out.length) out.push({ t: '', p: [] }); out[out.length - 1].p.push(l); } } return out; }
     return t.trim();
   }
+  const pmLangAtual = () => ui.pmLang || 'pt';
+  // a origem de cada idioma: português = texto do app; inglês e espanhol = tradução que vem com o app
+  const pmBase = (lang) => { const b = window.PRICER_PROPOSTA_TEXTOS || {}; return lang === 'pt' ? b : Object.assign({}, b, (b.i18n || {})[lang] || {}); };
+  const pmSalvoLang = (lang) => (lang === 'pt' ? pmSalvo() : ((pmSalvo().i18n || {})[lang]) || {});
   function vModeloProposta() {
-    const ed = canEd(); const ro = ed ? '' : ' disabled'; const M = PRP.modelo(REG); const sv = pmSalvo(); const base = window.PRICER_PROPOSTA_TEXTOS || {};
+    const ed = canEd(); const ro = ed ? '' : ' disabled'; const lang = pmLangAtual(); const M = PRP.modelo(REG, lang); const sv = pmSalvoLang(lang); const base = pmBase(lang); const svPt = pmSalvo();
     const mudou = (k) => { const top = k.split('.')[0]; return Object.prototype.hasOwnProperty.call(sv, top) && JSON.stringify(pmGet(sv, k)) !== JSON.stringify(pmGet(base, k)); };
-    const campo = ([k, lb, tipo]) => { const t = pmTexto(pmGet(M, k), tipo); return `<div class="f spanall"><label for="pm_${k}">${esc(lb)}${mudou(k) ? ` <span class="pill warn">alterado</span>${ed ? ` <button type="button" class="linkbtn" data-pmreset="${k}">voltar ao texto original</button>` : ''}` : ''}</label><textarea id="pm_${k}" data-pm="${k}" data-pmt="${tipo}" rows="${tipo === 'termos' ? 24 : Math.min(14, Math.max(2, t.split('\n').length + 1))}"${ro}>${esc(t)}</textarea></div>`; };
+    const ptMudou = (k) => lang !== 'pt' && Object.prototype.hasOwnProperty.call(svPt, k.split('.')[0]) && JSON.stringify(pmGet(svPt, k)) !== JSON.stringify(pmGet(window.PRICER_PROPOSTA_TEXTOS || {}, k)) && !mudou(k);
+    const campo = ([k, lb, tipo]) => { if (lang !== 'pt' && k === 'rodape') return ''; const t = pmTexto(pmGet(M, k), tipo); return `<div class="f spanall"><label for="pm_${k}">${esc(lb)}${mudou(k) ? ` <span class="pill warn">alterado</span>${ed ? ` <button type="button" class="linkbtn" data-pmreset="${k}">voltar ao texto original</button>` : ''}` : ''}${ptMudou(k) ? ' <span class="pill bad">o texto em português mudou: confira esta tradução</span>' : ''}</label><textarea id="pm_${k}" data-pm="${k}" data-pmt="${tipo}" rows="${tipo === 'termos' ? 24 : Math.min(14, Math.max(2, t.split('\n').length + 1))}"${ro}>${esc(t)}</textarea></div>`; };
     const cts = M.contatos || [];
-    return `<section class="card"><h2>Modelo da proposta técnica e comercial <span class="sub">textos padrão e contatos do PDF da proposta (modelo PTC)</span></h2>
-      <p class="sub" style="margin:0 0 6px">Valem para todas as propostas geradas a partir de agora; as já enviadas não mudam (o PDF fica nos documentos). Em cada proposta dá para ajustar notas, observações e contatos só para ela.</p>
-      <p class="sub" style="margin:0 0 6px">Nas notas, uma linha pode começar com uma condição entre colchetes e só entra quando a proposta atende: <b>[diesel]</b>, <b>[eletrica]</b>, <b>[start-up]</b>, <b>[sem start-up]</b>, <b>[contrato]</b>, <b>[campo]</b>, <b>[fabrica]</b>. O app troca <b>{norma}</b>, <b>{certificacao}</b> (com ou sem UL e FM), <b>{meses}</b>, <b>{visitas}</b> e <b>{diarias}</b> pelo que está na proposta. Nos termos, cada cláusula começa com uma linha <b>## título</b>.</p>
+    const L = M.layout || PRP.LAYOUT; const ordem = (L.ordem || PRP.LAYOUT.ordem).concat(PRP.LAYOUT.ordem.filter((k) => !(L.ordem || []).includes(k)));
+    const lay = (tp, k) => (((L.tipos || {})[tp] || {})[k] ?? PRP.LAYOUT.tipos[tp][k]);
+    const fixa = (k) => k === 'capa' || k === 'planilha';
+    const SL = Object.fromEntries(PRP.SECOES);
+    const AS = window.PRICER_PROPOSTA_ASSETS || { img: {} };
+    setTimeout(pmThumbs, 0);
+    return `<section class="card"><h2>Modelo da proposta técnica e comercial <span class="sub">estrutura, imagens, textos padrão e contatos do PDF da proposta (modelo PTC)</span></h2>
+      <p class="sub" style="margin:0 0 6px">Valem para todas as propostas geradas a partir de agora; as já enviadas não mudam (o PDF fica nos documentos). Em cada proposta dá para escolher o tipo (técnica e comercial, comercial ou técnica), o idioma e a moeda, e ajustar notas, seções e contatos só para ela.</p>
       ${ed ? '' : '<p class="sub" style="margin:0 0 6px">Só quem cuida do Cadastro geral altera.</p>'}
-      <details class="sub2" open><summary>Contatos <span class="sub">${cts.length}</span></summary>
+      <details class="sub2"${keep('pm_estr')}><summary>Estrutura do documento <span class="sub">ordem das seções e o que entra em cada tipo</span></summary>
+        <div class="tw"><table class="t"><thead><tr><th>Ordem</th><th>Seção</th>${PRP.TIPOS.map(([, lb]) => `<th>${esc(lb)}</th>`).join('')}</tr></thead><tbody>${ordem.map((k, i) => `<tr><td style="white-space:nowrap">${fixa(k) && k === 'capa' ? '<span class="sub">sempre a primeira</span>' : ed ? `<button class="btn sm" data-pmord="${k}|-1"${i <= 1 ? ' disabled' : ''} aria-label="Subir">↑</button> <button class="btn sm" data-pmord="${k}|1"${i === ordem.length - 1 ? ' disabled' : ''} aria-label="Descer">↓</button>` : ''}</td><td>${esc(SL[k] || k)}${PRP.SO_SEQ.has(k) ? ' <small class="sub">(só equipamentos)</small>' : ''}</td>${PRP.TIPOS.map(([tp]) => `<td><input type="checkbox" data-pmlay="${tp}|${k}"${fixa(k) || lay(tp, k) ? ' checked' : ''}${fixa(k) || !ed ? ' disabled' : ''} aria-label="${esc(SL[k] || k)} na proposta ${tp}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <small class="sub">Na proposta técnica a planilha sai sem preços (escopo de fornecimento). Comissionamento só entra quando algum item tem start-up. Serviços (SPV) e FACTS usam a mesma ordem, sem as seções só de equipamentos.</small>
+        ${ed && pmSalvo().layout ? '<div class="docbar" style="margin-top:6px"><button class="btn sm" data-pmlayreset>Voltar à estrutura original</button></div>' : ''}</details>
+      <details class="sub2"${keep('pm_img')}><summary>Imagens <span class="sub">trocar, tamanho, alinhamento e posição</span></summary>
+        <div class="imggrid">${PRP.SLOTS.map(([k, lb]) => { const c = (M.imagens || {})[k] || {}; return `<div class="imgcard"><div class="lbl">${esc(lb)}${c.docId ? ' <span class="pill warn">trocada</span>' : ''}</div>
+          <div class="imgprev"><img data-pmthumb="${k}" alt="${esc(lb)}" src="${c.docId ? '' : esc(AS.img[k] || '')}"></div>
+          <div class="fields"><div class="f"><label for="pmi_${k}_larg">Tamanho (%)</label><input id="pmi_${k}_larg" data-pmimg="${k}|larg" inputmode="numeric" value="${esc(c.larg || 100)}"${ro}></div>
+            <div class="f"><label for="pmi_${k}_al">Alinhamento</label><select id="pmi_${k}_al" data-pmimg="${k}|al"${ro}>${[['', 'como no modelo'], ['e', 'à esquerda'], ['c', 'centralizada'], ['d', 'à direita']].map(([v, t]) => `<option value="${v}"${(c.al || '') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
+            <div class="f"><label for="pmi_${k}_dy">Deslocar (mm)</label><input id="pmi_${k}_dy" data-pmimg="${k}|dy" inputmode="decimal" value="${esc(c.dy || 0)}"${ro}><small class="sub">+ desce, − sobe</small></div></div>
+          ${ed ? `<div class="docbar"><label class="btn sm" for="pmup_${k}">Trocar imagem</label><input id="pmup_${k}" type="file" accept="image/png,image/jpeg" data-pmup="${k}" hidden>${c.docId || c.larg || c.al || c.dy ? `<button class="btn sm" data-pmimgreset="${k}">Voltar à original</button>` : ''}</div>` : ''}</div>`; }).join('')}</div></details>
+      <details class="sub2"${keep('pm_ct')}><summary>Contatos <span class="sub">${cts.length}</span></summary>
         <div class="tw"><table class="t"><thead><tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th>E-mail</th><th>Sempre</th><th></th></tr></thead><tbody>${cts.map((c, i) => `<tr>${['nome', 'cargo', 'tel', 'email'].map((f) => `<td class="in"><input data-pmct="${i}|${f}" value="${esc(c[f] || '')}" aria-label="${f} do contato ${i + 1}"${ro}></td>`).join('')}<td><input type="checkbox" data-pmct="${i}|sempre"${c.sempre ? ' checked' : ''} aria-label="Sempre na proposta"${ro}></td><td>${ed ? `<button class="btn sm" data-pmctdel="${i}" aria-label="Tirar ${esc(c.nome || 'contato')}">Tirar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
         ${ed ? '<div class="docbar" style="margin-top:6px"><button class="btn sm" data-pmctadd data-ico="plus">Incluir contato</button></div>' : ''}
         <small class="sub">"Sempre" entra em todas as propostas; quem tem o mesmo nome do vendedor da proposta também entra. Na proposta dá para marcar outros.</small></details>
-      ${PM_CAMPOS.map(([g, L]) => `<details class="sub2"${keep('pm_' + g)}><summary>${esc(g)}</summary><div class="fields">${L.map(campo).join('')}</div></details>`).join('')}
+      <div class="pmtextos"><div class="f"><label>Textos padrão em</label><div class="seg" role="radiogroup">${PRP.IDIOMAS.map(([k, lb]) => `<label class="${k === lang ? 'on' : ''}"><input type="radio" name="pm_lang" data-pmlang value="${k}"${k === lang ? ' checked' : ''}>${esc(lb)}</label>`).join('')}</div></div>
+        <p class="sub" style="margin:4px 0 0">Nas notas, uma linha pode começar com uma condição entre colchetes e só entra quando a proposta atende: <b>[diesel]</b>, <b>[eletrica]</b>, <b>[start-up]</b>, <b>[sem start-up]</b>, <b>[contrato]</b>, <b>[campo]</b>, <b>[fabrica]</b>. O app troca <b>{norma}</b>, <b>{certificacao}</b> (com ou sem UL e FM), <b>{meses}</b>, <b>{visitas}</b> e <b>{diarias}</b> pelo que está na proposta. Nos termos, cada cláusula começa com uma linha <b>## título</b>.${lang !== 'pt' ? ' Inglês e espanhol: tradução que veio com o app; mantenha os colchetes e chaves como estão. Os termos e condições traduzidos devem ser revisados pelo jurídico antes do uso.' : ''}</p></div>
+      ${PM_CAMPOS.map(([g, Lc]) => `<details class="sub2"${keep('pm_' + g)}><summary>${esc(g)}${lang !== 'pt' ? ' <span class="sub">' + esc(Object.fromEntries(PRP.IDIOMAS)[lang]) + '</span>' : ''}</summary><div class="fields">${Lc.map(campo).join('')}</div></details>`).join('')}
     </section>`;
   }
-  async function pmSalvar(top, valor, rot) {
-    const m = Object.assign({}, pmSalvo()); const de = JSON.stringify(m[top] ?? null).slice(0, 80);
-    if (valor === undefined) delete m[top]; else m[top] = valor;
-    await REG.setTable('PROPOSTA_MODELO', { m }, 'Modelo da proposta: ' + rot, [{ campo: rot, de, para: valor === undefined ? 'texto original' : JSON.stringify(valor).slice(0, 80) }]);
+  // miniatura das imagens trocadas (o arquivo fica nos documentos)
+  async function pmThumbs() {
+    const M = PRP.modelo(REG);
+    for (const im of document.querySelectorAll('img[data-pmthumb]')) { const c = (M.imagens || {})[im.dataset.pmthumb] || {}; if (!c.docId || im.getAttribute('src')) continue; const b = await docBlob(c.docId); if (b) im.src = URL.createObjectURL(b); }
+  }
+  async function pmSalvar(top, valor, rot, lang) {
+    const m = JSON.parse(JSON.stringify(pmSalvo())); lang = lang || 'pt';
+    const alvo = lang === 'pt' ? m : ((m.i18n = m.i18n || {})[lang] = m.i18n[lang] || {});
+    const de = JSON.stringify(alvo[top] ?? null).slice(0, 80);
+    if (valor === undefined) delete alvo[top]; else alvo[top] = valor;
+    const rt = rot + (lang !== 'pt' ? ' (' + lang.toUpperCase() + ')' : '');
+    await REG.setTable('PROPOSTA_MODELO', { m }, 'Modelo da proposta: ' + rt, [{ campo: rt, de, para: valor === undefined ? 'original' : JSON.stringify(valor).slice(0, 80) }]);
     toast('Salvo'); render();
   }
+  // imagem nova: reduz para no máximo 1800 px (PNG mantém a transparência) e guarda nos documentos
+  function pmReduz(file) {
+    return new Promise((res, rej) => { const u = URL.createObjectURL(file); const im = new Image(); im.onload = () => { const s = Math.min(1, 1800 / Math.max(im.width, im.height)); const c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); const g = c.getContext('2d'); const png = /png/i.test(file.type); if (!png) { g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); } g.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); c.toBlob((b) => (b ? res(new File([b], file.name.replace(/\.\w+$/, '') + (png ? '.png' : '.jpg'), { type: png ? 'image/png' : 'image/jpeg' })) : rej(new Error('Não consegui ler a imagem'))), png ? 'image/png' : 'image/jpeg', 0.86); }; im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('Não consegui ler a imagem')); }; im.src = u; });
+  }
   document.addEventListener('change', async (e) => {
-    const t = e.target; if (!canEd()) return;
+    const t = e.target; if (!t.dataset) return;
+    if (t.dataset.pmlang !== undefined) { ui.pmLang = t.value; render(); return; }
+    if (!(t.dataset.pm || t.dataset.pmct || t.dataset.pmlay || t.dataset.pmimg || t.dataset.pmup) || !canEd()) return;
     try {
-      if (t.dataset && t.dataset.pm) { const k = t.dataset.pm; const top = k.split('.')[0]; const M = PRP.modelo(REG); const v = pmValor(t.value, t.dataset.pmt); const lb = (PM_CAMPOS.flatMap((x) => x[1]).find((x) => x[0] === k) || [0, k])[1];
-        if (k.includes('.')) { const sub = k.split('.')[1]; await pmSalvar(top, Object.assign({}, M[top] || {}, { [sub]: v }), lb); } else await pmSalvar(top, v, lb); return; }
-      if (t.dataset && t.dataset.pmct) { const [i, f] = t.dataset.pmct.split('|'); const L = JSON.parse(JSON.stringify(PRP.modelo(REG).contatos || [])); if (!L[+i]) return; L[+i][f] = f === 'sempre' ? t.checked : t.value.trim(); await pmSalvar('contatos', L, 'contatos'); }
+      const lang = pmLangAtual();
+      if (t.dataset.pm) { const k = t.dataset.pm; const top = k.split('.')[0]; const M = PRP.modelo(REG, lang); const v = pmValor(t.value, t.dataset.pmt); const lb = (PM_CAMPOS.flatMap((x) => x[1]).find((x) => x[0] === k) || [0, k])[1];
+        if (k.includes('.')) { const sub = k.split('.')[1]; await pmSalvar(top, Object.assign({}, M[top] || {}, { [sub]: v }), lb, lang); } else await pmSalvar(top, v, lb, lang); return; }
+      if (t.dataset.pmct) { const [i, f] = t.dataset.pmct.split('|'); const L = JSON.parse(JSON.stringify(PRP.modelo(REG).contatos || [])); if (!L[+i]) return; L[+i][f] = f === 'sempre' ? t.checked : t.value.trim(); await pmSalvar('contatos', L, 'contatos'); return; }
+      if (t.dataset.pmlay) { const [tp, k] = t.dataset.pmlay.split('|'); const L = JSON.parse(JSON.stringify(PRP.modelo(REG).layout || PRP.LAYOUT)); L.tipos = L.tipos || {}; L.tipos[tp] = Object.assign({}, PRP.LAYOUT.tipos[tp], L.tipos[tp] || {}, { [k]: t.checked }); await pmSalvar('layout', L, 'estrutura do documento'); return; }
+      if (t.dataset.pmimg) { const [k, f] = t.dataset.pmimg.split('|'); const im = JSON.parse(JSON.stringify(PRP.modelo(REG).imagens || {})); const c = im[k] || {}; let v = t.value;
+        if (f === 'larg') { v = parseInt(v, 10); if (!(v >= 20 && v <= 200)) { toast('Tamanho entre 20% e 200%'); render(); return; } } else if (f === 'dy') { v = parseInput(v, 'num'); if (typeof v !== 'number' || Math.abs(v) > 120) { toast('Deslocamento entre −120 e 120 mm'); render(); return; } }
+        c[f] = v; im[k] = c; await pmSalvar('imagens', im, 'imagem ' + k); return; }
+      if (t.dataset.pmup) { const k = t.dataset.pmup; const file = t.files && t.files[0]; t.value = ''; if (!file) return; toast('Preparando a imagem…'); const f2 = await pmReduz(file);
+        const docId = await SPV.salvarDoc({ tipo: 'imagem do modelo da proposta', nome: f2.name, etapa: 'Modelo da proposta', notas: 'Imagem do modelo da proposta: ' + k, itens: [] }, f2);
+        const im = JSON.parse(JSON.stringify(PRP.modelo(REG).imagens || {})); im[k] = Object.assign({}, im[k] || {}, { docId, nome: f2.name }); await pmSalvar('imagens', im, 'imagem ' + k); }
     } catch (er) { toast(errMsg(er)); }
   });
   document.addEventListener('click', async (e) => {
-    const r = e.target.closest('[data-pmreset]'), a = e.target.closest('[data-pmctadd]'), d = e.target.closest('[data-pmctdel]'); if (!(r || a || d) || !canEd()) return;
+    const r = e.target.closest('[data-pmreset]'), a = e.target.closest('[data-pmctadd]'), d = e.target.closest('[data-pmctdel]'), o = e.target.closest('[data-pmord]'), lr = e.target.closest('[data-pmlayreset]'), ir = e.target.closest('[data-pmimgreset]');
+    if (!(r || a || d || o || lr || ir) || !canEd()) return;
     try {
-      if (r) { const k = r.dataset.pmreset; const top = k.split('.')[0]; const base = window.PRICER_PROPOSTA_TEXTOS || {};
-        if (k.includes('.')) { const sub = k.split('.')[1]; const cur = Object.assign({}, PRP.modelo(REG)[top] || {}, { [sub]: (base[top] || {})[sub] }); await pmSalvar(top, JSON.stringify(cur) === JSON.stringify(base[top]) ? undefined : cur, k); } else await pmSalvar(top, undefined, k); return; }
+      const lang = pmLangAtual();
+      if (r) { const k = r.dataset.pmreset; const top = k.split('.')[0]; const base = pmBase(lang);
+        if (k.includes('.')) { const sub = k.split('.')[1]; const cur = Object.assign({}, PRP.modelo(REG, lang)[top] || {}, { [sub]: (base[top] || {})[sub] }); await pmSalvar(top, JSON.stringify(cur) === JSON.stringify(base[top]) ? undefined : cur, k, lang); } else await pmSalvar(top, undefined, k, lang); return; }
+      if (o) { const [k, dir] = o.dataset.pmord.split('|'); const L = JSON.parse(JSON.stringify(PRP.modelo(REG).layout || PRP.LAYOUT)); const ord = (L.ordem || PRP.LAYOUT.ordem).slice(); const i = ord.indexOf(k), j = i + Number(dir); if (i < 1 || j < 1 || j >= ord.length) return; [ord[i], ord[j]] = [ord[j], ord[i]]; L.ordem = ord; await pmSalvar('layout', L, 'ordem das seções'); return; }
+      if (lr) { if (!window.confirm('Voltar a estrutura do documento ao original?')) return; await pmSalvar('layout', undefined, 'estrutura do documento'); return; }
+      if (ir) { const k = ir.dataset.pmimgreset; const im = JSON.parse(JSON.stringify(PRP.modelo(REG).imagens || {})); delete im[k]; await pmSalvar('imagens', im, 'imagem ' + k + ' (original)'); return; }
       const L = JSON.parse(JSON.stringify(PRP.modelo(REG).contatos || []));
       if (a) { L.push({ nome: 'Novo contato', cargo: '', tel: '', email: '' }); await pmSalvar('contatos', L, 'contatos'); return; }
       if (d) { const i = +d.dataset.pmctdel; if (!window.confirm('Tirar ' + ((L[i] || {}).nome || 'este contato') + ' do modelo da proposta?')) return; L.splice(i, 1); await pmSalvar('contatos', L, 'contatos'); }
@@ -1646,6 +1838,7 @@
             <div class="f span2 req${falta.has('L5') ? ' miss' : ''}"><label for="cnpjIn">CNPJ / CPF</label><div class="cnpjrow"><input id="cnpjIn" value="${esc(fmtDoc(txt(P, 'L5')))}" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off"><button class="btn" id="cnpjGo" type="button">Buscar na Receita</button></div><small class="sub" id="cnpjMsg">${esc(state.cnpjInfo || 'Preenche cliente, local, UF e cadastro fiscal.')}</small></div>
             ${rq('F5', 'Cliente (razão social)', 'span2').replace('<input ', '<input list="dl_clientes" ')}${dlClientesHtml()}${rq('F6', 'Obra / local', 'span2')}${rq('F7', 'UF de destino')}${rq('J5', 'Cadastro fiscal', 'span2')}${rq('F8', 'Segmento')}</div></section>
         <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
+        ${(() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })()}
         <section class="card"><h2>Vendedor e comissões</h2><div class="fields">
             <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor</label>${chips(vs, 'C8', 'Nenhum vendedor cadastrado: cadastre em Cadastros → Precificação → Vendedores e agentes.')}</div>
             <div class="f spanall"><label>Comissões <span class="sub">taxa da divisão (Precificação)</span></label><div class="seg"><label class="${comV ? 'on' : ''}"><input type="checkbox" data-pcom="J7"${comV ? ' checked' : ''}>Vendedor</label><label class="${comA ? 'on' : ''}"><input type="checkbox" data-pcom="J8"${comA ? ' checked' : ''}>Agente de negócio (AN)</label></div></div>
@@ -1791,6 +1984,7 @@
           <div><div class="lbl">Ponto operacional</div><p class="txtv">${esc(txt(S, 'C30')) || '—'}</p></div>
           <div class="fields">${fs('J21', 'Marca')}${fs('G7', 'NCM (do cadastro Fiscal)')}${fs('H21', 'Unidade (do cadastro Fiscal)')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div>
         </div></details>
+      ${itemPropCard(S)}
       <details class="card"${keep('fci')}><summary>FCI <span class="sub">conteúdo importado ${pct(val(S, 'C172'), 2)} · ${esc(txt(S, 'E172'))} · ${/^OK/.test(fciSt) ? 'pronta' : 'com pendência'}</span></summary>
         <div class="stack">
           ${fciSt && !/^OK/.test(fciSt) ? `<div class="banner warn">${esc(fciSt)}</div>` : ''}
@@ -3924,7 +4118,7 @@
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
   const PN = window.PricerPendencias({ REG, esc, toast, modal, ui, render, log: logEv, fillNames: (o) => fillNames(o), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); } });
-  const FX = window.PricerFacts({ confCard: () => propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
+  const FX = window.PricerFacts({ confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
   // pendências de cadastro (pedidos de preço) e do fiscal (NCM por família, alíquotas a definir)
@@ -3959,7 +4153,7 @@
     const b = e.target.closest('[data-spvnew],[data-seqnew],[data-seqfam],[data-factsnew]'); if (!b || !dirty || assinatura() === ui.assinaturaAberta) return;
     if (!window.confirm('A proposta aberta tem alterações não salvas. Começar uma nova mesmo assim? (as alterações se perdem)')) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
-  const SPV = window.PricerSPV({ revisar: () => revisarModal(), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ revisar: () => revisarModal(), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });

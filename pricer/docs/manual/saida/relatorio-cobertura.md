@@ -10,8 +10,8 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 |---|---|
 | Capítulos | 18 |
 | Tutoriais e exercícios (modelo padrão) | 88 |
-| Telas capturadas (cada uma com original e anotada) | 153 |
-| Capturas validadas (todos os marcadores encontrados no elemento real) | 153 de 153 |
+| Telas capturadas (cada uma com original e anotada) | 154 |
+| Capturas validadas (todos os marcadores encontrados no elemento real) | 154 de 154 |
 | Trechos marcados como "Não validado" | 31 |
 
 ## Módulos documentados
@@ -22,7 +22,7 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | 2 | Primeiro acesso e navegação | 2 | 4 | 4 | 0 |
 | 3 | Criação de proposta | 5 | 12 | 12 | 1 |
 | 4 | Precificação SEQ | 7 | 13 | 13 | 1 |
-| 5 | Memorial | 4 | 10 | 10 | 3 |
+| 5 | Memorial | 4 | 11 | 11 | 3 |
 | 6 | SPV (serviços e pós-venda) e FACTS | 7 | 14 | 14 | 4 |
 | 7 | Cadastro de insumos | 9 | 19 | 19 | 3 |
 | 8 | Padronização de descrições | 6 | 7 | 7 | 1 |
@@ -147,6 +147,7 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 05-08 | 05-08-memorial-item-fci.png | Bloco FCI do item 01 | desktop | validada |
 | 05-09 | 05-09-proposta-ptc-cartao.png | Aba Documentos: cartão Proposta técnica e comercial | desktop | validada |
 | 05-10 | 05-10-proposta-ptc-modelo.png | Cadastros → Cadastro geral → Modelo da proposta | desktop | validada |
+| 05-11 | 05-11-proposta-ptc-item.png | Item: código do produto, folha de dados e curva da bomba | desktop | validada |
 | 06-01 | 06-01-spv-inicio-botoes.png | Tela Início: botões para começar uma SPV e o FACTS | desktop | validada |
 | 06-02 | 06-02-spv-cabecalho-abas.png | SPV aberta: resumo, abas e barra de preço | desktop | validada |
 | 06-03 | 06-03-spv-cliente-escopo.png | Cartão Cliente e escopo preenchido | desktop | validada |
@@ -275,7 +276,7 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 3 | O retorno real da Receita (razão social, cidade, inscrição estadual e o cadastro fiscal sugerido) não foi validado neste manual: as capturas rodam sem acesso à internet, e a consulta externa sempre cai no aviso de falta de conexão. O comportamento descrito acima foi conferido na leitura do código. |
 | 4 | O fluxo de Salvar como modelo e Buscar em configurações já usadas foi conferido no código, mas não foi capturado: ele usa uma janela do navegador para o nome do modelo, que a ferramenta de capturas responde sozinha. |
 | 5 | O conteúdo dos arquivos gerados (Memorial em PDF, FCI em PDF e FCI em Excel) não foi validado neste manual: as capturas rodam sem internet, e o app precisa baixar as bibliotecas de PDF e Excel na hora de gerar. A descrição do Memorial em PDF foi conferida no código. |
-| 5 | O conteúdo do PDF gerado não aparece nas capturas: elas rodam sem internet, e o app precisa baixar a biblioteca do PDF. A geração e a conferência automática foram verificadas pelos testes prop_test (proposta SEQ de exemplo) e prop_spv_test (contrato de inspeção, Fireconnect e proposta só de peças) da REV22. |
+| 5 | O conteúdo do PDF gerado não aparece nas capturas: elas rodam sem internet, e o app precisa baixar a biblioteca do PDF. A geração (três tipos, inglês, espanhol e dólar), a leitura da folha de dados, a curva, a estrutura, a troca de imagem e a conferência automática foram verificadas pelos testes prop_test, prop_spv_test e prop_modelo_test da REV22. |
 | 5 | A leitura real de um PDF e o resultado da conferência não foram validados nas capturas: o leitor de PDF é baixado da internet na hora (pdf.js) e as capturas rodam sem acesso externo. O fluxo foi conferido no código (conferencia.js) e é coberto pelo teste conf_test da REV22. |
 | 6 | A leitura de PDF, Excel e foto não foi testada nas capturas: o ambiente de captura bloqueia a internet, e essas leituras baixam bibliotecas (pdf.js, ExcelJS, Tesseract). Só a leitura de XML de NF-e (com dados de exemplo) foi executada. Também não foi validado, no modo compartilhado, quem consegue anexar arquivos: o código recusa o anexo com "Só quem tem acesso de Editor pode anexar arquivos" quando o armazenamento de arquivos não está liberado, mas a tela de acessos diz que o Contribuidor anexa documentos. |
 | 6 | A geração do arquivo Formação de custo (PDF) e o fluxo completo de Pedir aprovação (valor target) não foram executados nas capturas: o PDF depende de bibliotecas baixadas da internet (bloqueada no ambiente de captura) e a aprovação é tratada no capítulo de aprovações. O código da SPV também tem um PDF "Proposta de serviço" para o cliente, mas nenhum botão da tela chama esse PDF. |
@@ -315,11 +316,11 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 
 | # | Verificação | Resultado |
 |---|---|---|
-| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 70 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
+| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 72 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
 | 2 | Os menus existem? | Sim: os 7 itens do menu lateral citados no manual são os do arquivo index.html. |
 | 3 | Os caminhos de navegação estão corretos? | Sim: cada caminho foi percorrido pela ferramenta de captura antes de cada foto (os passos clicam nos elementos reais). |
 | 4 | Os prints correspondem aos procedimentos? | Sim: cada figura é gerada pelos passos do próprio tutorial. |
-| 5 | As marcações estão posicionadas corretamente? | 153 de 153 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
+| 5 | As marcações estão posicionadas corretamente? | 154 de 154 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
 | 6 | As descrições dos campos estão corretas? | Conferidas contra o código (rótulos, mensagens e regras). |
 | 7 | Os exemplos usam dados fictícios identificados? | Sim: proposta de exemplo do sistema e dados de treinamento identificados como fictícios no capítulo 18. |
 | 8 | As fórmulas apresentadas são reais? | Sim: só aparecem as fórmulas que o próprio sistema mostra (nota de cálculo do Memorial e "Como cada número é calculado" do painel). |
@@ -340,6 +341,8 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 3 | É só correção: salvar na revisão N |
 | 3 | ← <etapa anterior> |
 | 3 | Próximo: <etapa> → |
+| 5 | Gerar proposta (PDF) |
+| 5 | Cadastros → Cadastro geral → Modelo da proposta |
 | 6 | lucro líquido mínimo de 40% |
 | 6 | SPV — Serviços e pós-venda |
 | 6 | SEQ — Soluções e equipamentos |

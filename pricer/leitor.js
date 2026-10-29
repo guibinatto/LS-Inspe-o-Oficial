@@ -146,5 +146,28 @@
     if (/^image\//.test(ty)) return ocr([file], onStatus);
     return (await file.text()).split(/\r?\n/);
   }
-  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR };
+  // folha de dados: cada linha do PDF como lista de pedaços (na ordem da página), para separar rótulo e valor
+  async function partes(file) {
+    if (!/pdf$/i.test(file.type || '') && !/\.pdf$/i.test(file.name || '')) return (await linhas(file)).map((l) => [l]);
+    await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const out = [];
+    for (let i = 1; i <= Math.min(pdf.numPages, 6); i++) {
+      const pg = await pdf.getPage(i); const tc = await pg.getTextContent(); const rows = [];
+      for (const it of tc.items) { if (!it.str || !it.str.trim()) continue; const y = it.transform[5], x = it.transform[4]; let r = rows.find((z) => Math.abs(z.y - y) < 2.5); if (!r) { r = { y, parts: [] }; rows.push(r); } r.parts.push({ x, w: it.width || 0, s: it.str.trim() }); }
+      rows.sort((a, b) => b.y - a.y).forEach((r) => { const ps = r.parts.sort((a, b) => a.x - b.x); const L = []; let fim = -1e9;
+        for (const q of ps) { if (L.length && q.x - fim < 6) L[L.length - 1] += ' ' + q.s; else L.push(q.s); fim = q.x + q.w; }
+        out.push(L.map((x) => x.replace(/\s+/g, ' ').trim())); });
+    }
+    return out;
+  }
+  // página de um PDF (ou a própria imagem) como imagem PNG, para pôr a curva da bomba na proposta
+  async function paginaImagem(file, n, escala) {
+    if (/^image\//.test(file.type || '')) return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res({ url: fr.result, paginas: 1 }); fr.onerror = rej; fr.readAsDataURL(file); });
+    await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const pg = await pdf.getPage(Math.min(Math.max(1, n || 1), pdf.numPages));
+    const vp = pg.getViewport({ scale: escala || 2 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise;
+    return { url: c.toDataURL('image/jpeg', 0.88), paginas: pdf.numPages };
+  }
+  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR, partes, paginaImagem };
 })();
