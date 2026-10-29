@@ -48,7 +48,8 @@
   async function pdfLinhas(file) {
     await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
     const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const linhas = []; const pages = [];
-    for (let i = 1; i <= Math.min(pdf.numPages, 8); i++) {
+    // até 40 páginas: a proposta no padrão Folha de dados traz a planilha e o escopo depois das folhas de cada item
+    for (let i = 1; i <= Math.min(pdf.numPages, 40); i++) {
       const pg = await pdf.getPage(i); pages.push(pg); const tc = await pg.getTextContent();
       const rows = [];
       for (const it of tc.items) { if (!it.str || !it.str.trim()) continue; const y = it.transform[5], x = it.transform[4]; let r = rows.find((z) => Math.abs(z.y - y) < 2.5); if (!r) { r = { y, parts: [] }; rows.push(r); } r.parts.push({ x, s: it.str.trim() }); }

@@ -149,3 +149,20 @@ Linha da proposta: os botões ficam num grupo alinhado — próximo passo (desta
 - **Três tipos**: técnica e comercial (PTC), comercial (PC) e técnica (PT, sem preços: "Escopo de fornecimento"). **Três idiomas** (rótulos e textos padrão traduzidos com o app; descrições e textos da proposta traduzidos na hora pelo Claude, com revisão no cartão; números da formação no formato do idioma). **Moeda**: real ou dólar, com taxa (padrão: câmbio do cadastro) e data, e nota de conversão no PDF; a formação continua em reais. A conferência automática roda na versão em português e em real; as outras vão para os documentos.
 - **Modelo da proposta**: estrutura (ordem das seções e o que entra em cada tipo), imagens (trocar, tamanho %, alinhamento, deslocamento), contatos e textos em português, inglês e espanhol, com aviso quando o português muda e a tradução não.
 - Arquivos: `proposta.js` (seções, idiomas, moeda, imagens, leitor de folha de dados), `tools/proposta/textos-{en,es}.json` e `termos-{en,es}.json`, `leitor.js` (`partes`, `paginaImagem`). Nenhuma fórmula mudou (regressão REV21: 0 diferença).
+
+## 16. Proposta no padrão Folha de dados (novo)
+
+- Opção **Padrão** no cartão da proposta: **Clássico (PTC)** ou **Folha de dados (novo)** (`propCom.estilo = 'fd'`), gerado por `proposta-express.js`.
+- Layout inspirado nas folhas de dados de fabricante (Peerless Express), nas cores LS Fire: faixa de título escura com marca laranja, seções em faixas cinza com pares rótulo/valor em duas colunas, curva recortada, desenhos (página em paisagem quando o original é paisagem) e escopo em tabelas Qtd | Descrição com recuo por nível.
+- No item, **Folha de dados completa do fabricante** (`propCom.fd[item].fab`): o PDF é lido por posição do texto (`PricerLeitor.itensPdf` + `fabricante.js`): seções, campos, tabelas numéricas, páginas de curva (área do gráfico recortada), desenhos e escopo por grupo. A pessoa marca/desmarca campos, corrige valores, escolhe a curva, as páginas que entram como imagem e se o escopo inclui os itens da formação LS Fire.
+- Conferência com a formação: vazão e altura nominais da folha comparadas com o item (aviso acima de 2% e 3%).
+- Tradução: dicionário fixo de rótulos e valores do fabricante (pt/es); o restante vai ao Claude (do inglês) quando disponível. Números no formato do idioma, com equivalente métrico (USgpm→m³/h, in→mm, psi→bar, lb→kg, hp→kW).
+- A conferência automática do PDF lê até 40 páginas (antes 8) para alcançar a planilha e o escopo deste padrão.
+- Testes: `tools/testes/fd_test.js` (precisa de `FD_PDF` com o caminho de uma folha do fabricante).
+
+## 17. Especificação por componente e famílias 46/47
+
+- Famílias padrão 46 TESTESENSAIOS e 47 DOCUMENTOSDESENHOS (`FAM_PADRAO`; excluir grava vazio por cima).
+- Cartão de especificação no item para famílias 35 (pintura especial), 46 e 47 (`propCom.espec[item][família]`), alerta "Especificar" enquanto faltar campo essencial, saída na folha de dados do PDF.
+- Idioma e moeda atualizam o cartão da proposta na hora (tradução imediata e valores convertidos).
+- Modelo da proposta em **Configurações** (edição pelo responsável do Cadastro geral).

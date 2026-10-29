@@ -2100,7 +2100,8 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   async function pdfLinhas(file) {
     await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
     const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const linhas = []; const pages = [];
-    for (let i = 1; i <= Math.min(pdf.numPages, 8); i++) {
+    // até 40 páginas: a proposta no padrão Folha de dados traz a planilha e o escopo depois das folhas de cada item
+    for (let i = 1; i <= Math.min(pdf.numPages, 40); i++) {
       const pg = await pdf.getPage(i); pages.push(pg); const tc = await pg.getTextContent();
       const rows = [];
       for (const it of tc.items) { if (!it.str || !it.str.trim()) continue; const y = it.transform[5], x = it.transform[4]; let r = rows.find((z) => Math.abs(z.y - y) < 2.5); if (!r) { r = { y, parts: [] }; rows.push(r); } r.parts.push({ x, s: it.str.trim() }); }
@@ -4369,7 +4370,478 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const ordem = C.map((x) => x[0]); return [...achados.entries()].sort((a, b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0])).map(([k, v]) => ({ k, v, on: true }));
   }
 
-  window.PricerProposta = { lerFolhaDados, montar, efetivo, modelo, aplica, normaTxt, dataBR, secoes, dinamicos, TIPOS, IDIOMAS, SECOES, SO_SEQ, LAYOUT, SLOTS };
+  window.PricerProposta = { lerFolhaDados, montar, efetivo, modelo, aplica, normaTxt, dataBR, secoes, dinamicos, TIPOS, IDIOMAS, SECOES, SO_SEQ, LAYOUT, SLOTS,
+    // usados pelo padrão Folha de dados (proposta-express.js)
+    _i: { lib, limpa, linhasDe, R, FD, LOC, dataLang, MONO, MONT } };
+})();
+
+</script>
+<script>/* fabricante.js */
+/* LS Pricer — leitura da folha de dados completa do fabricante (ex.: Peerless Express: desempenho, construtiva,
+   dados adicionais, curvas, arranjo geral e escopo Qtd/Descrição) a partir do texto posicionado do PDF.
+   Nada é inventado: o que não for reconhecido fica de fora e a pessoa confere tudo antes de ir para a proposta.
+   A tradução de rótulos e valores usa um dicionário fixo; o resto pode ser traduzido pelo Claude quando disponível. */
+(function () {
+  'use strict';
+  const num = (s) => /^[-+]?[\d.,]+%?$/.test(s) || s === '-' || s === 'N/A';
+  // junta pedaços da mesma linha: colados quando o espaço é mínimo (ex.: "DQ6H" "-" "UFAA98")
+  function junta(ts) { let out = '', fim = null; for (const t of ts) { out += fim !== null && t.x - fim > 1.2 ? ' ' + t.s : t.s; fim = t.x + t.w; } return out.replace(/\s+/g, ' ').trim(); }
+  function linhas(pg) {
+    const rows = [];
+    for (const it of pg.itens.slice().sort((a, b) => a.y - b.y || a.x - b.x)) { let r = rows.find((z) => Math.abs(z.y - it.y) < 2.6); if (!r) { r = { y: it.y, ts: [] }; rows.push(r); } r.ts.push(it); }
+    rows.forEach((r) => r.ts.sort((a, b) => a.x - b.x)); return rows.sort((a, b) => a.y - b.y);
+  }
+  const RODAPE = /^(Peerless Express|LS Fire Sistemas)|Santa Catarina|Rua Guilherme/i;
+  function tituloDe(pg) {
+    const cands = pg.itens.filter((i) => i.y < pg.h * 0.16 && i.h >= 11 && !RODAPE.test(i.s)).sort((a, b) => a.y - b.y);
+    if (!cands.length) return { t: '', y: -99 };
+    const y0 = cands[0].y; return { t: junta(cands.filter((i) => Math.abs(i.y - y0) < 3)).replace(/^(.+)\1$/, '$1'), y: y0 };
+  }
+  // rótulo e valor de um pedaço de coluna: pelo ":" ou pelo maior espaço entre pedaços
+  function par(ts) {
+    const i = ts.findIndex((t) => /^:/.test(t.s));
+    if (i > 0) { const v = [Object.assign({}, ts[i], { s: ts[i].s.replace(/^:\s*/, '') })].concat(ts.slice(i + 1)).filter((t) => t.s); return [junta(ts.slice(0, i)), junta(v)]; }
+    if (ts.length < 2) return null;
+    let g = -1, gi = -1; for (let k = 1; k < ts.length; k++) { const d = ts[k].x - (ts[k - 1].x + ts[k - 1].w); if (d > g) { g = d; gi = k; } }
+    return g > 12 ? [junta(ts.slice(0, gi)), junta(ts.slice(gi))] : null;
+  }
+  function ler(paginas) {
+    const out = { fabricante: '', paginas: [], secoes: [], tabelas: [], escopo: [] };
+    const todo = paginas.map((p) => p.itens.map((i) => i.s).join(' ')).join(' ');
+    out.fabricante = /Peerless/i.test(todo) ? 'Peerless' : /Clarke/i.test(todo) && !/Pump/i.test(todo) ? 'Clarke' : '';
+    const vistos = new Set(); let identOk = false;
+    const sec = (t, n) => { let s = out.secoes.find((x) => x.t === t); if (!s) { s = { t, pag: n, campos: [] }; out.secoes.push(s); } return s; };
+    for (const pg of paginas) {
+      const T0 = tituloDe(pg); const tit = T0.t;
+      // corta o gráfico que algumas folhas trazem embaixo dos dados (começa no aviso de aceitação do teste)
+      const todas = linhas(pg).filter((r) => r.y > pg.h * 0.035 && r.y < pg.h - 36 && !RODAPE.test(junta(r.ts)));
+      const ehEscopo = todas.some((r) => r.ts.length >= 2 && r.ts[0].s === 'Qty' && /^Description/.test(r.ts[1].s));
+      const rows = ehEscopo ? todas : todas.filter((r) => Math.abs(r.y - T0.y) > 3);
+      const corte = (rows.find((r) => /Performance based on test|rated point is the only/i.test(junta(r.ts))) || {}).y || 1e9;
+      const txt = rows.map((r) => junta(r.ts)).join('\n');
+      const escopo = ehEscopo;
+      const curva = /Curve/i.test(tit);
+      const desenho = /Arrangement|Dimension|Drawing/i.test(tit) || (!tit && pg.itens.length < 120 && !/:/.test(txt));
+      const tipo = escopo ? 'escopo' : curva ? 'curva' : desenho ? 'desenho' : 'dados';
+      const P = { n: pg.n, titulo: tit || (desenho ? 'Desenho' : 'Página ' + pg.n), tipo, w: pg.w, h: pg.h };
+      if (curva) {
+        // área do gráfico: abaixo do aviso do fabricante até o eixo de vazão
+        const ax = pg.itens.filter((i) => (i.s === 'Flow' || /^Flow\s*-/.test(i.s)) && i.h >= 8.5).sort((a, b) => a.y - b.y)[0];
+        const tabY = ax ? (pg.itens.filter((i) => i.y > ax.y + 2 && /^(Customer|Project name|Tag Number)$/.test(i.s)).sort((a, b) => a.y - b.y)[0] || {}).y : null;
+        const aviso = pg.itens.filter((i) => /buyer\.?$|tolerance\.?$|Hyd Inst/i.test(i.s) && (!ax || i.y < ax.y)).sort((a, b) => b.y - a.y)[0];
+        const y0 = aviso ? aviso.y + 4 : (pg.itens.find((i) => i.s === tit) || { y: 60 }).y + 10; const y1 = ax ? Math.min(ax.y + 7, tabY ? tabY - 9 : 1e9) : pg.h * 0.62;
+        P.caixa = { x: 14, y: y0, w: pg.w - 28, h: Math.max(80, y1 - y0) };
+      }
+      out.paginas.push(P); const dadosAte = tipo === 'dados' ? corte : 1e9;
+      if (tipo === 'escopo') {
+        let g = null, emTab = false;
+        for (const r of rows) {
+          const t0 = r.ts[0]; const big = t0.h >= 12 && t0.x < pg.w * 0.2 && r.ts.length === 1;
+          if (big) { const nome = t0.s; g = out.escopo.find((x) => x.g === nome && x === out.escopo[out.escopo.length - 1]) || null; if (!g) { g = { g: nome, linhas: [] }; out.escopo.push(g); } emTab = false; continue; }
+          if (r.ts[0].s === 'Qty') { emTab = true; continue; }
+          if (!g || !emTab) { const pp = par(r.ts.filter((t) => t.x < pg.w / 2)); const pq = par(r.ts.filter((t) => t.x >= pg.w / 2));
+            for (const x of [pp, pq]) if (x && x[1] && !vistos.has(x[0] + '|' + x[1])) { vistos.add(x[0] + '|' + x[1]); sec('Project', pg.n).campos.push({ k: x[0], v: x[1], on: false }); } continue; }
+          const qtd = r.ts[0].x < 60 && /^\d+$/.test(r.ts[0].s) ? r.ts[0].s : '';
+          const ds = r.ts.filter((t) => t.x >= 60); if (!ds.length) continue;
+          const nivel = Math.max(0, Math.round((ds[0].x - 65.8) / 2.9));
+          g.linhas.push({ q: qtd, n: nivel, t: junta(ds) });
+        }
+        continue;
+      }
+      if (tipo !== 'dados') continue;
+      // tabelas numéricas (desempenho por vazão, dados de desempenho): linhas com 4 ou mais pedaços espalhados
+      const meio = pg.w / 2; const secAtual = { e: null, d: null }; let tab = null; let ultimo = { e: null, d: null }; let ident = true;
+      for (const r of rows) {
+        if (r.y >= dadosAte - 2) break;
+        if (r.ts.some((t) => /^@/.test(t.s))) continue;
+        const ehTab = r.ts.length >= 4 && r.ts.filter((t) => num(t.s)).length >= 3 && !r.ts.some((t) => /^:/.test(t.s));
+        if (ehTab) {
+          if (!tab) { tab = { t: '', pag: pg.n, cab: [], linhas: [] }; out.tabelas.push(tab); }
+          const nums = r.ts.filter((t) => num(t.s)); const rot = junta(r.ts.filter((t) => !num(t.s) && t.x < nums[0].x));
+          tab.linhas.push([rot].concat(nums.map((t) => t.s))); continue;
+        }
+        // cabeçalho de tabela (Flow (USgpm) Head (m) ...) ou título dela
+        if (r.ts.length >= 4 && (junta(r.ts).match(/\((USgpm|m3\/h|m³\/h|m|%|ft|hp|kW|psi[.ag]*|bar)\)/g) || []).length >= 2) { tab = { t: '', pag: pg.n, cab: r.ts.map((t) => t.s), linhas: [] }; out.tabelas.push(tab); continue; }
+        if (tab && r.ts.length >= 3 && !r.ts.some((t) => /^:/.test(t.s)) && tab.linhas.length) tab = null;
+        for (const lado of ['e', 'd']) {
+          const ts = r.ts.filter((t) => (lado === 'e' ? t.x < meio - 4 : t.x >= meio - 4)); if (!ts.length) continue;
+          const x0 = lado === 'e' ? 30 : meio; const x1 = lado === 'e' ? meio : pg.w - 30; const p = par(ts);
+          const centro = ts.length === 1 ? Math.abs(ts[0].x + ts[0].w / 2 - (x0 + x1) / 2) : 99;
+          const cont = ultimo[lado] && /\s(a|de|do|da|e|and|of|the|with|for)$|[-,/]$/.test(ultimo[lado].v || ultimo[lado].k);
+          if (!p && !cont && ts.length === 1 && centro < 16 && ts[0].x - x0 > 40 && !/^:/.test(ts[0].s) && !num(ts[0].s)) {
+            const nome = ts[0].s; if (tab && !tab.linhas.length) tab.t = nome; else { secAtual[lado] = nome; ident = false; } ultimo[lado] = null; continue; }
+          const s = secAtual[lado] || (ident ? 'Project' : '');
+          if (!p) {
+            if (ts.length !== 1 || /^:/.test(ts[0].s)) continue; const naColunaRot = ts[0].x - x0 < 40; const c = ultimo[lado];
+            // rótulo em duas linhas ("Direction of Rotation (viewed from" / "drive end)") e valor na linha do meio
+            if (c && c.v === '' && !naColunaRot) { c.v = ts[0].s; c.on = s !== 'Project'; }
+            else if (c && naColunaRot && c.pend) c.k = (c.k + ' ' + ts[0].s).trim();
+            else if (c && !naColunaRot && !c.pend) c.v = (c.v + ' ' + ts[0].s).trim();
+            else if (naColunaRot && s && !num(ts[0].s)) { const n = { k: ts[0].s, v: '', on: false, pend: true }; sec(s, pg.n).campos.push(n); ultimo[lado] = n; }
+            continue;
+          }
+          if (/^[a-z@]/.test(p[0]) || (num(p[0]) && num(p[1]))) continue;
+          if (!s || (s === 'Project' && identOk && pg.n !== out.secoes.find((x) => x.t === 'Project')?.pag)) { ultimo[lado] = { k: p[0], v: p[1] }; continue; }
+          const chave = s + '|' + p[0] + '|' + p[1]; if (vistos.has(chave)) { ultimo[lado] = null; continue; } vistos.add(chave);
+          const c = { k: p[0], v: p[1], on: s !== 'Project' && p[1] !== '' && p[1] !== '-' }; sec(s, pg.n).campos.push(c); ultimo[lado] = c;
+        }
+      }
+      if (out.secoes.some((x) => x.t === 'Project')) identOk = true;
+    }
+    for (const s of out.secoes) s.campos = s.campos.filter((c) => c.k).map((c) => { delete c.pend; return c; });
+    out.secoes = out.secoes.filter((s) => s.campos.length);
+    for (const P of out.paginas) if (P.tipo === 'dados' && !out.secoes.some((s) => s.pag === P.n)) P.tipo = 'anexo';
+    out.tabelas = out.tabelas.filter((t) => t.linhas.length >= 2);
+    return out;
+  }
+
+  // ---------- tradução fixa dos rótulos mais comuns (Peerless e afins) ----------
+  const SEC = {
+    'Operating Conditions': ['Condições de operação', 'Condiciones de operación'], Liquid: ['Líquido', 'Líquido'], 'NFPA Limits': ['Limites NFPA', 'Límites NFPA'],
+    Material: ['Material', 'Material'], 'Pressure Data': ['Dados de pressão', 'Datos de presión'], Construction: ['Construção', 'Construcción'], Materials: ['Materiais', 'Materiales'],
+    'Listings and Approvals': ['Listagens e aprovações', 'Listados y aprobaciones'], 'Engine Information': ['Motor', 'Motor'], 'Additional information': ['Informações adicionais', 'Información adicional'],
+    Testing: ['Testes', 'Pruebas'], 'Approximate Weights': ['Pesos aproximados', 'Pesos aproximados'], 'Performance Data': ['Dados de desempenho', 'Datos de desempeño'],
+    'Stage, Speed and Solids Limits': ['Limites de estágios, rotação e sólidos', 'Límites de etapas, velocidad y sólidos'], 'Mechanical Limits': ['Limites mecânicos', 'Límites mecánicos'],
+    'Typical Driver Data': ['Dados típicos do acionador', 'Datos típicos del accionador'], 'Various Performance Data': ['Dados de desempenho', 'Datos de desempeño'], Project: ['Identificação', 'Identificación'],
+    Pump: ['Bomba', 'Bomba'], Driver: ['Acionador', 'Accionador'], Controller: ['Painel de comando', 'Tablero de control'], Accessories: ['Acessórios', 'Accesorios'],
+  };
+  const ROT = {
+    Customer: ['Cliente', 'Cliente'], 'Customer ref. / PO': ['Referência / pedido', 'Referencia / pedido'], 'Tag Number': ['Tag', 'Tag'], Service: ['Serviço', 'Servicio'], Quantity: ['Quantidade', 'Cantidad'],
+    'Quote Number / ID': ['Cotação do fabricante', 'Cotización del fabricante'], 'Peerless Model': ['Modelo', 'Modelo'], 'Pump Model': ['Modelo da bomba', 'Modelo de la bomba'], Model: ['Modelo', 'Modelo'], Stages: ['Estágios', 'Etapas'],
+    'Based on curve number': ['Curva de referência', 'Curva de referencia'], 'Date last saved': ['Data da seleção', 'Fecha de la selección'], 'Project name': ['Projeto', 'Proyecto'],
+    'Flow, rated': ['Vazão nominal', 'Caudal nominal'], 'Differential head / pressure, rated (requested)': ['Altura diferencial nominal (pedida)', 'Altura diferencial nominal (solicitada)'],
+    'Differential head / pressure, rated (actual)': ['Altura diferencial nominal (real)', 'Altura diferencial nominal (real)'], 'Differential head / pressure, rated': ['Altura diferencial nominal', 'Altura diferencial nominal'],
+    'Suction pressure, rated / max': ['Pressão de sucção nominal / máx.', 'Presión de succión nominal / máx.'], 'NPSH available, rated': ['NPSH disponível', 'NPSH disponible'], 'Site Supply Frequency': ['Frequência da rede', 'Frecuencia de la red'],
+    'Speed, rated': ['Rotação nominal', 'Velocidad nominal'], 'Impeller diameter, rated': ['Diâmetro do rotor nominal', 'Diámetro del impulsor nominal'], 'Impeller diameter, maximum': ['Diâmetro do rotor máximo', 'Diámetro del impulsor máximo'],
+    'Impeller diameter, minimum': ['Diâmetro do rotor mínimo', 'Diámetro del impulsor mínimo'], 'Head, rated': ['Altura nominal', 'Altura nominal'], 'Power, rated': ['Potência nominal', 'Potencia nominal'],
+    'Power required at 150% flow': ['Potência a 150% da vazão', 'Potencia al 150% del caudal'], 'Peak power': ['Potência máxima', 'Potencia máxima'], 'Efficiency, rated': ['Rendimento nominal', 'Rendimiento nominal'], Efficiency: ['Rendimento', 'Rendimiento'],
+    'Flow at 150%': ['Vazão a 150%', 'Caudal al 150%'], 'Head at 150%, actual/limit': ['Altura a 150% (real / limite)', 'Altura al 150% (real / límite)'], 'Head at shutoff, actual/limit': ['Altura em shutoff (real / limite)', 'Altura a válvula cerrada (real / límite)'],
+    'Liquid type': ['Líquido', 'Líquido'], 'Additional liquid description': ['Descrição adicional do líquido', 'Descripción adicional del líquido'], 'Solids diameter, max': ['Diâmetro máx. de sólidos', 'Diámetro máx. de sólidos'],
+    'Solids concentration, by volume': ['Concentração de sólidos (volume)', 'Concentración de sólidos (volumen)'], 'Temperature, max': ['Temperatura máxima', 'Temperatura máxima'], 'Fluid density, rated / max': ['Densidade nominal / máx.', 'Densidad nominal / máx.'],
+    'Viscosity, rated': ['Viscosidade', 'Viscosidad'], Viscosity: ['Viscosidade', 'Viscosidad'], 'Vapor pressure, rated': ['Pressão de vapor', 'Presión de vapor'], 'Material selected': ['Material', 'Material'],
+    'Maximum working pressure': ['Pressão máxima de trabalho', 'Presión máxima de trabajo'], 'Maximum Working Pressure': ['Pressão máxima de trabalho', 'Presión máxima de trabajo'], 'Maximum allowable working pressure': ['Pressão máxima admissível', 'Presión máxima admisible'],
+    'Maximum allowable suction pressure': ['Pressão máx. admissível de sucção', 'Presión máx. admisible de succión'], 'Hydrostatic test pressure': ['Pressão do teste hidrostático', 'Presión de prueba hidrostática'],
+    'Direction of Rotation (viewed from drive end)': ['Sentido de rotação (visto do acionamento)', 'Sentido de giro (visto desde el accionamiento)'], 'Suction Flange Diameter': ['Flange de sucção', 'Brida de succión'],
+    'Suction Flange Rating': ['Classe do flange de sucção', 'Clase de la brida de succión'], 'Discharge Flange Diameter': ['Flange de recalque', 'Brida de descarga'], 'Dicharge Flange Rating': ['Classe do flange de recalque', 'Clase de la brida de descarga'],
+    'Discharge Flange Rating': ['Classe do flange de recalque', 'Clase de la brida de descarga'], 'Impeller Diameter': ['Diâmetro do rotor', 'Diámetro del impulsor'], 'Bearing Type': ['Rolamento', 'Rodamiento'], 'Bearing Lubrication': ['Lubrificação dos rolamentos', 'Lubricación de rodamientos'],
+    'Pump Seal': ['Vedação', 'Sello'], 'Rotor Group': ['Grupo rotativo', 'Grupo rotativo'], 'Pump Casing': ['Carcaça', 'Carcasa'], Impeller: ['Rotor', 'Impulsor'], 'Pump Shaft': ['Eixo', 'Eje'], 'Shaft Sleeve': ['Luva do eixo', 'Camisa del eje'],
+    'Case Ring': ['Anel de desgaste da carcaça', 'Anillo de desgaste de la carcasa'], 'Impeller wear ring': ['Anel de desgaste do rotor', 'Anillo de desgaste del impulsor'], Paint: ['Pintura', 'Pintura'], 'Pump Base': ['Base', 'Base'], Mounting: ['Montagem', 'Montaje'],
+    'Max suction pressure**': ['Pressão máx. de sucção', 'Presión máx. de succión'], 'Hydraulic performance test': ['Teste de desempenho', 'Prueba de desempeño'], 'Hydrostatic test': ['Teste hidrostático', 'Prueba hidrostática'], 'Curve approval': ['Aprovação da curva', 'Aprobación de la curva'],
+    'NPSH test': ['Teste de NPSH', 'Prueba de NPSH'], 'String test': ['Teste do conjunto', 'Prueba del conjunto'], 'Test w/ motor': ['Teste com o motor', 'Prueba con el motor'], 'Bare Pump': ['Bomba', 'Bomba'], Driver: ['Acionador', 'Accionador'], Base: ['Base', 'Base'],
+    Manufacturer: ['Fabricante', 'Fabricante'], 'Cooling type': ['Arrefecimento', 'Refrigeración'], 'Rated speed': ['Rotação nominal', 'Velocidad nominal'], 'Rated power': ['Potência nominal', 'Potencia nominal'], 'Derated power': ['Potência corrigida (altitude e temperatura)', 'Potencia corregida (altitud y temperatura)'],
+    'Installation elevation': ['Altitude da instalação', 'Altitud de la instalación'], 'Installation temperature (max)': ['Temperatura máx. da instalação', 'Temperatura máx. de la instalación'], 'Engine voltage': ['Tensão do motor', 'Tensión del motor'], 'Preheater voltage': ['Tensão do pré-aquecedor', 'Tensión del precalentador'],
+    'Fuel supply': ['Alimentação de combustível', 'Alimentación de combustible'], Tier: ['Nível de emissões', 'Nivel de emisiones'], 'Silencer type': ['Silencioso', 'Silenciador'], 'Silencer size': ['Tamanho do silencioso', 'Tamaño del silenciador'], 'Silencer configuration': ['Configuração do silencioso', 'Configuración del silenciador'],
+    'Flexible exhaust connection': ['Conexão flexível do escape', 'Conexión flexible del escape'], 'Drive shaft type': ['Eixo cardã', 'Eje cardán'], Tank: ['Tanque', 'Tanque'], 'Torsional coupling': ['Acoplamento torcional', 'Acoplamiento torsional'], Batteries: ['Baterias', 'Baterías'],
+    'Rack and cables': ['Suporte e cabos', 'Soporte y cables'], 'Cooling loop size': ['Linha de arrefecimento', 'Línea de refrigeración'], 'Cooling loop material': ['Material da linha de arrefecimento', 'Material de la línea de refrigeración'], 'ULC fuel lines': ['Linhas de combustível ULC', 'Líneas de combustible ULC'],
+    'Fuel system': ['Sistema de combustível', 'Sistema de combustible'], Ventiliation: ['Ventilação', 'Ventilación'], 'Base mounted controller adapter': ['Adaptador do painel na base', 'Adaptador del tablero en la base'],
+    'Rated power (based on duty point)': ['Potência no ponto de trabalho', 'Potencia en el punto de trabajo'], 'Max power (non-overloading)': ['Potência máxima (sem sobrecarga)', 'Potencia máxima (sin sobrecarga)'], 'NPSH required': ['NPSH requerido', 'NPSH requerido'],
+  };
+  const VAL = {
+    Yes: ['Sim', 'Sí'], No: ['Não', 'No'], 'N/A': ['N/A', 'N/A'], None: ['Nenhum', 'Ninguno'], Ample: ['Amplo', 'Amplio'], 'Cold Water': ['Água fria', 'Agua fría'], 'Ductile Iron': ['Ferro fundido nodular', 'Hierro dúctil'], 'Cast Iron': ['Ferro fundido', 'Hierro fundido'],
+    'Clockwise (RH)': ['Horário (RH)', 'Horario (RH)'], 'Counterclockwise (LH)': ['Anti-horário (LH)', 'Antihorario (LH)'], Grease: ['Graxa', 'Grasa'], Oil: ['Óleo', 'Aceite'], 'Packing seal': ['Gaxeta', 'Empaquetadura'], 'Mechanical seal': ['Selo mecânico', 'Sello mecánico'],
+    'Single Row': ['Uma carreira', 'Una hilera'], 'Silicon Brass': ['Latão ao silício', 'Latón al silicio'], 'Carbon steel': ['Aço carbono', 'Acero al carbono'], 'Bismuth tin bronze': ['Bronze estanho-bismuto', 'Bronce estaño-bismuto'], Integral: ['Integral', 'Integral'],
+    'Heat exchanger cooled': ['Trocador de calor', 'Intercambiador de calor'], 'Radiator cooled': ['Radiador', 'Radiador'], 'Mounted on base with driver': ['Montada na base com o acionador', 'Montada en la base con el accionador'], 'Standard ventilation': ['Ventilação padrão', 'Ventilación estándar'],
+    Steel: ['Aço', 'Acero'], Standard: ['Padrão', 'Estándar'], 'Peerless Fire Red': ['Vermelho Peerless', 'Rojo Peerless'], 'Non-witnessed': ['Não testemunhado', 'No presenciada'], 'Non-witnessed per HI 14.6 1U': ['Não testemunhado (HI 14.6 1U)', 'No presenciada (HI 14.6 1U)'],
+    'Diesel engine': ['Motor diesel', 'Motor diésel'], 'Electric motor': ['Motor elétrico', 'Motor eléctrico'], 'Fire Pump System': ['Sistema de bomba de incêndio', 'Sistema de bomba contra incendio'], UL: ['UL', 'UL'],
+  };
+  const idx = (lang) => (lang === 'pt' ? 0 : lang === 'es' ? 1 : -1);
+  const secT = (s, lang) => (idx(lang) < 0 ? s : (SEC[s] || [])[idx(lang)] || null);
+  const rotT = (s, lang) => (idx(lang) < 0 ? s : (ROT[s] || [])[idx(lang)] || null);
+  const valT = (s, lang) => (idx(lang) < 0 ? s : (VAL[s] || [])[idx(lang)] || null);
+  // linha do escopo "Chave: valor": traduz cada parte pelo dicionário
+  const linhaT = (s, lang) => { if (idx(lang) < 0) return s; if (VAL[s]) return valT(s, lang); const m = String(s).match(/^([^:]{2,60}):\s*(.*)$/); if (!m) return null; const k = rotT(m[1], lang) || ESC_ROT[m[1]]?.[idx(lang)]; const v = m[2] === '' ? '' : valT(m[2], lang); return k && v !== null ? (v ? k + ': ' + v : k + ':') : null; };
+  const ESC_ROT = { 'Pump model': ['Modelo da bomba', 'Modelo de la bomba'], 'Selected pump listing': ['Listagem', 'Listado'], 'Casing material': ['Material da carcaça', 'Material de la carcasa'], 'Suction flange': ['Flange de sucção', 'Brida de succión'],
+    'Discharge flange': ['Flange de recalque', 'Brida de descarga'], 'Casing ring': ['Anel da carcaça', 'Anillo de la carcasa'], 'Impeller material': ['Material do rotor', 'Material del impulsor'], 'Impeller Wear Ring': ['Anel de desgaste do rotor', 'Anillo de desgaste del impulsor'],
+    Rotation: ['Rotação', 'Rotación'], 'Shaft material': ['Material do eixo', 'Material del eje'], 'Shaft sleeve material': ['Material da luva do eixo', 'Material de la camisa del eje'], 'Packing type': ['Tipo de gaxeta', 'Tipo de empaquetadura'], 'Nameplate units': ['Unidades da placa', 'Unidades de la placa'],
+    'Engine voltage': ['Tensão do motor', 'Tensión del motor'], 'Controller brand': ['Marca do painel', 'Marca del tablero'], 'Controller voltage': ['Tensão do painel', 'Tensión del tablero'], 'Controller frequency': ['Frequência do painel', 'Frecuencia del tablero'], Enclosure: ['Invólucro', 'Envolvente'], 'Enclosure type': ['Tipo de invólucro', 'Tipo de envolvente'] };
+  const UNI = 'USgpm|gpm|in|psi\\.?[ga]?|lb|hp|ft|rpm|m|mm|cP|SG|Hz|V|VAC|VDC|V DC|%|deg C|°C|kW|bar|m³/h|hp/100 rpm|psi\\.a';
+  const reMedida = new RegExp('^[-+]?[\\d.,]+(\\s*/\\s*[-+]?[\\d.,]+)?\\s*(' + UNI + ')?$');
+  const ehMedida = (v) => reMedida.test(String(v || '').trim().replace(/\s+/g, ' '));
+  window.PricerFabricante = { ler, secT, rotT, valT, linhaT, junta, ehMedida };
+})();
+
+</script>
+<script>/* proposta-express.js */
+/* LS Pricer — proposta no padrão "Folha de dados" (inspirado nas folhas de dados de fabricante, como a Peerless Express):
+ * páginas densas com faixa de título escura, seções em faixas cinza com pares rótulo : valor em duas colunas, curva,
+ * desenhos e escopo em tabelas Qtd | Descrição. Cores LS Fire (cinza escuro e laranja). Os números vêm da formação
+ * (mesmos dados do padrão PTC); a folha de dados completa do fabricante, quando anexada no item, entra como veio
+ * (só os campos marcados), com rótulos traduzidos pelo dicionário ou pelo Claude.
+ * O = mesmas opções do padrão PTC + fab: { [item]: { dados, curva: dataURL, paginas: { n: { url, w, h } } } }, trFab: (texto em inglês) => tradução
+ */
+(function () {
+  'use strict';
+  const P = window.PricerProposta; const I = P._i; const FB = () => window.PricerFabricante || null;
+  const ESC = [47, 47, 47], LAR = [228, 101, 14], LAR0 = [199, 56, 21], BANDA = [236, 236, 236], LINHA = [214, 214, 214], CINZA = [110, 110, 110], CLARO = [247, 247, 247];
+  const X = {
+    pt: { doc_tc: 'Proposta técnica e comercial', doc_com: 'Proposta comercial', doc_tec: 'Proposta técnica', resumo: 'Resumo da proposta', dadosProp: 'Dados da proposta', fornec: 'Resumo do fornecimento', valorTotal: 'Valor total', sobre: 'Sobre a LS Fire', ident: 'Identificação do item', desemp: 'Folha de dados de desempenho', constr: 'Folha de dados construtiva',
+      adic: 'Dados adicionais de desempenho', curva: 'Curva de desempenho', curvas: 'Curvas em várias rotações', arranjo: 'Arranjo geral', desenho: 'Desenho', escopo: 'Escopo de fornecimento', lsfire: 'Itens da formação LS Fire', especs: 'Especificações',
+      hidr: 'Dados hidráulicos', fdB: 'Bomba (folha de dados)', fdM: 'Acionador (folha de dados)', planilha: 'Planilha de preços', cond: 'Condições comerciais', notas: 'Notas, desvios e exclusões', termos: 'Termos e condições', contatos: 'Contatos', comiss: 'Comissionamento e start-up', prazos: 'Prazos', docs: 'Escopo de documentos',
+      qtd: 'Qtd', descr: 'Descrição', item: 'Item', codigo: 'Código', un: 'Un.', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unitário c/ impostos', tot: 'Total c/ impostos', ponto: 'Ponto de trabalho', equip: 'Equipamento', fonte: 'Dados do fabricante ({f}), conferidos pela LS Fire.', semFab: 'Dados da formação LS Fire.',
+      proposta: 'Proposta', rev: 'Revisão', data: 'Data', validade: 'Validade', vendedor: 'Contato comercial', norma: 'Norma', pagamento: 'Pagamento', frete: 'Frete', prazo: 'Prazo', obs: 'Observações', quantidade: 'Quantidade', tag: 'Tag', modelo: 'Modelo', fabr: 'Fabricante' },
+    en: { doc_tc: 'Technical and commercial proposal', doc_com: 'Commercial proposal', doc_tec: 'Technical proposal', resumo: 'Proposal summary', dadosProp: 'Proposal data', fornec: 'Scope summary', valorTotal: 'Total amount', sobre: 'About LS Fire', ident: 'Item identification', desemp: 'Performance datasheet', constr: 'Construction datasheet',
+      adic: 'Additional performance data', curva: 'Performance curve', curvas: 'Multi-speed curves', arranjo: 'General arrangement', desenho: 'Drawing', escopo: 'Scope of supply', lsfire: 'LS Fire package items', especs: 'Specifications',
+      hidr: 'Hydraulic data', fdB: 'Pump (datasheet)', fdM: 'Driver (datasheet)', planilha: 'Price schedule', cond: 'Commercial conditions', notas: 'Notes, deviations and exclusions', termos: 'Terms and conditions', contatos: 'Contacts', comiss: 'Commissioning and start-up', prazos: 'Lead times', docs: 'Documentation scope',
+      qtd: 'Qty', descr: 'Description', item: 'Item', codigo: 'Code', un: 'Unit', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unit price incl. taxes', tot: 'Total incl. taxes', ponto: 'Duty point', equip: 'Equipment', fonte: 'Manufacturer data ({f}), checked by LS Fire.', semFab: 'LS Fire package data.',
+      proposta: 'Proposal', rev: 'Revision', data: 'Date', validade: 'Validity', vendedor: 'Sales contact', norma: 'Standard', pagamento: 'Payment', frete: 'Freight', prazo: 'Lead time', obs: 'Remarks', quantidade: 'Quantity', tag: 'Tag', modelo: 'Model', fabr: 'Manufacturer' },
+    es: { doc_tc: 'Propuesta técnica y comercial', doc_com: 'Propuesta comercial', doc_tec: 'Propuesta técnica', resumo: 'Resumen de la propuesta', dadosProp: 'Datos de la propuesta', fornec: 'Resumen del suministro', valorTotal: 'Valor total', sobre: 'Sobre LS Fire', ident: 'Identificación del ítem', desemp: 'Hoja de datos de desempeño', constr: 'Hoja de datos constructiva',
+      adic: 'Datos adicionales de desempeño', curva: 'Curva de desempeño', curvas: 'Curvas a varias velocidades', arranjo: 'Disposición general', desenho: 'Plano', escopo: 'Alcance del suministro', lsfire: 'Ítems del conjunto LS Fire', especs: 'Especificaciones',
+      hidr: 'Datos hidráulicos', fdB: 'Bomba (hoja de datos)', fdM: 'Accionador (hoja de datos)', planilha: 'Planilla de precios', cond: 'Condiciones comerciales', notas: 'Notas, desvíos y exclusiones', termos: 'Términos y condiciones', contatos: 'Contactos', comiss: 'Puesta en marcha', prazos: 'Plazos', docs: 'Alcance de documentos',
+      qtd: 'Cant.', descr: 'Descripción', item: 'Ítem', codigo: 'Código', un: 'Unid.', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unitario c/ impuestos', tot: 'Total c/ impuestos', ponto: 'Punto de trabajo', equip: 'Equipo', fonte: 'Datos del fabricante ({f}), verificados por LS Fire.', semFab: 'Datos del conjunto LS Fire.',
+      proposta: 'Propuesta', rev: 'Revisión', data: 'Fecha', validade: 'Validez', vendedor: 'Contacto comercial', norma: 'Norma', pagamento: 'Pago', frete: 'Flete', prazo: 'Plazo', obs: 'Observaciones', quantidade: 'Cantidad', tag: 'Tag', modelo: 'Modelo', fabr: 'Fabricante' },
+  };
+  // títulos de página do fabricante → título no idioma
+  const TIT_PAG = [[/Performance Datasheet/i, 'desemp'], [/Construction/i, 'constr'], [/Additional Data/i, 'adic'], [/Multi-Speed/i, 'curvas'], [/Performance Curve/i, 'curva'], [/General Arrangement/i, 'arranjo'], [/Price Sheet/i, 'escopo']];
+
+  async function montar(D, pc, M, O) {
+    O = Object.assign({ tipo: 'tc', lang: 'pt', moeda: { cod: 'BRL' }, img: {}, curvas: {}, fab: {}, tr: (s) => s, trFab: (s) => s }, O || {});
+    const lang = O.lang, r = I.R[lang] || I.R.pt, x = X[lang] || X.pt, fdl = I.FD[lang] || I.FD.pt;
+    const tr = (s) => (lang === 'pt' || !s ? s : O.tr(s) || s);
+    const fb = FB();
+    const trF = (s, tipo) => { if (!s || lang === 'en') return s; const d = fb ? (tipo === 'sec' ? fb.secT(s, lang) : tipo === 'rot' ? fb.rotT(s, lang) : tipo === 'lin' ? fb.linhaT(s, lang) : fb.valT(s, lang)) : null; return d || O.trFab(s) || s; };
+    const jsPDF = await I.lib(); const AS = window.PRICER_PROPOSTA_ASSETS; if (!AS) throw new Error('Imagens e fontes da proposta não encontradas no app.');
+    const E = P.efetivo(D, pc, M, lang); const SEC = P.secoes(D, pc, M, O.tipo); const tem = (k) => SEC.includes(k); const comPreco = O.tipo !== 'tec';
+    const nf = (d) => new Intl.NumberFormat(I.LOC[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
+    const usd = O.moeda && O.moeda.cod === 'USD' && Number(O.moeda.taxa) > 0;
+    const din = (v) => (usd ? 'US$ ' : 'R$ ') + nf(2).format(typeof v === 'number' && isFinite(v) ? (usd ? v / Number(O.moeda.taxa) : v) : 0);
+    const pct = (v) => (typeof v === 'number' && isFinite(v) ? nf(2).format(v * 100) + '%' : '—');
+    const qtdTxt = (v) => (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : nf(2).format(v)) : String(v || ''));
+    const numL = (s) => (lang !== 'en' || typeof s !== 'string' ? s : s.replace(/\b\d{1,3}(?:\.\d{3})+(?:,\d+)?\b|\b\d+,\d+\b/g, (m) => m.replace(/\./g, '\u0000').replace(',', '.').replace(/\u0000/g, ',')));
+    // números do fabricante (formato americano) no formato do idioma, com o equivalente métrico ao lado
+    const nEN = (t) => Number(String(t).replace(/,/g, ''));
+    const swap = (t) => (lang === 'en' ? t : String(t).replace(/(^|[^\w.])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+\.\d+)(?![\w.])/g, (m, a, n) => (/(HI|API|ISO|NFPA)\s$/.test(String(t).slice(0, String(t).indexOf(m) + a.length)) ? m : a + nf((n.split('.')[1] || '').length).format(nEN(n)))));
+    const CONV = { USgpm: [0.2271247, 'm³/h', 1], gpm: [0.2271247, 'm³/h', 1], in: [25.4, 'mm', 0], psi: [0.0689476, 'bar', 2], 'psi.g': [0.0689476, 'bar', 2], 'psi.a': [0.0689476, 'bar (abs.)', 2], lb: [0.45359237, 'kg', 0], hp: [0.7457, 'kW', 1], ft: [0.3048, 'm', 2] };
+    function medida(v) {
+      let t = String(v || '').trim().replace(/\bdeg C\b/, '°C'); const m = t.match(/^([\d.,]+)\s*(USgpm|gpm|in|psi\.g|psi\.a|psi|lb|hp|ft)$/);
+      if (m) { const n = nEN(m[1]); const c = CONV[m[2]]; if (isFinite(n) && n !== 0 && c) { let q = n * c[0], u = c[1], d = c[2]; if (u === 'mm' && q >= 1000) { q /= 1000; u = 'm'; d = 1; } return swap(m[1]) + ' ' + m[2] + ' (' + nf(d).format(q) + ' ' + u + ')'; } }
+      return swap(t);
+    }
+    const fdT = (s) => (typeof s === 'string' && s[0] === '@' ? fdl[s.slice(1)] || I.FD.pt[s.slice(1)] || s.slice(1) : s);
+    const fdV = (s) => (typeof s === 'string' && s[0] === '#' ? fdl[s.slice(1)] || I.FD.pt[s.slice(1)] || s.slice(1) : s);
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    const add = (file, fam, st) => { doc.addFileToVFS(file + '.ttf', AS.fontes[file]); doc.addFont(file + '.ttf', fam, st); };
+    const MT = I.MONT; add('Montserrat-Regular', MT, 'normal'); add('Montserrat-SemiBold', MT, 'bold'); add('Montserrat-Italic', MT, 'italic');
+    const F = (st, sz, cor) => { doc.setFont(MT, st || 'normal'); doc.setFontSize(sz); doc.setTextColor(...(cor || [0, 0, 0])); };
+    const T = (s, xx, yy, o) => doc.text(I.limpa(s), xx, yy, o);
+    const W = (s) => doc.getTextWidth(I.limpa(s));
+    const quebra = (s, w) => doc.splitTextToSize(I.limpa(s), w);
+    const fmtImg = (src) => (/^data:image\/png/.test(src) ? 'PNG' : 'JPEG');
+    const numero = D.numero ? D.numero + (D.rev !== '' && D.rev != null ? ' · ' + x.rev + ' ' + D.rev : '') : '—';
+    let PW = 210, PH = 297, X0 = 12, X1 = 198, LW = 186, LIM = 280, y = 0, titulo = '', npag = 0;
+    const logo = (O.img && O.img['logo-cab']) || AS.img['logo-cab'];
+
+    // ---------- moldura das páginas ----------
+    function moldura(tit) {
+      if (logo) { const p = doc.getImageProperties(logo); const w = 30, h = w * p.height / p.width; doc.addImage(logo, fmtImg(logo), X0, 6.5, w, Math.min(h, 13), 'logo', 'FAST'); }
+      F('normal', 6.4, CINZA); T((x['doc_' + O.tipo] || '').toUpperCase(), X1, 9.4, { align: 'right' });
+      F('bold', 8.6, ESC); T(x.proposta + ' ' + numero, X1, 13.8, { align: 'right' });
+      F('normal', 6.8, CINZA); T([E.cliente, I.dataLang(D.data, lang)].filter(Boolean).join(' · '), X1, 17.8, { align: 'right' });
+      doc.setFillColor(...LAR); doc.rect(X0, 21.2, LW, 0.6, 'F');
+      doc.setFillColor(...ESC); doc.rect(X0, 24.5, LW, 7.4, 'F'); doc.setFillColor(...LAR); doc.rect(X0, 24.5, 2.4, 7.4, 'F');
+      F('bold', 10.2, [255, 255, 255]); T(String(tit).toUpperCase(), PW / 2, 29.6, { align: 'center' });
+      doc.setDrawColor(...LINHA); doc.setLineWidth(0.25); doc.line(X0, PH - 13.5, X1, PH - 13.5);
+      F('normal', 6.3, CINZA); T(M.rodape || 'LS Fire Sistemas de Combate a Incêndio', PW / 2, PH - 9.2, { align: 'center' });
+      y = 36;
+    }
+    function pagina(tit, paisagem) {
+      if (npag++) doc.addPage('a4', paisagem ? 'landscape' : 'portrait');
+      PW = paisagem ? 297 : 210; PH = paisagem ? 210 : 297; X1 = PW - 12; LW = X1 - X0; LIM = PH - 17; titulo = tit; moldura(tit);
+    }
+    const precisa = (h) => { if (y + h > LIM) { pagina(titulo); return true; } return false; };
+    // faixa de seção (cinza, com marca laranja)
+    function faixa(s, xx, w) { doc.setFillColor(...BANDA); doc.rect(xx, y, w, 5.4, 'F'); doc.setFillColor(...LAR); doc.rect(xx, y, 1.2, 5.4, 'F'); F('bold', 7.6, ESC); T(s, xx + 2.8, y + 3.75); y += 6.4; }
+    function subtitulo(s) { precisa(12); F('bold', 10.4, ESC); T(s, X0, y + 4.2); doc.setFillColor(...LAR); doc.rect(X0, y + 5.6, 14, 0.6, 'F'); y += 8.6; }
+    // pares rótulo : valor numa coluna
+    function altPares(L, w) { let h = 0; for (const [k, v] of L) { F('normal', 6.9); const a = quebra(k, w * 0.5 - 2).length; F('bold', 7); const b = quebra(String(v), w * 0.5 - 2).length; h += Math.max(a, b) * 3.05 + 1.25; } return h; }
+    function pares(L, xx, w) {
+      for (const [k, v] of L) {
+        F('normal', 6.9); const a = quebra(k, w * 0.5 - 2); F('bold', 7); const b = quebra(String(v), w * 0.5 - 2); const h = Math.max(a.length, b.length) * 3.05 + 1.25;
+        F('normal', 6.9, CINZA); a.forEach((q, i) => T(q, xx + 1.4, y + 2.7 + i * 3.05)); F('bold', 7, [20, 20, 20]); b.forEach((q, i) => T(q, xx + w * 0.5, y + 2.7 + i * 3.05));
+        doc.setDrawColor(...LINHA); doc.setLineWidth(0.15); doc.line(xx, y + h, xx + w, y + h); y += h;
+      }
+    }
+    // seções em duas colunas, como nas folhas de dados: cada uma vai para a coluna mais curta; quebra de página quando não cabe
+    function colunas(secs) {
+      const cw = (LW - 5) / 2; const xs = [X0, X0 + cw + 5]; let ys = [y, y];
+      for (const s of secs.filter((q) => q.pares.length)) {
+        let L = s.pares.slice(); let c = ys[0] <= ys[1] ? 0 : 1;
+        while (L.length) {
+          y = ys[c]; const cabe = []; let h = 6.4; for (const p of L) { const hp = altPares([p], cw); if (y + h + hp > LIM) break; h += hp; cabe.push(p); }
+          if (!cabe.length || (cabe.length < Math.min(3, L.length) && y > 45)) {
+            if (c === 0 && ys[1] + 6.4 + altPares(L.slice(0, 3), cw) <= LIM) { c = 1; continue; }
+            pagina(titulo); ys = [y, y]; c = 0; continue;
+          }
+          faixa(s.t + (L.length < s.pares.length ? ' (cont.)' : ''), xs[c], cw); pares(cabe, xs[c], cw); L = L.slice(cabe.length); ys[c] = y + 2.4;
+          if (L.length) c = 1 - c;
+        }
+      }
+      y = Math.max(ys[0], ys[1]);
+    }
+    // tabela simples com cabeçalho escuro
+    function tabela(cab, linhas, larg, o = {}) {
+      const xs = [X0]; for (const w of larg) xs.push(xs[xs.length - 1] + w);
+      const hdr = () => { F('bold', 6.6); const hl = cab.map((t, i) => quebra(t, larg[i] - 2)); const hh = Math.max(...hl.map((q) => q.length)) * 2.8 + 2.4; precisa(hh + 5); doc.setFillColor(...ESC); doc.rect(X0, y, xs[xs.length - 1] - X0, hh, 'F'); F('bold', 6.6, [255, 255, 255]); hl.forEach((q, i) => q.forEach((t, k) => T(t, i === 0 || o.esq?.includes(i) ? xs[i] + 1.2 : xs[i + 1] - 1.2, y + 3 + k * 2.8, { align: i === 0 || o.esq?.includes(i) ? 'left' : 'right' }))); y += hh; };
+      hdr();
+      linhas.forEach((ln, j) => {
+        F('normal', 6.9); const cel = ln.map((t, i) => quebra(String(t ?? ''), larg[i] - 2)); const h = Math.max(...cel.map((q) => q.length)) * 3 + 1.6;
+        if (y + h > LIM) { pagina(titulo); hdr(); }
+        if (j % 2) { doc.setFillColor(...CLARO); doc.rect(X0, y, xs[xs.length - 1] - X0, h, 'F'); }
+        cel.forEach((q, i) => { F(o.negrito?.includes(i) ? 'bold' : 'normal', 6.9, [25, 25, 25]); q.forEach((t, k) => T(t, i === 0 || o.esq?.includes(i) ? xs[i] + 1.2 : xs[i + 1] - 1.2, y + 2.8 + k * 3, { align: i === 0 || o.esq?.includes(i) ? 'left' : 'right' })); });
+        doc.setDrawColor(...LINHA); doc.setLineWidth(0.15); doc.line(X0, y + h, xs[xs.length - 1], y + h); y += h;
+      });
+      y += 3;
+    }
+    // escopo no formato Qtd | Descrição, com recuo por nível
+    function escopo(grupo, linhas) {
+      precisa(20); F('bold', 9.6, ESC); T(grupo, X0, y + 4); y += 6;
+      const hdr = () => { doc.setFillColor(...ESC); doc.rect(X0, y, LW, 4.8, 'F'); F('bold', 6.8, [255, 255, 255]); T(x.qtd, X0 + 1.5, y + 3.3); T(x.descr, X0 + 14, y + 3.3); y += 4.8; };
+      hdr();
+      for (const l of linhas) {
+        const xx = X0 + 14 + Math.min(8, l.n || 0) * 3; const st = (l.n || 0) <= 1 && !/:/.test(l.t) ? 'bold' : 'normal'; F(st, 7); const q = quebra(l.t, X1 - xx - 1); const h = q.length * 3.05 + 1.1;
+        if (y + h > LIM) { pagina(titulo); hdr(); }
+        if (l.q) { F('bold', 7.2, ESC); T(String(l.q), X0 + 3, y + 2.8, { align: 'center' }); }
+        F(st, 7, [25, 25, 25]); q.forEach((t, k) => T(t, xx, y + 2.8 + k * 3.05)); y += h;
+        if ((l.n || 0) === 0) { doc.setDrawColor(...LINHA); doc.setLineWidth(0.15); doc.line(X0, y, X1, y); }
+      }
+      y += 4;
+    }
+    function imagem(src, hmax, legenda) {
+      if (!src) return; const p = doc.getImageProperties(src); let w = LW, h = w * p.height / p.width; if (h > hmax) { h = hmax; w = h * p.width / p.height; }
+      const xx = X0 + (LW - w) / 2; doc.addImage(src, fmtImg(src), xx, y, w, h, undefined, 'FAST'); doc.setDrawColor(...LINHA); doc.setLineWidth(0.2); doc.rect(xx, y, w, h); y += h + 2;
+      if (legenda) { F('italic', 6.4, CINZA); T(legenda, X0, y + 2); y += 4; }
+    }
+    function paragrafo(s, o = {}) { F(o.st || 'normal', o.sz || 7.6, o.cor || [25, 25, 25]); for (const q of quebra(s, o.w || LW)) { precisa(3.8); F(o.st || 'normal', o.sz || 7.6, o.cor || [25, 25, 25]); T(q, o.x || X0, y + 3); y += o.lh || 3.6; } y += o.depois ?? 1.2; }
+    function marcadores(L) { for (const l of L) { F('normal', 7.4); const q = quebra(l, LW - 5); precisa(q.length * 3.5 + 0.6); doc.setFillColor(...LAR); doc.rect(X0 + 1, y + 1.6, 1.2, 1.2, 'F'); F('normal', 7.4, [25, 25, 25]); q.forEach((t, k) => T(t, X0 + 4, y + 3 + k * 3.5)); y += q.length * 3.5 + 0.8; } y += 2; }
+
+    // ---------- páginas ----------
+    const fabDe = (it) => (O.fab || {})[it.key] || null;
+    const tituloPag = (t) => { for (const [re, k] of TIT_PAG) if (re.test(t || '')) return x[k]; return trF(t, 'val') || t; };
+    function resumo() {
+      pagina(x.resumo);
+      const esq = [[I.R[lang].cliente.replace(':', ''), E.cliente], [r.razao.replace(':', ''), E.razao], [r.cnpj.replace(':', ''), E.cnpj], [r.aosCuid.replace(':', ''), E.aosCuidados], [r.projObra.replace(':', ''), tr(E.obra)], [r.cidade.replace(':', ''), E.cidade]].filter((p) => p[1]);
+      const dir = [[x.proposta, D.numero || '—'], [x.rev, String(D.rev ?? '')], [x.data, I.dataLang(D.data, lang)], [x.validade, I.dataLang(D.validade, lang)], [x.norma, (D.flags || {}).normaTxt || ''], [x.vendedor, D.vendedor || '']].filter((p) => p[1]);
+      colunas([{ t: r.cliente.replace(':', ''), pares: esq }, { t: x.dadosProp, pares: dir }]); y += 2;
+      subtitulo(x.fornec);
+      const cab = comPreco ? [x.item, x.qtd, x.equip, x.ponto, x.tot] : [x.item, x.qtd, x.equip, x.ponto];
+      const larg = comPreco ? [12, 12, 92, 40, 30] : [12, 12, 112, 50];
+      tabela(cab, D.itens.map((it, i) => [String(i + 1), qtdTxt(it.qtd), [E.codigos[it.key] || it.codigo, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)].filter(Boolean).join(' — '), numL(it.condicao || ''), comPreco ? din(it.total) : null].filter((v) => v !== null)), larg, { esq: [2, 3], negrito: [0] });
+      if (comPreco) { precisa(12); doc.setFillColor(...LAR); doc.rect(X0, y, LW, 8, 'F'); F('bold', 9.4, [255, 255, 255]); T(x.valorTotal.toUpperCase(), X0 + 3, y + 5.4); T(din(D.total), X1 - 3, y + 5.4, { align: 'right' }); y += 11;
+        if (usd) { const nt = r.moeda.replace('{taxa}', nf(4).format(Number(O.moeda.taxa))).replace('{data}', O.moeda.data ? r.moedaData.replace('{d}', I.dataLang(O.moeda.data, lang)) : ''); paragrafo(nt, { sz: 6.6, cor: CINZA }); } }
+      if (tem('condicoes')) { y += 2; colunas([{ t: x.cond, pares: [[x.pagamento, tr(E.pagamento) || '—'], [x.frete, tr(E.frete) || '—'], [x.prazo, prazoTxt().join(' · ') || r.combinar], [x.validade, I.dataLang(D.validade, lang) || '—']] }]); }
+      if (tem('conheca') && (M.somos || []).length) { y += 3; precisa(30); faixa(x.sobre, X0, LW); paragrafo((M.somos || [])[0], { sz: 7.4, lh: 3.5 }); }
+      const selos = (O.img && O.img.selos) || AS.img.selos; if (selos && y < LIM - 26) { const p = doc.getImageProperties(selos); const w = 56, h = w * p.height / p.width; doc.addImage(selos, fmtImg(selos), X1 - w, LIM - h - 1, w, h, 'selos', 'FAST'); }
+    }
+    function prazoTxt() { const fab = Number(E.prazoFab) || 0, ent = Number(E.prazoEnt) || 0; const L = []; if (fab) L.push(r.fab.replace('{n}', fab)); if (ent) L.push(r.ent.replace('{n}', ent)); if (fab || ent) L.push(r.tot.replace('{n}', fab + ent)); for (const l of I.linhasDe(E.prazoTexto)) L.push(tr(l)); return L; }
+    function itens() {
+      D.itens.forEach((it, i) => {
+        const fd = it.folha || {}; const dfd = it.fd || {}; const FA = fabDe(it); const dados = FA && FA.dados; const nItem = r.item.replace('{n}', i + 1);
+        const cod = E.codigos[it.key] || it.codigo || '';
+        const camposOn = (s) => (s.campos || []).filter((c) => c.on !== false && String(c.v || '').trim()).map((c) => [trF(c.k, 'rot'), fb && fb.ehMedida(c.v) ? medida(c.v) : swap(trF(c.v, 'val'))]);
+        const secsDe = (pag) => (dados ? dados.secoes.filter((s) => s.pag === pag && s.t !== 'Project') : []).map((s) => ({ t: trF(s.t, 'sec'), pares: camposOn(s) }));
+        const pags = dados ? dados.paginas.filter((p) => p.tipo === 'dados') : [];
+        const ident = [[x.item, String(i + 1)], [x.codigo, cod], [x.equip, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)], [x.quantidade, qtdTxt(it.qtd) + (it.un ? ' ' + it.un : '')], [x.ponto, numL(it.condicao || '')]].filter((p) => p[1]);
+        if (dados) { const pj = (dados.secoes.find((s) => s.t === 'Project') || { campos: [] }).campos; const v = (re) => (pj.find((c) => re.test(c.k)) || {}).v; const tg = v(/^Tag/); const md = v(/Model$|^Model \//); if (md) ident.push([x.modelo, md]); if (tg) ident.push([x.tag, tg]); if (dados.fabricante) ident.push([x.fabr, dados.fabricante]); }
+        // 1) desempenho: identificação + seções da primeira folha + curva
+        pagina(x.desemp + ' — ' + nItem);
+        const sec1 = [{ t: x.ident, pares: ident }];
+        if (pags.length) sec1.push(...secsDe(pags[0].n));
+        else {
+          for (const b of fd.hidraulica || []) sec1.push({ t: x.hidr + ' — ' + r.bomba.replace('{n}', b.n) + ' (' + fdV(b.acion) + (b.cfg ? ' · ' + fdV(b.cfg) : '') + ')', pares: b.dados.filter((d) => d[1]).map((d) => [fdT('@' + d[0]), numL(d[1])]) });
+          if ((dfd.bomba || []).length) sec1.push({ t: x.fdB, pares: dfd.bomba.map((d) => [fdT('@' + d[0]), fdV(d[1])]) });
+          if ((dfd.motor || []).length) sec1.push({ t: x.fdM, pares: dfd.motor.map((d) => [fdT('@' + d[0]), fdV(d[1])]) });
+        }
+        colunas(sec1);
+        F('italic', 6.2, CINZA); T(dados ? x.fonte.replace('{f}', dados.fabricante || '—') : x.semFab, X0, y + 1.5); y += 4;
+        const curva = (FA && FA.curva) || O.curvas[it.key];
+        if (curva) { if (LIM - y < 95) pagina(x.curva + ' — ' + nItem); else subtitulo(x.curva); imagem(curva, Math.min(LIM - y - 4, 170)); }
+        // 2) demais folhas de dados do fabricante (construtiva, dados adicionais), com as tabelas dessas páginas
+        for (const pg of pags.slice(1)) {
+          const ss = secsDe(pg.n); const tb = (dados.tabelas || []).filter((t) => t.pag === pg.n); if (!ss.some((s) => s.pares.length) && !tb.length) continue;
+          pagina(tituloPag(pg.titulo) + ' — ' + nItem); colunas(ss);
+          for (const t of tb) { y += 2; const nc = Math.max(t.cab.length, ...t.linhas.map((l) => l.length)); const cab = t.cab.length === nc ? t.cab.map((c, k) => (k ? c : trF(c, 'sec') || c)) : [''].concat(t.cab).slice(0, nc); const w0 = 62; const ws = [w0].concat(Array(nc - 1).fill((LW - w0) / (nc - 1)));
+            tabela(cab.map((c) => trF(c, 'rot') || c), t.linhas.map((l) => [trF(l[0], 'rot') || l[0]].concat(l.slice(1).map(swap))), ws, { esq: [0] }); }
+        }
+        if (dados && (dados.tabelas || []).some((t) => t.pag === pags[0]?.n)) { /* tabela da primeira folha: já resumida nas seções */ }
+        // 3) outras curvas e desenhos escolhidos
+        for (const pg of dados ? dados.paginas.filter((p) => (p.tipo === 'curva' || p.tipo === 'desenho' || p.tipo === 'anexo') && FA.paginas && FA.paginas[p.n]) : []) {
+          const im = FA.paginas[pg.n]; const paisagem = im.w > im.h; pagina(tituloPag(pg.titulo) + ' — ' + nItem, paisagem); imagem(im.url, LIM - y - 2);
+        }
+        // 4) escopo: o do fabricante (grupos marcados) + itens da formação LS Fire + especificações
+        pagina(x.escopo + ' — ' + nItem);
+        F('bold', 8, ESC); for (const q of quebra([cod, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)].filter(Boolean).join(' — '), LW)) { T(q, X0, y + 3); y += 3.8; } F('normal', 7.2, CINZA); T([x.quantidade + ': ' + qtdTxt(it.qtd) + (it.un ? ' ' + it.un : ''), it.condicao ? x.ponto + ': ' + numL(it.condicao) : ''].filter(Boolean).join('   ·   '), X0, y + 3); y += 7;
+        const gs = dados ? (dados.escopo || []).filter((g) => g.on !== false) : [];
+        for (const g of gs) escopo(trF(g.g, 'sec') || g.g, g.linhas.filter((l) => l.on !== false).map((l) => ({ q: l.q, n: l.n, t: trF(l.t, 'lin') })));
+        const ls = []; for (const c of (fd.componentes || []).concat(fd.adicionais || [])) { ls.push({ q: qtdTxt(c.qtd), n: 0, t: fdT(c.titulo) }); for (const l of c.linhas || []) ls.push({ n: 2, t: Array.isArray(l) ? fdT('@' + l[0]) + ': ' + fdV(l[1]) : l }); }
+        if (ls.length && !(FA && FA.semLs)) escopo(x.lsfire, ls);
+        if ((it.espec || []).length) { const le = []; for (const g of it.espec) { le.push({ q: qtdTxt(g.qtd), n: 0, t: fdT(g.titulo) }); for (const l of g.linhas || []) le.push({ n: 2, t: fdT('@' + l[0]) + ': ' + tr(l[1]) }); } escopo(x.especs, le); }
+        const nt = I.linhasDe(E.notasItem[it.key]); if (nt.length) { subtitulo(r.notasItem); marcadores(nt.map(tr)); }
+      });
+    }
+    function planilha() {
+      pagina(x.planilha);
+      const cab = [x.item, x.codigo, x.descr, x.qtd, x.un, x.ncm, x.icms, x.ipi, x.unit, x.tot]; const larg = [9, 20, 61, 10, 10, 15, 11, 10, 20, 20];
+      tabela(cab, D.itens.map((it, i) => [String(i + 1), E.codigos[it.key] || it.codigo || '', D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve), qtdTxt(it.qtd), it.un || '', it.ncm || '', pct(it.icms), it.ipi == null ? '—' : pct(it.ipi), din(it.unit), din(it.total)]), larg, { esq: [1, 2], negrito: [9] });
+      precisa(12); doc.setFillColor(...LAR); doc.rect(X0, y, LW, 8, 'F'); F('bold', 9.4, [255, 255, 255]); T(x.valorTotal.toUpperCase(), X0 + 3, y + 5.4); T(din(D.total), X1 - 3, y + 5.4, { align: 'right' }); y += 11;
+      if (usd) { const nt = r.moeda.replace('{taxa}', nf(4).format(Number(O.moeda.taxa))).replace('{data}', O.moeda.data ? r.moedaData.replace('{d}', I.dataLang(O.moeda.data, lang)) : ''); paragrafo(nt, { sz: 6.6, cor: CINZA }); }
+    }
+    function condicoes() {
+      pagina(x.cond);
+      faixa(r.h_pag, X0, LW); paragrafo(tr(E.pagamento) || '—', { st: 'bold' }); if (M.notaPagamento) paragrafo(r.nota + ' ' + M.notaPagamento, { sz: 7, cor: CINZA }); y += 2;
+      faixa(r.h_prazo, X0, LW); for (const l of prazoTxt().concat(prazoTxt().length ? [] : [r.combinar])) paragrafo(l, { depois: 0.4 }); y += 2;
+      faixa(r.h_frete, X0, LW); paragrafo(tr(E.frete) || '—'); y += 2;
+      const ob = I.linhasDe(E.observacoes).map((l) => (E.ajustados.observacoes ? tr(l) : l)); if (ob.length) { faixa(r.h_obs, X0, LW); marcadores(ob); }
+      if ((M.atencao || []).length) { precisa(12); doc.setFillColor(...ESC); doc.rect(X0, y, LW, 9.5, 'F'); doc.setFillColor(...LAR); doc.rect(X0, y, 2.4, 9.5, 'F'); F('bold', 7, [255, 255, 255]); T(r.atencao + (M.atencao[0] || ''), X0 + 5, y + 4); F('normal', 7, [255, 255, 255]); T(M.atencao[1] || '', X0 + 5, y + 7.6); y += 12; }
+    }
+    function notas() {
+      pagina(x.notas);
+      for (const [rot, txt, k] of [[r.notas, E.notas, 'notas'], [r.desvios, E.desvios, 'desvios'], [r.exclusoes, E.exclusoes, 'exclusoes']]) {
+        const L = I.linhasDe(txt).map((l) => (E.ajustados[k] || (k === 'exclusoes' && I.linhasDe(D.exclusoes).includes(l)) ? tr(l) : l).replace(/^[•\-–]\s*/, '')); if (!L.length) continue;
+        precisa(14); faixa(rot, X0, LW); marcadores(L);
+      }
+    }
+    function listas(tit, blocos) { pagina(tit); for (const [t, L] of blocos) { if (!(L || []).length) continue; precisa(14); faixa(t, X0, LW); marcadores(P.aplica(L, D.flags || {}, lang)); } }
+    function termos() {
+      if (!(M.termos || []).length) return; pagina(x.termos);
+      const cw = (LW - 6) / 2, xs = [X0, X0 + cw + 6]; let col = 0; const y0 = y;
+      for (const c of M.termos) {
+        const bl = [['t', c.t]].concat((c.p || []).flatMap((p) => { F('normal', 6.6); return quebra(p, cw).map((q) => ['p', q]).concat([['g']]); }));
+        for (const b of bl) { const h = b[0] === 't' ? 4.6 : b[0] === 'g' ? 1.2 : 2.95; if (y + h > LIM) { if (col === 0) { col = 1; y = y0; } else { pagina(x.termos); col = 0; } }
+          if (b[0] === 't') { F('bold', 7, ESC); T(b[1], xs[col], y + 3.4); } else if (b[0] === 'p') { F('normal', 6.6, [40, 40, 40]); T(b[1], xs[col], y + 2.4); } y += h; }
+      }
+    }
+    function contatos() {
+      pagina(x.contatos); const cts = (M.contatos || []).filter((c) => (E.contatos || []).includes(c.nome));
+      cts.forEach((c, k) => { const cx = k % 2 ? X0 + LW / 2 + 3 : X0; if (k % 2 === 0 && k) y += 22; const yy = y; doc.setFillColor(...CLARO); doc.rect(cx, yy, LW / 2 - 3, 19, 'F'); doc.setFillColor(...LAR); doc.rect(cx, yy, 1.2, 19, 'F');
+        F('bold', 8.6, ESC); T(c.nome, cx + 4, yy + 5); F('normal', 7.2, CINZA); [c.cargo, c.tel, c.email].filter(Boolean).forEach((t, j) => T(t, cx + 4, yy + 9.4 + j * 3.6)); });
+      y += 26; const sl = (O.img && O.img.slogan) || AS.img.slogan; if (sl) { const p = doc.getImageProperties(sl); const w = 80; doc.addImage(sl, fmtImg(sl), X1 - w, Math.max(y, LIM - w * p.height / p.width - 4), w, w * p.height / p.width, 'slogan', 'FAST'); }
+    }
+    // ordem: resumo (capa), itens (folhas, curvas, desenhos, escopo), planilha, condições, notas, comissionamento, prazos, termos, contatos
+    resumo();
+    if (tem('folha') || D.tipo !== 'SEQ') itens();
+    if (comPreco && tem('planilha')) planilha();
+    if (tem('condicoes')) condicoes();
+    if (tem('notas')) notas();
+    if (tem('comiss')) { const C = M.comissionamento || {}; listas(x.comiss, [[r.incluso, C.incluso], [r.servAd, C.adicionais], [r.resp, C.responsabilidades]]); }
+    if (tem('prazos')) { const PZ = M.prazos || {}; pagina(x.prazos); if (PZ.intro) paragrafo(PZ.intro); for (const [t, L] of [[r.inicio, PZ.inicio], [r.susp, PZ.suspensao]]) if ((L || []).length) { faixa(t, X0, LW); marcadores(L); } if (PZ.recebimento) paragrafo(PZ.recebimento, { sz: 7, cor: CINZA }); }
+    if (tem('termos')) termos();
+    if (tem('contatos')) contatos();
+    const n = doc.getNumberOfPages();
+    for (let i = 1; i <= n; i++) { doc.setPage(i); const w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight(); F('normal', 6.4, CINZA); T(i + '/' + n, w - 12, h - 9.2, { align: 'right' }); T(x.proposta + ' ' + (D.numero || ''), 12, h - 9.2); }
+    const cli = (E.cliente || '').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 50);
+    const pre = { tc: 'PTC', com: 'PC', tec: 'PT' }[O.tipo] || 'PTC';
+    const nome = (pre + '-FD_' + String(D.numero || 'sem-numero').replace(/\s*\/\s*/g, '_').replace(/\s+/g, '') + (D.rev !== '' && D.rev != null ? '-Rev.' + D.rev : '') + (lang !== 'pt' ? '_' + lang.toUpperCase() : '') + (usd ? '_USD' : '') + (cli ? '_' + cli : '')).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.\-]+/g, '_') + '.pdf';
+    return { bytes: doc.output('arraybuffer'), nome, paginas: n, secoes: SEC };
+  }
+  // textos do fabricante que o dicionário não traduz (vão para o Claude quando disponível)
+  function textosFab(dados, lang) {
+    const fb = FB(); if (!fb || !dados || lang === 'en') return []; const out = new Set(); const add = (s, ok) => { s = String(s || '').trim(); if (s && /[a-z]{3}/.test(s) && !/^\S+$/.test(s) && !ok) out.add(s); };
+    for (const s of dados.secoes || []) { if (s.t === 'Project') continue; add(s.t, fb.secT(s.t, lang)); for (const c of s.campos || []) if (c.on !== false) { add(c.k, fb.rotT(c.k, lang)); add(c.v, fb.valT(c.v, lang) || fb.ehMedida(c.v)); } }
+    for (const g of dados.escopo || []) { if (g.on === false) continue; add(g.g, fb.secT(g.g, lang)); for (const l of g.linhas || []) if (l.on !== false) add(l.t, fb.linhaT(l.t, lang)); }
+    for (const t of dados.tabelas || []) for (const l of t.linhas || []) add(l[0], fb.rotT(l[0], lang));
+    for (const p of dados.paginas || []) if (!TIT_PAG.some(([re]) => re.test(p.titulo))) add(p.titulo, false);
+    return [...out];
+  }
+  window.PricerPropostaFD = { montar, textosFab };
 })();
 
 </script>
@@ -7252,7 +7724,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const trd = ((pc.trad || {})[lang]) || {}; const tv = (v) => (lang === 'pt' || !v ? v : trd[v] || v);
     const nfL = new Intl.NumberFormat({ pt: 'pt-BR', en: 'en-US', es: 'es-ES' }[lang] || 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const din = (v) => (usd && taxa > 0 ? 'US$ ' + nfL.format((Number(v) || 0) / taxa) : usd ? 'US$ —' : 'R$ ' + nfL.format(Number(v) || 0));
-    const faltaTr = lang === 'pt' ? 0 : PRP.dinamicos(D, pc).filter((x) => !trd[x]).length;
+    const faltaTr = (lang === 'pt' ? [] : PRP.dinamicos(D, pc)).concat(textosFabTodos(D, pc, lang)).filter((x) => !trd[x]).length;
     const dupla = (v) => { const t = tv(v); return t && t !== v ? `${esc(t)}<br><small class="sub">${esc(v)}</small>` : t ? esc(t) : '<span class="sub">—</span>'; };
     const fab = Number(E.prazoFab) || 0, ent = Number(E.prazoEnt) || 0;
     const prazo = [fab ? 'fabricação ' + fab + ' dias' : '', ent ? 'entrega ' + ent + ' dias' : '', fab || ent ? 'total ' + (fab + ent) + ' dias' : '', E.prazoTexto].filter(Boolean).join(' · ');
@@ -7268,6 +7740,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const area = (k, lb, dica) => `<div class="f spanall"><label for="pc_${k}">${esc(lb)}${reset(k)}</label><textarea id="pc_${k}" data-pc="${k}" rows="${Math.min(12, Math.max(2, String(Ept[k] || '').split('\n').length + 1))}"${ro}>${esc(Ept[k] || '')}</textarea>${dica ? `<small class="sub">${esc(dica)}</small>` : ''}</div>`;
     return `<section class="card" id="pcCard"><h2>Proposta técnica e comercial <span class="sub">PDF no modelo LS Fire (PTC), com os números desta formação</span></h2>
       <div class="pcopts">
+        <div class="f"><label>Padrão</label>${seg('estilo', [['ptc', 'Clássico (PTC)'], ['fd', 'Folha de dados (novo)']], pc.estilo === 'fd' ? 'fd' : 'ptc')}</div>
         <div class="f"><label>Documento</label>${seg('tipoDoc', PRP.TIPOS, tipo)}</div>
         <div class="f"><label>Idioma</label>${seg('idioma', PRP.IDIOMAS, lang)}</div>
         <div class="f"><label>Moeda</label>${seg('moeda', [['BRL', 'Real (R$)'], ['USD', 'Dólar (US$)']], usd ? 'USD' : 'BRL')}</div>
@@ -7275,7 +7748,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       </div>
       ${faltam.length ? `<div class="banner warn" style="margin:8px 0">Falta preencher: ${esc(faltam.join(', '))}. ${seq ? 'Preencha em Dados gerais.' : 'Preencha nos dados da proposta, acima.'}</div>` : ''}
       <div class="docbar" style="margin:8px 0 4px"><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button><span class="sub">${D.itens.length} item(ns) · total ${esc(din(D.total))}${usd && taxa > 0 ? ' (R$ ' + esc(nfL.format(D.total || 0)) + ' a ' + esc(NF[4].format(taxa)) + ')' : ''} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
-      ${lang !== 'pt' ? `<div class="banner ${tradEm === lang ? 'info' : faltaTr ? 'warn' : 'ok'}" style="margin:0 0 6px">${tradEm === lang ? 'Traduzindo descrições e condições desta proposta…' : faltaTr ? `${faltaTr} texto(s) desta proposta ainda em português. ${ro ? '' : '<button class="btn sm" data-pctraduz data-ico="languages">Traduzir agora</button>'}` : 'Textos desta proposta traduzidos: confira abaixo (original em cinza) e, se precisar, ajuste em "Traduções desta proposta", mais abaixo.'} Textos padrão e rótulos saem traduzidos com o modelo.</div>` : ''}
+      ${lang !== 'pt' || faltaTr || tradEm ? `<div class="banner ${tradEm === lang ? 'info' : faltaTr ? 'warn' : 'ok'}" style="margin:0 0 6px">${tradEm === lang ? 'Traduzindo descrições e condições desta proposta…' : faltaTr ? `${faltaTr} texto(s) desta proposta ainda em português. ${ro ? '' : '<button class="btn sm" data-pctraduz data-ico="languages">Traduzir agora</button>'}` : 'Textos desta proposta traduzidos: confira abaixo (original em cinza) e, se precisar, ajuste em "Traduções desta proposta", mais abaixo.'} ${lang !== 'pt' ? 'Textos padrão e rótulos saem traduzidos com o modelo.' : 'No padrão Folha de dados, o que vem do fabricante em inglês é traduzido para o português.'}</div>` : ''}
       <details class="sub2"${openSet.pc_cab === false ? '' : ' open'} data-keep="pc_cab"><summary>Cabeçalho e condições <span class="sub">vêm de ${seq ? 'Dados gerais e da formação' : 'dados da proposta'}</span></summary>
         <div class="kv pcro">${kvs.map(([lb, v]) => `<div>${esc(lb)}</div><div>${['Projeto/Obra', 'Condição de pagamento', 'Frete'].includes(lb) ? dupla(v) : v ? esc(v) : '<span class="sub">—</span>'}</div>`).join('')}</div>
         <div class="docbar" style="margin-top:8px">${ir}</div></details>
@@ -7294,7 +7767,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   const FD_KIND = [['bomba', 'Folha de dados da bomba'], ['motor', 'Folha de dados do motor'], ['curva', 'Curva da bomba']];
   function itemPropCard(S) {
     const pc = pcGet(); const f = (pc.fd || {})[S] || {}; const ro = state.verRev ? ' disabled' : '';
-    const st = FD_KIND.map(([k, lb]) => (f[k] ? lb.replace(/^Folha de dados d[ao] /, 'FD ').replace('Curva da bomba', 'curva') + ' ✓' : '')).filter(Boolean).join(' · ');
+    const st = (f.fab ? ['folha do fabricante ✓'] : []).concat(FD_KIND.map(([k, lb]) => (f[k] ? lb.replace(/^Folha de dados d[ao] /, 'FD ').replace('Curva da bomba', 'curva') + ' ✓' : ''))).filter(Boolean).join(' · ');
     const slot = ([k, lb]) => { const x = f[k];
       if (!x) return `<div class="fdslot"><div class="lbl">${esc(lb)}</div><label class="drop" for="fdup_${k}"><b>Solte aqui o PDF ou a imagem</b><span class="sub">${k === 'curva' ? 'a página escolhida entra na folha de dados da proposta' : 'o app lê os dados (vazão, rotação, rotor, sucção, recalque…) para você conferir'}</span><input id="fdup_${k}" type="file" accept=".pdf,image/*" data-fdup="${esc(S)}|${k}"${ro} hidden></label></div>`;
       const campos = x.campos || [];
@@ -7305,7 +7778,38 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     return `<details class="card"${keep('fdprop')}><summary>Proposta: código do produto e folha de dados <span class="sub">${esc([(pc.codigos || {})[S] ? 'código ' + pc.codigos[S] : 'sem código', st].filter(Boolean).join(' · '))}</span></summary>
       <div class="fields"><div class="f"><label for="pccod_${S.replace(/\W/g, '')}">Código do produto (ERP)</label><input id="pccod_${S.replace(/\W/g, '')}" data-pccod="${esc(S)}" value="${esc((pc.codigos || {})[S] || '')}" placeholder="ex.: 004-00242"${ro}><small class="sub">sai na coluna Código da planilha de preços</small></div>
         <div class="f span2"><label for="pcni_${S.replace(/\W/g, '')}">Notas, desvios e observações deste item</label><textarea id="pcni_${S.replace(/\W/g, '')}" data-pcni="${esc(S)}" rows="2"${ro}>${esc((pc.notasItem || {})[S] || '')}</textarea><small class="sub">saem na folha de dados do item</small></div></div>
+      ${fabCard(S)}
       <div class="fdgrid">${FD_KIND.map(slot).join('')}</div></details>`;
+  }
+  // folha de dados completa do fabricante (ex.: Peerless Express): lida por posição do texto; tudo fica para conferir
+  const TIPO_PAG = { dados: 'dados', curva: 'curva', desenho: 'desenho', anexo: 'anexo', escopo: 'escopo' };
+  function fabCard(S) {
+    const pc = pcGet(); const F0 = (((pc.fd || {})[S]) || {}).fab; const ro = state.verRev ? ' disabled' : '';
+    const intro = '<p class="sub" style="margin:0 0 6px">Para o padrão <b>Folha de dados (novo)</b>: o PDF completo do fabricante (desempenho, construtiva, curvas, arranjo e escopo). O app lê os dados, você confere e escolhe o que vai; a proposta sai com as seções, a curva, os desenhos e o escopo neste layout.</p>';
+    if (!F0) return `<div class="fdslot" style="margin-bottom:10px"><div class="lbl">Folha de dados completa do fabricante</div>${intro}<label class="drop" for="fdup_fab"><b>Solte aqui o PDF do fabricante</b><span class="sub">ex.: datasheet da Peerless com várias páginas</span><input id="fdup_fab" type="file" accept=".pdf" data-fdup="${esc(S)}|fab"${ro} hidden></label></div>`;
+    const d = F0.dados || { secoes: [], paginas: [], escopo: [], tabelas: [] }; const nC = d.secoes.reduce((t, x) => t + x.campos.length, 0); const nOn = d.secoes.reduce((t, x) => t + x.campos.filter((c) => c.on !== false).length, 0);
+    const pj = (d.secoes.find((x) => x.t === 'Project') || { campos: [] }).campos; const mod = (pj.find((c) => /Model$|^Model \//.test(c.k)) || {}).v || '';
+    const pags = d.paginas.filter((q) => ['curva', 'desenho', 'anexo'].includes(q.tipo));
+    const cmp = fabConfere(S, d);
+    return `<div class="fdslot" style="margin-bottom:10px"><div class="lbl">Folha de dados completa do fabricante: <b>${esc(F0.nome || '')}</b> <button class="linkbtn" data-fdopen="${esc(F0.docId)}">abrir</button>${ro ? '' : ` · <button class="linkbtn" data-fdtira="${esc(S)}|fab">tirar</button> · <button class="linkbtn" data-fabler="${esc(S)}">ler de novo</button>`}</div>${intro}
+      <div class="kv pcro"><div>Fabricante e modelo</div><div>${esc([d.fabricante, mod].filter(Boolean).join(' · ') || '—')}</div><div>Lido</div><div>${d.paginas.length} páginas · ${d.secoes.length} seções · ${nOn} de ${nC} campos marcados · ${d.escopo.length} grupos de escopo · ${d.tabelas.length} tabela(s)</div></div>
+      ${cmp.length ? `<div class="banner warn" style="margin:8px 0">${cmp.map(esc).join('<br>')}</div>` : ''}
+      <div class="fields" style="margin-top:8px"><div class="f span2"><label for="fabcv_${S.replace(/\W/g, '')}">Curva que vai com o desempenho</label><select id="fabcv_${S.replace(/\W/g, '')}" data-fabcurva="${esc(S)}"${ro}><option value="">nenhuma</option>${d.paginas.filter((q) => q.tipo === 'curva').map((q) => `<option value="${q.n}"${F0.curvaPag === q.n ? ' selected' : ''}>página ${q.n}: ${esc(q.titulo)}</option>`).join('')}</select></div>
+        <div class="f span2"><label>Páginas que entram como imagem</label><div class="chks" style="display:flex;flex-direction:column;gap:4px">${pags.map((q) => `<label class="chk"><input type="checkbox" data-fabpag="${esc(S)}|${q.n}"${(F0.pags || {})[q.n] ? ' checked' : ''}${ro}> página ${q.n}: ${esc(q.titulo)} <small class="sub">${TIPO_PAG[q.tipo]}</small></label>`).join('') || '<span class="sub">nenhuma</span>'}</div></div>
+        <div class="f span2"><label>Escopo da proposta</label><div class="chks" style="display:flex;flex-direction:column;gap:4px"><label class="chk"><input type="checkbox" data-fabls="${esc(S)}"${F0.semLs ? '' : ' checked'}${ro}> Incluir também os itens da formação LS Fire</label></div><small class="sub">desmarque se o escopo do fabricante já cobre tudo</small></div></div>
+      ${d.secoes.map((x, si) => `<details class="sub2"${keep('fab_' + S + '_' + si)}><summary>${esc(x.t === 'Project' ? 'Identificação (não vai por padrão)' : x.t)}${x.t !== 'Project' && window.PricerFabricante && window.PricerFabricante.secT(x.t, 'pt') && window.PricerFabricante.secT(x.t, 'pt') !== x.t ? ' <span class="sub">· ' + esc(window.PricerFabricante.secT(x.t, 'pt')) + '</span>' : ''} <span class="sub">${x.campos.filter((c) => c.on !== false).length}/${x.campos.length} · página ${x.pag}</span></summary>
+        <div class="tw"><table class="t"><thead><tr><th>Vai</th><th>Campo (como no fabricante)</th><th>Valor</th></tr></thead><tbody>${x.campos.map((c, ci) => `<tr><td><input type="checkbox" data-fabon="${esc(S)}|${si}|${ci}"${c.on !== false ? ' checked' : ''}${ro} aria-label="Incluir ${esc(c.k)}"></td><td>${esc(c.k)}</td><td class="in"><input data-fabv="${esc(S)}|${si}|${ci}" value="${esc(c.v)}"${ro} aria-label="Valor de ${esc(c.k)}"></td></tr>`).join('')}</tbody></table></div></details>`).join('')}
+      ${d.escopo.length ? `<details class="sub2"${keep('fab_esc_' + S)}><summary>Escopo do fabricante <span class="sub">${d.escopo.filter((g) => g.on !== false).length}/${d.escopo.length} grupos</span></summary><div class="chks" style="display:flex;flex-direction:column;gap:6px">${d.escopo.map((g, gi) => `<label class="chk"><input type="checkbox" data-fabg="${esc(S)}|${gi}"${g.on !== false ? ' checked' : ''}${ro}> <b>${esc(g.g)}</b> <small class="sub">${g.linhas.length} linhas: ${esc(g.linhas.slice(0, 4).map((l) => l.t).join(' · '))}…</small></label>`).join('')}</div></details>` : ''}
+    </div>`;
+  }
+  // confere a folha do fabricante com a formação: vazão e altura nominais
+  function fabConfere(S, d) {
+    const out = []; const v = (re) => { for (const s of d.secoes) { if (s.t === 'NFPA Limits' || s.t === 'Project') continue; const c = s.campos.find((x) => re.test(x.k)); if (c) return c.v; } return ''; };
+    const n = (t) => Number(String(t || '').replace(/,/g, '').match(/[\d.]+/)?.[0]);
+    const vz = n(v(/^Flow, rated$/)); const vzF = val(S, 'AR4'); if (vz && typeof vzF === 'number' && vzF > 0 && Math.abs(vz - vzF) / vzF > 0.02) out.push('Vazão nominal na folha do fabricante (' + nBR(vz) + ' USgpm) diferente da formação (' + nBR(vzF) + ' USgpm).');
+    const hd = n(v(/^Differential head.*\(actual\)|^Differential head \/ pressure, rated$/)); let hF = null; for (let b = 23; b <= 26; b++) if (/DIESEL|ELETR/.test(txt(S, 'C' + b)) && typeof val(S, 'L' + b) === 'number') { hF = val(S, 'L' + b); break; }
+    if (hd && hF && Math.abs(hd - hF) / hF > 0.03) out.push('Altura nominal na folha do fabricante (' + nBR(hd) + ' m) diferente da formação (' + nBR(hF) + ' mca).');
+    return out;
   }
   let sampleP;
   const claudeOk = () => !!(window.claude && window.claude.use);
@@ -7326,6 +7830,27 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     }
     return campos;
   }
+  async function fabLerArquivo(S, file, base) {
+    toast('Lendo a folha de dados do fabricante…');
+    const pgs = await window.PricerLeitor.itensPdf(file, 40); const dados = window.PricerFabricante.ler(pgs);
+    const cv = dados.paginas.find((q) => q.tipo === 'curva' && !/Multi/i.test(q.titulo)) || dados.paginas.find((q) => q.tipo === 'curva');
+    const pags = {}; for (const q of dados.paginas) if (q.tipo === 'desenho' && /Arrangement/i.test(q.titulo)) pags[q.n] = true;
+    fdPut(S, 'fab', Object.assign({}, base, { dados, curvaPag: cv ? cv.n : null, pags })); render();
+    const nC = dados.secoes.reduce((t, x) => t + x.campos.length, 0);
+    toast(nC ? nC + ' campos, ' + dados.escopo.length + ' grupos de escopo e ' + dados.paginas.filter((q) => q.tipo !== 'dados').length + ' páginas de curva/desenho: confira antes de gerar' : 'Arquivo guardado; não reconheci dados nesta folha');
+    if ((pcGet().idioma || 'pt') !== 'en' && pcGet().estilo === 'fd') traduzirAgora();
+  }
+  const fabMut = (S, fn) => { const F0 = JSON.parse(JSON.stringify((((pcGet().fd || {})[S]) || {}).fab || null)); if (!F0) return; fn(F0); fdPut(S, 'fab', F0); };
+  document.addEventListener('change', (e) => {
+    const t = e.target; if (!t.dataset || state.verRev) return; const ds = t.dataset;
+    if (ds.fabon || ds.fabv) { const [S, si, ci] = (ds.fabon || ds.fabv).split('|'); fabMut(S, (F0) => { const c = F0.dados.secoes[+si].campos[+ci]; if (ds.fabon) c.on = t.checked; else c.v = t.value.trim(); }); if (ds.fabon) render(); return; }
+    if (ds.fabg) { const [S, gi] = ds.fabg.split('|'); fabMut(S, (F0) => { F0.dados.escopo[+gi].on = t.checked; }); render(); return; }
+    if (ds.fabpag) { const [S, n] = ds.fabpag.split('|'); fabMut(S, (F0) => { F0.pags = Object.assign({}, F0.pags, { [n]: t.checked }); if (!t.checked) delete F0.pags[n]; }); return; }
+    if (ds.fabcurva !== undefined) { fabMut(ds.fabcurva, (F0) => { F0.curvaPag = t.value ? +t.value : null; }); return; }
+    if (ds.fabls !== undefined) { fabMut(ds.fabls, (F0) => { F0.semLs = !t.checked; }); return; }
+  });
+  document.addEventListener('click', async (e) => { const b = e.target.closest('[data-fabler]'); if (!b || state.verRev) return; const S = b.dataset.fabler;
+    try { const F0 = (((pcGet().fd || {})[S]) || {}).fab; const file = await fdArquivo(S, 'fab'); if (!F0 || !file) { toast('Não encontrei o arquivo.'); return; } if (!window.confirm('Ler de novo? As marcações e correções feitas nesta folha voltam ao que o app lê.')) return; await fabLerArquivo(S, file, { docId: F0.docId, nome: F0.nome }); } catch (er) { toast(errMsg(er)); } });
   async function fdArquivo(S, k) { const x = (((pcGet().fd || {})[S]) || {})[k]; if (!x) return null; const b = await docBlob(x.docId); return b ? new File([b], x.nome || 'arquivo', { type: b.type || (/\.pdf$/i.test(x.nome || '') ? 'application/pdf' : '') }) : null; }
   document.addEventListener('change', async (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return;
@@ -7333,7 +7858,8 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       const [S, k] = t.dataset.fdup.split('|'); const file = t.files && t.files[0]; t.value = ''; if (!file) return;
       try {
         toast('Guardando o arquivo…');
-        const docId = await SPV.salvarDoc({ tipo: k === 'curva' ? 'curva da bomba' : 'folha de dados', nome: file.name, propUid: state.uid || null, propNome: docTitle(), item: S, etapa: 'Proposta', notas: (FD_KIND.find((x) => x[0] === k) || [0, ''])[1] + ' · ' + S, itens: [] }, file);
+        const docId = await SPV.salvarDoc({ tipo: k === 'curva' ? 'curva da bomba' : 'folha de dados', nome: file.name, propUid: state.uid || null, propNome: docTitle(), item: S, etapa: 'Proposta', notas: (k === 'fab' ? 'Folha de dados completa do fabricante' : (FD_KIND.find((x) => x[0] === k) || [0, ''])[1]) + ' · ' + S, itens: [] }, file);
+        if (k === 'fab') { await fabLerArquivo(S, file, { docId, nome: file.name }); return; }
         if (k === 'curva') { let paginas = 1; try { paginas = (await window.PricerLeitor.paginaImagem(file, 1, 0.3)).paginas; } catch (er) { /* a página é escolhida depois */ } fdPut(S, k, { docId, nome: file.name, pag: 1, paginas }); toast('Curva guardada'); render(); return; }
         let campos = [], lido = true; try { toast('Lendo a folha de dados…'); campos = await fdLer(S, k, file, false); } catch (er) { lido = false; }
         fdPut(S, k, { docId, nome: file.name, campos, lido }); render();
@@ -7360,16 +7886,32 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   // tradução assim que o idioma muda: o card já mostra o resultado, e o PDF reaproveita o que ficou guardado
   let tradEm = null;
   async function traduzirAgora() {
-    const lang = pcGet().idioma || 'pt'; if (lang === 'pt' || tradEm || state.verRev) return;
+    const lang = pcGet().idioma || 'pt'; if (tradEm || state.verRev) return;
     let D; try { D = propostaDados(); } catch (er) { return; }
-    const tr0 = ((pcGet().trad || {})[lang]) || {}; if (!PRP.dinamicos(D, pcGet()).some((x) => !tr0[x])) return;
+    const tr0 = ((pcGet().trad || {})[lang]) || {}; if (!(lang === 'pt' ? [] : PRP.dinamicos(D, pcGet())).concat(textosFabTodos(D, pcGet(), lang)).some((x) => !tr0[x])) return;
     tradEm = lang; render();
     try { const { aviso } = await tradutor(D, pcGet(), lang); if (aviso) toast(aviso); } catch (er) { toast(errMsg(er)); } finally { tradEm = null; render(); }
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-pctraduz]')) traduzirAgora(); });
+  // textos da folha de dados do fabricante (em inglês) que o dicionário não cobre: só no padrão Folha de dados
+  const fabDados = (pc, S) => ((((pc.fd || {})[S]) || {}).fab || {}).dados || null;
+  const textosFabTodos = (D, pc, lang) => (pc.estilo === 'fd' && window.PricerPropostaFD ? [...new Set(D.itens.flatMap((it) => window.PricerPropostaFD.textosFab(fabDados(pc, it.key), lang)))] : []);
   async function tradutor(D, pc, lang) {
-    const lista = PRP.dinamicos(D, pc); const cache = Object.assign({}, ((pc.trad || {})[lang]) || {}); const falta = lista.filter((s) => !cache[s]);
+    const lista = lang === 'pt' ? [] : PRP.dinamicos(D, pc); const cache = Object.assign({}, ((pc.trad || {})[lang]) || {}); const falta = lista.filter((s) => !cache[s]);
+    const faltaEN = textosFabTodos(D, pc, lang).filter((s) => !cache[s]);
     let aviso = '';
+    if (faltaEN.length) {
+      const sample = await sampleFn(); const alvo = lang === 'pt' ? 'português do Brasil' : 'espanhol';
+      if (!sample) aviso = 'Tradução automática indisponível aqui: parte da folha de dados do fabricante ficou em inglês.';
+      else for (let i = 0; i < faltaEN.length; i += 40) {
+        const lote = faltaEN.slice(i, i + 40);
+        try {
+          const res = await sample.json(`Traduza do inglês para o ${alvo} os textos abaixo, tirados da folha de dados de um fabricante de bombas de incêndio (NFPA 20). Use os termos técnicos usuais no Brasil (vazão, altura manométrica, rotor, carcaça, gaxeta, acionador, painel de comando). Mantenha códigos, números, unidades, normas, modelos e nomes próprios como estão. Responda só JSON: {"t": ["tradução 1", ...]} com o mesmo número de itens e na mesma ordem.\n\nTEXTOS:\n${JSON.stringify(lote)}`);
+          const t = (res && res.t) || []; lote.forEach((s, j) => { if (t[j]) cache[s] = String(t[j]); });
+        } catch (er) { aviso = 'Parte da tradução da folha de dados do fabricante falhou: alguns textos ficaram em inglês.'; }
+      }
+      if (sample && !falta.length) pcSet('trad', Object.assign({}, pc.trad || {}, { [lang]: cache }));
+    }
     if (falta.length) {
       const sample = await sampleFn();
       if (!sample) aviso = 'Tradução automática indisponível aqui: descrições e textos da formação ficaram em português.';
@@ -7394,11 +7936,18 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const img = {}; for (const [k, c] of Object.entries(M.imagens || {})) if (c && c.docId) { const b = await docBlob(c.docId); if (b) img[k] = await blobURL(b); }
     const curvas = {};
     if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; try { const file = await fdArquivo(it.key, 'curva'); if (file) curvas[it.key] = (await window.PricerLeitor.paginaImagem(file, cv.pag || 1, 2)).url; } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
-    let tr = (s) => s, aviso = '';
-    if (lang !== 'pt') ({ tr, aviso } = await tradutor(D, pcGet(), lang));
+    let tr = (s) => s, aviso = ''; const fd = pc.estilo === 'fd';
+    if (lang !== 'pt' || (fd && textosFabTodos(D, pcGet(), lang).length)) ({ tr, aviso } = await tradutor(D, pcGet(), lang));
+    // padrão Folha de dados: curva recortada e páginas escolhidas da folha do fabricante, como imagem
+    const fab = {};
+    if (fd && D.tipo === 'SEQ') for (const it of D.itens) { const F0 = (((pc.fd || {})[it.key]) || {}).fab; if (!F0 || !F0.dados) continue;
+      try { const file = await fdArquivo(it.key, 'fab'); if (!file) continue; const L = window.PricerLeitor; const cp = F0.dados.paginas.find((q) => q.n === F0.curvaPag);
+        const out = { dados: F0.dados, paginas: {}, semLs: !!F0.semLs }; if (cp && !curvas[it.key]) out.curva = await L.recorte(file, cp.n, cp.caixa, 2.6);
+        for (const q of F0.dados.paginas) if ((F0.pags || {})[q.n]) out.paginas[q.n] = { url: await L.recorte(file, q.n, null, 2.2), w: q.w, h: q.h };
+        fab[it.key] = out; } catch (er) { toast('Não consegui preparar a folha do fabricante de ' + it.key + ': ' + errMsg(er)); } }
     const moeda = pc.moeda && pc.moeda.cod === 'USD' ? { cod: 'USD', taxa: Number(pc.moeda.taxa) || cambioPadrao(), data: pc.moeda.data || hojeISO() } : { cod: 'BRL' };
     if (moeda.cod === 'USD' && !(moeda.taxa > 0)) { toast('Informe a taxa do dólar (R$ por US$ 1,00)'); return; }
-    const r = await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr });
+    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, fab, trFab: tr }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr });
     const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
     logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
     const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });
@@ -7410,7 +7959,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   document.addEventListener('change', (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return;
     if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } if (v === '' && ['clienteCurto', 'aosCuidados', 'cidade', 'prazoFab', 'prazoEnt', 'prazoTexto', 'observacoes'].includes(k)) v = undefined; pcSet(k, v); if (t.closest('#pcCard')) render(); return; }
-    if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : 'idioma', t.value); render(); if (k === 'idioma') traduzirAgora(); return; }
+    if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : k === 'estilo' ? 'estilo' : 'idioma', t.value); render(); if (k === 'idioma' || k === 'estilo') traduzirAgora(); return; }
     if (t.dataset.pcmoeda) { const m = Object.assign({}, pcGet().moeda || {}); if (t.dataset.pcmoeda === 'taxa') { const n = parseInput(t.value, 'num'); m.taxa = typeof n === 'number' && n > 0 ? n : undefined; } else m.data = t.value; pcSet('moeda', m); render(); return; }
     if (t.dataset.pccod !== undefined) { pcSet('codigos', Object.assign({}, pcGet().codigos || {}, { [t.dataset.pccod]: t.value.trim() })); return; }
     if (t.dataset.pcni !== undefined) { pcSet('notasItem', Object.assign({}, pcGet().notasItem || {}, { [t.dataset.pcni]: t.value.trim() })); return; }

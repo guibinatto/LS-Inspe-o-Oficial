@@ -1279,7 +1279,7 @@
     const trd = ((pc.trad || {})[lang]) || {}; const tv = (v) => (lang === 'pt' || !v ? v : trd[v] || v);
     const nfL = new Intl.NumberFormat({ pt: 'pt-BR', en: 'en-US', es: 'es-ES' }[lang] || 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const din = (v) => (usd && taxa > 0 ? 'US$ ' + nfL.format((Number(v) || 0) / taxa) : usd ? 'US$ —' : 'R$ ' + nfL.format(Number(v) || 0));
-    const faltaTr = lang === 'pt' ? 0 : PRP.dinamicos(D, pc).filter((x) => !trd[x]).length;
+    const faltaTr = (lang === 'pt' ? [] : PRP.dinamicos(D, pc)).concat(textosFabTodos(D, pc, lang)).filter((x) => !trd[x]).length;
     const dupla = (v) => { const t = tv(v); return t && t !== v ? `${esc(t)}<br><small class="sub">${esc(v)}</small>` : t ? esc(t) : '<span class="sub">—</span>'; };
     const fab = Number(E.prazoFab) || 0, ent = Number(E.prazoEnt) || 0;
     const prazo = [fab ? 'fabricação ' + fab + ' dias' : '', ent ? 'entrega ' + ent + ' dias' : '', fab || ent ? 'total ' + (fab + ent) + ' dias' : '', E.prazoTexto].filter(Boolean).join(' · ');
@@ -1295,6 +1295,7 @@
     const area = (k, lb, dica) => `<div class="f spanall"><label for="pc_${k}">${esc(lb)}${reset(k)}</label><textarea id="pc_${k}" data-pc="${k}" rows="${Math.min(12, Math.max(2, String(Ept[k] || '').split('\n').length + 1))}"${ro}>${esc(Ept[k] || '')}</textarea>${dica ? `<small class="sub">${esc(dica)}</small>` : ''}</div>`;
     return `<section class="card" id="pcCard"><h2>Proposta técnica e comercial <span class="sub">PDF no modelo LS Fire (PTC), com os números desta formação</span></h2>
       <div class="pcopts">
+        <div class="f"><label>Padrão</label>${seg('estilo', [['ptc', 'Clássico (PTC)'], ['fd', 'Folha de dados (novo)']], pc.estilo === 'fd' ? 'fd' : 'ptc')}</div>
         <div class="f"><label>Documento</label>${seg('tipoDoc', PRP.TIPOS, tipo)}</div>
         <div class="f"><label>Idioma</label>${seg('idioma', PRP.IDIOMAS, lang)}</div>
         <div class="f"><label>Moeda</label>${seg('moeda', [['BRL', 'Real (R$)'], ['USD', 'Dólar (US$)']], usd ? 'USD' : 'BRL')}</div>
@@ -1302,7 +1303,7 @@
       </div>
       ${faltam.length ? `<div class="banner warn" style="margin:8px 0">Falta preencher: ${esc(faltam.join(', '))}. ${seq ? 'Preencha em Dados gerais.' : 'Preencha nos dados da proposta, acima.'}</div>` : ''}
       <div class="docbar" style="margin:8px 0 4px"><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button><span class="sub">${D.itens.length} item(ns) · total ${esc(din(D.total))}${usd && taxa > 0 ? ' (R$ ' + esc(nfL.format(D.total || 0)) + ' a ' + esc(NF[4].format(taxa)) + ')' : ''} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
-      ${lang !== 'pt' ? `<div class="banner ${tradEm === lang ? 'info' : faltaTr ? 'warn' : 'ok'}" style="margin:0 0 6px">${tradEm === lang ? 'Traduzindo descrições e condições desta proposta…' : faltaTr ? `${faltaTr} texto(s) desta proposta ainda em português. ${ro ? '' : '<button class="btn sm" data-pctraduz data-ico="languages">Traduzir agora</button>'}` : 'Textos desta proposta traduzidos: confira abaixo (original em cinza) e, se precisar, ajuste em "Traduções desta proposta", mais abaixo.'} Textos padrão e rótulos saem traduzidos com o modelo.</div>` : ''}
+      ${lang !== 'pt' || faltaTr || tradEm ? `<div class="banner ${tradEm === lang ? 'info' : faltaTr ? 'warn' : 'ok'}" style="margin:0 0 6px">${tradEm === lang ? 'Traduzindo descrições e condições desta proposta…' : faltaTr ? `${faltaTr} texto(s) desta proposta ainda em português. ${ro ? '' : '<button class="btn sm" data-pctraduz data-ico="languages">Traduzir agora</button>'}` : 'Textos desta proposta traduzidos: confira abaixo (original em cinza) e, se precisar, ajuste em "Traduções desta proposta", mais abaixo.'} ${lang !== 'pt' ? 'Textos padrão e rótulos saem traduzidos com o modelo.' : 'No padrão Folha de dados, o que vem do fabricante em inglês é traduzido para o português.'}</div>` : ''}
       <details class="sub2"${openSet.pc_cab === false ? '' : ' open'} data-keep="pc_cab"><summary>Cabeçalho e condições <span class="sub">vêm de ${seq ? 'Dados gerais e da formação' : 'dados da proposta'}</span></summary>
         <div class="kv pcro">${kvs.map(([lb, v]) => `<div>${esc(lb)}</div><div>${['Projeto/Obra', 'Condição de pagamento', 'Frete'].includes(lb) ? dupla(v) : v ? esc(v) : '<span class="sub">—</span>'}</div>`).join('')}</div>
         <div class="docbar" style="margin-top:8px">${ir}</div></details>
@@ -1321,7 +1322,7 @@
   const FD_KIND = [['bomba', 'Folha de dados da bomba'], ['motor', 'Folha de dados do motor'], ['curva', 'Curva da bomba']];
   function itemPropCard(S) {
     const pc = pcGet(); const f = (pc.fd || {})[S] || {}; const ro = state.verRev ? ' disabled' : '';
-    const st = FD_KIND.map(([k, lb]) => (f[k] ? lb.replace(/^Folha de dados d[ao] /, 'FD ').replace('Curva da bomba', 'curva') + ' ✓' : '')).filter(Boolean).join(' · ');
+    const st = (f.fab ? ['folha do fabricante ✓'] : []).concat(FD_KIND.map(([k, lb]) => (f[k] ? lb.replace(/^Folha de dados d[ao] /, 'FD ').replace('Curva da bomba', 'curva') + ' ✓' : ''))).filter(Boolean).join(' · ');
     const slot = ([k, lb]) => { const x = f[k];
       if (!x) return `<div class="fdslot"><div class="lbl">${esc(lb)}</div><label class="drop" for="fdup_${k}"><b>Solte aqui o PDF ou a imagem</b><span class="sub">${k === 'curva' ? 'a página escolhida entra na folha de dados da proposta' : 'o app lê os dados (vazão, rotação, rotor, sucção, recalque…) para você conferir'}</span><input id="fdup_${k}" type="file" accept=".pdf,image/*" data-fdup="${esc(S)}|${k}"${ro} hidden></label></div>`;
       const campos = x.campos || [];
@@ -1332,7 +1333,38 @@
     return `<details class="card"${keep('fdprop')}><summary>Proposta: código do produto e folha de dados <span class="sub">${esc([(pc.codigos || {})[S] ? 'código ' + pc.codigos[S] : 'sem código', st].filter(Boolean).join(' · '))}</span></summary>
       <div class="fields"><div class="f"><label for="pccod_${S.replace(/\W/g, '')}">Código do produto (ERP)</label><input id="pccod_${S.replace(/\W/g, '')}" data-pccod="${esc(S)}" value="${esc((pc.codigos || {})[S] || '')}" placeholder="ex.: 004-00242"${ro}><small class="sub">sai na coluna Código da planilha de preços</small></div>
         <div class="f span2"><label for="pcni_${S.replace(/\W/g, '')}">Notas, desvios e observações deste item</label><textarea id="pcni_${S.replace(/\W/g, '')}" data-pcni="${esc(S)}" rows="2"${ro}>${esc((pc.notasItem || {})[S] || '')}</textarea><small class="sub">saem na folha de dados do item</small></div></div>
+      ${fabCard(S)}
       <div class="fdgrid">${FD_KIND.map(slot).join('')}</div></details>`;
+  }
+  // folha de dados completa do fabricante (ex.: Peerless Express): lida por posição do texto; tudo fica para conferir
+  const TIPO_PAG = { dados: 'dados', curva: 'curva', desenho: 'desenho', anexo: 'anexo', escopo: 'escopo' };
+  function fabCard(S) {
+    const pc = pcGet(); const F0 = (((pc.fd || {})[S]) || {}).fab; const ro = state.verRev ? ' disabled' : '';
+    const intro = '<p class="sub" style="margin:0 0 6px">Para o padrão <b>Folha de dados (novo)</b>: o PDF completo do fabricante (desempenho, construtiva, curvas, arranjo e escopo). O app lê os dados, você confere e escolhe o que vai; a proposta sai com as seções, a curva, os desenhos e o escopo neste layout.</p>';
+    if (!F0) return `<div class="fdslot" style="margin-bottom:10px"><div class="lbl">Folha de dados completa do fabricante</div>${intro}<label class="drop" for="fdup_fab"><b>Solte aqui o PDF do fabricante</b><span class="sub">ex.: datasheet da Peerless com várias páginas</span><input id="fdup_fab" type="file" accept=".pdf" data-fdup="${esc(S)}|fab"${ro} hidden></label></div>`;
+    const d = F0.dados || { secoes: [], paginas: [], escopo: [], tabelas: [] }; const nC = d.secoes.reduce((t, x) => t + x.campos.length, 0); const nOn = d.secoes.reduce((t, x) => t + x.campos.filter((c) => c.on !== false).length, 0);
+    const pj = (d.secoes.find((x) => x.t === 'Project') || { campos: [] }).campos; const mod = (pj.find((c) => /Model$|^Model \//.test(c.k)) || {}).v || '';
+    const pags = d.paginas.filter((q) => ['curva', 'desenho', 'anexo'].includes(q.tipo));
+    const cmp = fabConfere(S, d);
+    return `<div class="fdslot" style="margin-bottom:10px"><div class="lbl">Folha de dados completa do fabricante: <b>${esc(F0.nome || '')}</b> <button class="linkbtn" data-fdopen="${esc(F0.docId)}">abrir</button>${ro ? '' : ` · <button class="linkbtn" data-fdtira="${esc(S)}|fab">tirar</button> · <button class="linkbtn" data-fabler="${esc(S)}">ler de novo</button>`}</div>${intro}
+      <div class="kv pcro"><div>Fabricante e modelo</div><div>${esc([d.fabricante, mod].filter(Boolean).join(' · ') || '—')}</div><div>Lido</div><div>${d.paginas.length} páginas · ${d.secoes.length} seções · ${nOn} de ${nC} campos marcados · ${d.escopo.length} grupos de escopo · ${d.tabelas.length} tabela(s)</div></div>
+      ${cmp.length ? `<div class="banner warn" style="margin:8px 0">${cmp.map(esc).join('<br>')}</div>` : ''}
+      <div class="fields" style="margin-top:8px"><div class="f span2"><label for="fabcv_${S.replace(/\W/g, '')}">Curva que vai com o desempenho</label><select id="fabcv_${S.replace(/\W/g, '')}" data-fabcurva="${esc(S)}"${ro}><option value="">nenhuma</option>${d.paginas.filter((q) => q.tipo === 'curva').map((q) => `<option value="${q.n}"${F0.curvaPag === q.n ? ' selected' : ''}>página ${q.n}: ${esc(q.titulo)}</option>`).join('')}</select></div>
+        <div class="f span2"><label>Páginas que entram como imagem</label><div class="chks" style="display:flex;flex-direction:column;gap:4px">${pags.map((q) => `<label class="chk"><input type="checkbox" data-fabpag="${esc(S)}|${q.n}"${(F0.pags || {})[q.n] ? ' checked' : ''}${ro}> página ${q.n}: ${esc(q.titulo)} <small class="sub">${TIPO_PAG[q.tipo]}</small></label>`).join('') || '<span class="sub">nenhuma</span>'}</div></div>
+        <div class="f span2"><label>Escopo da proposta</label><div class="chks" style="display:flex;flex-direction:column;gap:4px"><label class="chk"><input type="checkbox" data-fabls="${esc(S)}"${F0.semLs ? '' : ' checked'}${ro}> Incluir também os itens da formação LS Fire</label></div><small class="sub">desmarque se o escopo do fabricante já cobre tudo</small></div></div>
+      ${d.secoes.map((x, si) => `<details class="sub2"${keep('fab_' + S + '_' + si)}><summary>${esc(x.t === 'Project' ? 'Identificação (não vai por padrão)' : x.t)}${x.t !== 'Project' && window.PricerFabricante && window.PricerFabricante.secT(x.t, 'pt') && window.PricerFabricante.secT(x.t, 'pt') !== x.t ? ' <span class="sub">· ' + esc(window.PricerFabricante.secT(x.t, 'pt')) + '</span>' : ''} <span class="sub">${x.campos.filter((c) => c.on !== false).length}/${x.campos.length} · página ${x.pag}</span></summary>
+        <div class="tw"><table class="t"><thead><tr><th>Vai</th><th>Campo (como no fabricante)</th><th>Valor</th></tr></thead><tbody>${x.campos.map((c, ci) => `<tr><td><input type="checkbox" data-fabon="${esc(S)}|${si}|${ci}"${c.on !== false ? ' checked' : ''}${ro} aria-label="Incluir ${esc(c.k)}"></td><td>${esc(c.k)}</td><td class="in"><input data-fabv="${esc(S)}|${si}|${ci}" value="${esc(c.v)}"${ro} aria-label="Valor de ${esc(c.k)}"></td></tr>`).join('')}</tbody></table></div></details>`).join('')}
+      ${d.escopo.length ? `<details class="sub2"${keep('fab_esc_' + S)}><summary>Escopo do fabricante <span class="sub">${d.escopo.filter((g) => g.on !== false).length}/${d.escopo.length} grupos</span></summary><div class="chks" style="display:flex;flex-direction:column;gap:6px">${d.escopo.map((g, gi) => `<label class="chk"><input type="checkbox" data-fabg="${esc(S)}|${gi}"${g.on !== false ? ' checked' : ''}${ro}> <b>${esc(g.g)}</b> <small class="sub">${g.linhas.length} linhas: ${esc(g.linhas.slice(0, 4).map((l) => l.t).join(' · '))}…</small></label>`).join('')}</div></details>` : ''}
+    </div>`;
+  }
+  // confere a folha do fabricante com a formação: vazão e altura nominais
+  function fabConfere(S, d) {
+    const out = []; const v = (re) => { for (const s of d.secoes) { if (s.t === 'NFPA Limits' || s.t === 'Project') continue; const c = s.campos.find((x) => re.test(x.k)); if (c) return c.v; } return ''; };
+    const n = (t) => Number(String(t || '').replace(/,/g, '').match(/[\d.]+/)?.[0]);
+    const vz = n(v(/^Flow, rated$/)); const vzF = val(S, 'AR4'); if (vz && typeof vzF === 'number' && vzF > 0 && Math.abs(vz - vzF) / vzF > 0.02) out.push('Vazão nominal na folha do fabricante (' + nBR(vz) + ' USgpm) diferente da formação (' + nBR(vzF) + ' USgpm).');
+    const hd = n(v(/^Differential head.*\(actual\)|^Differential head \/ pressure, rated$/)); let hF = null; for (let b = 23; b <= 26; b++) if (/DIESEL|ELETR/.test(txt(S, 'C' + b)) && typeof val(S, 'L' + b) === 'number') { hF = val(S, 'L' + b); break; }
+    if (hd && hF && Math.abs(hd - hF) / hF > 0.03) out.push('Altura nominal na folha do fabricante (' + nBR(hd) + ' m) diferente da formação (' + nBR(hF) + ' mca).');
+    return out;
   }
   let sampleP;
   const claudeOk = () => !!(window.claude && window.claude.use);
@@ -1353,6 +1385,27 @@
     }
     return campos;
   }
+  async function fabLerArquivo(S, file, base) {
+    toast('Lendo a folha de dados do fabricante…');
+    const pgs = await window.PricerLeitor.itensPdf(file, 40); const dados = window.PricerFabricante.ler(pgs);
+    const cv = dados.paginas.find((q) => q.tipo === 'curva' && !/Multi/i.test(q.titulo)) || dados.paginas.find((q) => q.tipo === 'curva');
+    const pags = {}; for (const q of dados.paginas) if (q.tipo === 'desenho' && /Arrangement/i.test(q.titulo)) pags[q.n] = true;
+    fdPut(S, 'fab', Object.assign({}, base, { dados, curvaPag: cv ? cv.n : null, pags })); render();
+    const nC = dados.secoes.reduce((t, x) => t + x.campos.length, 0);
+    toast(nC ? nC + ' campos, ' + dados.escopo.length + ' grupos de escopo e ' + dados.paginas.filter((q) => q.tipo !== 'dados').length + ' páginas de curva/desenho: confira antes de gerar' : 'Arquivo guardado; não reconheci dados nesta folha');
+    if ((pcGet().idioma || 'pt') !== 'en' && pcGet().estilo === 'fd') traduzirAgora();
+  }
+  const fabMut = (S, fn) => { const F0 = JSON.parse(JSON.stringify((((pcGet().fd || {})[S]) || {}).fab || null)); if (!F0) return; fn(F0); fdPut(S, 'fab', F0); };
+  document.addEventListener('change', (e) => {
+    const t = e.target; if (!t.dataset || state.verRev) return; const ds = t.dataset;
+    if (ds.fabon || ds.fabv) { const [S, si, ci] = (ds.fabon || ds.fabv).split('|'); fabMut(S, (F0) => { const c = F0.dados.secoes[+si].campos[+ci]; if (ds.fabon) c.on = t.checked; else c.v = t.value.trim(); }); if (ds.fabon) render(); return; }
+    if (ds.fabg) { const [S, gi] = ds.fabg.split('|'); fabMut(S, (F0) => { F0.dados.escopo[+gi].on = t.checked; }); render(); return; }
+    if (ds.fabpag) { const [S, n] = ds.fabpag.split('|'); fabMut(S, (F0) => { F0.pags = Object.assign({}, F0.pags, { [n]: t.checked }); if (!t.checked) delete F0.pags[n]; }); return; }
+    if (ds.fabcurva !== undefined) { fabMut(ds.fabcurva, (F0) => { F0.curvaPag = t.value ? +t.value : null; }); return; }
+    if (ds.fabls !== undefined) { fabMut(ds.fabls, (F0) => { F0.semLs = !t.checked; }); return; }
+  });
+  document.addEventListener('click', async (e) => { const b = e.target.closest('[data-fabler]'); if (!b || state.verRev) return; const S = b.dataset.fabler;
+    try { const F0 = (((pcGet().fd || {})[S]) || {}).fab; const file = await fdArquivo(S, 'fab'); if (!F0 || !file) { toast('Não encontrei o arquivo.'); return; } if (!window.confirm('Ler de novo? As marcações e correções feitas nesta folha voltam ao que o app lê.')) return; await fabLerArquivo(S, file, { docId: F0.docId, nome: F0.nome }); } catch (er) { toast(errMsg(er)); } });
   async function fdArquivo(S, k) { const x = (((pcGet().fd || {})[S]) || {})[k]; if (!x) return null; const b = await docBlob(x.docId); return b ? new File([b], x.nome || 'arquivo', { type: b.type || (/\.pdf$/i.test(x.nome || '') ? 'application/pdf' : '') }) : null; }
   document.addEventListener('change', async (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return;
@@ -1360,7 +1413,8 @@
       const [S, k] = t.dataset.fdup.split('|'); const file = t.files && t.files[0]; t.value = ''; if (!file) return;
       try {
         toast('Guardando o arquivo…');
-        const docId = await SPV.salvarDoc({ tipo: k === 'curva' ? 'curva da bomba' : 'folha de dados', nome: file.name, propUid: state.uid || null, propNome: docTitle(), item: S, etapa: 'Proposta', notas: (FD_KIND.find((x) => x[0] === k) || [0, ''])[1] + ' · ' + S, itens: [] }, file);
+        const docId = await SPV.salvarDoc({ tipo: k === 'curva' ? 'curva da bomba' : 'folha de dados', nome: file.name, propUid: state.uid || null, propNome: docTitle(), item: S, etapa: 'Proposta', notas: (k === 'fab' ? 'Folha de dados completa do fabricante' : (FD_KIND.find((x) => x[0] === k) || [0, ''])[1]) + ' · ' + S, itens: [] }, file);
+        if (k === 'fab') { await fabLerArquivo(S, file, { docId, nome: file.name }); return; }
         if (k === 'curva') { let paginas = 1; try { paginas = (await window.PricerLeitor.paginaImagem(file, 1, 0.3)).paginas; } catch (er) { /* a página é escolhida depois */ } fdPut(S, k, { docId, nome: file.name, pag: 1, paginas }); toast('Curva guardada'); render(); return; }
         let campos = [], lido = true; try { toast('Lendo a folha de dados…'); campos = await fdLer(S, k, file, false); } catch (er) { lido = false; }
         fdPut(S, k, { docId, nome: file.name, campos, lido }); render();
@@ -1387,16 +1441,32 @@
   // tradução assim que o idioma muda: o card já mostra o resultado, e o PDF reaproveita o que ficou guardado
   let tradEm = null;
   async function traduzirAgora() {
-    const lang = pcGet().idioma || 'pt'; if (lang === 'pt' || tradEm || state.verRev) return;
+    const lang = pcGet().idioma || 'pt'; if (tradEm || state.verRev) return;
     let D; try { D = propostaDados(); } catch (er) { return; }
-    const tr0 = ((pcGet().trad || {})[lang]) || {}; if (!PRP.dinamicos(D, pcGet()).some((x) => !tr0[x])) return;
+    const tr0 = ((pcGet().trad || {})[lang]) || {}; if (!(lang === 'pt' ? [] : PRP.dinamicos(D, pcGet())).concat(textosFabTodos(D, pcGet(), lang)).some((x) => !tr0[x])) return;
     tradEm = lang; render();
     try { const { aviso } = await tradutor(D, pcGet(), lang); if (aviso) toast(aviso); } catch (er) { toast(errMsg(er)); } finally { tradEm = null; render(); }
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-pctraduz]')) traduzirAgora(); });
+  // textos da folha de dados do fabricante (em inglês) que o dicionário não cobre: só no padrão Folha de dados
+  const fabDados = (pc, S) => ((((pc.fd || {})[S]) || {}).fab || {}).dados || null;
+  const textosFabTodos = (D, pc, lang) => (pc.estilo === 'fd' && window.PricerPropostaFD ? [...new Set(D.itens.flatMap((it) => window.PricerPropostaFD.textosFab(fabDados(pc, it.key), lang)))] : []);
   async function tradutor(D, pc, lang) {
-    const lista = PRP.dinamicos(D, pc); const cache = Object.assign({}, ((pc.trad || {})[lang]) || {}); const falta = lista.filter((s) => !cache[s]);
+    const lista = lang === 'pt' ? [] : PRP.dinamicos(D, pc); const cache = Object.assign({}, ((pc.trad || {})[lang]) || {}); const falta = lista.filter((s) => !cache[s]);
+    const faltaEN = textosFabTodos(D, pc, lang).filter((s) => !cache[s]);
     let aviso = '';
+    if (faltaEN.length) {
+      const sample = await sampleFn(); const alvo = lang === 'pt' ? 'português do Brasil' : 'espanhol';
+      if (!sample) aviso = 'Tradução automática indisponível aqui: parte da folha de dados do fabricante ficou em inglês.';
+      else for (let i = 0; i < faltaEN.length; i += 40) {
+        const lote = faltaEN.slice(i, i + 40);
+        try {
+          const res = await sample.json(`Traduza do inglês para o ${alvo} os textos abaixo, tirados da folha de dados de um fabricante de bombas de incêndio (NFPA 20). Use os termos técnicos usuais no Brasil (vazão, altura manométrica, rotor, carcaça, gaxeta, acionador, painel de comando). Mantenha códigos, números, unidades, normas, modelos e nomes próprios como estão. Responda só JSON: {"t": ["tradução 1", ...]} com o mesmo número de itens e na mesma ordem.\n\nTEXTOS:\n${JSON.stringify(lote)}`);
+          const t = (res && res.t) || []; lote.forEach((s, j) => { if (t[j]) cache[s] = String(t[j]); });
+        } catch (er) { aviso = 'Parte da tradução da folha de dados do fabricante falhou: alguns textos ficaram em inglês.'; }
+      }
+      if (sample && !falta.length) pcSet('trad', Object.assign({}, pc.trad || {}, { [lang]: cache }));
+    }
     if (falta.length) {
       const sample = await sampleFn();
       if (!sample) aviso = 'Tradução automática indisponível aqui: descrições e textos da formação ficaram em português.';
@@ -1421,11 +1491,18 @@
     const img = {}; for (const [k, c] of Object.entries(M.imagens || {})) if (c && c.docId) { const b = await docBlob(c.docId); if (b) img[k] = await blobURL(b); }
     const curvas = {};
     if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; try { const file = await fdArquivo(it.key, 'curva'); if (file) curvas[it.key] = (await window.PricerLeitor.paginaImagem(file, cv.pag || 1, 2)).url; } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
-    let tr = (s) => s, aviso = '';
-    if (lang !== 'pt') ({ tr, aviso } = await tradutor(D, pcGet(), lang));
+    let tr = (s) => s, aviso = ''; const fd = pc.estilo === 'fd';
+    if (lang !== 'pt' || (fd && textosFabTodos(D, pcGet(), lang).length)) ({ tr, aviso } = await tradutor(D, pcGet(), lang));
+    // padrão Folha de dados: curva recortada e páginas escolhidas da folha do fabricante, como imagem
+    const fab = {};
+    if (fd && D.tipo === 'SEQ') for (const it of D.itens) { const F0 = (((pc.fd || {})[it.key]) || {}).fab; if (!F0 || !F0.dados) continue;
+      try { const file = await fdArquivo(it.key, 'fab'); if (!file) continue; const L = window.PricerLeitor; const cp = F0.dados.paginas.find((q) => q.n === F0.curvaPag);
+        const out = { dados: F0.dados, paginas: {}, semLs: !!F0.semLs }; if (cp && !curvas[it.key]) out.curva = await L.recorte(file, cp.n, cp.caixa, 2.6);
+        for (const q of F0.dados.paginas) if ((F0.pags || {})[q.n]) out.paginas[q.n] = { url: await L.recorte(file, q.n, null, 2.2), w: q.w, h: q.h };
+        fab[it.key] = out; } catch (er) { toast('Não consegui preparar a folha do fabricante de ' + it.key + ': ' + errMsg(er)); } }
     const moeda = pc.moeda && pc.moeda.cod === 'USD' ? { cod: 'USD', taxa: Number(pc.moeda.taxa) || cambioPadrao(), data: pc.moeda.data || hojeISO() } : { cod: 'BRL' };
     if (moeda.cod === 'USD' && !(moeda.taxa > 0)) { toast('Informe a taxa do dólar (R$ por US$ 1,00)'); return; }
-    const r = await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr });
+    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, fab, trFab: tr }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr });
     const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
     logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
     const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });
@@ -1437,7 +1514,7 @@
   document.addEventListener('change', (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return;
     if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } if (v === '' && ['clienteCurto', 'aosCuidados', 'cidade', 'prazoFab', 'prazoEnt', 'prazoTexto', 'observacoes'].includes(k)) v = undefined; pcSet(k, v); if (t.closest('#pcCard')) render(); return; }
-    if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : 'idioma', t.value); render(); if (k === 'idioma') traduzirAgora(); return; }
+    if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : k === 'estilo' ? 'estilo' : 'idioma', t.value); render(); if (k === 'idioma' || k === 'estilo') traduzirAgora(); return; }
     if (t.dataset.pcmoeda) { const m = Object.assign({}, pcGet().moeda || {}); if (t.dataset.pcmoeda === 'taxa') { const n = parseInput(t.value, 'num'); m.taxa = typeof n === 'number' && n > 0 ? n : undefined; } else m.data = t.value; pcSet('moeda', m); render(); return; }
     if (t.dataset.pccod !== undefined) { pcSet('codigos', Object.assign({}, pcGet().codigos || {}, { [t.dataset.pccod]: t.value.trim() })); return; }
     if (t.dataset.pcni !== undefined) { pcSet('notasItem', Object.assign({}, pcGet().notasItem || {}, { [t.dataset.pcni]: t.value.trim() })); return; }

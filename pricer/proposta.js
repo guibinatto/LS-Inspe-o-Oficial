@@ -498,5 +498,7 @@
     const ordem = C.map((x) => x[0]); return [...achados.entries()].sort((a, b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0])).map(([k, v]) => ({ k, v, on: true }));
   }
 
-  window.PricerProposta = { lerFolhaDados, montar, efetivo, modelo, aplica, normaTxt, dataBR, secoes, dinamicos, TIPOS, IDIOMAS, SECOES, SO_SEQ, LAYOUT, SLOTS };
+  window.PricerProposta = { lerFolhaDados, montar, efetivo, modelo, aplica, normaTxt, dataBR, secoes, dinamicos, TIPOS, IDIOMAS, SECOES, SO_SEQ, LAYOUT, SLOTS,
+    // usados pelo padrão Folha de dados (proposta-express.js)
+    _i: { lib, limpa, linhasDe, R, FD, LOC, dataLang, MONO, MONT } };
 })();

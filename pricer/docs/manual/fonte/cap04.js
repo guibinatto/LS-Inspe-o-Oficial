@@ -187,6 +187,7 @@ module.exports = {
     { t: 'fig', id: '04-08' },
     { t: 'p', x: 'No exemplo, o modelo "CMB DIESEL 1000 USgpm — 1 BOMBA" gera um código de 61 caracteres e uma descrição breve de 128, e o app avisa: "Código com 61 caracteres: passa do limite de 60 do ERP." e "Descrição breve com 128 caracteres: passa do limite de 120 do ERP.".' },
     { t: 'nota', x: 'O cartão **Opcionais** ("da estrutura padrão; marcados entram no custo e na FCI") só aparece quando a estrutura da família tem componentes opcionais para o acionamento escolhido. Ele não apareceu nos modelos usados nas capturas.' },
+    { t: 'p', x: 'Quando o item tem **pintura especial** (família 35), **testes e ensaios** (família 46) ou **documentos e desenhos** (família 47), seja pelo opcional da estrutura, seja por um componente acrescentado, abre logo abaixo um cartão de especificação. Na pintura: especificação ou padrão a seguir, preparação de superfície, esquema de pintura, pintura final, cor, espessura e observações. Nos testes: quais, norma, testemunho do cliente e o que é entregue. Nos documentos: quais, aprovação do cliente e idioma e formato. Os campos com asterisco são essenciais: enquanto faltarem, o item mostra o alerta com o botão **Especificar**, que leva ao primeiro campo vazio. O que for preenchido fica salvo com a proposta e vai para a folha de dados do PDF, em **Especificações do fornecimento**.' },
 
     { t: 'h', x: 'Condições, componentes, código e FCI do item' },
     { t: 'p', x: 'Abaixo do equipamento ficam quatro blocos recolhidos. Clique no título para abrir.' },
