@@ -380,6 +380,8 @@ table.cent td{vertical-align:top}table.cent select{max-width:190px}table.cent .c
 .pendbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--card);font-size:13.5px}
 .pnfil{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.pnfil select,.pnfil input{width:auto;min-width:150px;flex:1 1 150px}.pnfil .btn{flex:0 0 auto}
 .t.perm td.c{text-align:center}.t.perm th{font-size:12px}
+.skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--card);color:var(--ink);padding:8px 12px;border-radius:0 0 8px 0}.skip:focus{left:0}
+.rgcond{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:6px;align-items:center;margin-bottom:6px}
 .painel>summary{cursor:pointer;list-style:none}.painel>summary::-webkit-details-marker{display:none}.painel>summary h2::before{content:"▸ ";color:var(--muted,#888)}.painel[open]>summary h2::before{content:"▾ "}
 .pnlbars{display:grid;gap:6px;margin:4px 0 12px}.pnlbar{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:10px;align-items:center;background:none;border:0;padding:4px 2px;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:6px}.pnlbar:hover,.pnlbar:focus-visible{background:var(--vz-grid)}
 .pnlt{height:12px;background:var(--vz-grid);border-radius:0 4px 4px 0;overflow:hidden}.pnlf{display:block;height:100%;background:var(--s1);border-radius:0 4px 4px 0}.pnlv{font-size:13px;white-space:nowrap}.pnll{font-size:13.5px}
@@ -421,9 +423,10 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
+<a class="skip" href="#app">Pular para o conteúdo</a>
 <header class="top">
   <div class="top-in">
-    <div class="brand"><span class="logo-plate"><img src="logo-lsfire.png" alt="LS Fire — Sistemas de Combate a Incêndio" width="130" height="48"></span><span>Pricer</span> <small>REV21</small></div>
+    <div class="brand"><span class="logo-plate"><img src="logo-lsfire.png" alt="LS Fire — Sistemas de Combate a Incêndio" width="130" height="48"></span><span>Pricer</span> <small>REV22</small></div>
     <div class="doc-name" id="docName"></div><span id="saveSt" class="savest" hidden aria-live="polite"></span>
     <nav class="nav" id="nav" aria-label="Seções">
       <button data-view="inicio">Início</button>
@@ -437,6 +440,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
       <button data-view="guia">Guia</button>
     </nav>
     <div class="actions">
+      <button class="btn ghost" id="bTheme" title="Tema da tela: automático (o do sistema), claro ou escuro">Tema</button>
       <button class="btn ghost" id="bMode">Modo detalhado</button>
       <button class="btn ghost" id="bNew">Nova</button>
       <button class="btn ghost" id="bOpen">Abrir</button>
@@ -459,6 +463,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 <script src="pedidos.js"></script>
 <script src="tributos.js"></script>
 <script src="conferencia.js"></script>
+<script src="regras.js"></script>
 <script src="pendencias.js"></script>
 <script src="painel.js"></script>
 <script src="margens.js"></script>

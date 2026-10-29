@@ -240,6 +240,17 @@
     commit(sheet, a, v);
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('input[data-addr]')) e.target.blur(); });
+  // teclado: Esc fecha a janela aberta; Ctrl+S (⌘S) salva a proposta
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('#overlay') && $('#overlay').firstElementChild && !e.defaultPrevented) { const c = $('#overlay [data-close]'); if (c) c.click(); else $('#overlay').innerHTML = ''; return; }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => $('#bSave').click(), 0); }
+  });
+  // tema: automático (segue o sistema), claro ou escuro; fica guardado neste navegador
+  const TEMAS = [['auto', 'Tema: automático'], ['light', 'Tema: claro'], ['dark', 'Tema: escuro']];
+  function aplicaTema(t) { if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; const b = $('#bTheme'); if (b) { b.textContent = (TEMAS.find((x) => x[0] === t) || TEMAS[0])[1]; b.setAttribute('aria-label', b.textContent + ' (clique para trocar)'); } }
+  let tema = 'auto'; try { tema = localStorage.getItem('lspricer.tema') || 'auto'; } catch (e) { tema = 'auto'; }
+  aplicaTema(tema);
+  $('#bTheme').onclick = () => { const i = TEMAS.findIndex((x) => x[0] === tema); tema = TEMAS[(i + 1) % TEMAS.length][0]; try { localStorage.setItem('lspricer.tema', tema); } catch (e) { /* só nesta visita */ } aplicaTema(tema); };
   document.addEventListener('click', (e) => {
     const r = e.target.closest('[data-restore]');
     if (r) { const [s, a] = r.dataset.restore.split('|'); commit(s, a, null, true); return; }
@@ -637,6 +648,14 @@
   }
   const num0 = (x) => (typeof x === 'number' ? x : 0);
   function primeiraSemPreco(S) { for (let r = 34; r <= 112; r++) if (/sem custo|sem o preço/.test(txt(S, 'L' + r))) return r; return 0; }
+  // o que as regras de configuração enxergam de um item: campos de escolha e as descrições de todos os componentes
+  function itemRegras(S) {
+    const campos = {}; for (const [a] of RG.CAMPOS) campos[a] = txt(S, a);
+    const comps = []; for (let r = 34; r <= 112; r++) { if (r > 63 && r < 68) continue; const d = txt(S, 'D' + r); if (d) comps.push(d); }
+    for (const x of hiddenLines(S)) if (x.desc) comps.push(x.desc);
+    return { campos, comps };
+  }
+  const RG = window.PricerRegras({ REG, esc, toast: (m) => toast(m), modal: (h, b) => modal(h, b) });
   function alertsFor(S) {
     const out = []; const add = (lvl, msg, fix) => { if (!out.some((x) => x.msg === msg)) out.push({ lvl, msg, fix, S }); };
     // fora da política: além de corrigir, dá para pedir aprovação à Diretoria e ao Financeiro
@@ -659,6 +678,8 @@
     const b32 = txt(S, 'B32');
     if (/SEM VAZÃO NOMINAL/.test(b32)) add('warn', 'Sem vazão nominal: válvula de alívio, cone, medidor e barriletes não entram. Informe a vazão.', { lb: 'Informar a vazão', act: 'foco', data: 'G17' });
     if (/jockey e nenhum/.test(b32)) add('warn', 'O arranjo pede bomba jockey e nenhuma foi escolhida.', { lb: 'Escolher a jockey', act: 'foco', data: 'J19' });
+    // regras de configuração da Engenharia (Cadastro → Engenharia → Regras)
+    try { for (const x of RG.avaliar(itemRegras(S))) { add(x.sev === 'imped' ? 'bad' : x.sev === 'aviso' ? 'warn' : 'info', x.msg); const a = out.find((y) => y.msg === x.msg); if (a) a.regra = true; } } catch (e) { /* regra malformada não derruba a tela */ }
     const m = /(\d+) LINHA\(S\) ALÉM DA 30ª/.exec(b32); if (m) add('info', `${m[1]} componente(s) além da 30ª linha da planilha: já estão no custo.`);
     const lc = txt(S, 'C27').length, ld = txt(S, 'C28').length;
     if (lc > 60) add('warn', `Código com ${lc} caracteres: passa do limite de 60 do ERP.`, { lb: 'Ver o código', act: 'abrir', data: 'cod' });
@@ -971,7 +992,7 @@
         return { nome: txt(S, 'C28'), qtd: q, valores: [val(S, 'B15'), val(S, 'D15'), it.venda, it.venda / q].filter((v) => typeof v === 'number' && v > 0), tecnicos: tk(txt(S, 'C28') + ' ' + txt(S, 'C30')), descricao: txt(S, 'C28'), escopo: esc2 }; }) };
   }
   const propostaAtual = () => (state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null);
-  const CF = window.PricerConferencia({ esc, brl, toast, modal, ui, REG, render, log: (e) => logEv(e), salvarDoc: (m, f) => SPV.salvarDoc(m, f), conferidaOk: (p) => MG.conferidaOk(p),
+  const CF = window.PricerConferencia({ esc, brl, toast, modal, ui, REG, render, log: (e) => logEv(e), salvarDoc: (m, f) => SPV.salvarDoc(Object.assign({ rev: revAtual(), etapa: 'Conferência e aprovação' }, m), f), conferidaOk: (p) => MG.conferidaOk(p),
     propostaAtual: () => { const p = propostaAtual(); if (p && dirty) toast('Há alterações não salvas: salve antes de conferir para valer a versão certa'); return p; }, formacao: () => formacaoConf() });
   const confCard = () => { try { return CF.card(propostaAtual(), formacaoConf()); } catch (e) { return ''; } };
 
@@ -1160,7 +1181,7 @@
       if (!filled(x.s)) { add('aviso', 'Configuração', x.s + ': equipamento ainda não configurado', { item: x.i }); continue; }
       for (const a of alertsFor(x.s)) { if (a.ack) continue; const ap = a.aprov && a.aprov.estado;
         if (a.aprov) { if (ap === 'aprovada') continue; add(ap === 'pendente' ? 'aviso' : 'aviso', 'Margem e desconto', x.s + ': ' + a.msg + (ap === 'pendente' ? ' — aprovação pedida' : ' — exige aprovação'), { step: 5, sel: '.aprovbox' }); continue; }
-        add(a.lvl === 'bad' ? 'imped' : a.lvl === 'warn' ? 'aviso' : 'info', a.lvl === 'info' ? 'Fiscal e FCI' : 'Configuração', x.s + ': ' + a.msg, { item: x.i }); }
+        add(a.lvl === 'bad' ? 'imped' : a.lvl === 'warn' ? 'aviso' : 'info', a.lvl === 'info' && !a.regra ? 'Fiscal e FCI' : 'Configuração', x.s + ': ' + a.msg, { item: x.i }); }
       if (!txt(x.s, 'G7')) add('aviso', 'Fiscal e FCI', x.s + ': item sem NCM (cadastre o NCM da família em Fiscal)', { step: 1 });
     }
     try { const L = linhasCusto(); const n = (s) => L.filter((y) => y.al.some((a) => a[0] === s)).length;
@@ -1275,7 +1296,7 @@
       body = `<section class="card"><h2>Situação e próximo passo</h2>${sv ? MG.etapasHtml(sv) : '<p class="sub" style="margin:0">Salve a proposta para acompanhar as etapas.</p>'}
           ${nx ? `<div class="docbar" style="margin-top:8px"><button class="btn pri" data-hnext="${esc(sv.id)}|${nx.act}">${esc(nx.lb)}</button></div>` : ''}</section>
         <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button></div>
-          ${docsP.length ? `<div class="tw" style="margin-top:8px"><table class="t"><tbody>${docsP.map((d) => `<tr><td>${esc(d.nome || '')}<br><small class="sub">${esc([d.tipo, d.numero, d.fornecedor].filter(Boolean).join(' · '))}</small></td><td class="sub">${esc(fmtAt(d.at))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:8px 0 0">Nenhum documento ligado ainda (o PDF conferido entra aqui).</p>'}</section>
+          ${docsP.length ? `<div class="tw" style="margin-top:8px"><table class="t"><tbody>${docsP.map((d) => `<tr><td>${esc(d.nome || '')}<br><small class="sub">${esc([d.tipo, d.numero, d.fornecedor, d.rev != null && !isNaN(d.rev) ? 'rev. ' + d.rev : '', d.item, d.etapa].filter(Boolean).join(' · '))}</small></td><td class="sub">${esc(fmtAt(d.at))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:8px 0 0">Nenhum documento ligado ainda (o PDF conferido entra aqui).</p>'}</section>
         <section class="card"><h2>Revisões</h2><div class="docbar">${state.id ? '<button class="btn" data-revs>Ver e comparar revisões</button><button class="btn" data-revisar>Revisar (nova revisão)</button>' : '<span class="sub">Salve a proposta para ter revisões.</span>'}</div></section>
         ${nav(5, 0)}`;
     }
@@ -1555,7 +1576,7 @@
   // cadastro por área: cada área tem um responsável e só ele edita o que é dela
   const AREAS = [
     ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação'], ['facts', 'FACTS (MECON)'], ['custoscfg', 'Validade e alertas'], ['pedidos', 'Pedidos de cadastro']]],
-    ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['mobase', 'Mão de obra e bases'], ['familias', 'Famílias'], ['codificacao', 'Codificação']]],
+    ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['mobase', 'Mão de obra e bases'], ['familias', 'Famílias'], ['codificacao', 'Codificação'], ['regras', 'Regras de configuração']]],
     ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado, FCI e os cenários da reforma tributária', [['fiscal', 'Impostos e NCM'], ['cenarios', 'Cenários tributários (reforma)']]],
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
@@ -1592,7 +1613,7 @@
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, regras: () => RG.vCfg(canEd()), padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -2830,6 +2851,7 @@
   function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
   function modal(html, bind) {
     const o = $('#overlay'); o.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><div class="card">${html}</div></div>`;
+    setTimeout(() => { if (!o.contains(document.activeElement)) { const f = o.querySelector('input:not([type=hidden]):not([disabled]),select,textarea,button'); if (f) f.focus(); } }, 0);
     const close = () => { o.innerHTML = ''; };
     o.querySelector('.modal').addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close(); });
     bind && bind(o, close);
@@ -2888,7 +2910,7 @@
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
   const PNL = window.PricerPainel({ REG, esc, brl, pct, ui, render, MG: () => MG, PN: () => PN });
-  const SPV = window.PricerSPV({ painel: () => PNL.vPainel(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });

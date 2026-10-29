@@ -455,11 +455,13 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="docbar" style="margin-top:10px"><label class="btn sm" for="spAttach">+ Anexar documento</label><input type="file" id="spAttach" hidden></div></section>
       </div>`;
     }
+    // etapa da proposta a que o documento se refere (jornada da REV22 e pós-venda)
+    const DOC_ETAPAS = ['Identificação', 'Configuração', 'Custos', 'Formação', 'Conferência e aprovação', 'Emissão', 'Pedido do cliente', 'Execução', 'Pós-venda'];
     function docList(list) {
       return `<div class="tw"><table class="t"><thead><tr><th>Documento</th><th>Tipo</th><th>Fornecedor</th><th>Valor</th><th>Ligado a</th><th></th></tr></thead><tbody>${list.map((d) => `<tr>
         <td><b>${esc(d.nome || '—')}</b>${d.numero ? `<br><small class="sub">nº ${esc(d.numero)}${d.data ? ' · ' + esc(new Date(d.data).toLocaleDateString('pt-BR')) : ''}</small>` : ''}${(d.itens || []).length ? ` <span class="pill mute">${d.itens.length} itens</span>` : ''}</td>
         <td>${esc((DOC_TIPOS.find((t) => t[0] === d.tipo) || [0, d.tipo || '—'])[1])}</td><td>${esc(d.fornecedor || '—')}</td><td class="n">${typeof d.total === 'number' ? (d.moeda && d.moeda !== 'BRL' ? d.moeda + ' ' + fmt(d.total) : brl(d.total)) : '—'}</td>
-        <td>${esc(d.propNome || '—')}${(d.insumos || []).length ? `<br><small class="sub">${d.insumos.length} item(ns) do cadastro: ${esc(d.insumos.slice(0, 3).join(', '))}${d.insumos.length > 3 ? '…' : ''}</small>` : ''}</td>
+        <td>${esc(d.propNome || '—')}${d.propNome && (d.rev != null || d.item || d.etapa) ? `<br><small class="sub">${esc([d.rev != null && !isNaN(d.rev) ? 'rev. ' + d.rev : '', d.item, d.etapa].filter(Boolean).join(' · '))}</small>` : ''}${(d.insumos || []).length ? `<br><small class="sub">${d.insumos.length} item(ns) do cadastro: ${esc(d.insumos.slice(0, 3).join(', '))}${d.insumos.length > 3 ? '…' : ''}</small>` : ''}</td>
         <td style="white-space:nowrap">${d.assetId || d.local ? `<button class="btn sm" data-dopen="${esc(d.id)}">Abrir</button> <button class="btn sm" data-ddown="${esc(d.id)}">Baixar</button>` : ''} <button class="btn sm" data-dedit="${esc(d.id)}">Detalhes</button></td></tr>`).join('')}</tbody></table></div>`;
     }
 
@@ -492,6 +494,9 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="f"><label for="mdMoeda">Moeda</label><select id="mdMoeda">${['BRL', 'USD', 'EUR'].map((m) => `<option${d.moeda === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
           <div class="f"><label for="mdTot">Total</label><input id="mdTot" inputmode="decimal" value="${typeof d.total === 'number' ? String(d.total).replace('.', ',') : ''}"></div>
           <div class="f span2"><label for="mdProp">Proposta</label><select id="mdProp"><option value="">— nenhuma —</option>${curUid ? `<option value="${esc(curUid)}"${d.propUid === curUid || (!d.id && opts.linkCurrent) ? ' selected' : ''}>Atual: ${esc(curNome)}</option>` : ''}${props.filter((p) => p.uid && p.uid !== curUid).map((p) => `<option value="${esc(p.uid)}"${d.propUid === p.uid ? ' selected' : ''}>${esc((p.div || 'SEQ') + ' · ' + (p.numero || '') + ' · ' + (p.cliente || p.name || ''))}</option>`).join('')}</select></div>
+          <div class="f"><label for="mdRev">Revisão da proposta</label><input id="mdRev" inputmode="numeric" value="${esc(d.rev ?? (!d.id && opts.linkCurrent && ctx.revAtual ? ctx.revAtual() : ''))}" placeholder="—"></div>
+          <div class="f"><label for="mdItem">Item</label><select id="mdItem"><option value="">proposta toda</option>${Array.from({ length: 10 }, (_, i) => 'ITEM ' + String(i + 1).padStart(2, '0')).concat(['Serviço', 'Peças']).map((x) => `<option${d.item === x ? ' selected' : ''}>${x}</option>`).join('')}</select></div>
+          <div class="f"><label for="mdEtapa">Etapa</label><select id="mdEtapa"><option value="">—</option>${DOC_ETAPAS.map((x) => `<option${d.etapa === x ? ' selected' : ''}>${x}</option>`).join('')}</select></div>
           <div class="f spanall"><label for="mdInsQ">Itens do cadastro ligados</label><div id="mdIns" class="docbar"></div><input id="mdInsQ" list="dl_ins_all" placeholder="buscar insumo pelo nome ou código e escolher" autocomplete="off"><datalist id="dl_ins_all">${(ctx.insumos ? ctx.insumos() : []).map((i) => `<option value="${esc(i.id + ' · ' + i.produto)}"></option>`).join('')}</datalist><small class="sub" id="mdInsSug"></small></div>
           <div class="f spanall"><label for="mdNotas">Observações</label><input id="mdNotas" value="${esc(d.notas || [d.condicao_pagamento && 'Pagamento: ' + d.condicao_pagamento, d.validade && 'Validade: ' + d.validade].filter(Boolean).join(' · '))}"></div>
         </div>
@@ -514,7 +519,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           const pn = pu === curUid ? curNome : ((props.find((p) => p.uid === pu) || {}).numero || '') + ' · ' + ((props.find((p) => p.uid === pu) || {}).cliente || '');
           const usados = [...o.querySelectorAll('[data-mit]')].filter((x) => x.checked).map((x) => d.itens[+x.dataset.mit]);
           const rec = { id: d.id, tipo: g('#mdTipo').value, fornecedor: g('#mdForn').value.trim(), numero: g('#mdNum').value.trim(), data: g('#mdData').value || null, moeda: g('#mdMoeda').value, total: typeof tot === 'number' ? tot : null,
-            propUid: pu || null, propNome: pu ? pn : null, notas: g('#mdNotas').value.trim(), insumos: [...sel], itens: d.itens, nome: d.nome, assetId: d.assetId, local: d.local, contentType: d.contentType, size: d.size, at: d.at };
+            propUid: pu || null, propNome: pu ? pn : null, rev: g('#mdRev').value.trim() === '' ? null : parseInt(g('#mdRev').value, 10), item: g('#mdItem').value || null, etapa: g('#mdEtapa').value || null, notas: g('#mdNotas').value.trim(), insumos: [...sel], itens: d.itens, nome: d.nome, assetId: d.assetId, local: d.local, contentType: d.contentType, size: d.size, at: d.at };
           g('#mdSave').disabled = true; g('#mdStatus').textContent = 'Salvando…';
           try {
             const id = await salvarDoc(rec, file);
