@@ -15,10 +15,11 @@ const L = __dirname + '/libs/';
     <div style="font-size:22px;font-weight:bold">SEMPA</div><div style="text-align:right;font-size:16px">P-83F-01B (TESTE)</div>
     <p>SCE 150-460 1900 rpm / 563.5 m³/h / 138.06 m / 79.21 % / 267.73 kW / 60 Hz</p>
     ${bloco('Operation Data', [['Pump Type', 'Double Suction Pump'], ['Flow', '563.5 m³/h'], ['Head', '138.06 m'], ['Static Head', '1 m']], [['Fluid', 'Water'], ['Density', '998.000 kg/m³'], ['Temperature', '20.00 °C']])}
-    ${bloco('Pump Data', [['Speed', '1900 rpm'], ['Number of Stages', '01'], ['Max. Casing Pressure', '2500 kPa'], ['Impeller D Designed', '460 mm']], [['Shaft Power', '267.73 kW'], ['Efficiency', '79.21 %'], ['NPSHr', '4.55 m']])}
+    ${bloco('Pump Data', [['Speed', '1900 rpm'], ['Number of Stages', '01'], ['Max. Casing Pressure', '2500 kPa'], ['Head (Q=0)', '149.38 m'], ['Impeller D Designed', '460 mm']], [['Flow Nominal', '665 m³/h'], ['Max.', '936.71 m³/h'], ['Min.', '122.32 m³/h'], ['Head Nominal', '131.38 m'], ['at Qmax', '98.28 m'], ['at Qmin', '148.18 m'], ['Shaft Power', '267.73 kW'], ['Efficiency', '79.21 %'], ['NPSHr', '4.55 m']])}
     ${bloco('Pump Material', [['Volute Casing', 'Cast Iron / 06025'], ['Impeller', 'Cast Iron / 06025'], ['Shaft', 'Chromium Steel / 1.4021']], [['Wear Ring', 'Bronze Casting (Tinned)'], ['Sleeve Set', 'Chrome Nickel Steel / 1.4301']])}
     <div style="page-break-before:always"></div><div style="font-size:22px;font-weight:bold">SEMPA</div><h3>Performance Curve</h3>
     <svg width="600" height="380" xmlns="http://www.w3.org/2000/svg"><rect x="50" y="10" width="520" height="320" fill="none" stroke="#000"/><path d="M50 60 Q 300 80 570 300" stroke="#06c" stroke-width="3" fill="none"/><text x="280" y="360" font-size="12">Q [m³/h]</text><text x="5" y="170" font-size="12">H [m]</text></svg>
+    <div style="display:flex;font-size:11px;margin-top:10px"><div style="width:250px"><b>Operating Data Specification</b><br>Flow : 563.5 m³/h<br>Head : 142 m<br>Static Head : 1 m</div><div style="width:250px"><b>Hydraulic Data (Duty Point)</b><br>Flow : 563.5 m³/h<br>Head : 138.06 m<br>NPSH r : 4.6 m</div><div style="width:200px"><b>Impeller Design</b><br>Impeller D : 460 mm<br>Frequency : 60 Hz<br>Speed : 1900 rpm</div></div>
     </body></html>`);
   await aux.pdf({ path: __dirname + '/sempa_teste.pdf' }); await aux.close();
   await p.goto('file://' + require('path').resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1200);
@@ -34,5 +35,7 @@ const L = __dirname + '/libs/';
   console.log('5 campo curva, página:', await p.$eval('[data-fdpag="ITEM 01"]', (x) => x.value));
   await p.waitForTimeout(1500); await p.click('[data-thumbpg="ITEM 01|curva|1"]'); await p.waitForTimeout(500); await abre();
   console.log('6 clique na miniatura 1 →', await p.$eval('[data-fdpag="ITEM 01"]', (x) => x.value));
+  const prev = await p.$eval('img[data-fabprev]', (x) => x.src).catch(() => ''); console.log('7 curva LS:', prev ? 'gerada (' + prev.length + ')' : 'SEM PRÉVIA'); if (prev) require('fs').writeFileSync(__dirname + '/sempa_curva.png', Buffer.from(prev.split(',')[1], 'base64'));
+  console.log('8 seções da página da curva:', await p.$$eval('[data-fabler="ITEM 01"]', (x) => [...x[0].closest('.fdslot').querySelectorAll('details summary')].map((q) => q.innerText.replace(/\s+/g, ' ')).filter((t) => /página 2/.test(t)).join(' | ')));
   console.log('erros', errs); await b.close();
 })();

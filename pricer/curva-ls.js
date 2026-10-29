@@ -6,9 +6,9 @@
   'use strict';
   const LAR = '#E4650E', ESC = '#2F2F2F', TXT = '#3A3A3A', MUTED = '#7A7A7A', GRID = '#E6E6E6', EIXO = '#BDBDBD';
   const L = {
-    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante' },
-    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points' },
-    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante' },
+    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)' },
+    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)' },
+    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)' },
   };
   const LOC = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' };
   let fonteOk = null;
@@ -48,7 +48,7 @@
     const topo = 190, base = H - 190, gap = 64; const alt = base - topo - gap * (series.length - 1); const soma = series.reduce((a, s) => a + s[2], 0);
     let y = topo; const paineis = series.map(([k, nome, f]) => { const h = alt * f / soma; const p = { k, nome, y0: y, y1: y + h }; y += h + gap; return p; });
     // dados do ponto de trabalho e da NFPA 20 (só o que estiver na folha)
-    const qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0]; const hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0];
+    const qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0] || nums(campo(dados, /Operat/i, /^Flow$/))[0]; const hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0] || nums(campo(dados, /Operat/i, /^Head$/))[0];
     const qN = nums(campo(dados, /NFPA/i, /^Flow, rated$/))[0], hN = nums(campo(dados, /NFPA/i, /^Head, rated$/))[0];
     const sh = nums(campo(dados, /NFPA/i, /^Head at shutoff/)), h150 = nums(campo(dados, /NFPA/i, /^Head at 150%/)), q150 = nums(campo(dados, /NFPA/i, /^Flow at 150%/))[0];
     for (const pn of paineis) {
@@ -80,20 +80,22 @@
       if (h150[0] && q150) { ponto(sx(q150), ph.sy(h150[0]), false); rotulo(t.p150 + ': ' + fq(q150) + ' · ' + fh(h150[0]), sx(q150), ph.sy(h150[0]) + 104, 'e'); }
       if (sh[0]) { ponto(sx(0), ph.sy(sh[0]), false); }
       if (qN && hN && Math.abs(qN - (qT || 0)) / qN > 0.01) { ponto(sx(qN), ph.sy(hN), false); rotulo(t.nfpa + ': ' + fq(qN) + ' · ' + fh(hN), sx(qN), ph.sy(hN) + 52, 'e'); }
-      if (qT && hT) { const xx = sx(qT), yy = ph.sy(hT); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, ph.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true); rotulo(t.trab + ': ' + fq(qT) + ' · ' + fh(hT), xx, yy + 50, 'd'); }
+      if (P.chave) for (const p of pts) { g.fillStyle = LAR; g.beginPath(); g.arc(sx(p.q), ph.sy(p.h), 9, 0, Math.PI * 2); g.fill(); }
+      if (qT && hT) { const xx = sx(qT), yy = ph.sy(hT); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, ph.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true); rotulo(t.trab + ': ' + fq(qT) + ' · ' + fh(hT), xx, yy + 54, P.chave ? 'e' : 'd'); }
     }
     // eixo x (vazão) com equivalente em m³/h quando a vazão vem em galões
     const yb = paineis[paineis.length - 1].y1; g.textAlign = 'center'; g.textBaseline = 'top';
     for (let q = 0; q <= xMax + 1e-9; q += xStep) { const xx = sx(q); g.fillStyle = MUTED; g.font = FT(400, 30); g.fillText(nf(0).format(q), xx, yb + 16); if (/gpm/i.test(U.q)) { g.font = FT(400, 24); g.fillText(nf(0).format(q * 0.2271247), xx, yb + 54); } }
     g.fillStyle = TXT; g.font = FT(600, 34); g.fillText(t.q + ' (' + U.q + (/gpm/i.test(U.q) ? ' · m³/h' : '') + ')', (X0 + X1) / 2, yb + 96);
     // cabeçalho: modelo, rotor e rotação (como vieram da folha) e o logo
-    const mod = campo(dados, /Project/i, /Model$|^Model \//); const rot = campo(dados, /NFPA|Construction/i, /^Impeller diameter, rated$|^Impeller Diameter$/); const rpm = campo(dados, /NFPA|Operating/i, /^Speed, rated$/);
+    let mod = campo(dados, /Project/i, /Model$|^Model \//); const rot = campo(dados, /NFPA|Construction/i, /^Impeller diameter, rated$|^Impeller Diameter$/) || campo(dados, null, /^Impeller D(iameter)?\b.*(Designed|rated)/i); const rpm = campo(dados, /NFPA|Operating/i, /^Speed, rated$/) || campo(dados, null, /^Speed$/);
+    if (!mod) { const pj = ((dados.secoes || []).find((x) => x.t === 'Project') || { campos: [] }).campos.map((c) => c.k + ' ' + c.v).join(' '); mod = (pj.match(/\b([A-Z]{2,6}\s?\d{2,4}[-/]\d{2,4}[A-Z]?)\b/) || [])[1] || ''; }
     g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = ESC; g.font = FT(600, 40);
     const dec = (v) => (lang === 'en' ? v : String(v).replace(/(\d),(\d{3})/g, '$1\u0000$2').replace(/(\d)\.(\d)/g, '$1,$2').replace(/\u0000/g, '.'));
     g.fillText([dados.fabricante, mod].filter(Boolean).join(' ') + (rot ? ' · ' + t.rotor + ' ' + dec(rot) : '') + (rpm ? ' · ' + rpm : ''), X0, 58);
     if (o.logo) { try { const im = new Image(); im.src = o.logo; await im.decode(); const w = 230, h = w * im.height / im.width; g.drawImage(im, W - 70 - w, 18, w, h); } catch (e) { /* sem logo */ } }
     g.fillStyle = LAR; g.fillRect(X0, 80, 120, 6);
-    g.fillStyle = MUTED; g.font = FT(400, 26); g.textAlign = 'right'; g.fillText(t.fonte + (dados.pontos.pag ? ' (p. ' + dados.pontos.pag + ')' : '') + '.', X1, H - 22);
+    g.fillStyle = MUTED; g.font = FT(400, 26); g.textAlign = 'right'; g.fillText((P.chave ? t.chave : t.fonte) + (dados.pontos.pag ? ' (p. ' + dados.pontos.pag + ')' : '') + '.', X1, H - 22);
     return cv.toDataURL('image/png');
   }
   window.PricerCurva = { desenhar, temPontos };

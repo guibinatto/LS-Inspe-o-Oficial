@@ -10,22 +10,24 @@
   const P = window.PricerProposta; const I = P._i; const FB = () => window.PricerFabricante || null;
   const ESC = [47, 47, 47], LAR = [228, 101, 14], LAR0 = [199, 56, 21], BANDA = [236, 236, 236], LINHA = [214, 214, 214], CINZA = [110, 110, 110], CLARO = [247, 247, 247];
   const X = {
-    pt: { componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descrição', unitSem: 'Unitário sem impostos', totSem: 'Total sem impostos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totais', notaImp: 'ICMS, PIS e COFINS estão incluídos no preço (por dentro); o IPI é somado ao preço com impostos. Alíquotas e NCM conforme a formação desta proposta.', doc_tc: 'Proposta técnica e comercial', doc_com: 'Proposta comercial', doc_tec: 'Proposta técnica', resumo: 'Resumo da proposta', dadosProp: 'Dados da proposta', fornec: 'Resumo do fornecimento', valorTotal: 'Valor total', sobre: 'Sobre a LS Fire', ident: 'Identificação do item', desemp: 'Folha de dados de desempenho', constr: 'Folha de dados construtiva',
+    pt: { cadTit: 'Folha de dados da bomba e do acionador', cadFonte: 'Dados do cadastro LS Fire (folhas de dados dos fabricantes).', componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descrição', unitSem: 'Unitário sem impostos', totSem: 'Total sem impostos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totais', notaImp: 'ICMS, PIS e COFINS estão incluídos no preço (por dentro); o IPI é somado ao preço com impostos. Alíquotas e NCM conforme a formação desta proposta.', doc_tc: 'Proposta técnica e comercial', doc_com: 'Proposta comercial', doc_tec: 'Proposta técnica', resumo: 'Resumo da proposta', dadosProp: 'Dados da proposta', fornec: 'Resumo do fornecimento', valorTotal: 'Valor total', sobre: 'Sobre a LS Fire', ident: 'Identificação do item', desemp: 'Folha de dados de desempenho', constr: 'Folha de dados construtiva',
       adic: 'Dados adicionais de desempenho', curva: 'Curva de desempenho', curvas: 'Curvas em várias rotações', arranjo: 'Arranjo geral', desenho: 'Desenho', escopo: 'Escopo de fornecimento', lsfire: 'Itens da formação LS Fire', especs: 'Especificações',
       hidr: 'Dados hidráulicos', fdB: 'Bomba (folha de dados)', fdM: 'Acionador (folha de dados)', planilha: 'Planilha de preços', cond: 'Condições comerciais', notas: 'Notas, desvios e exclusões', termos: 'Termos e condições', contatos: 'Contatos', comiss: 'Comissionamento e start-up', prazos: 'Prazos', docs: 'Escopo de documentos',
       qtd: 'Qtd', descr: 'Descrição', item: 'Item', codigo: 'Código', un: 'Un.', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unitário c/ impostos', tot: 'Total c/ impostos', ponto: 'Ponto de trabalho', equip: 'Equipamento', fonte: 'Dados do fabricante ({f}), conferidos pela LS Fire.', semFab: 'Dados da formação LS Fire.',
       proposta: 'Proposta', rev: 'Revisão', data: 'Data', validade: 'Validade', vendedor: 'Contato comercial', norma: 'Norma', pagamento: 'Pagamento', frete: 'Frete', prazo: 'Prazo', obs: 'Observações', quantidade: 'Quantidade', tag: 'Tag', modelo: 'Modelo', fabr: 'Fabricante' },
-    en: { componente: 'Component', marca: 'Brand', modeloDesc: 'Model / description', unitSem: 'Unit price excl. taxes', totSem: 'Total excl. taxes', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totals', notaImp: 'ICMS, PIS and COFINS are included in the price; IPI is added on top. Tax rates and NCM as per this proposal.', doc_tc: 'Technical and commercial proposal', doc_com: 'Commercial proposal', doc_tec: 'Technical proposal', resumo: 'Proposal summary', dadosProp: 'Proposal data', fornec: 'Scope summary', valorTotal: 'Total amount', sobre: 'About LS Fire', ident: 'Item identification', desemp: 'Performance datasheet', constr: 'Construction datasheet',
+    en: { cadTit: 'Pump and driver datasheet', cadFonte: 'LS Fire records (manufacturer datasheets).', componente: 'Component', marca: 'Brand', modeloDesc: 'Model / description', unitSem: 'Unit price excl. taxes', totSem: 'Total excl. taxes', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totals', notaImp: 'ICMS, PIS and COFINS are included in the price; IPI is added on top. Tax rates and NCM as per this proposal.', doc_tc: 'Technical and commercial proposal', doc_com: 'Commercial proposal', doc_tec: 'Technical proposal', resumo: 'Proposal summary', dadosProp: 'Proposal data', fornec: 'Scope summary', valorTotal: 'Total amount', sobre: 'About LS Fire', ident: 'Item identification', desemp: 'Performance datasheet', constr: 'Construction datasheet',
       adic: 'Additional performance data', curva: 'Performance curve', curvas: 'Multi-speed curves', arranjo: 'General arrangement', desenho: 'Drawing', escopo: 'Scope of supply', lsfire: 'LS Fire package items', especs: 'Specifications',
       hidr: 'Hydraulic data', fdB: 'Pump (datasheet)', fdM: 'Driver (datasheet)', planilha: 'Price schedule', cond: 'Commercial conditions', notas: 'Notes, deviations and exclusions', termos: 'Terms and conditions', contatos: 'Contacts', comiss: 'Commissioning and start-up', prazos: 'Lead times', docs: 'Documentation scope',
       qtd: 'Qty', descr: 'Description', item: 'Item', codigo: 'Code', un: 'Unit', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unit price incl. taxes', tot: 'Total incl. taxes', ponto: 'Duty point', equip: 'Equipment', fonte: 'Manufacturer data ({f}), checked by LS Fire.', semFab: 'LS Fire package data.',
       proposta: 'Proposal', rev: 'Revision', data: 'Date', validade: 'Validity', vendedor: 'Sales contact', norma: 'Standard', pagamento: 'Payment', frete: 'Freight', prazo: 'Lead time', obs: 'Remarks', quantidade: 'Quantity', tag: 'Tag', modelo: 'Model', fabr: 'Manufacturer' },
-    es: { componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descripción', unitSem: 'Unitario sin impuestos', totSem: 'Total sin impuestos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totales', notaImp: 'ICMS, PIS y COFINS están incluidos en el precio; el IPI se suma al precio con impuestos. Alícuotas y NCM según esta propuesta.', doc_tc: 'Propuesta técnica y comercial', doc_com: 'Propuesta comercial', doc_tec: 'Propuesta técnica', resumo: 'Resumen de la propuesta', dadosProp: 'Datos de la propuesta', fornec: 'Resumen del suministro', valorTotal: 'Valor total', sobre: 'Sobre LS Fire', ident: 'Identificación del ítem', desemp: 'Hoja de datos de desempeño', constr: 'Hoja de datos constructiva',
+    es: { cadTit: 'Hoja de datos de la bomba y del accionador', cadFonte: 'Registro LS Fire (hojas de datos de los fabricantes).', componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descripción', unitSem: 'Unitario sin impuestos', totSem: 'Total sin impuestos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totales', notaImp: 'ICMS, PIS y COFINS están incluidos en el precio; el IPI se suma al precio con impuestos. Alícuotas y NCM según esta propuesta.', doc_tc: 'Propuesta técnica y comercial', doc_com: 'Propuesta comercial', doc_tec: 'Propuesta técnica', resumo: 'Resumen de la propuesta', dadosProp: 'Datos de la propuesta', fornec: 'Resumen del suministro', valorTotal: 'Valor total', sobre: 'Sobre LS Fire', ident: 'Identificación del ítem', desemp: 'Hoja de datos de desempeño', constr: 'Hoja de datos constructiva',
       adic: 'Datos adicionales de desempeño', curva: 'Curva de desempeño', curvas: 'Curvas a varias velocidades', arranjo: 'Disposición general', desenho: 'Plano', escopo: 'Alcance del suministro', lsfire: 'Ítems del conjunto LS Fire', especs: 'Especificaciones',
       hidr: 'Datos hidráulicos', fdB: 'Bomba (hoja de datos)', fdM: 'Accionador (hoja de datos)', planilha: 'Planilla de precios', cond: 'Condiciones comerciales', notas: 'Notas, desvíos y exclusiones', termos: 'Términos y condiciones', contatos: 'Contactos', comiss: 'Puesta en marcha', prazos: 'Plazos', docs: 'Alcance de documentos',
       qtd: 'Cant.', descr: 'Descripción', item: 'Ítem', codigo: 'Código', un: 'Unid.', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unitario c/ impuestos', tot: 'Total c/ impuestos', ponto: 'Punto de trabajo', equip: 'Equipo', fonte: 'Datos del fabricante ({f}), verificados por LS Fire.', semFab: 'Datos del conjunto LS Fire.',
       proposta: 'Propuesta', rev: 'Revisión', data: 'Fecha', validade: 'Validez', vendedor: 'Contacto comercial', norma: 'Norma', pagamento: 'Pago', frete: 'Flete', prazo: 'Plazo', obs: 'Observaciones', quantidade: 'Cantidad', tag: 'Tag', modelo: 'Modelo', fabr: 'Fabricante' },
   };
+  const GRUPO_TR = { en: { Bomba: 'Pump', Acionador: 'Driver', 'Painel de comando': 'Controller', 'Bomba jockey': 'Jockey pump', 'Acessórios': 'Accessories', 'Testes e ensaios': 'Testing', 'Documentos e desenhos': 'Documents and drawings', 'Serviços': 'Services', Comercial: 'Commercial' },
+    es: { Bomba: 'Bomba', Acionador: 'Accionador', 'Painel de comando': 'Tablero de control', 'Bomba jockey': 'Bomba jockey', 'Acessórios': 'Accesorios', 'Testes e ensaios': 'Pruebas y ensayos', 'Documentos e desenhos': 'Documentos y planos', 'Serviços': 'Servicios', Comercial: 'Comercial' } };
   // títulos de página do fabricante → título no idioma
   const TIT_PAG = [[/Performance Datasheet/i, 'desemp'], [/Construction/i, 'constr'], [/Additional Data/i, 'adic'], [/Multi-Speed/i, 'curvas'], [/Performance Curve/i, 'curva'], [/General Arrangement/i, 'arranjo'], [/Price Sheet/i, 'escopo']];
 
@@ -69,7 +71,7 @@
 
     // ---------- moldura das páginas ----------
     function moldura(tit) {
-      if (logo) { const p = doc.getImageProperties(logo); const w = 30, h = w * p.height / p.width; doc.addImage(logo, fmtImg(logo), X0, 6.5, w, Math.min(h, 13), 'logo', 'FAST'); }
+      if (logo) { const p = doc.getImageProperties(logo); let w = 30, h = w * p.height / p.width; if (h > 12.5) { h = 12.5; w = h * p.width / p.height; } doc.addImage(logo, fmtImg(logo), X0, 6.5, w, h, 'logo', 'FAST'); }
       F('normal', 6.4, CINZA); T((x['doc_' + O.tipo] || '').toUpperCase(), X1, 9.4, { align: 'right' });
       F('bold', 8.6, ESC); T(x.proposta + ' ' + numero, X1, 13.8, { align: 'right' });
       F('normal', 6.8, CINZA); T([E.cliente, I.dataLang(D.data, lang)].filter(Boolean).join(' · '), X1, 17.8, { align: 'right' });
@@ -102,15 +104,15 @@
     function colunas(secs) {
       const cw = (LW - 5) / 2; const xs = [X0, X0 + cw + 5]; let ys = [y, y];
       for (const s of secs.filter((q) => q.pares.length)) {
-        let L = s.pares.slice(); let c = ys[0] <= ys[1] ? 0 : 1;
+        let L = s.pares.slice(); let c = s.col !== undefined ? s.col : ys[0] <= ys[1] ? 0 : 1;
         while (L.length) {
           y = ys[c]; const cabe = []; let h = 6.4; for (const p of L) { const hp = altPares([p], cw); if (y + h + hp > LIM) break; h += hp; cabe.push(p); }
           if (!cabe.length || (cabe.length < Math.min(3, L.length) && y > 45)) {
-            if (c === 0 && ys[1] + 6.4 + altPares(L.slice(0, 3), cw) <= LIM) { c = 1; continue; }
+            if (s.col === undefined && c === 0 && ys[1] + 6.4 + altPares(L.slice(0, 3), cw) <= LIM) { c = 1; continue; }
             pagina(titulo); ys = [y, y]; c = 0; continue;
           }
           faixa(s.t + (L.length < s.pares.length ? ' (cont.)' : ''), xs[c], cw); pares(cabe, xs[c], cw); L = L.slice(cabe.length); ys[c] = y + 2.4;
-          if (L.length) c = 1 - c;
+          if (L.length && s.col === undefined) c = 1 - c;
         }
       }
       y = Math.max(ys[0], ys[1]);
@@ -134,12 +136,12 @@
       y += 3;
     }
     // escopo no formato Qtd | Descrição, com recuo por nível
-    function escopo(grupo, linhas) {
+    function escopo(grupo, linhas, o = {}) {
       precisa(20); F('bold', 9.6, ESC); T(grupo, X0, y + 4); y += 6;
       const hdr = () => { doc.setFillColor(...ESC); doc.rect(X0, y, LW, 4.8, 'F'); F('bold', 6.8, [255, 255, 255]); T(x.qtd, X0 + 1.5, y + 3.3); T(x.descr, X0 + 14, y + 3.3); y += 4.8; };
       hdr();
       for (const l of linhas) {
-        const xx = X0 + 14 + Math.min(8, l.n || 0) * 3; const st = (l.n || 0) <= 1 && !/:/.test(l.t) ? 'bold' : 'normal'; F(st, 7); const q = quebra(l.t, X1 - xx - 1); const h = q.length * 3.05 + 1.1;
+        const xx = X0 + 14 + Math.min(8, l.n || 0) * 3; const st = o.titulos ? ((l.n || 0) === 0 ? 'bold' : 'normal') : (l.n || 0) <= 1 && !/:/.test(l.t) ? 'bold' : 'normal'; F(st, 7); const q = quebra(l.t, X1 - xx - 1); const h = q.length * 3.05 + 1.1;
         if (y + h > LIM) { pagina(titulo); hdr(); }
         if (l.q) { F('bold', 7.2, ESC); T(String(l.q), X0 + 3, y + 2.8, { align: 'center' }); }
         F(st, 7, [25, 25, 25]); q.forEach((t, k) => T(t, xx, y + 2.8 + k * 3.05)); y += h;
@@ -182,12 +184,15 @@
         const camposOn = (s) => (s.campos || []).filter((c) => c.on !== false && String(c.v || '').trim()).map((c) => [trF(c.k, 'rot'), fb && fb.ehMedida(c.v) ? medida(c.v) : swap(trF(c.v, 'val'))]);
         const secsDe = (pag) => (dados ? dados.secoes.filter((s) => s.pag === pag && s.t !== 'Project') : []).map((s) => ({ t: trF(s.t, 'sec'), pares: camposOn(s) }));
         const pags = dados ? dados.paginas.filter((p) => p.tipo === 'dados') : [];
-        const ident = [[x.item, String(i + 1)], [x.codigo, cod], [x.equip, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)], [x.quantidade, qtdTxt(it.qtd) + (it.un ? ' ' + it.un : '')], [x.ponto, numL(it.condicao || '')]].filter((p) => p[1]);
+        const ident = [[x.item, String(i + 1)], [x.codigo, cod], [x.quantidade, qtdTxt(it.qtd) + (it.un ? ' ' + it.un : '')], [x.ponto, numL(it.condicao || '')]].filter((p) => p[1]);
+        const descEq = D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve);
         if (dados) { const pj = (dados.secoes.find((s) => s.t === 'Project') || { campos: [] }).campos; const v = (re) => (pj.find((c) => re.test(c.k)) || {}).v; const tg = v(/^Tag/); const md = v(/Model$|^Model \//); if (md) ident.push([x.modelo, md]); if (tg) ident.push([x.tag, tg]); if (dados.fabricante) ident.push([x.fabr, dados.fabricante]); }
         // 1) desempenho: identificação + seções da primeira folha + curva
         pagina(x.desemp + ' — ' + nItem);
+        if (descEq) { F('bold', 8.2, ESC); for (const q of quebra(descEq, LW)) { T(q, X0, y + 3); y += 3.9; } y += 2.5; }
         const sec1 = [{ t: x.ident, pares: ident }];
         if (pags.length) sec1.push(...secsDe(pags[0].n));
+        if (dados) for (const pc of dados.paginas.filter((q) => q.tipo === 'curva')) sec1.push(...secsDe(pc.n));
         else {
           for (const b of fd.hidraulica || []) sec1.push({ t: x.hidr + ' — ' + r.bomba.replace('{n}', b.n) + ' (' + fdV(b.acion) + (b.cfg ? ' · ' + fdV(b.cfg) : '') + ')', pares: b.dados.filter((d) => d[1]).map((d) => [fdT('@' + d[0]), numL(d[1])]) });
           if ((dfd.bomba || []).length) sec1.push({ t: x.fdB, pares: dfd.bomba.map((d) => [fdT('@' + d[0]), fdV(d[1])]) });
@@ -198,33 +203,41 @@
         const curva = (FA && FA.curva) || O.curvas[it.key];
         if (curva) { if (LIM - y < 95) pagina(x.curva + ' — ' + nItem); else subtitulo(x.curva); imagem(curva, Math.min(LIM - y - 4, 170)); }
         // 2) demais folhas de dados do fabricante (construtiva, dados adicionais), com as tabelas dessas páginas
-        for (const pg of pags.slice(1)) {
+        const temCadBomba = ((it.cad || {}).fds || []).length > 0;
+        for (const pg of pags.slice(1).filter((q) => !(temCadBomba && /Construction/i.test(q.titulo)))) {
           const ss = secsDe(pg.n); const tb = (dados.tabelas || []).filter((t) => t.pag === pg.n); if (!ss.some((s) => s.pares.length) && !tb.length) continue;
           pagina(tituloPag(pg.titulo) + ' — ' + nItem); colunas(ss);
           for (const t of tb) { y += 2; const nc = Math.max(t.cab.length, ...t.linhas.map((l) => l.length)); const cab = t.cab.length === nc ? t.cab.map((c, k) => (k ? c : trF(c, 'sec') || c)) : [''].concat(t.cab).slice(0, nc); const w0 = 62; const ws = [w0].concat(Array(nc - 1).fill((LW - w0) / (nc - 1)));
             tabela(cab.map((c) => trF(c, 'rot') || c), t.linhas.map((l) => [trF(l[0], 'rot') || l[0]].concat(l.slice(1).map(swap))), ws, { esq: [0] }); }
         }
         if (dados && (dados.tabelas || []).some((t) => t.pag === pags[0]?.n)) { /* tabela da primeira folha: já resumida nas seções */ }
+        // 2b) bomba e acionador vindos do cadastro (folha técnica de cada insumo); a folha anexada na proposta tem prioridade
+        { const cad = it.cad || {}; const temEng = !!(dados && dados.secoes.some((q) => /Engine|Motor|Driver/i.test(q.t)));
+          const usar = (cad.fds || []).slice(); void temEng;
+          if (usar.length) { pagina(x.constr + ' — ' + nItem);
+            // bomba primeiro (construção, materiais, testes, pesos), depois o acionador (informações do motor)
+            const ord = usar.slice().sort((a, b) => (a.uso === 'bomba' ? 0 : 1) - (b.uso === 'bomba' ? 0 : 1));
+            // com bomba e motor: bomba na coluna da esquerda, motor na da direita (como a Construction Datasheet)
+            const duas = ord.some((f) => f.uso === 'bomba') && ord.some((f) => f.uso === 'motor');
+            colunas(ord.flatMap((f) => { const col = duas ? (f.uso === 'bomba' ? 0 : 1) : undefined; return [{ col, t: fdT(f.titulo), pares: [[x.modelo, f.desc], [x.fabr, f.fabricante], [x.quantidade, qtdTxt(f.qtd)]].filter((q) => q[1]) }].concat(f.secoes.map((q) => ({ col, t: (trF(q.t, 'sec') || q.t), pares: q.campos.map(([k, v]) => [trF(k, 'rot'), fb && fb.ehMedida(v) ? medida(v) : swap(trF(v, 'val'))]) }))); }));
+            F('italic', 6.2, CINZA); T(x.cadFonte, X0, y + 1.5); y += 4; } }
         // 3) outras curvas e desenhos escolhidos
         for (const pg of dados ? dados.paginas.filter((p) => (p.tipo === 'curva' || p.tipo === 'desenho' || p.tipo === 'anexo') && FA.paginas && FA.paginas[p.n]) : []) {
           const im = FA.paginas[pg.n]; const paisagem = im.w > im.h; pagina(tituloPag(pg.titulo) + ' — ' + nItem, paisagem); imagem(im.url, LIM - y - 2);
         }
+        // 3b) desenhos do cadastro (do modelo pronto ou da família de equipamento)
+        for (const url of ((O.desenhos || {})[it.key] || [])) { const p = doc.getImageProperties(url); pagina(x.desenho + ' — ' + nItem, p.width > p.height); imagem(url, LIM - y - 2); }
         // 4) escopo: o do fabricante (grupos marcados) + itens da formação LS Fire + especificações
         pagina(x.escopo + ' — ' + nItem);
         F('bold', 8, ESC); for (const q of quebra([cod, D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve)].filter(Boolean).join(' — '), LW)) { T(q, X0, y + 3); y += 3.8; } F('normal', 7.2, CINZA); T([x.quantidade + ': ' + qtdTxt(it.qtd) + (it.un ? ' ' + it.un : ''), it.condicao ? x.ponto + ': ' + numL(it.condicao) : ''].filter(Boolean).join('   ·   '), X0, y + 3); y += 7;
         const gs = dados ? (dados.escopo || []).filter((g) => g.on !== false) : [];
         for (const g of gs) escopo(trF(g.g, 'sec') || g.g, g.linhas.filter((l) => l.on !== false).map((l) => ({ q: l.q, n: l.n, t: trF(l.t, 'lin') })));
-        // itens da formação: uma linha por componente (Qtd | Componente | Marca | Modelo/descrição); iguais somam a quantidade
-        const ls = [];
-        for (const c of (fd.componentes || []).concat(fd.adicionais || [])) {
-          const L = c.linhas || []; const marca = (L.find((l) => Array.isArray(l) && l[0] === 'marca') || [])[1] || '';
-          const resto = L.filter((l) => !(Array.isArray(l) && l[0] === 'marca')).map((l) => (Array.isArray(l) ? (['modelo', 'descricao'].includes(l[0]) ? fdV(l[1]) : fdT('@' + l[0]) + ' ' + fdV(l[1])) : l)).join(' · ');
-          const nome = fdT(c.titulo); const ig = ls.find((z) => z.nome === nome && z.marca === marca && z.desc === resto);
-          if (ig && typeof ig.q === 'number' && typeof c.qtd === 'number') ig.q += c.qtd; else ls.push({ q: c.qtd, nome, marca, desc: resto });
+        // escopo da formação por grupo (como o da Peerless), com o texto cadastrado no item ou na família
+        if (!(FA && FA.semLs)) for (const g of it.escopoG || []) {
+          const L = []; for (const c of g.itens) { L.push({ q: qtdTxt(c.q), n: 0, t: fdT(c.titulo) }); for (const l of c.sub || []) L.push({ n: 1, t: /^#/.test(l) ? fdT('@' + l.slice(1).split('|')[0]) + ': ' + tr(l.split('|').slice(1).join('|')) : tr(l) }); }
+          escopo((GRUPO_TR[lang] || {})[g.g] || g.g, L, { titulos: true });
         }
-        if (ls.length && !(FA && FA.semLs)) { precisa(20); F('bold', 9.6, ESC); T(x.lsfire, X0, y + 4); y += 6;
-          tabela([x.qtd, x.componente, x.marca, x.modeloDesc], ls.map((z) => [qtdTxt(z.q), z.nome, z.marca, z.desc]), [14, 50, 34, LW - 98], { centro: [0], esq: [1, 2, 3], negrito: [1] }); }
-        if ((it.espec || []).length) { const le = []; for (const g of it.espec) { le.push({ q: qtdTxt(g.qtd), n: 0, t: fdT(g.titulo) }); for (const l of g.linhas || []) le.push({ n: 2, t: fdT('@' + l[0]) + ': ' + tr(l[1]) }); } escopo(x.especs, le); }
+        { const L = [[r.h_frete, tr(E.frete)], [x.prazo, prazoTxt().join(' · ')]].filter((q) => q[1]); if (L.length && tem('condicoes')) escopo((GRUPO_TR[lang] || {}).Comercial || 'Comercial', L.map(([k, v]) => ({ n: 1, t: k + ': ' + v })), { titulos: true }); }
         const nt = I.linhasDe(E.notasItem[it.key]); if (nt.length) { subtitulo(r.notasItem); marcadores(nt.map(tr)); }
       });
     }

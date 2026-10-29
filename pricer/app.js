@@ -1242,7 +1242,7 @@
       const condicao = [...new Set(bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => nBR(b.vz) + ' m³/h x ' + nBR(b.pr) + ' mca'))].join(' · ');
       const acion = { DIESEL: '#diesel', ELETRICA: '#eletrica', ELETRICO: '#eletrica', JOCKEY: '#jockeyA' };
       itens.push({ key: S, codigo: (pcGet().codigos || {})[S] || '', qtd: num0(val(P, 'F' + r)) || 1, unitSemImp: val(P, 'J' + r), totalSemImp: val(P, 'K' + r), totalSemIpi: val(P, 'M' + r), ipiValor: val(P, 'N' + r), pis: val(P, 'S' + r), cofins: val(P, 'T' + r), un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
-        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S),
+        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S), cad: cadastroDoItem(S), escopoG: escopoDoItem(S),
         folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ n: k + 1, acion: acion[b.ac] || b.ac.toLowerCase(), cfg: b.cfg ? TIPO_BOMBA[upNoAc(b.cfg)] || b.cfg.toLowerCase() : '',
           dados: [['modelo', b.mod], ['vazaoNom', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['vazaoProj', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['pressao', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['rotacao', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['potencia', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
     });
@@ -1333,6 +1333,11 @@
     return `<details class="card"${keep('fdprop')}><summary>Proposta: código do produto e folha de dados <span class="sub">${esc([(pc.codigos || {})[S] ? 'código ' + pc.codigos[S] : 'sem código', st].filter(Boolean).join(' · '))}</span></summary>
       <div class="fields"><div class="f"><label for="pccod_${S.replace(/\W/g, '')}">Código do produto (ERP)</label><input id="pccod_${S.replace(/\W/g, '')}" data-pccod="${esc(S)}" value="${esc((pc.codigos || {})[S] || '')}" placeholder="ex.: 004-00242"${ro}><small class="sub">sai na coluna Código da planilha de preços</small></div>
         <div class="f span2"><label for="pcni_${S.replace(/\W/g, '')}">Notas, desvios e observações deste item</label><textarea id="pcni_${S.replace(/\W/g, '')}" data-pcni="${esc(S)}" rows="2"${ro}>${esc((pc.notasItem || {})[S] || '')}</textarea><small class="sub">saem na folha de dados do item</small></div></div>
+      ${(() => { const c = cadastroDoItem(S); if (!c.fds.length && !c.faltam.length && !c.desenhos.length) return '';
+        return `<div class="fdslot" style="margin-bottom:10px"><div class="lbl">Do cadastro (entra sozinho na folha de dados)</div>
+          ${c.fds.map((f) => `<div>✓ <b>${esc(f.uso === 'motor' ? 'Motor' : 'Bomba')}</b> ${esc(f.desc)} <span class="sub">· ${f.secoes.reduce((t, x) => t + x.campos.length, 0)} campos</span></div>`).join('')}
+          ${c.faltam.map((f) => `<div>— <b>${esc(f.uso === 'motor' ? 'Motor' : 'Bomba')}</b> ${esc(f.produto)} <span class="sub">sem folha no cadastro</span> <button class="linkbtn" data-insabre="${esc(f.id)}">cadastrar a folha</button></div>`).join('')}
+          ${c.desenhos.length ? `<div>✓ <b>Desenho</b> ${c.desenhos.map((d) => esc(d.nome)).join(', ')}</div>` : '<div>— <b>Desenho</b> <span class="sub">sem desenho do modelo ou da família (Engenharia → Famílias)</span></div>'}</div>`; })()}
       ${fabCard(S)}
       <div class="fdgrid">${FD_KIND.map(slot).join('')}</div></details>`;
   }
@@ -1394,6 +1399,7 @@
     const pgs = await window.PricerLeitor.itensPdf(file, 40); const dados = window.PricerFabricante.ler(pgs);
     const cv = dados.paginas.find((q) => q.tipo === 'curva' && !/Multi/i.test(q.titulo)) || dados.paginas.find((q) => q.tipo === 'curva');
     const pags = {}; for (const q of dados.paginas) if (q.tipo === 'desenho' && /Arrangement/i.test(q.titulo)) pags[q.n] = true;
+    for (const g of dados.escopo || []) g.on = false;
     fdPut(S, 'fab', Object.assign({}, base, { dados, curvaPag: cv ? cv.n : null, pags })); render();
     const nC = dados.secoes.reduce((t, x) => t + x.campos.length, 0);
     toast(nC ? nC + ' campos, ' + dados.escopo.length + ' grupos de escopo e ' + dados.paginas.filter((q) => q.tipo !== 'dados').length + ' páginas de curva/desenho: confira antes de gerar' : 'Arquivo guardado; não reconheci dados nesta folha');
@@ -1432,6 +1438,7 @@
     if (ds.fabcm !== undefined) { fabMut(ds.fabcm, (F0) => { F0.curvaModo = t.value; }); render(); return; }
   });
   // do cartão da proposta direto para o bloco da folha do fabricante no item
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-insabre]'); if (b) { ui.cad = 'insumos'; insumoModal(b.dataset.insabre); } });
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-fdir]'); if (!b) return; const i = ITEMS.indexOf(b.dataset.fdir); if (i < 0) return;
     ui.item = i; ui.itemFull = false; openSet.fdprop = true; if (ui.view !== 'item') setView('item'); else render();
     setTimeout(() => { const d = document.querySelector('details[data-keep="fdprop"]'); if (d) { d.open = true; const alvo = d.querySelector('[data-fdup$="|fab"]') ? d.querySelector('[data-fdup$="|fab"]').closest('.fdslot') : d.querySelector('[data-fabler]')?.closest('.fdslot'); (alvo || d).scrollIntoView({ block: 'start' }); } }, 80); });
@@ -1483,7 +1490,7 @@
   document.addEventListener('click', (e) => { if (e.target.closest('[data-pctraduz]')) traduzirAgora(); });
   // textos da folha de dados do fabricante (em inglês) que o dicionário não cobre: só no padrão Folha de dados
   const fabDados = (pc, S) => ((((pc.fd || {})[S]) || {}).fab || {}).dados || null;
-  const textosFabTodos = (D, pc, lang) => (pc.estilo === 'fd' && window.PricerPropostaFD ? [...new Set(D.itens.flatMap((it) => window.PricerPropostaFD.textosFab(fabDados(pc, it.key), lang)))] : []);
+  const textosFabTodos = (D, pc, lang) => (pc.estilo === 'fd' && window.PricerPropostaFD ? [...new Set(D.itens.flatMap((it) => window.PricerPropostaFD.textosFab(fabDados(pc, it.key), lang).concat(window.PricerPropostaFD.textosFab({ secoes: ((it.cad || {}).fds || []).flatMap((f) => f.secoes.map((q) => ({ t: q.t, campos: q.campos.map(([k, v]) => ({ k, v, on: true })) }))) }, lang))))] : []);
   async function tradutor(D, pc, lang) {
     const lista = lang === 'pt' ? [] : PRP.dinamicos(D, pc); const cache = Object.assign({}, ((pc.trad || {})[lang]) || {}); const falta = lista.filter((s) => !cache[s]);
     const faltaEN = textosFabTodos(D, pc, lang).filter((s) => !cache[s]);
@@ -1538,7 +1545,12 @@
         fab[it.key] = out; } catch (er) { toast('Não consegui preparar a folha do fabricante de ' + it.key + ': ' + errMsg(er)); } }
     const moeda = pc.moeda && pc.moeda.cod === 'USD' ? { cod: 'USD', taxa: Number(pc.moeda.taxa) || cambioPadrao(), data: pc.moeda.data || hojeISO() } : { cod: 'BRL' };
     if (moeda.cod === 'USD' && !(moeda.taxa > 0)) { toast('Informe a taxa do dólar (R$ por US$ 1,00)'); return; }
-    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, fab, trFab: tr }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr });
+    const desenhos = {};
+    if (D.tipo === 'SEQ') for (const it of D.itens) for (const dz of ((it.cad || {}).desenhos || [])) {
+      try { const b = await docBlob(dz.id); if (!b) continue; const file = new File([b], dz.nome || 'desenho', { type: b.type || (/\.pdf$/i.test(dz.nome || '') ? 'application/pdf' : 'image/png') });
+        if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) { const n = (await window.PricerLeitor.paginaImagem(file, 1, 0.2)).paginas; for (let k = 1; k <= Math.min(n, 4); k++) (desenhos[it.key] = desenhos[it.key] || []).push(await window.PricerLeitor.recorte(file, k, null, 2.2)); }
+        else (desenhos[it.key] = desenhos[it.key] || []).push(await blobURL(b)); } catch (er) { toast('Não consegui preparar o desenho ' + (dz.nome || '') + ': ' + errMsg(er)); } }
+    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, fab, trFab: tr, desenhos }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos });
     const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
     logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
     const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });
@@ -2597,6 +2609,127 @@
     if (typeof f.preco !== 'number' || cambio === null) return null;
     return f.preco * cambio * (1 + (typeof f.impostos === 'number' ? f.impostos : 0)) + (typeof f.frete === 'number' ? f.frete : 0);
   }
+  // ---------- folha de dados técnica no cadastro (motor e bomba) e desenhos das famílias de equipamento e modelos prontos ----------
+  // ficam nos documentos, ligados ao insumo (insumos: [id]) ou à família/modelo; a proposta puxa daqui a folha de dados de cada item
+  const FDTEC = 'folha de dados técnica', DESENHO = 'desenho do equipamento';
+  const FDTEC_FAM = { 1: 'motor', 10: 'motor', 11: 'bomba', 12: 'bomba', 13: 'bomba' };
+  const fdtLocal = {}; // gravações recentes, até o documento compartilhado chegar
+  const docsTodos = () => { const L = (SPV.docs() || []).slice(); for (const d of Object.values(fdtLocal)) { const i = L.findIndex((x) => x.id === d.id); if (i >= 0) L[i] = Object.assign({}, L[i], d); else L.unshift(d); } return L; };
+  const fdTecDe = (insId) => docsTodos().find((d) => d.tipo === FDTEC && (d.insumos || []).includes(insId)) || null;
+  // chave do cadastro de um componente: insumo (id), kit de bomba (kb:id) ou kit de motor (km:id)
+  const chaveCad = (desc) => { const ins = insPorProduto(desc); if (ins) return ins.id; const kb = (REG.kitBomba || []).find((k) => k.desc === desc); if (kb) return 'kb:' + kb.id; const km = (REG.kitMotor || []).find((k) => k.desc === desc); if (km) return 'km:' + km.id;
+    // sem nome exato (descrição digitada mais curta): aceita um único item do cadastro que comece com o mesmo texto
+    const D0 = upNoAc(desc).trim(); if (D0.length < 6) return null; const com = (n) => upNoAc(n).startsWith(D0 + ' ');
+    const i2 = REG.insumos.filter((x) => com(x.produto)); if (i2.length === 1) return i2[0].id;
+    const k2 = (REG.kitBomba || []).filter((k) => com(k.desc)); if (k2.length === 1 && !i2.length) return 'kb:' + k2[0].id;
+    const m2 = (REG.kitMotor || []).filter((k) => com(k.desc)); if (m2.length === 1 && !i2.length) return 'km:' + m2[0].id; return null; };
+  const nomeCad = (key) => { if (/^kb:/.test(key)) return ((REG.kitBomba || []).find((k) => 'kb:' + k.id === key) || {}).desc || key; if (/^km:/.test(key)) return ((REG.kitMotor || []).find((k) => 'km:' + k.id === key) || {}).desc || key; return (REG.insumos.find((x) => x.id === key) || {}).produto || key; };
+  const usoCad = (key) => (/^km:/.test(key) ? 'motor' : /^kb:/.test(key) ? 'bomba' : FDTEC_FAM[H.famCode((REG.insumos.find((x) => x.id === key) || {}).fam)] || 'bomba');
+  const desenhosDe = (filtro) => docsTodos().filter((d) => d.tipo === DESENHO && filtro(d));
+  // da bomba, só o que é construtivo (não depende da curva nem da condição de operação)
+  const CONSTR_SEC = /construct|material|listing|approval|weight|additional information|seal|^testing$|construção|materia|peso|vedação|listagem|testes/i;
+  const DESEMP_SEC = /performance|limit|operating|operation|liquid|nfpa|pressure data|driver data|mechanical|condi|líquido/i;
+  const CONSTR_CAMPO = /flange|stages|estágios|casing pressure|impeller d|number of stages/i;
+  const MOTOR_SEC = /engine|motor|driver(?! data)|acionador/i;
+  function fdTecMarca(dados, uso) {
+    const temMotor = (dados.secoes || []).some((s) => MOTOR_SEC.test(s.t));
+    for (const s of dados.secoes || []) {
+      const ok = uso === 'motor' ? (!temMotor || MOTOR_SEC.test(s.t)) : !MOTOR_SEC.test(s.t) && (CONSTR_SEC.test(s.t) || !DESEMP_SEC.test(s.t));
+      for (const c of s.campos || []) c.on = s.t !== 'Project' && String(c.v || '').trim() !== '' && ok && (uso === 'motor' || CONSTR_SEC.test(s.t) || CONSTR_CAMPO.test(c.k));
+    }
+    return { fabricante: dados.fabricante || '', secoes: (dados.secoes || []).filter((s) => s.t !== 'Project') };
+  }
+  function fdTecHtml(insId) {
+    const ed = canEd(); const ro = ed ? '' : ' disabled'; const d = fdTecDe(insId); const uso = usoCad(insId);
+    const intro = `<p class="sub" style="margin:0 0 6px">${uso === 'motor' ? 'Folha de dados do motor: entra na folha de dados de toda proposta que usar este motor (também dentro de skid e container).' : 'Dados construtivos da bomba (flanges, materiais, rotação, rolamento, vedação, pesos, listagens): entram na folha de dados de toda proposta que usar esta bomba. O que depende da curva e da condição de operação fica na proposta.'}</p>`;
+    if (!d) return intro + (ed ? `<label class="drop" for="fdtup_${esc(insId)}"><b>Solte aqui o PDF da folha de dados ${uso === 'motor' ? 'do motor' : 'da bomba'}</b><span class="sub">o app lê e você marca o que vai para a proposta</span><input id="fdtup_${esc(insId)}" type="file" accept=".pdf" data-fdtup="${esc(insId)}" hidden></label>` : '<p class="sub">Sem folha cadastrada.</p>');
+    const F0 = d.fdTec || { secoes: [] }; const n = F0.secoes.reduce((t, s) => t + s.campos.length, 0), on = F0.secoes.reduce((t, s) => t + s.campos.filter((c) => c.on !== false).length, 0);
+    return intro + `<div class="kv pcro"><div>Arquivo</div><div>${esc(d.nome || '')} <button class="linkbtn" data-fdopen="${esc(d.id)}">abrir</button>${ed ? ` · <button class="linkbtn" data-fdttira="${esc(insId)}">tirar</button>` : ''}</div><div>Lido</div><div>${esc(F0.fabricante || '—')} · ${F0.secoes.length} seções · ${on} de ${n} campos vão para a proposta</div></div>
+      ${F0.secoes.map((s, si) => `<details class="sub2"><summary>${esc(s.t)}${window.PricerFabricante && window.PricerFabricante.secT(s.t, 'pt') && window.PricerFabricante.secT(s.t, 'pt') !== s.t ? ' <span class="sub">· ' + esc(window.PricerFabricante.secT(s.t, 'pt')) + '</span>' : ''} <span class="sub">${s.campos.filter((c) => c.on !== false).length}/${s.campos.length}</span></summary>
+        <div class="tw"><table class="t"><thead><tr><th>Vai</th><th>Campo</th><th>Valor</th></tr></thead><tbody>${s.campos.map((c, ci) => `<tr><td><input type="checkbox" data-fdton="${esc(insId)}|${si}|${ci}"${c.on !== false ? ' checked' : ''}${ro} aria-label="Incluir ${esc(c.k)}"></td><td>${esc(c.k)}</td><td class="in"><input data-fdtv="${esc(insId)}|${si}|${ci}" value="${esc(c.v)}"${ro} aria-label="Valor de ${esc(c.k)}"></td></tr>`).join('')}</tbody></table></div></details>`).join('')}`;
+  }
+  const fdtRefresh = (insId) => { const el = document.getElementById('fdtBox'); if (el && el.dataset.ins === insId) el.innerHTML = fdTecHtml(insId); };
+  async function fdtGrava(d) { fdtLocal[d.id] = d; const meta = Object.assign({}, d); await SPV.salvarDoc(meta); }
+  document.addEventListener('change', async (e) => {
+    const t = e.target; if (!t.dataset) return; const ds = t.dataset;
+    if (ds.fdtup) { const insId = ds.fdtup; const file = t.files && t.files[0]; t.value = ''; if (!file || !canEd()) return;
+      try { toast('Lendo a folha de dados…'); const uso = usoCad(insId);
+        const dados = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 30)); const fdTec = fdTecMarca(dados, uso);
+        const id = await SPV.salvarDoc({ tipo: FDTEC, nome: file.name, insumos: [insId], uso, fdTec, etapa: 'Cadastro', notas: 'Folha de dados técnica · ' + nomeCad(insId), itens: [] }, file);
+        fdtLocal[id] = Object.assign({ id }, (SPV.docs() || []).find((x) => x.id === id) || { tipo: FDTEC, nome: file.name, insumos: [insId], uso, fdTec });
+        fdtRefresh(insId); toast(fdTec.secoes.length ? 'Folha lida: confira o que vai para a proposta' : 'Folha guardada; não reconheci campos'); } catch (er) { toast(errMsg(er)); }
+      return; }
+    if (ds.fdton || ds.fdtv) { if (!canEd()) return; const [insId, si, ci] = (ds.fdton || ds.fdtv).split('|'); const d0 = fdTecDe(insId); if (!d0) return; const d = JSON.parse(JSON.stringify(d0)); const c = d.fdTec.secoes[+si].campos[+ci];
+      if (ds.fdton) c.on = t.checked; else c.v = t.value.trim(); try { await fdtGrava(d); if (ds.fdton) fdtRefresh(insId); } catch (er) { toast(errMsg(er)); } return; }
+    if (ds.desup) { const [tipo, chave] = ds.desup.split('|'); const file = t.files && t.files[0]; t.value = ''; if (!file || !canEd()) return;
+      try { const meta = { tipo: DESENHO, nome: file.name, etapa: 'Cadastro', itens: [], notas: 'Desenho · ' + chave }; meta[tipo === 'modelo' ? 'modelo' : 'equip'] = chave; const id = await SPV.salvarDoc(meta, file); fdtLocal[id] = Object.assign({ id }, meta);
+        const box = document.getElementById('desBox'); if (box) box.innerHTML = desenhosHtml(box.dataset.equip); toast('Desenho guardado'); } catch (er) { toast(errMsg(er)); } }
+  });
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-fdttira],[data-destira]'); if (!b || !canEd()) return;
+    if (b.dataset.fdttira) { const d = fdTecDe(b.dataset.fdttira); if (!d || !window.confirm('Tirar a folha de dados técnica deste insumo? O arquivo continua nos documentos.')) return;
+      const d2 = Object.assign({}, d, { tipo: 'folha de dados (retirada do cadastro)' }); try { await fdtGrava(d2); fdtRefresh(b.dataset.fdttira); } catch (er) { toast(errMsg(er)); } return; }
+    const d = docsTodos().find((x) => x.id === b.dataset.destira); if (!d || !window.confirm('Tirar este desenho do cadastro? O arquivo continua nos documentos.')) return;
+    try { await fdtGrava(Object.assign({}, d, { tipo: 'desenho (retirado do cadastro)' })); const box = document.getElementById('desBox'); if (box) box.innerHTML = desenhosHtml(box.dataset.equip); } catch (er) { toast(errMsg(er)); }
+  });
+  // desenhos da família de equipamento (vale para todos os itens dela) e de cada modelo pronto (vale só para o modelo)
+  function desenhosHtml(equip) {
+    const ed = canEd(); const lista = (L) => L.map((d) => `<span class="pill mute">${esc(d.nome)}</span> <button class="linkbtn" data-fdopen="${esc(d.id)}">abrir</button>${ed ? ` <button class="linkbtn" data-destira="${esc(d.id)}">tirar</button>` : ''}`).join(' ');
+    const up = (tipo, chave, lb) => (ed ? `<label class="btn sm" for="desup_${esc(tipo + chave).replace(/\W/g, '')}">${lb}</label><input id="desup_${esc(tipo + chave).replace(/\W/g, '')}" type="file" accept=".pdf,image/*" data-desup="${esc(tipo)}|${esc(chave)}" hidden>` : '');
+    const fam = desenhosDe((d) => d.equip === equip); const mods = modelos().filter((m) => m.estr === equip);
+    return `<p class="sub" style="margin:0 0 6px">O desenho entra na folha de dados da proposta: o do modelo pronto quando o item usa aquele modelo; senão, o da família.</p>
+      <div class="docbar" style="margin-bottom:8px"><b>Família</b> ${lista(fam) || '<span class="sub">sem desenho</span>'} ${up('equip', equip, 'Anexar desenho da família')}</div>
+      ${mods.length ? `<div class="tw" style="max-height:40vh;overflow:auto"><table class="t"><thead><tr><th>Modelo pronto</th><th>Desenho</th><th></th></tr></thead><tbody>${mods.map((m) => `<tr><td>${esc(m.nome)}</td><td>${lista(desenhosDe((d) => d.modelo === m.nome)) || '<span class="sub">—</span>'}</td><td>${up('modelo', m.nome, 'Anexar')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub">Nenhum modelo pronto nesta família.</p>'}`;
+  }
+  // ---------- texto do escopo da proposta: no cadastro do item (insumo ou kit) ou, na falta, o padrão da família de insumo ----------
+  const GRUPOS_ESC = ['Bomba', 'Acionador', 'Painel de comando', 'Bomba jockey', 'Acessórios', 'Testes e ensaios', 'Documentos e desenhos', 'Serviços', 'Comercial'];
+  const GRUPO_PAD = { 1: 'Acionador', 10: 'Acionador', 11: 'Bomba', 12: 'Bomba', 13: 'Bomba jockey', 14: 'Bomba', 15: 'Acessórios', 16: 'Acionador', 17: 'Acionador', 18: 'Acionador', 19: 'Painel de comando', 20: 'Painel de comando', 21: 'Painel de comando', 22: 'Painel de comando', 23: 'Acessórios', 24: 'Acessórios', 25: 'Acessórios',
+    26: 'Acionador', 27: 'Acessórios', 28: 'Acessórios', 29: 'Painel de comando', 30: 'Acessórios', 31: 'Acionador', 35: 'Bomba', 36: 'Acionador', 38: 'Acessórios', 39: 'Acionador', 40: 'Acessórios', 41: 'Acessórios', 42: 'Acessórios', 43: 'Acessórios', 44: 'Acessórios', 45: 'Acessórios', 46: 'Testes e ensaios', 47: 'Documentos e desenhos' };
+  const FORA_ESC = new Set([32, 33, 34, 37]); // miscelâneas, kit de instalação, mão de obra, embalagem: só entram se tiverem texto cadastrado
+  const escTab = () => (REG.tabelas || {}).ESCOPO_PROPOSTA || {};
+  const escItem = (key) => ((escTab().itens || {})[key]) || '';
+  const escFam = (code) => ((escTab().fams || {})[code]) || {};
+  async function escSalvar(fn, rot) { const t = JSON.parse(JSON.stringify(escTab())); t.itens = t.itens || {}; t.fams = t.fams || {}; fn(t); await REG.setTable('ESCOPO_PROPOSTA', t, 'Escopo da proposta: ' + rot, [{ campo: rot, de: null, para: 'alterado' }]); }
+  const escCampoHtml = (key, fam) => { const ed = canEd(); const fe = escFam(H.famCode(fam)); return `<div class="f spanall"><label for="escit_${esc(key).replace(/\W/g, '')}">Descrição no escopo da proposta <span class="sub">uma linha por item da descrição; {marca}, {modelo} e {qtd} são trocados</span></label><textarea id="escit_${esc(key).replace(/\W/g, '')}" data-escit="${esc(key)}" rows="3" placeholder="${esc(fe.t || 'vazio = texto padrão da família (ou só a marca e o modelo)')}"${ed ? '' : ' disabled'}>${esc(escItem(key))}</textarea><small class="sub">Grupo no escopo: ${esc(fe.grupo || GRUPO_PAD[H.famCode(fam)] || 'Acessórios')} (definido na família de insumo)</small></div>`; };
+  document.addEventListener('change', async (e) => { const t = e.target; if (!t.dataset || t.dataset.escit === undefined || !canEd()) return; const key = t.dataset.escit; const v = t.value.trim();
+    try { await escSalvar((T) => { if (v) T.itens[key] = v; else delete T.itens[key]; }, nomeCad(key)); toast('Descrição do escopo salva'); } catch (er) { toast(errMsg(er)); } });
+  const preencher = (tpl, o) => String(tpl).replace(/\{marca\}/g, o.marca || '').replace(/\{modelo\}/g, o.modelo || '').replace(/\{qtd\}/g, o.qtd || '').replace(/\s+/g, ' ').replace(/^[\s·:-]+|[\s·:-]+$/g, '').trim();
+  // escopo de um item da proposta, por grupo (como o da Peerless): título do componente e as linhas cadastradas
+  function escopoDoItem(S) {
+    const G = {}; const linhas = []; for (let k = 34; k <= 63; k++) linhas.push(k); for (let k = 68; k <= 112; k++) linhas.push(k);
+    const add = (g, ent) => { const L = (G[g] = G[g] || []); const ig = L.find((x) => x.titulo === ent.titulo && JSON.stringify(x.sub) === JSON.stringify(ent.sub)); if (ig && typeof ig.q === 'number' && typeof ent.q === 'number') ig.q += ent.q; else L.push(ent); };
+    for (const k of linhas) {
+      const d = txt(S, 'D' + k); const q = qtdNum(val(S, 'F' + k)); if (!d || !(q > 0)) continue;
+      const fam = String(txt(S, 'U' + k) || txt(S, 'C' + k) || ''); const code = /^\d\d\./.test(fam) ? +fam.slice(0, 2) : 0;
+      const key = chaveCad(d); const ti = key ? escItem(key) : ''; const fe = escFam(code);
+      if (!ti && !fe.t && (FORA_ESC.has(code) || !code)) continue;
+      const ins = key && !/^k[bm]:/.test(key) ? REG.insumos.find((x) => x.id === key) : null; const kit = key && /^k[bm]:/.test(key) ? ((/^kb:/.test(key) ? REG.kitBomba : REG.kitMotor) || []).find((x) => key.endsWith(':' + x.id)) : null;
+      const o = { marca: txt(S, 'E' + k) || (ins && ins.fab) || (kit && kit.marca) || '', modelo: d, qtd: nBR(q) }; if (/^(VARIOS|0|-)$/i.test(o.marca.trim())) o.marca = '';
+      const tpl = ti || fe.t || ''; let sub = tpl ? tpl.split('\n').map((l) => preencher(l, o)).filter(Boolean) : [[o.marca, o.modelo].filter(Boolean).join(' ')];
+      const titulo = FD_TIT[String(code).padStart(2, '0')] ? '@' + FD_TIT[String(code).padStart(2, '0')] : FD_ADIC[String(code).padStart(2, '0')] ? '@' + FD_ADIC[String(code).padStart(2, '0')] : (famReg()[code] || {}).desc ? String(famReg()[code].desc).split(':')[0] : d;
+      if (sub.length === 1 && sub[0] === titulo) sub = [];
+      add(fe.grupo || GRUPO_PAD[code] || 'Acessórios', { q, titulo, sub });
+    }
+    for (const g of especDoItem(S)) add(g.titulo === '@pintura' ? 'Bomba' : g.titulo === '@testes' ? 'Testes e ensaios' : 'Documentos e desenhos', { q: g.qtd, titulo: g.titulo, sub: g.linhas.filter((l) => l[0] !== 'descricao').map((l) => '#' + l[0] + '|' + l[1]) });
+    return GRUPOS_ESC.filter((g) => (G[g] || []).length).map((g) => ({ g, itens: G[g] }));
+  }
+  // o que a proposta puxa do cadastro para um item: folhas técnicas de bombas e motores (somando iguais) e desenhos
+  function cadastroDoItem(S) {
+    const fds = []; const linhas = []; for (let k = 34; k <= 63; k++) linhas.push(k); for (let k = 68; k <= 112; k++) linhas.push(k);
+    const faltam = [];
+    for (const k of linhas) {
+      const d = txt(S, 'D' + k); const q = qtdNum(val(S, 'F' + k)); if (!d || !(q > 0)) continue;
+      const fam = String(txt(S, 'U' + k) || txt(S, 'C' + k) || ''); const cod = /^\d\d\./.test(fam) ? +fam.slice(0, 2) : 0; if (!FDTEC_FAM[cod]) continue;
+      const key = chaveCad(d); if (!key) continue; const doc = fdTecDe(key);
+      if (!doc) { if (!faltam.some((x) => x.id === key)) faltam.push({ id: key, produto: d, uso: FDTEC_FAM[cod] }); continue; }
+      const ja = fds.find((x) => x.doc === doc.id); if (ja) { ja.qtd += q; continue; }
+      fds.push({ doc: doc.id, uso: doc.uso || FDTEC_FAM[cod], titulo: '@' + (FD_TIT[String(cod).padStart(2, '0')] || 'bombaCent'), desc: d, qtd: q, fabricante: (doc.fdTec || {}).fabricante || '',
+        secoes: ((doc.fdTec || {}).secoes || []).map((s) => ({ t: s.t, campos: s.campos.filter((c) => c.on !== false && String(c.v || '').trim()).map((c) => [c.k, c.v]) })).filter((s) => s.campos.length) });
+    }
+    const mod = txt(S, 'C17'); const eq = String(val(S, 'AR2') || 'CMB');
+    let des = mod ? desenhosDe((d) => d.modelo === mod) : []; if (!des.length) des = desenhosDe((d) => d.equip === eq);
+    return { fds, faltam, desenhos: des.map((d) => ({ id: d.id, nome: d.nome })) };
+  }
   function insumoModal(id, presetFam) {
     const isNew = !id; const rec = isNew ? { fam: presetFam || ui.insFam || famList()[0], origem: 'NAC', situacao: 'ativo' } : JSON.parse(JSON.stringify(REG.insumos.find((x) => x.id === id) || null));
     if (!rec) return;
@@ -2651,6 +2784,8 @@
       </div>
       ${!isNew ? ondeUsadoHtml(rec) : ''}
       ${!isNew ? `<h2>Histórico de preço</h2>${hpHtml}` : ''}
+      ${!isNew ? `<h2>Na proposta</h2><div class="fields">${escCampoHtml(rec.id, rec.fam)}</div>` : ''}
+      ${!isNew && FDTEC_FAM[H.famCode(rec.fam)] ? `<h2>Folha de dados técnica</h2><div id="fdtBox" data-ins="${esc(rec.id)}">${fdTecHtml(rec.id)}</div>` : ''}
       ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden><button class="btn sm" data-close data-view="documentos" data-ico="folder-open">Todos os documentos</button></div>` : ''}
       ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
     (o, close) => {
@@ -2865,6 +3000,7 @@
       <div class="fields" id="kParts">${parts}</div>
       <div class="kpis" id="kTot"></div>
       <div id="kErr" class="bad-t"></div>
+      ${!isNew ? `<h2>Na proposta</h2><div class="fields">${escCampoHtml((motor ? 'km:' : 'kb:') + rec.id, motor ? '01.MOTORDIESEL' : '11.BOMBAMANCAL')}</div><h2>Folha de dados técnica</h2><div id="fdtBox" data-ins="${esc((motor ? 'km:' : 'kb:') + rec.id)}">${fdTecHtml((motor ? 'km:' : 'kb:') + rec.id)}</div>` : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap">${canEd() ? `<button class="btn pri" id="kSave">${isNew ? 'Cadastrar kit' : 'Salvar'}</button>` : ''}${canEd() && !isNew ? '<button class="btn" id="kDup">Duplicar</button><button class="btn" id="kDel">Excluir</button>' : ''}<button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button></div>
       ${!isNew ? (() => { const u = kitUso(rec); return `<h2>Onde é usado</h2><p class="sub" style="margin:0">${u.ins ? 'Insumo de mesmo nome: ' + esc(u.ins.id) + (typeof u.ins.valor === 'number' ? ' (' + brl(u.ins.valor) + ')' : ' (sem preço)') : '<span class="bad-t">Nenhum insumo com este nome no cadastro: o seletor do item não o oferece.</span>'}${u.mods.length ? '<br>Modelos prontos: ' + esc(u.mods.join(', ')) : ''}${u.props.length ? '<br>' + u.props.length + ' proposta(s): ' + esc(u.props.slice(0, 6).map((q) => q.numero || q.name || '').join(', ')) : ''}. Propostas enviadas e aprovadas guardam os valores do kit da época.</p>`; })() : ''}
       ${!isNew ? `<h2>Histórico deste kit</h2>${hist.length ? `<div class="hist">${hist.map((h) => `<div><small>${fmtAt(h.at)} · ${who(h.by)}</small>${(h.mudancas || []).map((m) => `<div class="chg"><b>${esc(m.campo)}</b> ${esc(fmtVal(m.de))} → ${esc(fmtVal(m.para))}</div>`).join('')}</div>`).join('')}</div>` : '<p class="sub">Sem alterações registradas — valores da planilha REV21.</p>'}` : ''}`,
@@ -4044,7 +4180,9 @@
     modal(`<h2>${isNew ? 'Nova família de insumo' : 'Família ' + esc(fam)}</h2>
       <div class="fields"><div class="f"><label for="fmCode">Código</label><input id="fmCode" value="${String(code).padStart(2, '0')}" ${isNew ? 'inputmode="numeric"' : 'disabled'}></div>
       <div class="f span2"><label for="fmNome">Nome (sem espaços, como no código do insumo)</label><input id="fmNome" value="${esc(nome)}" placeholder="EX.: VALVULARETENCAO"></div>
-      <div class="f spanall"><label for="fmDesc">Descrição</label><input id="fmDesc" value="${esc(desc)}" placeholder="Para que serve, o que entra aqui"></div></div>
+      <div class="f spanall"><label for="fmDesc">Descrição</label><input id="fmDesc" value="${esc(desc)}" placeholder="Para que serve, o que entra aqui"></div>
+      <div class="f span2"><label for="fmGrupo">Grupo no escopo da proposta</label><select id="fmGrupo">${GRUPOS_ESC.map((g) => `<option${(escFam(code).grupo || GRUPO_PAD[code] || 'Acessórios') === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select></div>
+      <div class="f spanall"><label for="fmEsc">Texto padrão no escopo <span class="sub">uma linha por item; {marca}, {modelo} e {qtd} são trocados; vale para os insumos da família sem descrição própria</span></label><textarea id="fmEsc" rows="3" placeholder="ex.: Marca: {marca}&#10;Modelo: {modelo}">${esc(escFam(code).t || '')}</textarea></div></div>
       ${!isNew && n ? `<p class="sub" style="margin:0">Renomear troca a família nos ${n} insumos dela e nas linhas da estrutura padrão. Propostas já salvas mantêm o nome antigo no escopo digitado à mão.</p>` : ''}
       <p class="sub" id="fmMsg" style="margin:0"></p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="fmOk">Salvar</button>${!isNew && !n ? '<button class="btn" id="fmDel">Excluir família vazia</button>' : ''}<button class="btn" data-close>Fechar</button></div>`, (o, close) => {
@@ -4057,6 +4195,7 @@
         try {
           if (!isNew && nf !== fam && n) { await REG.renameFamily(fam, nf); }
           await REG.setCells('FAMILIAS', { [c]: { nome: nm, desc: $('#fmDesc', o).value.trim() } }, 'Família ' + nf, () => null);
+          { const gr = $('#fmGrupo', o).value, tx = $('#fmEsc', o).value.trim(); const cur = escFam(c); if (gr !== (cur.grupo || GRUPO_PAD[c] || 'Acessórios') || tx !== (cur.t || '')) await escSalvar((T) => { T.fams[c] = { grupo: gr, t: tx }; }, 'família ' + nf); }
           if (!isNew && nf !== fam) { const ch = {}; for (const l of recLines()) if (l.fam === fam) ch['F' + l.r] = nf; if (Object.keys(ch).length) await REG.setCells(MO, ch, 'Estrutura: família renomeada para ' + nf, baseOf(MO)); }
           close(); toast(isNew ? 'Família criada: ' + nf : 'Família salva: ' + nf);
         } catch (e) { $('#fmMsg', o).textContent = errMsg(e); }
@@ -4076,7 +4215,8 @@
       ${core ? '<p class="sub" style="margin:0">O nome das famílias de origem da planilha fica fixo: as fórmulas dependem dele.</p>' : ''}
       ${isNew ? '<p class="sub" style="margin:0">Depois de criar, cadastre a estrutura dela em Estruturas (o app avisa no item enquanto não houver).</p>' : ''}
       <p class="sub" id="eqMsg" style="margin:0"></p>
-      <div style="display:flex;gap:8px"><button class="btn pri" id="eqOk">Salvar</button><button class="btn" data-close>Fechar</button></div>`, (o, close) => {
+      <div style="display:flex;gap:8px"><button class="btn pri" id="eqOk">Salvar</button><button class="btn" data-close>Fechar</button></div>
+      ${isNew ? '' : `<h2>Desenhos</h2><div id="desBox" data-equip="${esc(String(val(CO, 'D' + r) || ''))}">${desenhosHtml(String(val(CO, 'D' + r) || ''))}</div>`}`, (o, close) => {
       $('#eqOk', o).onclick = async () => {
         const nm = core ? nome : $('#eqNome', o).value.trim().toUpperCase(); const sg = $('#eqSig', o).value.trim().toUpperCase(); const pf = $('#eqProd', o).value;
         if (!nm || !sg) { $('#eqMsg', o).textContent = 'Preencha o nome e a sigla.'; return; }

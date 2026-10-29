@@ -172,3 +172,12 @@ Linha da proposta: os botões ficam num grupo alinhado — próximo passo (desta
 - `fabricante.js` lê a tabela de pontos da curva (Flow | Head | Efficiency | Power | NPSHr) → `dados.pontos`.
 - `curva-ls.js` (`PricerCurva.desenhar`) traça em canvas: três painéis com o mesmo eixo de vazão (sem eixo duplo), interpolação monotônica só entre os pontos do fabricante, ponto de trabalho, nominal NFPA 20, shutoff e 150% com os limites da folha, eixo secundário em m³/h, logo LS Fire. Usada nos dois padrões; prévia no item; opção "Imagem do fabricante" mantém o recorte da página.
 - Botão "Anexar folha do fabricante" por item no cartão da proposta.
+
+## 19. Cadastro como fonte da folha de dados e do escopo
+
+- Folha de dados técnica em documentos (`tipo: 'folha de dados técnica'`, `insumos: [chave]`), chave = id do insumo, `kb:<id>` (kit de bomba) ou `km:<id>` (kit de motor). Bomba: só seções construtivas marcadas; motor: só seções do motor quando a folha é combinada.
+- Desenhos em documentos (`tipo: 'desenho do equipamento'`, `equip` ou `modelo`), anexados em Engenharia → Famílias.
+- Texto de escopo na tabela `ESCOPO_PROPOSTA` (`itens[chave]`, `fams[código] = { grupo, t }`), com {marca}, {modelo}, {qtd}.
+- Proposta: `it.cad` (folhas e desenhos), `it.escopoG` (escopo por grupo); folha construtiva do cadastro (bomba à esquerda, motor à direita), desenhos como páginas; o escopo do fabricante anexado na proposta fica desligado por padrão.
+- Curva por pontos-chave (shutoff, mínima, trabalho, nominal, máxima) quando não há tabela de pontos; quadros com título embaixo da curva viram seções.
+- Planilha de preços em paisagem com preços sem impostos, impostos e IPI; botão Cancelar no topo.

@@ -41,7 +41,7 @@
       razao: 'Razão Social:', cnpj: 'CNPJ:', projObra: 'Projeto/Obra:', cidade: 'Cidade da obra:', h_planilha: 'Planilha de preços', h_escopo: 'Escopo de fornecimento', th: ['Item', 'Código', 'Qtd.', 'Unid.', 'PIS/|COFINS', 'ICMS', 'ICMS/|ISS', 'IPI', 'NCM', 'Valor Unit.|(C/ Impostos)', 'Valor Total|(C/ Impostos)', 'Descrição breve'],
       breve: 'Descrição breve:', completa: 'Descrição completa:', condicao: 'Condição projeto:', vazaoNom: 'Vazão nominal da bomba:', escopoL: 'Escopo:', total: 'TOTAL:', h_pag: 'Condição de pagamento', nota: 'Nota:', h_prazo: 'Prazo', vide: '(Vide seção - "Prazos e condições")',
       fab: 'Fabricação: {n} dias (DAPC-Dias corridos após o Pedido de Compra)', ent: 'Entrega: {n} dias (DAE-Dias corridos após a Expedição do equipamento)', tot: 'Prazo Total: {n} dias.', combinar: 'A combinar.', h_frete: 'Frete', h_obs: 'Observações', atencao: 'ATENÇÃO: ',
-      item: 'Item {n}', qtd: 'Qtd', descr: 'Descrição', adicionais: 'Adicionais', hidraulicos: 'Dados hidráulicos', fdBomba: 'Folha de dados da bomba', fdMotor: 'Folha de dados do motor', espec: 'Especificações do fornecimento', curva: 'Curva da bomba', notasItem: 'Notas, desvios e observações',
+      desenho: 'Desenho', item: 'Item {n}', qtd: 'Qtd', descr: 'Descrição', adicionais: 'Adicionais', hidraulicos: 'Dados hidráulicos', fdBomba: 'Folha de dados da bomba', fdMotor: 'Folha de dados do motor', espec: 'Especificações do fornecimento', curva: 'Curva da bomba', notasItem: 'Notas, desvios e observações',
       incluso: 'O que está incluso', comTit: 'Comissionamento e Start-up', servAd: 'Serviços adicionais', foraEsc: '(fora do escopo e sob consulta)', resp: 'Responsabilidades do cliente', notas: 'Notas', desvios: 'Desvios', exclusoes: 'Exclusões',
       compTit: 'Composição do Prazo Total', pFab: 'Prazo de Fabricação', pEnt: 'Prazo de entrega (CIF)', pTot: 'Prazo Total', dias: 'dias', sigla: ['Sigla', 'Significado', 'Aplica-se a'], inicio: 'Condições para início da contagem (DAPC)', susp: 'Hipóteses de suspensão do prazo',
       basePrazo: 'Base de Prazo', tipoEnt: 'Tipo de Entrega', adSob: 'Adicionais (sob consulta — solicitar à LS Fire)', disp: 'À disposição para esclarecimentos,', comCert: 'com certificação UL e FM', semCert: 'sem certificação UL e FM', diaria1: '1 diária inclusa', diariaN: '{n} diárias inclusas',
@@ -51,7 +51,7 @@
       razao: 'Company name:', cnpj: 'Tax ID (CNPJ):', projObra: 'Project/Site:', cidade: 'Site city:', h_planilha: 'Price schedule', h_escopo: 'Scope of supply', th: ['Item', 'Code', 'Qty.', 'Unit', 'PIS/|COFINS', 'ICMS', 'ICMS/|ISS', 'IPI', 'NCM', 'Unit Price|(Incl. Taxes)', 'Total Price|(Incl. Taxes)', 'Short description'],
       breve: 'Short description:', completa: 'Full description:', condicao: 'Design point:', vazaoNom: 'Pump rated flow:', escopoL: 'Scope:', total: 'TOTAL:', h_pag: 'Payment terms', nota: 'Note:', h_prazo: 'Lead time', vide: '(See section "Lead times and conditions")',
       fab: 'Manufacturing: {n} days (DAPC - calendar days after the Purchase Order)', ent: 'Delivery: {n} days (DAE - calendar days after equipment shipment)', tot: 'Total lead time: {n} days.', combinar: 'To be agreed.', h_frete: 'Freight', h_obs: 'Remarks', atencao: 'ATTENTION: ',
-      item: 'Item {n}', qtd: 'Qty', descr: 'Description', adicionais: 'Additional items', hidraulicos: 'Hydraulic data', fdBomba: 'Pump data sheet', fdMotor: 'Driver data sheet', espec: 'Supply specifications', curva: 'Pump curve', notasItem: 'Notes, deviations and remarks',
+      desenho: 'Drawing', item: 'Item {n}', qtd: 'Qty', descr: 'Description', adicionais: 'Additional items', hidraulicos: 'Hydraulic data', fdBomba: 'Pump data sheet', fdMotor: 'Driver data sheet', espec: 'Supply specifications', curva: 'Pump curve', notasItem: 'Notes, deviations and remarks',
       incluso: "What's included", comTit: 'Commissioning and Start-up', servAd: 'Additional services', foraEsc: '(out of scope, upon request)', resp: 'Customer responsibilities', notas: 'Notes', desvios: 'Deviations', exclusoes: 'Exclusions',
       compTit: 'Total Lead Time Breakdown', pFab: 'Manufacturing time', pEnt: 'Delivery time (CIF)', pTot: 'Total lead time', dias: 'days', sigla: ['Code', 'Meaning', 'Applies to'], inicio: 'Conditions to start counting (DAPC)', susp: 'Lead time suspension events',
       basePrazo: 'Lead time basis', tipoEnt: 'Delivery type', adSob: 'Additional (upon request — ask LS Fire)', disp: 'We remain at your disposal for any clarification,', comCert: 'with UL and FM certification', semCert: 'without UL and FM certification', diaria1: '1 day included', diariaN: '{n} days included',
@@ -61,7 +61,7 @@
       razao: 'Razón social:', cnpj: 'CNPJ:', projObra: 'Proyecto/Obra:', cidade: 'Ciudad de la obra:', h_planilha: 'Planilla de precios', h_escopo: 'Alcance del suministro', th: ['Ítem', 'Código', 'Cant.', 'Unid.', 'PIS/|COFINS', 'ICMS', 'ICMS/|ISS', 'IPI', 'NCM', 'Valor Unit.|(C/ Impuestos)', 'Valor Total|(C/ Impuestos)', 'Descripción breve'],
       breve: 'Descripción breve:', completa: 'Descripción completa:', condicao: 'Condición de proyecto:', vazaoNom: 'Caudal nominal de la bomba:', escopoL: 'Alcance:', total: 'TOTAL:', h_pag: 'Condición de pago', nota: 'Nota:', h_prazo: 'Plazo', vide: '(Ver sección "Plazos y condiciones")',
       fab: 'Fabricación: {n} días (DAPC - días corridos tras la Orden de Compra)', ent: 'Entrega: {n} días (DAE - días corridos tras la expedición del equipo)', tot: 'Plazo total: {n} días.', combinar: 'A convenir.', h_frete: 'Flete', h_obs: 'Observaciones', atencao: 'ATENCIÓN: ',
-      item: 'Ítem {n}', qtd: 'Cant.', descr: 'Descripción', adicionais: 'Adicionales', hidraulicos: 'Datos hidráulicos', fdBomba: 'Hoja de datos de la bomba', fdMotor: 'Hoja de datos del motor', espec: 'Especificaciones del suministro', curva: 'Curva de la bomba', notasItem: 'Notas, desvíos y observaciones',
+      desenho: 'Plano', item: 'Ítem {n}', qtd: 'Cant.', descr: 'Descripción', adicionais: 'Adicionales', hidraulicos: 'Datos hidráulicos', fdBomba: 'Hoja de datos de la bomba', fdMotor: 'Hoja de datos del motor', espec: 'Especificaciones del suministro', curva: 'Curva de la bomba', notasItem: 'Notas, desvíos y observaciones',
       incluso: 'Qué está incluido', comTit: 'Comisionamiento y puesta en marcha', servAd: 'Servicios adicionales', foraEsc: '(fuera del alcance y bajo consulta)', resp: 'Responsabilidades del cliente', notas: 'Notas', desvios: 'Desvíos', exclusoes: 'Exclusiones',
       compTit: 'Composición del Plazo Total', pFab: 'Plazo de fabricación', pEnt: 'Plazo de entrega (CIF)', pTot: 'Plazo total', dias: 'días', sigla: ['Sigla', 'Significado', 'Se aplica a'], inicio: 'Condiciones para el inicio del conteo (DAPC)', susp: 'Hipótesis de suspensión del plazo',
       basePrazo: 'Base del plazo', tipoEnt: 'Tipo de entrega', adSob: 'Adicionales (bajo consulta — solicitar a LS Fire)', disp: 'Quedamos a su disposición para cualquier aclaración,', comCert: 'con certificación UL y FM', semCert: 'sin certificación UL y FM', diaria1: '1 jornada incluida', diariaN: '{n} jornadas incluidas',
@@ -157,7 +157,7 @@
     [D.obra, D.pagamento, D.frete, E.prazoTexto].forEach(add);
     for (const k of ['observacoes', 'notas', 'desvios', 'exclusoes']) if (E.ajustados[k]) linhasDe(pc[k]).forEach(add);
     linhasDe(D.exclusoes).forEach(add);
-    for (const it of D.itens || []) { add(it.completa); if (D.tipo !== 'SEQ') add(it.breve); (it.escopo || []).forEach(add); linhasDe((pc.notasItem || {})[it.key]).forEach(add); for (const g of it.espec || []) for (const l of g.linhas || []) add(l[1]); }
+    for (const it of D.itens || []) { add(it.completa); if (D.tipo !== 'SEQ') add(it.breve); (it.escopo || []).forEach(add); linhasDe((pc.notasItem || {})[it.key]).forEach(add); for (const g of it.espec || []) for (const l of g.linhas || []) add(l[1]); for (const g of it.escopoG || []) for (const c of g.itens || []) for (const l of c.sub || []) add(/^#/.test(l) ? l.split('|').slice(1).join('|') : l); }
     return [...out];
   }
   const modeloVazio = () => ({ notasSeq: [], notasServico: [], observacoesServico: [], pecas: {}, contatos: [] });
@@ -336,7 +336,7 @@
       folha() {
         D.itens.forEach((it, i) => {
           const fd = it.folha || {}; const dfd = it.fd || {};
-          if (!(fd.componentes || []).length && !(fd.adicionais || []).length && !(fd.hidraulica || []).length && !(dfd.bomba || []).length && !(dfd.motor || []).length && !O.curvas[it.key] && !(it.espec || []).length) return;
+          if (!(fd.componentes || []).length && !(fd.adicionais || []).length && !(fd.hidraulica || []).length && !(dfd.bomba || []).length && !(dfd.motor || []).length && !O.curvas[it.key] && !(it.espec || []).length && !((it.cad || {}).fds || []).length && !((O.desenhos || {})[it.key] || []).length) return;
           pagina(r.t_folha);
           F(MONT, 'bold', 9); T(r.item.replace('{n}', i + 1), X0, y + 3); y += 5;
           faixa([E.codigos[it.key] || it.codigo, it.breve].filter(Boolean).join(' - '), { fam: MONT, st: 'normal', sz: 8 }); y += 1;
@@ -369,6 +369,7 @@
           }
           if ((dfd.bomba || []).length) pares(r.fdBomba, dfd.bomba);
           if ((dfd.motor || []).length) pares(r.fdMotor, dfd.motor);
+          { const FBx = window.PricerFabricante; for (const f of ((it.cad || {}).fds || [])) { const L = []; for (const q of f.secoes) for (const [k, v] of q.campos) L.push([(FBx && FBx.rotT(k, lang)) || k, (FBx && FBx.valT(v, lang)) || v]); if (L.length) pares(fdT(f.titulo) + ' — ' + f.desc, L); } }
           if ((it.espec || []).length) { precisa(16); F(MONT, 'bold', 9); T(r.espec, X0, y + 3); y += 5; tabela(it.espec.map((g) => Object.assign({}, g, { linhas: (g.linhas || []).map((l) => [l[0], tr(l[1])]) }))); }
           const nt = linhasDe(E.notasItem[it.key]);
           if (nt.length) { precisa(14); F(MONT, 'bold', 9); T(r.notasItem, X0, y + 3); y += 6; for (const l of nt) paragrafo(tr(l), { sz: 8.2, depois: 0.6 }); }
@@ -380,6 +381,7 @@
             F(MONT, 'bold', 9); T(r.curva, X0, y + 3); y += 5;
             doc.addImage(cv, fmtImg(cv), X0 + (LW - w) / 2, y, w, h, 'curva_' + i, 'FAST'); y += h + 4;
           }
+          for (const [k, dz] of ((O.desenhos || {})[it.key] || []).entries()) { const p = doc.getImageProperties(dz); let w = LW, h = w * p.height / p.width; const hmax = LIM - TOPO - 8; if (h > hmax) { h = hmax; w = h * p.width / p.height; } if (y + h + 8 > LIM) pagina(titulo); F(MONT, 'bold', 9); T(r.desenho || 'Desenho', X0, y + 3); y += 5; doc.addImage(dz, fmtImg(dz), X0 + (LW - w) / 2, y, w, h, 'des_' + i + '_' + k, 'FAST'); y += h + 4; }
         });
       },
       comiss() {

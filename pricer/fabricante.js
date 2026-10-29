@@ -49,6 +49,25 @@
     }
     return null;
   }
+  // sem tabela de pontos (ex.: Sempa): monta a curva de altura com os pontos que a folha informa — shutoff (Q=0),
+  // vazão mínima, ponto de trabalho, nominal e máxima, cada um com a sua altura; só vale com 4 pontos ou mais
+  function pontosChave(out) {
+    const C = []; for (const s of out.secoes || []) for (const c of s.campos || []) C.push(c);
+    const nv = (v) => { const m = String(v || '').match(/[-+]?[\d.,]+/); return m ? Number(m[0].replace(/,/g, '')) : NaN; };
+    const uQ = (v) => (String(v).match(/m[³3]\s*\/\s*h|USgpm|gpm|l\/s/i) || [])[0]; const uH = (v) => !uQ(v) && /\d\s*(m|ft|mca)\s*$/i.test(String(v).trim()) ? (String(v).trim().match(/(m|ft|mca)$/i) || [])[1] : null;
+    const tipo = (k) => (/nominal|rated|nom\.?$/i.test(k) ? 'nom' : /q\s*max|max/i.test(k) ? 'max' : /q\s*min|min/i.test(k) ? 'min' : null);
+    const Q = {}, Hh = {}; let unQ = '', unH = '', q0 = null, h0 = null, qT = null, hT = null;
+    for (const c of C) {
+      const k = String(c.k || ''); const v = c.v; const n = nv(v); if (!isFinite(n)) continue;
+      if (uQ(v)) { unQ = unQ || uQ(v); const t = tipo(k); if (t && Q[t] == null) Q[t] = n; else if (/^(flow|vazão|caudal)$/i.test(k.trim()) && qT == null) qT = n; continue; }
+      if (uH(v)) { unH = unH || uH(v); if (/q\s*=\s*0|shut|closed/i.test(k)) { h0 = n; continue; } const t = tipo(k); if (t && /head|altura|at\s*q/i.test(k + ' ' + t) && Hh[t] == null && !/static|npsh/i.test(k)) { Hh[t] = n; continue; } if (/^(head|altura)$/i.test(k.trim()) && hT == null) hT = n; }
+    }
+    const pts = []; if (h0 != null) pts.push({ q: 0, h: h0 });
+    for (const t of ['min', 'nom', 'max']) if (Q[t] != null && Hh[t] != null) pts.push({ q: Q[t], h: Hh[t] });
+    if (qT != null && hT != null) pts.push({ q: qT, h: hT });
+    const L = pts.sort((a, b) => a.q - b.q).filter((p, i, A) => !i || p.q > A[i - 1].q);
+    return L.length >= 4 ? { pag: null, chave: true, unid: { q: (unQ || '').replace(/m3/i, 'm³'), h: unH || 'm' }, pts: L } : null;
+  }
   function ler(paginas) {
     const out = { fabricante: '', paginas: [], secoes: [], tabelas: [], escopo: [] };
     const todo = paginas.map((p) => p.itens.map((i) => i.s).join(' ')).join(' ');
@@ -83,6 +102,18 @@
         P.caixa = { x: 14, y: y0, w: pg.w - 28, h: Math.max(80, y1 - y0) };
       }
       out.paginas.push(P); const dadosAte = tipo === 'dados' ? corte : 1e9;
+      // página de curva: os quadros de dados embaixo do gráfico (ex.: Sempa, 3 colunas com título) entram como seções
+      if (tipo === 'curva' && P.caixa) {
+        const baixo = rows.filter((r) => r.y > P.caixa.y + P.caixa.h - 4); let cols = null, nomes = null;
+        for (const r of baixo) {
+          const semDois = !r.ts.some((t) => /:/.test(t.s));
+          if (semDois && r.ts.length >= 2 && r.ts.every((t) => /^[A-Z][A-Za-z ()/.-]{2,40}$/.test(t.s))) { cols = r.ts.map((t) => t.x - 2); nomes = r.ts.map((t) => t.s); continue; }
+          if (!cols) continue;
+          const grupos = cols.map(() => []); for (const t of r.ts) { let ci = 0; for (let k = 0; k < cols.length; k++) if (t.x >= cols[k]) ci = k; grupos[ci].push(t); }
+          if (grupos.filter((g) => g.length).length === 1 && grupos[0].length && !par(grupos[0])) { cols = null; continue; }
+          grupos.forEach((g, k) => { if (!g.length) return; const pp = par(g); if (!pp || !pp[1]) return; const chave = nomes[k] + '|' + pp[0] + '|' + pp[1]; if (vistos.has(chave)) return; vistos.add(chave); sec(nomes[k], pg.n).campos.push({ k: pp[0], v: pp[1], on: true }); });
+        }
+      }
       if (tipo === 'escopo') {
         let g = null, emTab = false;
         for (const r of rows) {
@@ -132,7 +163,7 @@
             else if (naColunaRot && s && !num(ts[0].s)) { const n = { k: ts[0].s, v: '', on: false, pend: true }; sec(s, pg.n).campos.push(n); ultimo[lado] = n; }
             continue;
           }
-          if (/^[a-z@]/.test(p[0]) || (num(p[0]) && num(p[1]))) continue;
+          if (/^@/.test(p[0]) || (/^[a-z]/.test(p[0]) && !/\d/.test(p[1])) || (num(p[0]) && num(p[1]))) continue;
           if (!s || (s === 'Project' && identOk && pg.n !== out.secoes.find((x) => x.t === 'Project')?.pag)) { ultimo[lado] = { k: p[0], v: p[1] }; continue; }
           const chave = s + '|' + p[0] + '|' + p[1]; if (vistos.has(chave)) { ultimo[lado] = null; continue; } vistos.add(chave);
           const c = { k: p[0], v: p[1], on: s !== 'Project' && p[1] !== '' && p[1] !== '-' }; sec(s, pg.n).campos.push(c); ultimo[lado] = c;
@@ -141,6 +172,7 @@
       if (out.secoes.some((x) => x.t === 'Project')) identOk = true;
     }
     for (const s of out.secoes) s.campos = s.campos.filter((c) => c.k).map((c) => { delete c.pend; return c; });
+    if (!out.pontos) out.pontos = pontosChave(out);
     out.secoes = out.secoes.filter((s) => s.campos.length);
     for (const P of out.paginas) if (P.tipo === 'dados' && !out.secoes.some((s) => s.pag === P.n)) P.tipo = 'anexo';
     out.tabelas = out.tabelas.filter((t) => t.linhas.length >= 2);
@@ -155,7 +187,7 @@
     Testing: ['Testes', 'Pruebas'], 'Approximate Weights': ['Pesos aproximados', 'Pesos aproximados'], 'Performance Data': ['Dados de desempenho', 'Datos de desempeño'],
     'Stage, Speed and Solids Limits': ['Limites de estágios, rotação e sólidos', 'Límites de etapas, velocidad y sólidos'], 'Mechanical Limits': ['Limites mecânicos', 'Límites mecánicos'],
     'Typical Driver Data': ['Dados típicos do acionador', 'Datos típicos del accionador'], 'Various Performance Data': ['Dados de desempenho', 'Datos de desempeño'], Project: ['Identificação', 'Identificación'],
-    'Operation Data': ['Dados de operação', 'Datos de operación'], 'Pump Data': ['Dados da bomba', 'Datos de la bomba'], 'Pump Material': ['Materiais da bomba', 'Materiales de la bomba'], 'Shaft Seal': ['Vedação do eixo', 'Sello del eje'], 'Technical Data': ['Dados técnicos', 'Datos técnicos'],
+    'Operation Data': ['Dados de operação', 'Datos de operación'], 'Operating Data Specification': ['Especificação de operação', 'Especificación de operación'], 'Hydraulic Data (Duty Point)': ['Dados hidráulicos (ponto de trabalho)', 'Datos hidráulicos (punto de trabajo)'], 'Impeller Design': ['Rotor', 'Impulsor'], Performance: ['Desempenho', 'Desempeño'], 'Pump Data': ['Dados da bomba', 'Datos de la bomba'], 'Pump Material': ['Materiais da bomba', 'Materiales de la bomba'], 'Shaft Seal': ['Vedação do eixo', 'Sello del eje'], 'Technical Data': ['Dados técnicos', 'Datos técnicos'],
     Pump: ['Bomba', 'Bomba'], Driver: ['Acionador', 'Accionador'], Controller: ['Painel de comando', 'Tablero de control'], Accessories: ['Acessórios', 'Accesorios'],
   };
   const ROT = {
@@ -187,7 +219,7 @@
     'Flexible exhaust connection': ['Conexão flexível do escape', 'Conexión flexible del escape'], 'Drive shaft type': ['Eixo cardã', 'Eje cardán'], Tank: ['Tanque', 'Tanque'], 'Torsional coupling': ['Acoplamento torcional', 'Acoplamiento torsional'], Batteries: ['Baterias', 'Baterías'],
     'Rack and cables': ['Suporte e cabos', 'Soporte y cables'], 'Cooling loop size': ['Linha de arrefecimento', 'Línea de refrigeración'], 'Cooling loop material': ['Material da linha de arrefecimento', 'Material de la línea de refrigeración'], 'ULC fuel lines': ['Linhas de combustível ULC', 'Líneas de combustible ULC'],
     'Fuel system': ['Sistema de combustível', 'Sistema de combustible'], Ventiliation: ['Ventilação', 'Ventilación'], 'Base mounted controller adapter': ['Adaptador do painel na base', 'Adaptador del tablero en la base'],
-    'Pump Type': ['Tipo de bomba', 'Tipo de bomba'], Flow: ['Vazão', 'Caudal'], Head: ['Altura manométrica', 'Altura manométrica'], 'Static Head': ['Altura estática', 'Altura estática'], Fluid: ['Fluido', 'Fluido'], Density: ['Densidade', 'Densidad'],
+    'Pump Type': ['Tipo de bomba', 'Tipo de bomba'], 'Impeller D': ['Diâmetro do rotor', 'Diámetro del impulsor'], Frequency: ['Frequência', 'Frecuencia'], 'NPSH r': ['NPSH requerido', 'NPSH requerido'], NPSH: ['NPSH requerido', 'NPSH requerido'], Flow: ['Vazão', 'Caudal'], Head: ['Altura manométrica', 'Altura manométrica'], 'Static Head': ['Altura estática', 'Altura estática'], Fluid: ['Fluido', 'Fluido'], Density: ['Densidade', 'Densidad'],
     'Kinematic Viscosity': ['Viscosidade cinemática', 'Viscosidad cinemática'], Temperature: ['Temperatura', 'Temperatura'], Speed: ['Rotação', 'Velocidad'], 'Number of Stages': ['Número de estágios', 'Número de etapas'], 'Max. Casing Pressure': ['Pressão máx. da carcaça', 'Presión máx. de la carcasa'],
     'Max. Operation Pressure': ['Pressão máx. de operação', 'Presión máx. de operación'], 'Head (Q=0)': ['Altura em shutoff (Q=0)', 'Altura a válvula cerrada (Q=0)'], 'Shaft Power': ['Potência no eixo', 'Potencia en el eje'], 'Maximum Shaft Power': ['Potência máx. no eixo', 'Potencia máx. en el eje'],
     NPSHr: ['NPSH requerido', 'NPSH requerido'], 'Volute Casing': ['Carcaça (voluta)', 'Carcasa (voluta)'], 'Seal Box': ['Caixa de selagem', 'Caja de sellado'], Shaft: ['Eixo', 'Eje'], 'Bearing Housing': ['Caixa de rolamentos', 'Caja de rodamientos'], 'Wear Ring': ['Anel de desgaste', 'Anillo de desgaste'],
