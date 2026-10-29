@@ -713,12 +713,19 @@
   function primeiraSemPreco(S) { for (let r = 34; r <= 112; r++) if (/sem custo|sem o preço/.test(txt(S, 'L' + r))) return r; return 0; }
   // o que as regras de configuração enxergam de um item: campos de escolha e as descrições de todos os componentes
   function itemRegras(S) {
-    const campos = {}; for (const [a] of RG.CAMPOS) campos[a] = txt(S, a);
+    const campos = {}; for (const [a] of RG.CAMPOS) if (a[0] !== '_') campos[a] = txt(S, a);
     const comps = []; for (let r = 34; r <= 112; r++) { if (r > 63 && r < 68) continue; const d = txt(S, 'D' + r); if (d) comps.push(d); }
     for (const x of hiddenLines(S)) if (x.desc) comps.push(x.desc);
     return { campos, comps };
   }
-  const RG = window.PricerRegras({ REG, esc, toast: (m) => toast(m), modal: (h, b) => modal(h, b) });
+  const RG = window.PricerRegras({ REG, esc, toast: (m) => toast(m), modal: (h, b) => modal(h, b), selecao: () => selecaoHtml() });
+  // central de regras: as regras de seleção que já estão nas estruturas (MONTADOR), na mesma tela das regras de configuração
+  function selecaoHtml() {
+    const H2 = heads(); const L = recLines().filter((x) => x.regra || ['FAIXA', 'CV', 'VAZAO', 'TAMANHO', 'SPLIT'].includes(x.tipo));
+    return `<section class="card"><h2>Regras de seleção das estruturas <span class="sub">${L.length} componente(s) com condição ou seleção por tabela; editadas em Estruturas</span></h2>
+      <div class="tw" style="max-height:45vh;overflow:auto"><table class="t"><thead><tr><th>Linha</th><th>Componente</th><th>Seleção do insumo</th><th>Condição</th><th>Vale para</th><th></th></tr></thead><tbody>${L.map((x) => `<tr><td class="n">${x.r}</td><td>${esc(x.rot)}<br><small class="sub">${esc((ACIONS.find((a) => a[0] === (x.acion || 'TODOS')) || [0, ''])[1])}</small></td><td><small>${esc(origemTxt(x, H2))}</small></td><td>${x.regra ? `<span class="pill ${x.regra === 'OPCIONAL' ? 'mute' : 'warn'}">${esc(regraTxt(x.regra))}</span>` : '<span class="sub">sempre</span>'}</td><td><small>${esc(estrOf(x).join(', '))}</small></td><td><button class="btn sm" data-qrec="${x.r}">Abrir</button></td></tr>`).join('')}</tbody></table></div>
+      <p class="sub" style="margin:8px 0 0">Para ver uma regra funcionando, use o Testador de estruturas: ele mostra por que cada componente entrou ou não.</p></section>`;
+  }
   function alertsFor(S) {
     const out = []; const add = (lvl, msg, fix) => { if (!out.some((x) => x.msg === msg)) out.push({ lvl, msg, fix, S }); };
     // fora da política: além de corrigir, dá para pedir aprovação à Diretoria e ao Financeiro
@@ -1158,10 +1165,33 @@
     const all = store.get(MODK, {}); if (body === null) delete all[id]; else all[id] = body; if (!store.set(MODK, all)) throw new Error('O navegador não deixou gravar o modelo (sem espaço)');
     modelosItem = Object.entries(all).map(([k, x]) => Object.assign({ id: k }, x)).sort((x, y) => String(y.at).localeCompare(String(x.at)));
   }
+  // biblioteca de configurações já usadas: itens de propostas salvas, pesquisáveis por família, modelo, potência, vazão, pressão, cliente e componentes
+  function biblioteca() {
+    const out = [];
+    for (const q of REG.listPropostas() || []) { if (q.div === 'SPV' || q.facts || !q.doc) continue; const nomes = ((q.resumo || {}).itens || []).map((x) => x.nome); let k = 0;
+      for (const S of ITEMS) { const c = q.doc[S]; if (!c || !Object.keys(c).length) continue; const nome = nomes[k++] || '';
+        out.push({ q, S, c, nome, fam: c.C21 || '', modelo: c.C17 || '', bomba: c.D19 || '', hp: c.C19, cv: c.I19, vazao: c.G17, pressao: c.H17, hay: [q.numero, q.cliente, nome, ...Object.values(c).filter((v) => typeof v === 'string' || typeof v === 'number')].join(' ') }); } }
+    return out;
+  }
+  function bibliotecaModal() {
+    const all = biblioteca(); const sin = sinonimos();
+    modal(`<h2>Configurações já usadas <span class="sub">${all.length} item(ns) em propostas salvas</span></h2>
+      <input type="search" id="bbQ" placeholder="Buscar: família, modelo da bomba, 483HP, 1500, cliente, componente…" aria-label="Buscar configuração" autocomplete="off">
+      <div id="bbL" class="tw" style="max-height:55vh;overflow:auto"></div>
+      <p class="sub" style="margin:0">Usar copia a configuração do item para uma posição livre desta proposta, registra de onde veio e recalcula com o cadastro e as regras de hoje.</p><div><button class="btn" data-close>Fechar</button></div>`, (o) => {
+      const draw = () => { const g = FAMS_F.termos($('#bbQ', o).value, sin); const L = all.filter((x) => !g.length || FAMS_F.casa(x.hay, g)).slice(0, 60);
+        $('#bbL', o).innerHTML = L.length ? `<table class="t"><thead><tr><th>Proposta</th><th>Item</th><th>Família · modelo</th><th>Potência · vazão · pressão</th><th></th></tr></thead><tbody>${L.map((x, i) => `<tr><td><b>${esc(x.q.numero || x.q.name || '')}</b><br><small class="sub">${esc(x.q.cliente || '')} · ${esc(new Date(x.q.at).toLocaleDateString('pt-BR'))}</small></td><td>${esc(x.S)}<br><small class="sub">${esc(x.nome.slice(0, 70))}</small></td><td>${esc(x.fam)}${x.modelo ? '<br><small>' + esc(x.modelo) + '</small>' : x.bomba ? '<br><small>' + esc(x.bomba) + '</small>' : ''}</td><td><small>${[x.hp ? x.hp + ' HP' : '', x.cv ? x.cv + ' CV' : '', x.vazao ? x.vazao + ' USgpm' : '', x.pressao ? x.pressao + ' mca' : ''].filter(Boolean).join(' · ') || '—'}</small></td><td><button class="btn sm pri" data-bbuse="${all.indexOf(x)}">Usar</button></td></tr>`).join('')}</tbody></table>` : '<p class="sub">Nada encontrado.</p>';
+        o.querySelectorAll('[data-bbuse]').forEach((b) => { b.onclick = () => { const x = all[+b.dataset.bbuse]; const j = firstFree(); if (j < 0) { toast('As 10 posições de item já estão em uso'); return; } const S = ITEMS[j];
+          state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.c)); state.origemItens = Object.assign({}, state.origemItens || {}, { [S]: { propId: x.q.id, numero: x.q.numero || '', item: x.S, at: new Date().toISOString() } });
+          build(); persist(); dirty = true; listCache = new Map(); $('#overlay').innerHTML = ''; logEv({ tipo: 'Configuração reaproveitada', ref: docTitle(), desc: S + ' ← ' + (x.q.numero || '') + ' ' + x.S, mudancas: [] }); render(); toast(S + ' criado a partir de ' + (x.q.numero || 'outra proposta') + ' ' + x.S + ', com os preços de hoje'); }; }); };
+      $('#bbQ', o).oninput = draw; draw(); $('#bbQ', o).focus();
+    });
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-biblio]')) bibliotecaModal(); });
   function vModelosItem() {
-    ensureModelos(); if (!modelosItem.length) return `<p class="sub" style="margin:0">Dica: em cada item, "Salvar como modelo" guarda a configuração para usar em outras propostas.</p>`;
+    ensureModelos(); if (!modelosItem.length) return `<p class="sub" style="margin:0">Dica: em cada item, "Salvar como modelo" guarda a configuração para usar em outras propostas. <button class="restore" data-biblio>Buscar em configurações já usadas</button></p>`;
     const free = firstFree();
-    return `<section class="card"><h2>Modelos de item <span class="sub">configurações salvas pela equipe</span></h2><div class="tw"><table class="t"><tbody>${modelosItem.map((x) => `<tr><td><b>${esc(x.nome)}</b><br><small class="sub">${esc(x.desc || '')}</small></td><td class="sub">${esc(FAM_SEQ_LB[x.fam] || x.fam || '')}<br>${who(x.by)} · ${esc(fmtAt(x.at))}</td><td style="text-align:right;white-space:nowrap">${free >= 0 ? `<button class="btn sm pri" data-moduse="${esc(x.id)}">Usar</button>` : ''} ${!x.by || x.by === REG.me || REG.isOwner || REG.mode === 'local' ? `<button class="restore" data-moddel="${esc(x.id)}">excluir</button>` : ''}</td></tr>`).join('')}</tbody></table></div></section>`;
+    return `<section class="card"><h2>Modelos de item <span class="sub">configurações salvas pela equipe · <button class="restore" data-biblio>buscar em configurações já usadas</button></span></h2><div class="tw"><table class="t"><tbody>${modelosItem.map((x) => `<tr><td><b>${esc(x.nome)}</b><br><small class="sub">${esc(x.desc || '')}</small></td><td class="sub">${esc(FAM_SEQ_LB[x.fam] || x.fam || '')}<br>${who(x.by)} · ${esc(fmtAt(x.at))}</td><td style="text-align:right;white-space:nowrap">${free >= 0 ? `<button class="btn sm pri" data-moduse="${esc(x.id)}">Usar</button>` : ''} ${!x.by || x.by === REG.me || REG.isOwner || REG.mode === 'local' ? `<button class="restore" data-moddel="${esc(x.id)}">excluir</button>` : ''}</td></tr>`).join('')}</tbody></table></div></section>`;
   }
   document.addEventListener('click', async (e) => {
     const sv = e.target.closest('[data-modsave]'); if (sv) { const S = ITEMS[+sv.dataset.modsave]; const cells = JSON.parse(JSON.stringify((state.doc || {})[S] || {})); if (!Object.keys(cells).length) { toast('Configure o item antes'); return; }
@@ -1412,7 +1442,9 @@
     const rowC = (x) => {
       if (x.hid) return `<tr class="ro"><td class="sub">${esc(x.hid.rot)}</td><td>${esc(x.hid.desc)}</td><td class="n">${fmtNum(x.hid.qtd)}</td><td class="n">${fmtNum(x.hid.unit, '#,##0.00')}</td><td></td><td class="n">${fmtNum(x.hid.tot, '#,##0.00')}</td><td class="n sub">${pItem(x.hid.tot)}</td><td><span class="pill mute">além da linha 30 da planilha</span></td></tr>`;
       const r = x.r; const fam = txt(S, 'C' + r);
-      const first = x.esc ? cellIn(S, 'C' + r) : `<td class="sub">${esc(x.rot)}</td>`;
+      const alt = ['D', 'F', 'G', 'I'].some((c) => overridden(S, c + r));
+      const ori = x.esc ? '<br><span class="pill mute" title="Linha incluída nesta proposta">acrescentado na proposta</span>' : alt ? '<br><span class="pill warn" title="Valor trocado à mão nesta proposta">alterado na proposta</span>' : txt(S, 'AR1') ? '<br><span class="pill mute" title="Veio do modelo pronto, sobre a estrutura padrão">do modelo</span>' : '<br><span class="pill mute" title="Veio da estrutura padrão">do padrão</span>';
+      const first = x.esc ? `${cellIn(S, 'C' + r).replace(/<\/td>$/, ori + '</td>')}` : `<td class="sub">${esc(x.rot)}${ori}</td>`;
       // sempre do cadastro: o insumo vem da lista da família e o custo unitário é o cadastrado
       const lista = fam ? famProdutos(fam) : [];
       const insumo = fam ? cellIn(S, 'D' + r, { list: lista }) : '<td class="sub">escolha a família</td>';
@@ -2186,7 +2218,9 @@
         <section class="card"><h2>3. Conferir e aplicar</h2>
         <div class="kpis"><div class="kpi lead"><span>Preços que mudam</span><b>${m.ok.length}</b></div><div class="kpi"><span>Iguais ao cadastro</span><b>${m.same.length}</b></div><div class="kpi"><span>Não encontrados</span><b class="${m.miss.length ? 'bad-t' : ''}">${m.miss.length}</b></div><div class="kpi"><span>Preço ilegível</span><b class="${m.bad.length ? 'bad-t' : ''}">${m.bad.length}</b></div></div>
         ${m.ok.length ? `<div class="tw" style="max-height:50vh;overflow:auto;margin-top:12px"><table class="t"><thead><tr><th><input type="checkbox" id="impAll" checked aria-label="Todos"></th><th>Código</th><th>Produto</th><th>Atual</th><th>Novo</th><th>Variação</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="sub">Nenhum preço diferente do cadastro para aplicar.</p>'}
-        ${m.miss.length ? `<details style="margin-top:10px"><summary class="sub">Ver os ${m.miss.length} não encontrados</summary><p class="sub">${m.miss.slice(0, 200).map((x) => esc(x.key)).join(' · ')}</p></details>` : ''}
+        ${m.miss.length ? `<details style="margin-top:10px"><summary class="sub">Ver os ${m.miss.length} não encontrados (registros novos)</summary><p class="sub">${m.miss.slice(0, 200).map((x) => esc(x.key)).join(' · ')}</p>
+          <div class="fields" style="margin-top:6px"><div class="f span2"><label for="impNovaFam">Cadastrar os novos como provisórios na família</label><select id="impNovaFam">${famList().map((f) => `<option>${esc(f)}</option>`).join('')}</select></div><div class="f"><button class="btn sm" id="impNovos" style="margin-top:22px">Conferir e cadastrar ${Math.min(100, m.miss.filter((x) => !/^\d{1,2}-\d+$/.test(x.key)).length)} provisório(s)</button></div></div>
+          <p class="sub">Entram com situação "Provisório" e o preço do arquivo, para validação de Engenharia/Custos antes de ir para as propostas. Códigos (01-1234) não encontrados não viram cadastro; descrições sim.</p></details>` : ''}
         <p class="sub">Variações acima de 30% ficam em vermelho para você conferir. Só os marcados são gravados, e a importação inteira entra no histórico como uma alteração.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn pri" id="impGo"${imp.sel.size ? '' : ' disabled'}>Aplicar ${imp.sel.size} preço(s)</button><button class="btn" id="impReset">Começar de novo</button><span id="impProg" class="sub"></span></div></section>`;
     }
@@ -2214,6 +2248,19 @@
     $('#impReset').onclick = () => { imp = null; render(); };
     const all = $('#impAll'); if (all) all.onchange = (e) => { const m = matchImport(); imp.sel = e.target.checked ? new Set(m.ok.map((x) => x.id)) : new Set(); render(); };
     document.querySelectorAll('[data-impsel]').forEach((c) => c.onchange = () => { if (c.checked) imp.sel.add(c.dataset.impsel); else imp.sel.delete(c.dataset.impsel); const b = $('#impGo'); b.textContent = 'Aplicar ' + imp.sel.size + ' preço(s)'; b.disabled = !imp.sel.size; });
+    const nv = $('#impNovos'); if (nv) nv.onclick = () => {
+      const fam = $('#impNovaFam').value; const m = matchImport(); const cfg = famCfg(); const lista = []; const ja = new Set();
+      for (const x of m.miss) { if (/^\d{1,2}-\d+$/.test(x.key)) continue; const produto = x.key.replace(/\s+/g, ' ').trim().toUpperCase(); if (ja.has(produto)) continue; ja.add(produto);
+        const dups = FAMS_F.duplicidades({ id: null, fam, produto }, REG.insumos, cfg).filter((d) => d.nivel !== 'semelhante'); lista.push({ produto, valor: x.price, pad: FAMS_F.checar(fam, produto, cfg), dups }); if (lista.length >= 100) break; }
+      modal(`<h2>Novos cadastros provisórios · ${esc(fam)}</h2><div class="tw" style="max-height:50vh;overflow:auto"><table class="t"><thead><tr><th></th><th>Descrição</th><th>Preço</th><th>Conferência</th></tr></thead><tbody>${lista.map((x, i) => `<tr><td class="in"><input type="checkbox" data-impn="${i}"${x.dups.length ? '' : ' checked'} aria-label="Cadastrar"></td><td>${esc(x.produto)}</td><td class="n">${typeof x.valor === 'number' ? brl(x.valor) : '—'}</td><td><small>${x.dups.length ? '<span class="bad-t">possível duplicidade: ' + esc(x.dups.map((d) => d.x.id).join(', ')) + '</span>' : ''}${x.pad ? ' <span class="warn-t">' + esc(x.pad) + '</span>' : x.dups.length ? '' : '<span class="ok-t">ok</span>'}</small></td></tr>`).join('')}</tbody></table></div>
+        <div style="display:flex;gap:8px"><button class="btn pri" id="inOk">Cadastrar marcados como provisórios</button><button class="btn" data-close>Cancelar</button></div><p class="sub" id="inProg" style="margin:0"></p>`, (o, close) => {
+        $('#inOk', o).onclick = async () => { const sel = [...o.querySelectorAll('[data-impn]:checked')].map((c) => lista[+c.dataset.impn]); if (!sel.length) { toast('Nada marcado'); return; } $('#inOk', o).disabled = true; let n = 0;
+          try { for (const x of sel) { const c = REG.insumos.some((i) => i.fam === fam) ? REG.nextCode(fam) : { a: H.famCode(fam), b: H.famCode(fam) * 1000 + 1 };
+              await REG.saveInsumo({ id: REG.newInsumoId(c.a, c.b), a: c.a, b: c.b, fam, produto: x.produto, valor: typeof x.valor === 'number' ? x.valor : null, origem: 'NAC', situacao: 'provisorio', fonte: imp.name, dataCot: new Date().toISOString().slice(0, 10), obs: 'importado de ' + imp.name + (x.pad ? ' · fora do padrão: ' + x.pad : ''), excecao: x.pad ? 'importação: conferir a descrição' : undefined }, true);
+              n++; const pg = $('#inProg', o); if (pg) pg.textContent = n + ' de ' + sel.length + ' cadastrados…'; }
+            close(); toast(n + ' provisório(s) cadastrado(s). Valide na lista de insumos (situação Provisório).'); ui.insSit = 'provisorio'; ui.cad = 'insumos'; imp = null; render(); } catch (er) { $('#inOk', o).disabled = false; toast(errMsg(er)); } };
+      });
+    };
     const go = $('#impGo'); if (go) go.onclick = async () => {
       if (!go.dataset.sure) { go.dataset.sure = 1; go.textContent = 'Confirmar: gravar ' + imp.sel.size + ' preço(s)'; return; }
       const m = matchImport(); const changes = m.ok.filter((x) => imp.sel.has(x.id));
@@ -2812,11 +2859,22 @@
         <select data-qf="qFam" aria-label="Família"><option value="">Todas as famílias</option>${famList().map((f) => `<option${f === fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></div>
       ${F.length ? `<div class="tw" style="max-height:55vh;overflow:auto"><table class="t"><tbody>${F.slice(0, 400).map((x) => `<tr class="${x.sev === 'imped' ? 'cf-erro' : x.sev === 'aviso' ? 'cf-aviso' : ''}"><td style="width:24px">${ic[x.sev]}</td><td><small class="sub">${esc(x.tipo)}${x.fam ? ' · ' + esc(x.fam) : ''}</small><br>${esc(x.msg)}</td><td style="text-align:right">${goBtn(x.go)}</td></tr>`).join('')}</tbody></table></div>${F.length > 400 ? '<p class="sub">Mostrando 400; use os filtros.</p>' : ''}` : '<p class="ok-t" style="margin:0">Nada com esses filtros.</p>'}
       <p class="sub" style="margin:8px 0 0">O painel só aponta. Correções são feitas no registro (botão Abrir) e ficam no histórico. "Consolidar" junta duplicidades de mesmo nome mediante confirmação, sem apagar nada.</p></section>
+      <section class="card"><h2>Cobertura dos modelos prontos <span class="sub">monta cada modelo na planilha real e aponta componente sem cadastro, sem preço ou regra impeditiva</span></h2>
+        ${ui.cobRes ? (ui.cobRes.length ? `<div class="tw" style="max-height:40vh;overflow:auto"><table class="t"><thead><tr><th>Modelo</th><th>Problemas</th><th></th></tr></thead><tbody>${ui.cobRes.map((x) => `<tr><td>${esc(x.nome)}</td><td><small>${esc(x.msg)}</small></td><td><button class="btn sm" data-cobgo="${esc(x.nome)}">Testar</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="ok-t" style="margin:0">Todos os modelos prontos montam sem componente sem cadastro ou sem preço.</p>') : ''}
+        <div class="docbar" style="margin-top:8px"><button class="btn sm" data-cobrun>${ui.cobRes ? 'Testar de novo' : 'Testar todos os modelos prontos'}</button><span class="sub" id="cobProg"></span></div></section>
       <section class="card"><h2>Cadastros sem utilização <span class="sub">${SU.length} insumo(s) fora de estruturas, tabelas, kits, regras, propostas e baixas</span></h2>
         ${SU.length ? `<div class="tw" style="max-height:40vh;overflow:auto"><table class="t"><tbody>${SU.slice(0, 300).map((i) => `<tr>${ed ? `<td class="in"><input type="checkbox" data-susel="${esc(i.id)}" aria-label="Marcar ${esc(i.id)}"></td>` : ''}<td class="code">${esc(i.id)}</td><td>${esc(i.produto)}</td><td>${esc(i.fam)}</td><td class="n">${typeof i.valor === 'number' ? brl(i.valor) : '—'}</td><td><button class="btn sm" data-ins="${esc(i.id)}">Abrir</button></td></tr>`).join('')}</tbody></table></div>
           ${ed ? '<div class="docbar" style="margin-top:8px"><button class="btn sm" data-suinat="inativo">Marcar os selecionados como inativos</button><button class="btn sm" data-suinat="descontinuado">… como descontinuados</button></div>' : ''}` : '<p class="sub" style="margin:0">Todos os insumos têm alguma referência.</p>'}
         <p class="sub" style="margin:8px 0 0">Nenhum registro é excluído: inativo e descontinuado saem das listas de escolha e o histórico fica preservado. Itens escolhidos no próprio item (motores, bombas, jockey) contam como usados pela família.</p></section></div>`;
   }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-cobrun]'); if (b) { b.disabled = true; const M = modelos(); const out = [];
+      for (let i = 0; i < M.length; i++) { const p = $('#cobProg'); if (p) p.textContent = 'Testando ' + (i + 1) + ' de ' + M.length + '…'; await new Promise((r) => setTimeout(r, 0));
+        try { const r = montarTeste({ estr: M[i].estr, modelo: M[i].nome }, false); const L = []; const sc = r.comps.filter((x) => x.semCad).length, sp = r.comps.filter((x) => x.semPreco).length; if (sc) L.push(sc + ' sem cadastro'); if (sp) L.push(sp + ' sem preço'); const im = r.regrasCfg.filter((x) => x.sev === 'imped').length; if (im) L.push(im + ' regra(s) impeditiva(s)'); if (r.comps.some((x) => x.ins && foraDeUso(x.ins))) L.push('usa insumo descontinuado/inativo'); if (L.length) out.push({ nome: M[i].nome, msg: L.join(' · ') }); }
+        catch (er) { out.push({ nome: M[i].nome, msg: 'erro ao montar: ' + er.message }); } }
+      ui.cobRes = out; render(); return; }
+    const g = e.target.closest('[data-cobgo]'); if (g) { const m = modelos().find((x) => x.nome === g.dataset.cobgo); if (!m) return; ui.tst = { estr: m.estr, modo: 'modelo', modelo: m.nome, opc: [], rodou: true }; ui.cad = 'testador'; render(); }
+  });
   function consolidarModal(ids) {
     const L = ids.split(',').map((id) => REG.insumos.find((x) => x.id === id)).filter(Boolean); if (L.length < 2) return;
     if (!REG.areaOk('custos')) { toast('Só a área de Custos consolida cadastros'); return; }
@@ -2879,7 +2937,7 @@
       const has = { DIESEL: c.d > 0, ELETRICA: c.e > 0, JOCKEY: c.j, TODOS: true };
       const naoEntrou = lines.filter((x) => estrOf(x).includes(est) && !usados.has(x.r)).map((x) => ({ x, porque: !has[x.acion || 'TODOS'] ? 'o arranjo ' + (c.code || '—') + ' não tem ' + (ACIONS.find((a) => a[0] === x.acion) || [0, x.acion])[1].toLowerCase() : x.regra === 'OPCIONAL' ? 'opcional não marcado' : x.regra ? 'condição "' + regraTxt(x.regra) + '" não atendida' : 'a origem não devolveu insumo (' + origemTxt(x, H2) + ')' }));
       const alertas = []; for (const a of ['B32', 'P84', 'P78', 'P105', 'C185', 'C187']) { const t = txt(S, a); if (t && !/^OK/.test(t)) alertas.push(t); }
-      let regrasCfg = []; try { regrasCfg = RG.avaliar(itemRegras(S)); } catch (e) { regrasCfg = []; }
+      let regrasCfg = []; try { regrasCfg = RG.avaliar(itemRegras(S), true); } catch (e) { regrasCfg = []; }
       return { comps, naoEntrou, alertas, regrasCfg, custo: val(S, 'H114'), desc: txt(S, 'C28'), code: c.code, est, arr: c };
     });
   }
@@ -2897,11 +2955,17 @@
       <div class="fields"><div class="f"><label for="tsEstr">Estrutura</label><select id="tsEstr" data-tst="estr">${ESTRSf().map(([k, lb]) => `<option value="${k}"${k === t.estr ? ' selected' : ''}>${esc(lb)}</option>`).join('')}</select></div>
         <div class="f span2"><label>Configurar por</label><div class="seg"><label class="${t.modo === 'modelo' ? 'on' : ''}"><input type="radio" name="tsModo" value="modelo"${t.modo === 'modelo' ? ' checked' : ''}>modelo pronto</label><label class="${t.modo === 'manual' ? 'on' : ''}"><input type="radio" name="tsModo" value="manual"${t.modo === 'manual' ? ' checked' : ''}>características</label></div></div>
         ${temRasc ? `<div class="f"><label class="chk" style="margin-top:22px"><input type="checkbox" data-tstr${t.rasc ? ' checked' : ''}> usar o rascunho da estrutura</label></div>` : ''}</div>
-      ${t.modo === 'modelo' ? `<div class="fields"><div class="f span2"><label for="tsMod">Modelo pronto</label><select id="tsMod" data-tst="modelo">${mods.map((m) => `<option${m.nome === t.modelo ? ' selected' : ''}>${esc(m.nome)}</option>`).join('') || '<option value="">nenhum modelo nesta estrutura</option>'}</select></div></div>`
+      ${t.modo === 'modelo' ? `<div class="fields"><div class="f span2"><label for="tsMod">Modelo pronto</label><select id="tsMod" data-tst="modelo">${mods.map((m) => `<option${m.nome === t.modelo ? ' selected' : ''}>${esc(m.nome)}</option>`).join('') || '<option value="">nenhum modelo nesta estrutura</option>'}</select></div>
+        <div class="f span2"><label for="tsCmp">Comparar com</label><select id="tsCmp" data-tst="cmp"><option value="">—</option>${modelos().filter((m) => m.nome !== t.modelo).map((m) => `<option${m.nome === t.cmp ? ' selected' : ''}>${esc(m.nome)}</option>`).join('')}</select></div></div>`
         : `<div class="fields">${inp('E17', 'Arranjo (ex.: D, E, DJ, DDJ)')}${inp('D19', 'Bomba', true)}${inp('C19', 'Potência diesel (HP)', true)}${inp('H19', 'Rotação (RPM)', true)}${inp('F19', 'Arrefecimento', true)}${inp('I19', 'Potência elétrica (CV)', true)}${inp('L19', 'Tensão do painel', true)}${inp('J19', 'Bomba jockey', true)}${inp('G17', 'Vazão')}</div>`}
       ${opcs.length ? `<div class="f"><label>Opcionais</label><div class="chks">${opcs.map((x) => { const row = 67 + (x.r - 91); return `<label class="chk"><input type="checkbox" data-tsopc="${row}"${(t.opc || []).includes(row) ? ' checked' : ''}> ${esc(x.rot)}</label>`; }).join('')}</div></div>` : ''}
       <div class="docbar"><button class="btn pri" data-tstrun>Montar e testar</button></div></section>
       ${erro ? `<div class="banner bad">${esc(erro)}</div>` : ''}
+      ${res && t.modo === 'modelo' && t.cmp ? (() => { const m2 = modelos().find((m) => m.nome === t.cmp); let r2 = null; try { r2 = montarTeste({ estr: m2.estr, modelo: m2.nome }, t.rasc && temRasc); } catch (e) { r2 = null; } if (!r2) return '';
+        const g = (R, k) => R.comps.filter((x) => (x.acion || 'TODOS') === k).reduce((s2, x) => s2 + num0(x.tot), 0);
+        return `<section class="card"><h2>Comparação de custo por grupo <span class="sub">custo direto dos componentes (sem despesas alocadas e sem margem)</span></h2><div class="tw"><table class="t"><thead><tr><th>Grupo</th><th>${esc(t.modelo)}</th><th>${esc(t.cmp)}</th><th>Diferença</th></tr></thead><tbody>${ACIONS.map(([k, lb]) => { const a = g(res, k), b2 = g(r2, k); return a || b2 ? `<tr><td>${esc(lb)}</td><td class="n">${brl(a)}${res.custo ? ' <small class="sub">' + pct(a / res.custo, 0) + '</small>' : ''}</td><td class="n">${brl(b2)}${r2.custo ? ' <small class="sub">' + pct(b2 / r2.custo, 0) + '</small>' : ''}</td><td class="n">${brl(b2 - a)}</td></tr>` : ''; }).join('')}
+          <tr class="tot"><td>Custo do item</td><td class="n">${brl(res.custo)}</td><td class="n">${brl(r2.custo)}</td><td class="n">${brl(num0(r2.custo) - num0(res.custo))}</td></tr></tbody></table></div>
+          <p class="sub" style="margin:8px 0 0">Maiores componentes de custo: ${res.comps.slice().sort((a, b2) => num0(b2.tot) - num0(a.tot)).slice(0, 3).map((x) => esc(x.rot) + ' (' + brl(x.tot) + ')').join(', ')}.</p></section>`; })() : ''}
       ${res ? `<section class="card"><h2>Resultado <span class="sub">${esc(res.desc || '')}</span></h2>
         <div class="kpis"><div class="kpi lead"><span>Custo do item (planilha)</span><b>${brl(res.custo)}</b></div><div class="kpi"><span>Componentes</span><b>${res.comps.length}</b></div><div class="kpi"><span>Sem cadastro / sem preço</span><b class="${res.comps.some((x) => x.semCad || x.semPreco) ? 'bad-t' : 'ok-t'}">${res.comps.filter((x) => x.semCad).length} / ${res.comps.filter((x) => x.semPreco).length}</b></div><div class="kpi"><span>Arranjo</span><b>${esc(res.code || '—')}</b></div></div>
         ${res.alertas.length || res.regrasCfg.length ? `<ul class="alerts" style="margin-top:8px">${res.alertas.map((a) => `<li class="warn"><span>${esc(a)}</span></li>`).join('')}${res.regrasCfg.map((a) => `<li class="${a.sev === 'imped' ? 'bad' : a.sev === 'aviso' ? 'warn' : 'info'}"><span>${esc(a.msg)}</span></li>`).join('')}</ul>` : ''}
@@ -3502,7 +3566,7 @@
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
   function openProposta(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
-    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null) };
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null), origemItens: p.origemItens || {} };
     if (p.div === 'SPV' && p.spv) {
       const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
@@ -3573,6 +3637,7 @@
     if (!isSpv() && !isFacts()) { try { p.checagem = Object.assign(resumoConf(), { at: new Date().toISOString() }); } catch (e) { /* segue */ } }
     if (state.naCustos && Object.keys(state.naCustos).length) p.naCustos = state.naCustos;
     if (!isSpv() && !isFacts()) { try { p.precos = precosUsados(); } catch (e) { /* segue sem a fotografia de preços */ } }
+    if (state.origemItens && Object.keys(state.origemItens).length) p.origemItens = state.origemItens;
     try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
     // status, etapas, conferência e motivo de perda são da tela inicial: vêm do registro atual do banco
     const ajustar = (body, cur) => {

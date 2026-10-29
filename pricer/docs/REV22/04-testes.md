@@ -33,6 +33,7 @@ Todos terminaram com código 0 e **sem erro de JavaScript na página**.
 | `home_test` | botões de família e FACTS na tela inicial; família abre a proposta nova pelo cabeçalho | ✓ |
 | `p25_test` | itens abaixo | ✓ |
 | `p26_test` | itens abaixo | ✓ |
+| `c1_test`, `c2_test`, `c3_test` | cadastro guiado, preços da época, edição em massa, estruturas em rascunho, testador, regras, importação de provisórios, biblioteca, kits (detalhes em `08-cadastro.md`) | ✓ |
 
 ### `p25_test`
 

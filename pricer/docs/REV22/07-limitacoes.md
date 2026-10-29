@@ -34,3 +34,9 @@
 10. A consulta de CNPJ depende de serviços públicos (CNPJ.ws, BrasilAPI). Sem internet, o preenchimento é manual.
 11. O painel calcula no navegador a partir das últimas 300 propostas carregadas do banco.
 12. O cenário tributário 2027 está como rascunho. CBS e IBS ficam "a confirmar" até a regulamentação.
+13. **Cadastro**:
+    - Reordenar componentes da estrutura e criar subconjuntos aninhados não foram feitos, porque exigiriam alterar fórmulas da planilha.
+    - A descrição comercial fica no cadastro e não substitui a descrição da proposta, que vem das fórmulas (C28/C29).
+    - O preço do cadastro é sempre em R$; a moeda e o câmbio ficam nas cotações dos fornecedores.
+14. **Preços da época** valem para propostas SEQ salvas a partir da REV22. As salvas pela REV21 usam o cadastro do dia até a primeira gravação.
+15. O impacto de publicar uma estrutura é calculado sobre os modelos prontos. Propostas em rascunho com configuração própria não entram nessa conta.

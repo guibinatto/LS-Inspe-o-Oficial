@@ -26,6 +26,7 @@
   };
   const famCode = (fam) => parseInt(String(fam || '').split('.')[0], 10) || 0;
   function padraoCheck(fam, produto) {
+    const F = window.PricerFamilias; if (F) return F.checar(fam, produto, F.cfgFn ? F.cfgFn() : null);
     const p = PADROES[famCode(fam)]; const t = String(produto || '');
     if (!t.trim()) return 'Falta a descrição.';
     if (t !== t.toUpperCase()) return 'Use letras maiúsculas, como no restante do cadastro.';
@@ -89,7 +90,7 @@
           const igual = REG.insumos.find((i) => i.produto === up(d));
           if (igual) { $('#pdSim', o).innerHTML = `<div class="banner ${typeof igual.valor === 'number' ? 'ok' : 'warn'}">Este insumo já existe no cadastro (${esc(igual.id)})${typeof igual.valor === 'number' ? ' com preço de ' + brl(igual.valor) + ': escolha-o na lista da família em vez de pedir.' : ', mas sem preço: o pedido vai para Custos cadastrar o preço dele.'}</div>`; $('#pdOk', o).textContent = typeof igual.valor === 'number' ? 'Enviar mesmo assim (atualizar o preço)' : 'Pedir o preço'; pre.insumoId = igual.id; return; }
           $('#pdOk', o).textContent = 'Enviar pedido';
-          const sim = parecidos(fam, d); $('#pdSim', o).innerHTML = sim.length ? `<div class="banner info">Já existe algo parecido no cadastro — confira antes de pedir: ${sim.map((i) => `<b>${esc(i.produto)}</b> (${typeof i.valor === 'number' ? brl(i.valor) : 'sem preço'})`).join('; ')}</div>` : ''; };
+          const sim = window.PricerFamilias ? window.PricerFamilias.duplicidades({ id: null, fam, produto: d }, REG.insumos, window.PricerFamilias.cfgFn ? window.PricerFamilias.cfgFn() : null).map((x) => x.x) : parecidos(fam, d); $('#pdSim', o).innerHTML = sim.length ? `<div class="banner info">Já existe algo parecido no cadastro — confira antes de pedir: ${sim.map((i) => `<b>${esc(i.produto)}</b> (${typeof i.valor === 'number' ? brl(i.valor) : 'sem preço'})`).join('; ')}</div>` : ''; };
         $('#pdFam', o).onchange = draw; $('#pdDesc', o).oninput = checar; draw();
         $('#pdOk', o).onclick = async () => {
           const d = up($('#pdDesc', o).value); if (!d) { toast('Preencha a descrição'); return; }
@@ -114,7 +115,8 @@
           <div class="f"><label for="atFab">Fabricante</label><input id="atFab" value="${esc((exist && exist.fab) || x.fab || '')}"></div>
           <div class="f"><label for="atTipo">Tipo / configuração</label><input id="atTipo" value="${esc((exist && exist.tipo) || '')}"></div>
           <div class="f"><label for="atOri">Origem</label><select id="atOri"><option value="NAC"${x.origem === 'IMP' ? '' : ' selected'}>NAC</option><option value="IMP"${x.origem === 'IMP' ? ' selected' : ''}>IMP</option></select></div>
-          <div class="f"><label for="atVal">Preço de custo (R$)</label><input id="atVal" inputmode="decimal" placeholder="obrigatório"></div>
+          <div class="f"><label for="atVal">Preço de custo (R$)</label><input id="atVal" inputmode="decimal" placeholder="obrigatório se ativo"></div>
+          <div class="f span2"><label for="atSit">Situação ao cadastrar</label><select id="atSit"><option value="ativo">Ativo (liberado para uso)</option><option value="validacao">Aguardando validação técnica</option><option value="preco">Aguardando preço (Compras)</option></select></div>
           <div class="f spanall"><label for="atFonte">Fonte do preço</label><input id="atFonte" placeholder="fornecedor, nº do orçamento, data"></div></div>
         ${x.produtoLinha && x.produtoLinha !== x.produto ? `<p class="sub" style="margin:0">Na proposta a linha está como "${esc(x.produtoLinha)}". Ao cadastrar, o app troca esse nome pelo padronizado nas propostas salvas.</p>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="atOk">Cadastrar e atender</button><button class="btn" id="atNo">Recusar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
@@ -122,20 +124,23 @@
         const chk = () => { const m = padraoCheck(x.fam, $('#atDesc', o).value); $('#atChk', o).textContent = m || 'Descrição no padrão.'; $('#atChk', o).className = m ? 'sub bad-t' : 'sub ok-t'; };
         $('#atDesc', o).oninput = chk; chk();
         $('#atOk', o).onclick = async () => {
-          const v = parseInput($('#atVal', o).value, 'num'); if (typeof v !== 'number' || v <= 0) { toast('Informe o preço de custo'); return; }
+          const sit = $('#atSit', o).value; const vt = $('#atVal', o).value.trim(); const v = vt ? parseInput(vt, 'num') : null;
+          if (sit === 'ativo' && (typeof v !== 'number' || v <= 0)) { toast('Para liberar como ativo, informe o preço de custo (ou escolha "aguardando preço")'); return; }
+          if (v !== null && (typeof v !== 'number' || v < 0)) { toast('Preço inválido'); return; }
           const produto = exist ? exist.produto : up($('#atDesc', o).value); const fonte = $('#atFonte', o).value.trim();
           $('#atOk', o).disabled = true;
           try {
             let insId;
-            if (exist) { insId = exist.id; await REG.saveInsumo(Object.assign({}, exist, { valor: v, fab: up($('#atFab', o).value) || exist.fab, tipo: $('#atTipo', o).value.trim() || exist.tipo, origem: $('#atOri', o).value, obs: [exist.obs, 'pedido ' + x.id, fonte].filter(Boolean).join(' · ') }), false); }
+            if (exist) { insId = exist.id; await REG.saveInsumo(Object.assign({}, exist, { valor: v, situacao: sit === 'ativo' && !exist.situacao ? undefined : sit, fab: up($('#atFab', o).value) || exist.fab, tipo: $('#atTipo', o).value.trim() || exist.tipo, origem: $('#atOri', o).value, obs: [exist.obs, 'pedido ' + x.id, fonte].filter(Boolean).join(' · ') }), false); }
             else {
               const dup = REG.insumos.find((i) => i.produto === produto); if (dup) { toast('Já existe um insumo com essa descrição: ' + dup.id); $('#atOk', o).disabled = false; return; }
               const { a, b } = REG.nextCode(x.fam); insId = REG.newInsumoId(a, b);
-              await REG.saveInsumo({ id: insId, a, b, fam: x.fam, produto, fab: up($('#atFab', o).value), tipo: $('#atTipo', o).value.trim(), valor: v, origem: $('#atOri', o).value, obs: ['pedido ' + x.id, fonte].filter(Boolean).join(' · ') }, true);
+              await REG.saveInsumo({ id: insId, a, b, fam: x.fam, produto, fab: up($('#atFab', o).value), tipo: $('#atTipo', o).value.trim(), valor: v, origem: $('#atOri', o).value, obs: ['pedido ' + x.id, fonte].filter(Boolean).join(' · '), situacao: sit, fonte: fonte || undefined, dataCot: v !== null ? new Date().toISOString().slice(0, 10) : undefined }, true);
             }
             if (x.produtoLinha && x.produtoLinha !== produto) { const map = Object.assign({}, ((REG.tabelas || {}).RENOMES || {}).map || {}, { [x.produtoLinha]: produto }); await REG.setTable('RENOMES', { map }, 'Nome da proposta → cadastro: ' + produto, [{ campo: x.produtoLinha, de: null, para: produto }]).catch(() => {}); }
-            await gravar(x.id, Object.assign({}, x, { status: 'atendido', insumoId: insId, produtoFinal: produto, valor: v, fonte, atendidoEm: new Date().toISOString(), atendidoBy: REG.me || null }));
-            await ctx.log({ tipo: 'Pedido de cadastro atendido', ref: x.id, desc: produto, mudancas: [{ campo: 'Valor', de: null, para: v }, { campo: 'Situação', de: 'aberto', para: 'atendido' }] });
+            const stP = sit === 'ativo' ? 'atendido' : sit === 'preco' ? 'aguardando preço' : 'aguardando validação';
+            await gravar(x.id, Object.assign({}, x, { status: stP, insumoId: insId, produtoFinal: produto, valor: v, fonte, situacaoInsumo: sit, atendidoEm: new Date().toISOString(), atendidoBy: REG.me || null }));
+            await ctx.log({ tipo: 'Pedido de cadastro ' + stP, ref: x.id, desc: produto, mudancas: [{ campo: 'Valor', de: null, para: v }, { campo: 'Situação', de: 'aberto', para: stP }] });
             close(); toast('Cadastrado e atendido: ' + produto); ctx.render();
           } catch (e) { $('#atOk', o).disabled = false; toast((e && e.message) || 'Não consegui cadastrar'); }
         };
@@ -151,14 +156,14 @@
     // ---------- lista (Cadastro → Custos → Pedidos de cadastro) ----------
     function vLista() {
       ensure(); const ed = REG.areaOk('custos'); const f = ui.pdSt || 'aberto';
-      const pill = { aberto: 'warn', atendido: 'ok', recusado: 'bad' };
-      const rows = lista.filter((x) => f === 'todos' || x.status === f).map((x) => `<tr><td>${esc(new Date(x.at).toLocaleDateString('pt-BR'))}<br><small class="sub"><span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'neste navegador'}</span></small></td>
+      const pill = { aberto: 'warn', atendido: 'ok', recusado: 'bad', 'aguardando preço': 'warn', 'aguardando validação': 'warn' };
+      const rows = lista.filter((x) => f === 'todos' || x.status === f || (f === 'andamento' && /^aguardando/.test(x.status))).map((x) => `<tr><td>${esc(new Date(x.at).toLocaleDateString('pt-BR'))}<br><small class="sub"><span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'neste navegador'}</span></small></td>
         <td><b>${esc(x.produtoFinal || x.produto)}</b><br><small class="sub">${esc(x.fam)}${x.fab ? ' · ' + esc(x.fab) : ''} · ${esc(x.origem || '')}${x.propNome ? ' · ' + esc(x.propNome) : ''}</small>${x.padrao && x.padrao !== 'ok' ? `<br><small class="bad-t">${esc(x.padrao)}</small>` : ''}${x.obs ? `<br><small class="sub">${esc(x.obs)}</small>` : ''}</td>
         <td><span class="pill ${pill[x.status] || 'mute'}">${esc(x.status)}</span>${/urgente/.test(x.urgencia || '') ? ' <span class="pill bad">urgente</span>' : ''}${x.status === 'atendido' ? `<br><small class="sub">${brl(x.valor)} · ${esc(x.insumoId || '')}</small>` : x.status === 'recusado' ? `<br><small class="sub">${esc(x.motivo || '')}</small>` : ''}</td>
         <td>${x.status === 'aberto' && ed ? `<button class="btn sm pri" data-pdat="${esc(x.id)}">Cadastrar</button>` : ''}</td></tr>`).join('');
       return `<div class="stack"><section class="card"><h2>Pedidos de cadastro <span class="sub">${abertos().length} em aberto</span></h2>
         <p class="sub" style="margin:0 0 10px">Pedidos feitos de dentro das propostas, onde falta insumo ou preço. ${ed ? 'Ao cadastrar, o insumo entra com o preço e a proposta de quem pediu passa a enxergá-lo.' : 'Quem cadastra é a área de Custos.'}</p>
-        <div class="sheetbar"><select id="pdSt" aria-label="Situação">${[['aberto', 'Em aberto'], ['atendido', 'Atendidos'], ['recusado', 'Recusados'], ['todos', 'Todos']].map(([k, l]) => `<option value="${k}"${f === k ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn sm" data-pedir>+ Novo pedido</button></div>
+        <div class="sheetbar"><select id="pdSt" aria-label="Situação">${[['aberto', 'Em aberto'], ['andamento', 'Cadastrados, aguardando validação ou preço'], ['atendido', 'Liberados'], ['recusado', 'Recusados'], ['todos', 'Todos']].map(([k, l]) => `<option value="${k}"${f === k ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn sm" data-pedir>+ Novo pedido</button></div>
         <div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th>Data / quem</th><th>Insumo</th><th>Situação</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="sub">Nenhum pedido.</td></tr>'}</tbody></table></div></section></div>`;
     }
     // cartão da página inicial: pedidos de quem está usando

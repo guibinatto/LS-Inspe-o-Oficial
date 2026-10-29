@@ -39,3 +39,8 @@ Cada teste imprime o que verificou. A última linha é `erros [...]`, com os err
 | `home_test` | botões da tela inicial |
 | `p25_test` | pendências com acompanhamento, comparação de revisões, versão enviada congelada, painel, lixeira, perfis |
 | `p26_test` | regras de configuração, tema, Esc, Ctrl+S, documentos |
+| `c1_test` | Cadastro: todas as abas, ficha guiada (descrição gerada, duplicidade, comercial), gravação das características, testador |
+| `c2_test` | Testador com origem; preços da época (proposta enviada não muda e oferece atualização seletiva); edição em massa e desfazer; estrutura em rascunho, impacto nos modelos prontos e publicação |
+| `c3_test` | Central de regras (rascunho não vale na proposta), comparação de modelos no testador, cobertura dos modelos prontos, campos por família, importação de provisórios, biblioteca de configurações, comparação de kits |
+
+`node tools/testes/familias_rt.js` confere, sem navegador, se os modelos de descrição de cada família reproduzem exatamente os nomes do cadastro que já seguem o padrão.

@@ -56,4 +56,8 @@ Toda função da REV21 foi mantida. A coluna "Como foi verificado" cita os teste
 | Documentos | ✓ | Ampliada: revisão, item e etapa | p26_test |
 | Modelos SPV ("salvar como modelo") | ✓ | Mantida | — (sem alteração) |
 | Tema claro/escuro | só automático | **Ampliada**: seletor automático/claro/escuro | p26_test |
+| Cadastro de insumos | ficha genérica | **Ampliada**: ficha guiada por família, três descrições, situação, fornecedores, equivalentes, duplicidade, impacto (ver `08-cadastro.md`) | c1_test |
+| Estruturas | editor por linha | **Ampliada**: grupos, testador no motor real, rascunho e publicação, comparação, versões | c2_test, c3_test |
+| Kits | edição | Ampliada: duplicar, comparar, onde é usado | c3_test |
+| Preços nas propostas | sempre os do cadastro do dia | **Alterada**: enviadas, aprovadas e ganhas ficam com os preços da época; atualização seletiva | c2_test |
 | Teclado | parcial | Ampliada: Esc fecha janelas, Ctrl+S salva, "pular para o conteúdo", foco na janela aberta | p26_test |
