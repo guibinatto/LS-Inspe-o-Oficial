@@ -42,6 +42,29 @@
       else { const all = lsGet(); delete all[id]; lsSet(all); fech = Object.entries(all).map(([k, f]) => Object.assign({ id: k }, f)); }
     }
     const fechDe = (propId) => fech.find((f) => f.id === propId);
+    // reabrir uma proposta ganha: desfaz a baixa, guarda uma cópia dela (com o custo real) na proposta e volta para Enviada ao cliente
+    const podeReabrir = () => REG.mode === 'local' || !!REG.canEditCadastro;
+    function reabrirModal(p) {
+      const F = fechDe(p.id); if (!F) { toast('Esta proposta não tem baixa para desfazer'); return; }
+      if (!podeReabrir()) { toast('Só quem tem acesso de Editor desfaz uma baixa'); return; }
+      const R = realizado(F); const temReal = R && R.apontadas;
+      modal(`<h2>Reabrir a proposta</h2>
+        <p class="sub" style="margin:0">${esc(p.numero || p.name || '')} · ${esc(p.cliente || '')}. A baixa de ${esc(new Date(F.fechadoEm).toLocaleDateString('pt-BR'))} (${brl(F.valorFechado || R.venda || 0)}) é desfeita e a proposta volta para <b>Enviada ao cliente</b>. Uma cópia da baixa (com o custo real, se houver) fica guardada na proposta; o histórico registra quem reabriu e o motivo.</p>
+        ${temReal ? `<div class="banner warn" style="margin:0">Esta baixa tem custo real lançado (${pct(R.cobertura, 0)} conferido). Ele sai das telas de Margens e fica só na cópia guardada.</div>` : ''}
+        <div class="f"><label for="rbMot">Motivo</label><input id="rbMot" placeholder="ex.: cliente pediu nova revisão antes do pedido; baixa feita por engano"></div>
+        <div style="display:flex;gap:8px"><button class="btn pri" id="rbOk">Reabrir</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+        $('#rbOk', o).onclick = async () => {
+          const mot = $('#rbMot', o).value.trim(); if (!mot) { toast('Escreva o motivo'); return; }
+          const copia = { em: new Date().toISOString(), por: REG.me || null, motivo: mot, baixa: JSON.parse(JSON.stringify(F)) };
+          try {
+            await REG.patchProposta(p.id, (r) => { r.baixasDesfeitas = (r.baixasDesfeitas || []).concat([copia]); r.status = 'enviada'; const e = Object.assign({}, r.etapas || {}); delete e.encerrada; r.etapas = e; });
+            await apagar(F.id);
+            ctx.log && ctx.log({ tipo: 'Baixa desfeita (proposta reaberta)', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — ' + mot, mudancas: [{ campo: 'Status', de: 'ganha', para: 'enviada' }, { campo: 'Valor fechado', de: F.valorFechado ?? null, para: null }] });
+            close(); ui.mgId = null; ctx.render(); toast('Proposta reaberta: voltou para Enviada ao cliente');
+          } catch (er) { toast(er.message || 'Não consegui reabrir'); }
+        };
+      });
+    }
     // custo real só depois da baixa e com a proposta ganha (perdida ou reaberta não lança)
     // conferência do PDF vale para a revisão e o total que foram conferidos
     const revDeP = (q) => { const v = q.spv ? q.spv.revisao : q.facts ? q.facts.revisao : ((q.doc || {}).PROPOSTA || {}).C6; const n = parseInt(String(v ?? '0').replace(/\D/g, ''), 10); return isFinite(n) ? n : 0; };
@@ -274,7 +297,7 @@
         <div class="docbar">${ed ? `<label class="btn" for="mgNf">📎 Ler NF ou pedido (PDF, XML, Excel ou foto)</label><input type="file" id="mgNf" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden>` : ''}
           ${com ? `<button class="btn" data-mgxls="${esc(F0.id)}">Relatório previsto × realizado (Excel)</button>` : ''}
           ${ed && !concluida ? `<button class="btn pri" data-mgconcl="${esc(F0.id)}">Fabricação concluída → enviar ao Financeiro</button>` : `<span class="pill ${concluida ? 'ok' : 'mute'}">${esc(exec)}</span>${ed && concluida ? ` <button class="restore" data-mgconcl="${esc(F0.id)}">reenviar ao Financeiro</button>` : ''}`}
-          ${com && (REG.canEditCadastro || REG.mode === 'local') ? `<button class="btn" data-mgreopen="${esc(F0.id)}">Desfazer baixa</button>` : ''}</div>
+          ${com && (REG.canEditCadastro || REG.mode === 'local') ? `<button class="btn" data-mgreopen="${esc(F0.id)}" data-ico="rotate-ccw">Reabrir (desfazer baixa)</button>` : ''}</div>
         ${ed ? '' : `<p class="sub" style="margin:0">${liberaReal(F0.id) ? 'O custo real é conferido por Engenharia e Custos.' : 'Esta proposta não está como ganha: o custo real fica fechado para lançamento.'}</p>`}
         ${itens}</div>`;
     }
@@ -519,6 +542,7 @@
       const oka = t.closest('[data-rokall]'); if (oka) { const n = oka.dataset.rokall; const F = fech.find((f) => f.id === ui.mgId); const it = F && realizado(F).itens.find((x) => x.n === n); if (!it) return; const falta = it.linhas.filter((l) => typeof l.real !== 'number');
         setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; for (const l of falta) real[n].l[l.k] = Object.assign(real[n].l[l.k] || {}, { v: l.prev, ok: true }); }, falta.length + ' linha(s) de ' + (it.nome || n) + ' conferidas = previsto'); return; }
       const cf = t.closest('[data-mgconcl]'); if (cf) { concluirFab(cf.dataset.mgconcl); return; }
+      const hr0 = t.closest('[data-hreabrir]'); if (hr0) { const p = (REG.listPropostas() || []).find((x) => x.id === hr0.dataset.hreabrir); if (p) reabrirModal(p); return; }
       const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!liberaReal(id)) { toast(fechDe(id) ? 'O custo real é lançado só com a proposta ganha.' : 'O custo real é lançado depois da baixa da proposta ganha.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); const it = rl.dataset.mgitem; if (it) setTimeout(() => { const el = document.getElementById('cr_' + it); if (el) el.scrollIntoView({ block: 'start' }); }, 60); return; }
       const cl = t.closest('[data-mgclose]'); if (cl) { const p = (REG.listPropostas() || []).find((x) => x.id === cl.dataset.mgclose); if (p) fecharModal(p); return; }
       if (ui.view !== 'margens') return;
@@ -527,7 +551,7 @@
       if (t.closest('[data-mgback]')) { ui.mgId = null; ctx.render(); return; }
       if (t.closest('[data-mgcalc]')) { calcularAntigas(); return; }
       const xl = t.closest('[data-mgxls]'); if (xl) { const F = fech.find((f) => f.id === xl.dataset.mgxls); if (F) excel(F).catch((er) => toast(er.message || 'Não consegui gerar o Excel')); return; }
-      const ro = t.closest('[data-mgreopen]'); if (ro) { if (!ro.dataset.sure) { ro.dataset.sure = 1; ro.textContent = 'Confirmar: desfazer a baixa'; ro.classList.add('pri'); return; }
+      const ro = t.closest('[data-mgreopen]'); if (ro) { const F1 = fech.find((f) => f.id === ro.dataset.mgreopen); const p1 = (REG.listPropostas() || []).find((x) => x.id === ((F1 && F1.propId) || ro.dataset.mgreopen)); if (p1) { reabrirModal(p1); return; } if (!ro.dataset.sure) { ro.dataset.sure = 1; ro.textContent = 'Confirmar: desfazer a baixa'; ro.classList.add('pri'); return; }
         const F = fech.find((f) => f.id === ro.dataset.mgreopen); apagar(ro.dataset.mgreopen).then(async () => { ctx.log && ctx.log({ tipo: 'Baixa desfeita', ref: ro.dataset.mgreopen, desc: F ? (F.numero || F.nome || '') : '', mudancas: [] }); const p = (REG.listPropostas() || []).find((x) => x.id === (F && F.propId)); if (p) await REG.patchProposta(p.id, { status: 'negociacao' }).catch(() => {}); ui.mgId = null; ctx.render(); toast('Baixa desfeita'); }).catch((er) => toast(er.message || 'Não consegui desfazer')); return; }
       const ad = t.closest('[data-rexadd]'); if (ad) { const n = ad.dataset.rexadd;
         modal(`<h2>Custo não previsto</h2><div class="fields"><div class="f span2"><label for="rxD">Descrição</label><input id="rxD" placeholder="retrabalho, frete extra, peça trocada…"></div><div class="f"><label for="rxV">Valor (R$)</label><input id="rxV" inputmode="decimal"></div></div><div style="display:flex;gap:8px"><button class="btn pri" id="rxOk">Lançar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
@@ -950,7 +974,7 @@
       const fo = ev.target.closest('[data-finok]'); if (!fo) return; const F = fech.find((f) => f.id === fo.dataset.finok); if (!F) return;
       try { await gravar(F.id, Object.assign({}, F, { finConferido: { at: new Date().toISOString(), by: REG.me || null } })); ctx.log && ctx.log({ tipo: 'Custo real', ref: F.id, desc: (F.numero || F.nome || '') + ' — relatório previsto × realizado conferido pelo Financeiro', mudancas: [] }); if (!shared()) ctx.render(); toast('Marcado como conferido'); } catch (e) { toast((e && e.message) || 'Não consegui salvar'); }
     });
-    return { FASES, faseLb, vPendencias, resumoPendencias, nPendencias, conferidaOk, liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, realizado, listaAprov: () => { ensureA(); return aprov; }, decs, decisaoValida, premissaMudou, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !decs(a)[k] && podeDecidir(k))).length; } };
+    return { FASES, faseLb, podeReabrir, vPendencias, resumoPendencias, nPendencias, conferidaOk, liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, realizado, listaAprov: () => { ensureA(); return aprov; }, decs, decisaoValida, premissaMudou, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !decs(a)[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();

@@ -9,7 +9,7 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | Indicador | Valor |
 |---|---|
 | Capítulos | 18 |
-| Tutoriais e exercícios (modelo padrão) | 86 |
+| Tutoriais e exercícios (modelo padrão) | 87 |
 | Telas capturadas (cada uma com original e anotada) | 151 |
 | Capturas validadas (todos os marcadores encontrados no elemento real) | 151 de 151 |
 | Trechos marcados como "Não validado" | 30 |
@@ -31,7 +31,7 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | 11 | Modelos e famílias | 5 | 9 | 9 | 2 |
 | 12 | Fornecedores e documentos | 4 | 8 | 8 | 2 |
 | 13 | Pendências e aprovações | 6 | 10 | 10 | 3 |
-| 14 | Margens e indicadores | 5 | 10 | 10 | 4 |
+| 14 | Margens e indicadores | 6 | 10 | 10 | 4 |
 | 15 | Revisões e histórico | 6 | 10 | 10 | 3 |
 | 16 | Configurações e administração | 5 | 10 | 10 | 3 |
 | 17 | Erros comuns e soluções | 0 | 0 | 0 | 0 |
