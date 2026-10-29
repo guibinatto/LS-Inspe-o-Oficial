@@ -42,6 +42,8 @@
       else { const all = lsGet(); delete all[id]; lsSet(all); fech = Object.entries(all).map(([k, f]) => Object.assign({ id: k }, f)); }
     }
     const fechDe = (propId) => fech.find((f) => f.id === propId);
+    // custo real só depois da baixa e com a proposta ganha (perdida ou reaberta não lança)
+    const liberaReal = (x) => { const id = typeof x === 'string' ? x : x && x.id; if (!id || !fechDe(id)) return false; const p = typeof x === 'object' && x.status !== undefined ? x : (REG.listPropostas() || []).find((y) => y.id === id); return !p || (p.status || 'ganha') === 'ganha'; };
 
     // ---------- contas: fechado (com o valor negociado) e realizado ----------
     // o valor fechado pode diferir do proposto: venda, impostos e comissões acompanham; o custo não muda
@@ -189,7 +191,7 @@
         <div class="kpi lead"><span>Margem realizada</span><b>${mRe === null ? '—' : pct(mRe, 1)}</b><em>${comReal.length ? `${comReal.length} pacote(s) com custo real · previsto ${pct(mPrevRe, 1)} (${mRe - mPrevRe >= 0 ? '+' : '−'}${NF[1].format(Math.abs(mRe - mPrevRe) * 100)} p.p.)` : 'lance o custo real nas fechadas'}</em></div>
         <div class="kpi"><span>Abaixo do mínimo</span><b>${baixo}</b><em>propostas em aberto</em></div></div>
         ${B.semResumo ? `<div class="banner info">${B.semResumo} proposta(s) em aberto foram salvas antes do registro de margens. <button class="restore" data-mgcalc>Calcular as margens delas agora</button></div>` : ''}`;
-      const fila = B.fechadas.filter((f) => f.cobertura < 1).sort((a, b) => String(b.F.fechadoEm).localeCompare(String(a.F.fechadoEm))).slice(0, 6);
+      const fila = B.fechadas.filter((f) => f.cobertura < 1 && liberaReal(f.F.id)).sort((a, b) => String(b.F.fechadoEm).localeCompare(String(a.F.fechadoEm))).slice(0, 6);
       const filaHtml = fila.length ? `<section class="card"><h2>Custo real a lançar <span class="sub">fechadas com linhas sem custo real</span></h2><div class="tw"><table class="t"><tbody>${fila.map((f) => `<tr><td><span class="divb ${f.F.div.toLowerCase()}">${f.F.div}</span> <b>${esc(f.F.numero || '—')}</b> <span class="sub">${esc(f.F.cliente || '')} · fechada em ${fmtD(f.F.fechadoEm)}</span></td><td class="n">${pct(f.cobertura, 0)} conferido</td><td style="text-align:right"><button class="btn sm pri" data-mgopen="${esc(f.F.id)}">Lançar custo real</button></td></tr>`).join('')}</tbody></table></div></section>` : '';
       let body = filaHtml;
       if (tab === 'aprovacoes') body = vAprovacoes(); else
@@ -231,13 +233,13 @@
       return ks.some((k) => (ac[k] || []).length) ? ks.some((k) => (ac[k] || []).includes(REG.me)) : !!REG.canEditCadastro; };
     // tela de Margens para quem só confere custo: a fila de fechadas, sem preço nem margem
     function vFilaReal() {
-      const L = fech.slice().sort((a, b) => String(b.fechadoEm).localeCompare(String(a.fechadoEm))).map((F) => ({ F, R: realizado(F) }));
+      const L = fech.filter((F) => liberaReal(F.id)).sort((a, b) => String(b.fechadoEm).localeCompare(String(a.fechadoEm))).map((F) => ({ F, R: realizado(F) }));
       return `<div class="stack"><h1>Custo real</h1><section class="card"><h2>Fechadas <span class="sub">confira o custo real de cada uma</span></h2><div class="tw"><table class="t"><tbody>${L.map(({ F, R }) => `<tr><td><span class="divb ${F.div.toLowerCase()}">${F.div}</span> <b>${esc(F.numero || '—')}</b> <span class="sub">${esc(F.cliente || '')} · fechada em ${fmtD(F.fechadoEm)} · ${esc(F.execucao || 'em andamento')}</span></td><td class="n">${R.apontadas} de ${R.linhas} conferidas</td><td style="text-align:right"><button class="btn sm${R.cobertura < 1 ? ' pri' : ''}" data-mgopen="${esc(F.id)}">${R.cobertura < 1 ? 'Lançar custo real' : 'Ver'}</button></td></tr>`).join('') || '<tr><td class="sub">Nenhuma proposta fechada ainda.</td></tr>'}</tbody></table></div></section></div>`;
     }
     const ehMO = (l) => /MAODEOBRA|MÃO DE OBRA|MAO DE OBRA/i.test((l.fam || '') + ' ' + (l.desc || '') + ' ' + (l.rot || ''));
     function vDetalhe(id) {
       const F0 = fech.find((f) => f.id === id); if (!F0) { ui.mgId = null; return '<p class="sub">Fechamento não encontrado.</p>'; }
-      const R = realizado(F0); const ed = canReal(); const com = veComercial();
+      const R = realizado(F0); const ed = canReal() && liberaReal(F0.id); const com = veComercial();
       const dif = (d) => (Math.abs(d) < 0.005 ? '<span class="sub">0,00</span>' : `<b class="${d > 0 ? 'bad-t' : 'ok-t'}">${d > 0 ? '+' : '−'}${brl(Math.abs(d)).replace('R$ ', '')}</b>`);
       const linha = (it, l) => {
         const has = typeof l.real === 'number'; const v = has ? l.real : l.prev; const d = v - l.prev; const igual = has && Math.abs(d) < 0.005;
@@ -271,7 +273,7 @@
           ${com ? `<button class="btn" data-mgxls="${esc(F0.id)}">Relatório previsto × realizado (Excel)</button>` : ''}
           ${ed && !concluida ? `<button class="btn pri" data-mgconcl="${esc(F0.id)}">Fabricação concluída → enviar ao Financeiro</button>` : `<span class="pill ${concluida ? 'ok' : 'mute'}">${esc(exec)}</span>${ed && concluida ? ` <button class="restore" data-mgconcl="${esc(F0.id)}">reenviar ao Financeiro</button>` : ''}`}
           ${com && (REG.canEditCadastro || REG.mode === 'local') ? `<button class="btn" data-mgreopen="${esc(F0.id)}">Desfazer baixa</button>` : ''}</div>
-        ${ed ? '' : '<p class="sub" style="margin:0">O custo real é conferido por Engenharia e Custos.</p>'}
+        ${ed ? '' : `<p class="sub" style="margin:0">${liberaReal(F0.id) ? 'O custo real é conferido por Engenharia e Custos.' : 'Esta proposta não está como ganha: o custo real fica fechado para lançamento.'}</p>`}
         ${itens}</div>`;
     }
     // fabricação concluída: marca a execução e manda ao Financeiro o relatório completo
@@ -515,7 +517,7 @@
       const oka = t.closest('[data-rokall]'); if (oka) { const n = oka.dataset.rokall; const F = fech.find((f) => f.id === ui.mgId); const it = F && realizado(F).itens.find((x) => x.n === n); if (!it) return; const falta = it.linhas.filter((l) => typeof l.real !== 'number');
         setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].l = real[n].l || {}; for (const l of falta) real[n].l[l.k] = Object.assign(real[n].l[l.k] || {}, { v: l.prev, ok: true }); }, falta.length + ' linha(s) de ' + (it.nome || n) + ' conferidas = previsto'); return; }
       const cf = t.closest('[data-mgconcl]'); if (cf) { concluirFab(cf.dataset.mgconcl); return; }
-      const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!fechDe(id)) { toast('Esta proposta ainda não tem baixa: use "Dar baixa" primeiro.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); const it = rl.dataset.mgitem; if (it) setTimeout(() => { const el = document.getElementById('cr_' + it); if (el) el.scrollIntoView({ block: 'start' }); }, 60); return; }
+      const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!liberaReal(id)) { toast(fechDe(id) ? 'O custo real é lançado só com a proposta ganha.' : 'O custo real é lançado depois da baixa da proposta ganha.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); const it = rl.dataset.mgitem; if (it) setTimeout(() => { const el = document.getElementById('cr_' + it); if (el) el.scrollIntoView({ block: 'start' }); }, 60); return; }
       const cl = t.closest('[data-mgclose]'); if (cl) { const p = (REG.listPropostas() || []).find((x) => x.id === cl.dataset.mgclose); if (p) fecharModal(p); return; }
       if (ui.view !== 'margens') return;
       const tb = t.closest('[data-mgtab]'); if (tb) { ui.mgTab = tb.dataset.mgtab; ui.apId = null; ctx.render(); return; }
@@ -548,6 +550,7 @@
         else if (perdida) { s = 'off'; info = k === 'baixa' ? 'perdida' : ''; }
         else if (k === 'baixa') { if (F) { s = 'ok'; info = dt(F.fechadoEm); } else act = 'baixa'; }
         else if (!F) s = 'off';
+        else if (k === 'real' && !liberaReal(p)) s = 'off';
         else if (k === 'real') { act = 'real'; if (R.cobertura >= 1 - 1e-9) { s = 'ok'; info = '100%'; } else if (R.apontadas) { s = 'parcial'; info = pct(R.cobertura, 0); } }
         else if (k === 'encerrada') { act = 'marcar'; if (e.encerrada || F.execucao === 'encerrada') { s = 'ok'; info = e.encerrada ? dt(e.encerrada.at) : ''; } }
         else { act = 'avisar'; if (e[k]) { s = 'ok'; info = dt(e[k].at); } }
@@ -823,7 +826,7 @@
         if (ea === 'reprovada') return { lb: 'Ver motivo', act: 'aprovacao' }; }
       if (!F) return st === 'rascunho' ? { lb: 'Enviar ao cliente', act: 'cliente' } : { lb: 'Dar baixa', act: 'baixa' };
       if (!e.financeiro || !e.engenharia) return { lb: 'Avisar áreas', act: 'avisar' };
-      if (realizado(F).cobertura < 1 - 1e-9) return { lb: 'Custo real', act: 'real' };
+      if (liberaReal(p) && realizado(F).cobertura < 1 - 1e-9) return { lb: 'Lançar custo real', act: 'real' };
       if (!(e.encerrada || F.execucao === 'encerrada')) return { lb: 'Encerrar', act: 'encerrar' };
       return null;
     }
@@ -852,7 +855,7 @@
         }); }
     });
 
-    return { escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
+    return { liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();

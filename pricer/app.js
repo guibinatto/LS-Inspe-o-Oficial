@@ -264,7 +264,7 @@
     { const nb = document.querySelector('#nav [data-view="cadastro"]'); const n = REG.areaOk('custos') ? PD.abertos().length : 0; if (nb) nb.innerHTML = 'Cadastro' + (n ? ` <span class="nbadge" title="${n} pedido(s) de cadastro em aberto">${n}</span>` : ''); }
     { const mb = document.querySelector('#nav [data-view="margens"]'); const n = MG.pendentesAprov(); if (mb) mb.innerHTML = 'Margens' + (n ? ` <span class="nbadge" title="${n} aprovação(ões) de desconto esperando você">${n}</span>` : ''); }
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
-    const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="${esc(state.id)}">Lançar custo real</button></div>` : '';
+    const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
     $('#app').innerHTML = avRev + aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
     const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
@@ -928,7 +928,7 @@
           <div class="fields">${fieldS(P, 'C9', 'Desconto global (vazio = sem desconto)')}${fieldS(P, 'E13', 'Frete — R$ por km')}</div></details>
         <div class="flowbar"><span class="sub">${ui.reqShow && falta.size ? 'Falta: ' + esc(faltaCab().map((x) => x[1]).join(', ')) : ''}</span><button class="btn pri" data-cabnext>${famPend ? 'Próximo: equipamento →' : 'Próximo: itens →'}</button></div>`;
     } else if (step === 2) {
-      const fechada = !!(state.id && MG.fechDe(state.id));
+      const fechada = !!(state.id && MG.liberaReal(state.id));
       const cards = items.map((x) => {
         const S = x.s; const al = alertsFor(S); const ok = filled(S);
         return `<article class="icard"><header><span class="ino">${S.slice(5)}</span><div style="min-width:0"><b>${esc(txt(S, 'C28') || 'Equipamento ainda não escolhido')}</b><code>${esc(txt(S, 'C27'))}</code></div></header>
@@ -2451,7 +2451,7 @@
     const prev = (REG.listPropostas() || []).find((x) => x.id === state.id);
     const keep = prev ? JSON.parse(JSON.stringify({ etapas: prev.etapas, motivoPerda: prev.motivoPerda })) : {};
     let status = prev ? (prev.status || 'rascunho') : (state.status || 'rascunho');
-    if (state._novaRev) { status = 'rascunho'; if (keep.etapas) delete keep.etapas.cliente; delete state._novaRev; }
+    if (state._novaRev) { if (status !== 'ganha') { status = 'rascunho'; if (keep.etapas) delete keep.etapas.cliente; } delete state._novaRev; }
     state.status = status;
     const base = Object.assign({ name: docTitle(), at: new Date().toISOString(), uid: state.uid, status }, Object.fromEntries(Object.entries(keep).filter(([, v]) => v !== undefined)));
     const p = isSpv() ? Object.assign(base, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv })
