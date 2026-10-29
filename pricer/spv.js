@@ -337,7 +337,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const sx = stats(all); const docsHit = q ? docs.filter((d) => norm([d.nome, d.fornecedor, d.numero, (d.itens || []).map((i) => i.descricao).join(' ')].join(' ')).includes(q)).slice(0, 6) : [];
       const rows = list.slice(0, 60).map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
         <td><span class="divb ${divOf(p).toLowerCase()}">${divOf(p)}</span>${p.tipo ? ` <small class="sub">${esc(p.tipo)}</small>` : ''}</td>
-        <td><b>${esc(p.numero || '—')}</b><br><small class="sub">${esc(p.cliente || p.name || '')}</small></td>
+        <td><b>${esc(p.numero || '—')}</b>${(() => { const rv = p.spv ? p.spv.revisao : p.facts ? p.facts.revisao : ((p.doc || {}).PROPOSTA || {}).C6; const n = parseInt(String(rv ?? '0').replace(/\D/g, ''), 10) || 0; return n ? ` <small class="pill mute">rev. ${n}</small>` : ''; })()}<br><small class="sub">${esc(p.cliente || p.name || '')}</small></td>
         <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
         <td><span class="pill ${sit(p)[1]}">${esc(sit(p)[0])}</span></td>
         <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
@@ -400,7 +400,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const blk = (k, lb) => `<label class="chip"><input type="checkbox" data-spblk="${k}"${s.blocos[k] ? ' checked' : ''}> ${lb}</label>`;
       return `<div class="stack">
         <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-view="inicio">← Início</button><h1 style="margin-top:8px"><span class="divb spv">SPV</span> ${esc((TIPO_INI[s.tipo] || {}).titulo || ti.nome)} ${s.numero ? '· ' + esc(s.numero) : ''}</h1><div class="sub">${esc(ti.nome)} · ${esc(s.cliente || 'cliente a definir')}</div></div>
-          <div class="sumbar"><div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
+          <div class="sumbar">${ctx.revSelo ? ctx.revSelo() : ''}<div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
         ${below && r.multMin ? `<div class="banner bad">Lucro líquido de ${pct(r.lucroPct, 1)}, abaixo do mínimo de ${pct(r.mk.lucro_min, 0)}. Para chegar lá, o multiplicador do serviço precisa ser ${fmt(r.multMin, 2)}. <button class="restore" data-spfix>aplicar ${fmt(Math.ceil(r.multMin * 100) / 100, 2)}</button> ou peça aprovação abaixo.</div>` : ''}
         <div class="aprovbox">${ctx.aprovHtml ? ctx.aprovHtml().replace(/^<br>/, '') : ''}<button class="btn sm${below ? ' pri' : ''}" data-alaprov>Pedir aprovação (valor target)</button></div>
         <section class="card"><h2>Modelo <span class="sub">${mods.length ? 'escopo, equipe e frequência prontos; depois é só ajustar' : 'nenhum modelo cadastrado para este tipo'}</span></h2>

@@ -2311,7 +2311,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const sx = stats(all); const docsHit = q ? docs.filter((d) => norm([d.nome, d.fornecedor, d.numero, (d.itens || []).map((i) => i.descricao).join(' ')].join(' ')).includes(q)).slice(0, 6) : [];
       const rows = list.slice(0, 60).map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
         <td><span class="divb ${divOf(p).toLowerCase()}">${divOf(p)}</span>${p.tipo ? ` <small class="sub">${esc(p.tipo)}</small>` : ''}</td>
-        <td><b>${esc(p.numero || '—')}</b><br><small class="sub">${esc(p.cliente || p.name || '')}</small></td>
+        <td><b>${esc(p.numero || '—')}</b>${(() => { const rv = p.spv ? p.spv.revisao : p.facts ? p.facts.revisao : ((p.doc || {}).PROPOSTA || {}).C6; const n = parseInt(String(rv ?? '0').replace(/\D/g, ''), 10) || 0; return n ? ` <small class="pill mute">rev. ${n}</small>` : ''; })()}<br><small class="sub">${esc(p.cliente || p.name || '')}</small></td>
         <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
         <td><span class="pill ${sit(p)[1]}">${esc(sit(p)[0])}</span></td>
         <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
@@ -2374,7 +2374,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const blk = (k, lb) => `<label class="chip"><input type="checkbox" data-spblk="${k}"${s.blocos[k] ? ' checked' : ''}> ${lb}</label>`;
       return `<div class="stack">
         <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-view="inicio">← Início</button><h1 style="margin-top:8px"><span class="divb spv">SPV</span> ${esc((TIPO_INI[s.tipo] || {}).titulo || ti.nome)} ${s.numero ? '· ' + esc(s.numero) : ''}</h1><div class="sub">${esc(ti.nome)} · ${esc(s.cliente || 'cliente a definir')}</div></div>
-          <div class="sumbar"><div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
+          <div class="sumbar">${ctx.revSelo ? ctx.revSelo() : ''}<div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
         ${below && r.multMin ? `<div class="banner bad">Lucro líquido de ${pct(r.lucroPct, 1)}, abaixo do mínimo de ${pct(r.mk.lucro_min, 0)}. Para chegar lá, o multiplicador do serviço precisa ser ${fmt(r.multMin, 2)}. <button class="restore" data-spfix>aplicar ${fmt(Math.ceil(r.multMin * 100) / 100, 2)}</button> ou peça aprovação abaixo.</div>` : ''}
         <div class="aprovbox">${ctx.aprovHtml ? ctx.aprovHtml().replace(/^<br>/, '') : ''}<button class="btn sm${below ? ' pri' : ''}" data-alaprov>Pedir aprovação (valor target)</button></div>
         <section class="card"><h2>Modelo <span class="sub">${mods.length ? 'escopo, equipe e frequência prontos; depois é só ajustar' : 'nenhum modelo cadastrado para este tipo'}</span></h2>
@@ -2840,7 +2840,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const eq = (f.equipe || []).map((e, i) => `<tr><td class="in">${sel(`equipe.${i}.tec`, e.tec, tecOpts, 'Técnico')}</td><td class="in">${inp(`equipe.${i}.diaria`, e.diaria)}</td><td class="in">${inp(`equipe.${i}.dias`, e.dias)}</td><td class="n">${brl(num(e.diaria) * num(e.dias))}</td><td><button class="restore" data-fxeqrm="${i}">remover</button></td></tr>`).join('');
       return `<div class="stack">
         <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-view="inicio">← Início</button><h1 style="margin-top:8px"><span class="divb seq">SEQ</span> FACTS ${f.numero ? '· ' + esc(f.numero) : ''}</h1><div class="sub">Teste automático de bombas de incêndio (MECON, FM 1330) · ${esc(f.cliente || 'cliente a definir')} · ${r.nSets} conjunto(s)</div></div>
-          <div class="sumbar"><div><span>Preço sem IPI</span><b>${brl(r.V)}</b></div><div><span>Por conjunto</span><b>${brl(r.nSets ? r.Veq / r.nSets : 0)}</b></div><div><span>Margem líquida</span><b class="${below ? 'bad-t' : ''}">${pct(r.margemPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo do mínimo</span>' : '<span class="pill ok">dentro da meta</span>'}</div></div></div>
+          <div class="sumbar">${ctx.revSelo ? ctx.revSelo() : ''}<div><span>Preço sem IPI</span><b>${brl(r.V)}</b></div><div><span>Por conjunto</span><b>${brl(r.nSets ? r.Veq / r.nSets : 0)}</b></div><div><span>Margem líquida</span><b class="${below ? 'bad-t' : ''}">${pct(r.margemPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo do mínimo</span>' : '<span class="pill ok">dentro da meta</span>'}</div></div></div>
         <section class="card"><h2>Cliente</h2><div class="fields">${fld('Cliente', inp('cliente', f.cliente, 'text'), 'span2')}${fld('Nº da proposta', inp('numero', f.numero, 'text'))}${fld('Contato', inp('contato', f.contato, 'text'))}${fld('Local', inp('local', f.local, 'text'), 'span2')}${fld('UF', inp('uf', f.uf, 'text'))}${fld('Vendedor', inp('vendedor', f.vendedor, 'text'))}</div></section>
         ${conj}
         <div class="docbar"><button class="btn sm" data-fxadd>+ Outro conjunto (outra bomba com outra configuração)</button></div>
@@ -4225,7 +4225,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     { const mb = document.querySelector('#nav [data-view="margens"]'); const n = MG.pendentesAprov(); if (mb) mb.innerHTML = 'Margens' + (n ? ` <span class="nbadge" title="${n} aprovação(ões) de desconto esperando você">${n}</span>` : ''); }
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="${esc(state.id)}">Lançar custo real</button></div>` : '';
-    $('#app').innerHTML = aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
+    const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
+    $('#app').innerHTML = avRev + aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
     const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
     if (ui.view === 'cadastro') bindCadastro();
     window.scrollTo(0, scroll);
@@ -4751,6 +4752,108 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       ui.famPend = null; ui.step = 2; setView('proposta'); return;
     }
   });
+  // ---------- revisões: cada revisão enviada fica guardada; a atual é a que se edita ----------
+  const RVK = 'lspricer.revisoes.v1';
+  const revDe = (q) => { const v = q.spv ? q.spv.revisao : q.facts ? q.facts.revisao : ((q.doc || {}).PROPOSTA || {}).C6; const n = parseInt(String(v ?? '0').replace(/\D/g, ''), 10); return isFinite(n) ? n : 0; };
+  const revAtual = () => (isSpv() ? revDe({ spv: state.spv }) : isFacts() ? revDe({ facts: state.facts }) : revDe({ doc: { PROPOSTA: { C6: val('PROPOSTA', 'C6') } } }));
+  function setRev(n) { if (isSpv()) { state.spv.revisao = String(n); persist(); } else if (isFacts()) { state.facts.revisao = n; persist(); } else commit('PROPOSTA', 'C6', n); }
+  let revCache = { id: null, list: [] };
+  async function revListar(propId) {
+    let L = [];
+    if (REG.mode === 'shared' && REG.db) { try { const q = await REG.db.collection('revisoes').where('propId', '==', propId).get(); L = q.docs.map((d) => Object.assign({ id: d.id }, d.data())); } catch (e) { L = []; } }
+    else { try { L = Object.entries(JSON.parse(localStorage.getItem(RVK) || '{}')).filter(([, x]) => x.propId === propId).map(([id, x]) => Object.assign({ id }, x)); } catch (e) { L = []; } }
+    L.sort((a, b) => b.rev - a.rev); revCache = { id: propId, list: L }; return L;
+  }
+  async function revGravar(rec) {
+    const id = rec.propId + '_r' + rec.rev; const body = JSON.parse(JSON.stringify(rec));
+    if (REG.mode === 'shared' && REG.db) await REG.db.doc('revisoes/' + id).set(body);
+    else { let all = {}; try { all = JSON.parse(localStorage.getItem(RVK) || '{}'); } catch (e) { all = {}; } all[id] = body; localStorage.setItem(RVK, JSON.stringify(all)); }
+  }
+  // congela a revisão salva (como está no banco) antes de subir para a próxima
+  async function revCongelar(salva, motivo) {
+    const n = revDe(salva); const corpo = JSON.parse(JSON.stringify(salva)); delete corpo.id; delete corpo.local;
+    await revGravar({ propId: salva.id, rev: n, at: new Date().toISOString(), by: REG.me || null, statusEra: salva.status || 'rascunho', motivoProxima: motivo || '', total: salva.total ?? null, margemPct: salva.resumo ? salva.resumo.margemPct : null, numero: salva.numero || '', cliente: salva.cliente || '', body: corpo });
+    return n;
+  }
+  async function salvarSilencioso() { await $('#bSave').onclick(); return (REG.listPropostas() || []).find((x) => x.id === state.id); }
+  // Revisar: guarda a atual e abre a próxima para edição
+  function revisarModal() {
+    if (state.verRev) { toast('Volte à revisão atual para revisar'); return; }
+    const n = revAtual();
+    modal(`<h2>Revisar a proposta</h2><p class="sub" style="margin:0">A revisão ${n} fica guardada como está${state.id ? '' : ' (a proposta será salva antes)'}. Você passa a editar a <b>revisão ${n + 1}</b>; as anteriores continuam em "Revisões".</p>
+      <div class="f"><label for="rvMot">O que muda nesta revisão?</label><input id="rvMot" placeholder="ex.: cliente pediu skid com jockey; troca de motor; novo prazo"></div>
+      <div style="display:flex;gap:8px"><button class="btn pri" id="rvOk">Criar revisão ${n + 1}</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+      $('#rvMot', o).focus();
+      $('#rvOk', o).onclick = async () => { const mot = $('#rvMot', o).value.trim(); close(); await revisar(mot); };
+    });
+  }
+  async function revisar(mot, depois) {
+    try {
+      // a revisão atual vai para o histórico exatamente como está salva (alterações pendentes entram nela)
+      let salva = (REG.listPropostas() || []).find((x) => x.id === state.id);
+      if (!salva || dirty) salva = await salvarSilencioso(); if (!salva) return;
+      const n = await revCongelar(salva, mot);
+      if (depois) depois();
+      setRev(n + 1); state._novaRev = true;
+      await salvarSilencioso();
+      logEv({ tipo: 'Proposta — revisão', ref: state.id, desc: docTitle() + ': revisão ' + (n + 1) + ' criada' + (mot ? ' — ' + mot : ''), mudancas: [{ campo: 'Revisão', de: n, para: n + 1 }] });
+      ui.step = 1; render(); toast('Revisão ' + (n + 1) + ' criada. A revisão ' + n + ' está guardada.');
+    } catch (e) { toast(errMsg(e)); }
+  }
+  function revSalvarEnviada(salva) {
+    const n = revDe(salva);
+    modal(`<h2>Esta revisão já foi enviada ao cliente</h2><p class="sub" style="margin:0">A revisão ${n} foi enviada. Para não perder o que o cliente recebeu, o certo é salvar como <b>revisão ${n + 1}</b>.</p>
+      <div class="f"><label for="rvMot2">O que muda?</label><input id="rvMot2" placeholder="opcional"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="rvNova">Salvar como revisão ${n + 1}</button><button class="btn" id="rvMesma">É só correção: salvar na revisão ${n}</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+      $('#rvNova', o).onclick = async () => { const mot = $('#rvMot2', o).value.trim(); close();
+        // guarda a enviada (do banco), depois salva as alterações já como a próxima
+        try { await revCongelar(salva, mot); setRev(n + 1); state._novaRev = true; await salvarSilencioso(); logEv({ tipo: 'Proposta — revisão', ref: state.id, desc: docTitle() + ': revisão ' + (n + 1) + ' criada ao salvar' + (mot ? ' — ' + mot : ''), mudancas: [{ campo: 'Revisão', de: n, para: n + 1 }] }); render(); toast('Salvo como revisão ' + (n + 1)); } catch (e) { toast(errMsg(e)); } };
+      $('#rvMesma', o).onclick = async () => { close(); await salvarSilencioso(); };
+    });
+  }
+  async function revisoesModal() {
+    if (!state.id) { toast('Salve a proposta para ter revisões'); return; }
+    const L = await revListar(state.id); const n = state.verRev ? null : revAtual();
+    const salva = (REG.listPropostas() || []).find((x) => x.id === state.id) || {};
+    const totAtual = salva.total; const mAtual = salva.resumo ? salva.resumo.margemPct : null;
+    const dif = (v) => (typeof v === 'number' && typeof totAtual === 'number' ? (v - totAtual >= 0 ? '+' : '−') + brl(Math.abs(v - totAtual)).replace('R$ ', '') : '');
+    const linha = (x) => `<tr><td><b>Rev. ${x.rev}</b></td><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.total === 'number' ? brl(x.total) : '—'}<br><small class="sub">${dif(x.total)}</small></td><td class="n">${x.margemPct != null ? pct(x.margemPct) : '—'}</td><td>${esc(x.statusEra === 'enviada' || x.statusEra === 'negociacao' ? 'enviada ao cliente' : x.statusEra || '')}${x.motivoProxima ? `<br><small class="sub">na rev. ${x.rev + 1}: ${esc(x.motivoProxima)}</small>` : ''}</td><td style="white-space:nowrap"><button class="btn sm" data-revver="${esc(x.id)}">Ver</button> <button class="btn sm" data-revrest="${esc(x.id)}">Restaurar</button></td></tr>`;
+    modal(`<h2>Revisões · ${esc(docTitle())}</h2>
+      <div class="tw"><table class="t"><thead><tr><th>Revisão</th><th>Guardada em</th><th>Total</th><th>Margem</th><th>Situação</th><th></th></tr></thead><tbody>
+        <tr class="tot"><td><b>Rev. ${revDe(salva)}</b> <span class="pill ok">atual</span></td><td>${esc(fmtAt(salva.at || ''))}</td><td class="n">${typeof totAtual === 'number' ? brl(totAtual) : '—'}</td><td class="n">${mAtual != null ? pct(mAtual) : '—'}</td><td>${esc(salva.status || 'rascunho')}</td><td>${state.verRev ? '<button class="btn sm pri" data-revatual>Voltar à atual</button>' : ''}</td></tr>
+        ${L.map(linha).join('') || '<tr><td colspan="6" class="sub">Nenhuma revisão anterior ainda.</td></tr>'}</tbody></table></div>
+      <p class="sub" style="margin:0">"Ver" abre a revisão só para consulta. "Restaurar" guarda a atual e traz aquela de volta como a próxima revisão.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${state.verRev ? '' : `<button class="btn pri" data-revisar>Revisar (criar revisão ${n + 1})</button>`}<button class="btn" data-close>Fechar</button></div>`, (o) => fillNames(o));
+  }
+  function carregarCorpo(q, extra) {
+    const ex = Object.assign({ uid: q.uid || newUid(), status: q.status || 'rascunho', ack: q.ack || {} }, extra || {});
+    if (q.div === 'SPV' && q.spv) loadDoc({}, q.name, state.id, Object.assign(ex, { div: 'SPV', spv: JSON.parse(JSON.stringify(q.spv)) }));
+    else if (q.facts) loadDoc({}, q.name, state.id, Object.assign(ex, { div: 'SEQ', sol: 'FACTS', facts: JSON.parse(JSON.stringify(q.facts)) }));
+    else loadDoc(q.doc, q.name, state.id, ex);
+  }
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-revs]')) { revisoesModal(); return; }
+    if (e.target.closest('[data-revisar]')) { $('#overlay').innerHTML = ''; revisarModal(); return; }
+    const vr = e.target.closest('[data-revver]'); if (vr) { const x = revCache.list.find((y) => y.id === vr.dataset.revver); if (!x) return;
+      if (dirty && !state.verRev && !window.confirm('Há alterações não salvas na revisão atual. Abrir a revisão ' + x.rev + ' mesmo assim? (as alterações se perdem)')) return;
+      $('#overlay').innerHTML = ''; const pid = state.id; carregarCorpo(x.body, { verRev: { rev: x.rev, propId: pid, at: x.at } }); dirty = false; ui.step = 3; setView('proposta'); return; }
+    const rs = e.target.closest('[data-revrest]'); if (rs) { const x = revCache.list.find((y) => y.id === rs.dataset.revrest); if (!x) return; $('#overlay').innerHTML = ''; await revRestaurar(x); return; }
+    if (e.target.closest('[data-revatual]')) { $('#overlay').innerHTML = ''; const pid = (state.verRev || {}).propId || state.id; const q = (REG.listPropostas() || []).find((y) => y.id === pid); if (q) { openProposta(q, false); ui.step = 3; render(); } return; }
+  });
+  async function revRestaurar(x) {
+    const pid = (state.verRev || {}).propId || state.id; const salva = (REG.listPropostas() || []).find((y) => y.id === pid); if (!salva) return;
+    if (!window.confirm(`Restaurar a revisão ${x.rev}? A revisão ${revDe(salva)} atual fica guardada e a ${x.rev} volta como revisão ${revDe(salva) + 1}.`)) return;
+    try {
+      const n = await revCongelar(salva, 'restaurada a revisão ' + x.rev);
+      state.id = pid; carregarCorpo(x.body, { uid: salva.uid, verRev: null }); state.id = pid; state.verRev = null; setRev(n + 1); state._novaRev = true;
+      await salvarSilencioso();
+      logEv({ tipo: 'Proposta — revisão', ref: pid, desc: docTitle() + ': revisão ' + x.rev + ' restaurada como revisão ' + (n + 1), mudancas: [{ campo: 'Revisão', de: n, para: n + 1 }] });
+      ui.step = 3; render(); toast('Revisão ' + x.rev + ' restaurada como revisão ' + (n + 1));
+    } catch (e) { toast(errMsg(e)); }
+  }
+  // selo "Rev. N" no topo da proposta
+  const revSelo = () => (state.id ? `<div style="display:flex;gap:4px;align-items:center"><button class="pill ${state.verRev ? 'warn' : 'mute'} apselo" data-revs title="Ver as revisões desta proposta">${state.verRev ? 'Consultando rev. ' + state.verRev.rev : 'Rev. ' + revAtual()} ▾</button>${state.verRev ? '' : `<button class="btn sm" data-revisar title="Guarda a revisão ${revAtual()} e abre a ${revAtual() + 1} para editar">Revisar</button>`}</div>` : '');
+
   function vPropostaS() {
     const P = 'PROPOSTA'; const step = ui.step || 1;
     const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => used(x.i));
@@ -4759,7 +4862,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const margem = val(P, 'J16'), mMin = val('PARÂMETROS', 'C34');
     const st = (n, lb, info, done) => `<button class="step ${step === n ? 'on' : ''} ${done && step !== n ? 'done' : ''}" data-step="${n}" aria-current="${step === n ? 'step' : 'false'}"><span class="sn">${done && step !== n ? '✓' : n}</span><span class="st"><b>${lb}</b><small>${esc(info)}</small></span></button>`;
     const head = `<div class="flowhead"><div><h1>Proposta ${esc(txt(P, 'C5') || 'nova')}</h1><div class="sub">${esc(txt(P, 'F5') || 'Comece pelo cliente')}</div></div>
-      <div class="sumbar"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div>${apSelo()}</div></div>
+      <div class="sumbar"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div>${revSelo()}${apSelo()}</div></div>
       <nav class="steps" aria-label="Etapas da proposta">${st(1, 'Cliente', okCli ? txt(P, 'F5') : 'falta preencher', okCli)}${st(2, 'Itens', items.length ? items.length + ' item(ns)' : 'nenhum item ainda', items.length > 0)}${st(3, 'Revisão', alerts.filter((a) => !a.ack).some((a) => a.lvl === 'bad') ? 'há alertas para ver' : 'conferir e gerar documentos', false)}</nav>`;
     let body = '';
     if (step === 1) {
@@ -6274,7 +6377,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
   }
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
-  const FX = window.PricerFacts({ REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
+  const FX = window.PricerFacts({ revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const MG = window.PricerMargens({ abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
@@ -6286,7 +6389,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     ui.step = 1; setView('proposta'); toast(fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
-  const SPV = window.PricerSPV({ famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ revSelo: () => revSelo(), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
@@ -6296,9 +6399,19 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">SEQ em branco</button><button class="btn pri" id="mSpv">SPV (serviço, peças, contrato)</button><button class="btn" id="mExample">Exemplo SEQ (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
     (o, close) => { $('#mBlank', o).onclick = () => { close(); newSeq(); }; $('#mSpv', o).onclick = () => { close(); setView('inicio'); const t = document.querySelector('.tchips'); if (t) t.scrollIntoView({ block: 'center' }); toast('Escolha o tipo de SPV'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
 
-  $('#bSave').onclick = async () => {
+  $('#bSave').onclick = async (ev) => {
+    if (state.verRev) { toast('Você está consultando a revisão ' + state.verRev.rev + '. Volte à atual ou restaure esta como nova revisão.'); return; }
+    // proposta já enviada ao cliente: alterar cria revisão nova (a enviada fica guardada), salvo se for só correção
+    const salva = (REG.listPropostas() || []).find((x) => x.id === state.id);
+    if (ev && salva && dirty && ['enviada', 'negociacao'].includes(salva.status)) { revSalvarEnviada(salva); return; }
     const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
-    const base = { name: docTitle(), at: new Date().toISOString(), uid: state.uid, status: state.status || 'rascunho' };
+    // status, etapas e motivo de perda são mantidos pela tela inicial: preserva o que está no banco
+    const prev = (REG.listPropostas() || []).find((x) => x.id === state.id);
+    const keep = prev ? JSON.parse(JSON.stringify({ etapas: prev.etapas, motivoPerda: prev.motivoPerda })) : {};
+    let status = prev ? (prev.status || 'rascunho') : (state.status || 'rascunho');
+    if (state._novaRev) { status = 'rascunho'; if (keep.etapas) delete keep.etapas.cliente; delete state._novaRev; }
+    state.status = status;
+    const base = Object.assign({ name: docTitle(), at: new Date().toISOString(), uid: state.uid, status }, Object.fromEntries(Object.entries(keep).filter(([, v]) => v !== undefined)));
     const p = isSpv() ? Object.assign(base, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv })
       : isFacts() ? Object.assign(base, { div: 'SEQ', tipo: 'FAC', sol: 'FACTS', numero: state.facts.numero, cliente: state.facts.cliente, total: FX.total(), facts: state.facts })
       : Object.assign(base, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
