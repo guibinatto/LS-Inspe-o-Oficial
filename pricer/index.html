@@ -9,7 +9,7 @@
   --bg:#F4F3F0; --card:#FFFFFF; --bar:#1E1F21; --bar-ink:#F1EFEA; --bar-dim:#9C9EA3;
   --entry:#FFF7DD; --entry-line:#EBD58C; --auto:#EDF5F0; --auto-line:#BFD9C8; --auto-ink:#2F6B46;
   --ok:#1E7A45; --ok-bg:#E6F4EC; --bad:#B42F22; --bad-bg:#FCEBE8; --warn:#9A6200; --warn-bg:#FDF4DE;
-  --shadow:0 1px 2px rgba(30,20,10,.06),0 2px 8px rgba(30,20,10,.05);
+  --shadow:0 1px 2px rgba(30,20,10,.06),0 2px 8px rgba(30,20,10,.05); --th-bg:#EFEDE9; --row-h:#FBF8F4;
   --f-body:"Barlow",Arial,Helvetica,sans-serif; --f-cond:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -19,7 +19,7 @@
   --bg:#161615; --card:#1F1F1D; --bar:#0E0E0D; --bar-ink:#F1EFEA; --bar-dim:#8E8C87;
   --entry:#35301B; --entry-line:#6A5B24; --auto:#1B2B22; --auto-line:#2F5140; --auto-ink:#8CD3A8;
   --ok:#6FCF97; --ok-bg:#16301F; --bad:#FF8A7A; --bad-bg:#3A1B17; --warn:#F2C04E; --warn-bg:#352A12;
-  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow:0 1px 2px rgba(0,0,0,.4); --th-bg:#272623; --row-h:#24231F;
 }}
 :root[data-theme="dark"]{
   color-scheme:dark;
@@ -28,7 +28,7 @@
   --bg:#161615; --card:#1F1F1D; --bar:#0E0E0D; --bar-ink:#F1EFEA; --bar-dim:#8E8C87;
   --entry:#35301B; --entry-line:#6A5B24; --auto:#1B2B22; --auto-line:#2F5140; --auto-ink:#8CD3A8;
   --ok:#6FCF97; --ok-bg:#16301F; --bad:#FF8A7A; --bad-bg:#3A1B17; --warn:#F2C04E; --warn-bg:#352A12;
-  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow:0 1px 2px rgba(0,0,0,.4); --th-bg:#272623; --row-h:#24231F;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -37,29 +37,117 @@ button,input,select,textarea{font:inherit;color:inherit}
 .num,td.n,.kpi b{font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--or);outline-offset:1px}
 
-/* barra */
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bar);color:var(--bar-ink)}
-.top-in{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:10px 16px;max-width:1500px;margin:0 auto}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-cond);font-weight:700;font-size:22px;letter-spacing:.02em}
-.brand > span:not(.logo-plate){color:var(--or)}
-.logo-plate{display:flex;align-items:center;background:#fff;border-radius:7px;padding:3px 8px}
-.logo-plate img{display:block;height:34px;width:auto}
-.brand small{font-weight:500;font-size:12px;color:var(--bar-dim);letter-spacing:.08em;text-transform:uppercase}
-.doc-name{font-size:13px;color:var(--bar-dim);max-width:44ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* estrutura: menu lateral + barra superior + conteúdo */
+.shell{display:flex;min-height:100vh}
+.sidenav{position:sticky;top:0;height:100vh;flex:0 0 236px;width:236px;background:var(--bar);color:var(--bar-ink);display:flex;flex-direction:column;z-index:30;transition:width .18s ease,flex-basis .18s ease}
+.side-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 14px 10px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-cond);font-weight:700;font-size:21px;letter-spacing:.02em;min-width:0}
+.brand .bt{color:var(--or);white-space:nowrap}
+.logo-plate{display:flex;align-items:center;background:#fff;border-radius:8px;padding:3px 8px;flex:0 0 auto}
+.logo-plate img{display:block;height:30px;width:auto}
+.brand small{font-weight:500;font-size:11px;color:var(--bar-dim);letter-spacing:.08em;text-transform:uppercase;margin-left:4px}
+.nav{display:flex;flex-direction:column;gap:2px;padding:6px 10px;flex:1 1 auto;overflow:auto}
+.nav button{display:flex;align-items:center;gap:12px;background:none;border:0;color:var(--bar-dim);font-family:var(--f-cond);font-weight:600;font-size:15.5px;letter-spacing:.04em;text-transform:uppercase;padding:9px 12px;border-radius:9px;cursor:pointer;text-align:left;position:relative;transition:background .15s ease,color .15s ease}
+.nav button:hover{color:var(--bar-ink);background:rgba(255,255,255,.05)}
+.nav button[aria-current="page"]{color:var(--bar-ink);background:rgba(255,255,255,.09)}
+.nav button[aria-current="page"]::before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--or)}
+.nav .ico{width:19px;height:19px;flex:0 0 19px}
+.nav .nl{flex:1 1 auto;white-space:nowrap}
+.side-col{display:flex;align-items:center;gap:12px;margin:8px 10px 14px;padding:9px 12px;background:none;border:1px solid rgba(255,255,255,.12);color:var(--bar-dim);border-radius:9px;cursor:pointer;font-family:var(--f-cond);font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:13px}
+.side-col:hover{color:var(--bar-ink);border-color:var(--or)}
+.side-col .ico{width:18px;height:18px}
+body.side-mini .sidenav{flex-basis:68px;width:68px}
+body.side-mini .sidenav .nl,body.side-mini .sidenav .bt,body.side-mini .logo-plate{display:none}
+body.side-mini .nav button,body.side-mini .side-col{justify-content:center;padding:10px}
+body.side-mini .nav .nbadge{position:absolute;top:2px;right:4px}
+.iconbtn.side-x,.iconbtn.menu-btn,.side-scrim{display:none}
+.mainw{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bar);color:var(--bar-ink);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.top-in{display:flex;align-items:center;gap:8px 14px;padding:9px 18px;min-height:56px}
+.doc-name{font-size:13px;color:var(--bar-dim);min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .doc-name b{color:var(--bar-ink);font-weight:600}
-.nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
-.nav button{background:none;border:0;color:var(--bar-dim);font-family:var(--f-cond);font-weight:600;font-size:15px;letter-spacing:.05em;text-transform:uppercase;padding:6px 10px;border-radius:6px;cursor:pointer}
-.nav button:hover{color:var(--bar-ink)}
-.nav button[aria-current="page"]{color:var(--bar-ink);background:rgba(255,255,255,.08);box-shadow:inset 0 -2px 0 var(--or)}
-.actions{display:flex;gap:6px;flex-wrap:wrap}
-.btn{border:1px solid var(--line2);background:var(--card);color:var(--ink);padding:6px 12px;border-radius:7px;cursor:pointer;font-weight:600;font-size:14px}
+.actions{display:flex;gap:6px;flex-wrap:nowrap;margin-left:auto}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:transparent;color:var(--bar-ink);cursor:pointer}
+.iconbtn .ico{width:20px;height:20px}
+.ico{width:16px;height:16px;flex:0 0 auto;vertical-align:-3px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line2);background:var(--card);color:var(--ink);padding:7px 13px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;line-height:1.2;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .05s ease}
 .btn:hover{border-color:var(--or)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled,.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
 .btn.pri{background:var(--or);border-color:var(--or);color:#fff}
+.btn.pri:hover{background:var(--or-ink);border-color:var(--or-ink)}
 .btn.ghost{background:transparent;border-color:rgba(255,255,255,.18);color:var(--bar-ink)}
 .btn.ghost:hover{border-color:var(--or)}
-.btn.sm{padding:3px 8px;font-size:12.5px}
+.btn.busy{pointer-events:none;opacity:.75}
+.btn.busy .ico{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn.sm{padding:4px 9px;font-size:12.5px;border-radius:7px}
+.btn.sm .ico{width:14px;height:14px}
+@media (max-width:1100px){.actions .btn:not(.pri){font-size:0;gap:0;padding:7px 9px}.actions .btn:not(.pri) .ico{width:18px;height:18px}}
+@media (max-width:860px){
+  .sidenav{position:fixed;left:0;top:0;bottom:0;transform:translateX(-102%);transition:transform .2s ease;box-shadow:4px 0 24px rgba(0,0,0,.35)}
+  body.side-open .sidenav{transform:none}
+  body.side-open .side-scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:25}
+  .iconbtn.side-x,.iconbtn.menu-btn{display:inline-flex}.side-col{display:none}
+  body.side-mini .sidenav{flex-basis:236px;width:236px} body.side-mini .sidenav .nl,body.side-mini .sidenav .bt,body.side-mini .logo-plate{display:revert}
+  .top-in{padding:8px 10px;gap:6px}
+  .actions{gap:4px}.actions .btn:not(.pri){padding:7px 8px}
+  .iconbtn{width:36px;height:36px}
+  .actions .btn.pri{padding:7px 11px}
+}
+/* proposta: cabeçalho de contexto e abas */
+.ctxh{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 18px;align-items:center;margin:0 0 10px}
+.ctx-id{display:flex;align-items:center;gap:12px;min-width:0;flex-wrap:wrap}
+.ctx-tt{min-width:0}.ctx-tt h1{margin:0;font-size:24px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctx-tags{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ctx-kpis{display:flex;align-items:stretch;gap:0;padding:0;overflow:hidden}
+.ctx-kpis .k{display:flex;flex-direction:column;justify-content:center;padding:8px 16px;border-left:1px solid var(--line);min-width:0}
+.ctx-kpis .k:first-child{border-left:0}
+.ctx-kpis .k span{font-family:var(--f-cond);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.ctx-kpis .k b{font-size:18px;white-space:nowrap}
+.ctx-kpis .k em{font-style:normal;font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.ctx-more{display:none;align-self:center;margin:0 8px}
+.ptabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line2);margin:0 0 14px;scrollbar-width:thin}
+.ptab{display:inline-flex;align-items:center;gap:7px;padding:9px 12px 10px;border:0;border-bottom:2px solid transparent;background:none;color:var(--ink2);font-family:var(--f-cond);font-weight:600;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;white-space:nowrap;border-radius:8px 8px 0 0;transition:color .15s ease,background .15s ease,border-color .15s ease}
+.ptab:hover{color:var(--ink);background:var(--or-soft)}
+.ptab.on{color:var(--ink);border-bottom-color:var(--or)}
+.ptab .ico{width:17px;height:17px}
+.pst{font-style:normal;display:inline-grid;place-items:center;min-width:17px;height:17px;border-radius:9px;font-size:11px;font-family:var(--f-body);font-weight:700;padding:0 4px}
+.ptab.st-ok .pst{background:var(--ok-bg);color:var(--ok)}.ptab.st-warn .pst{background:var(--warn-bg);color:var(--warn)}.ptab.st-bad .pst{background:var(--bad-bg);color:var(--bad)}.ptab.st-pend .pst{display:none}
+.tl{white-space:nowrap}.btn.ic-only .tl{display:none}
+.nav .nbadge{margin-left:auto}
+.stack > section.card,.card{border-radius:12px}
+@media (max-width:860px){
+  .ctxh{grid-template-columns:1fr}
+  .ctx-kpis .k.x{display:none}.ctxh.open .ctx-kpis .k.x{display:flex}
+  .ctx-kpis{flex-wrap:wrap}.ctx-kpis .k{flex:1 1 30%;padding:6px 10px}
+  .ctx-more{display:inline-flex}
+  .ctx-tt h1{font-size:20px}
+  .ptab span{display:none}.ptab.on span{display:inline}
+}
+@media (max-width:600px){.doc-name{display:none}}
+/* acabamento moderno (só aparência; nada muda nos dados) */
+.card{border-radius:12px;border-color:var(--line)}
+.t th{background:var(--th-bg);color:var(--ink2);border-bottom:1px solid var(--line2);font-size:12px;padding:9px 10px}
+.t td{padding:7px 10px}
+.t tbody tr.click{cursor:pointer}.t tbody tr.click:hover td{background:var(--row-h)}
+.f input,.f select,.cellin,.modal input,.modal select,.modal textarea{border-radius:7px;transition:border-color .15s ease,box-shadow .15s ease}
+.f input,.f select,.modal input,.modal select{padding:7px 9px}
+.f input:focus,.f select:focus,.cellin:focus,.modal input:focus,.modal select:focus,.modal textarea:focus,.t td.in input:focus,.t td.in select:focus,input[type=search]:focus{outline:none;border-color:var(--or);box-shadow:0 0 0 3px var(--or-soft)}
+.kpis{border-radius:12px}
+.pill{border-radius:999px}
+.banner{border-radius:10px}
+.toast{border-radius:10px;animation:toastIn .22s ease}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+.modal{animation:fadeIn .15s ease}.modal .card{animation:popIn .18s ease;border-radius:14px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes popIn{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:none}}
+details>summary{transition:color .15s ease}
+.ptabs+*{animation:fadeIn .15s ease}
+.savest.ok{animation:fadeIn .3s ease}
+.btn .ico+span,.btn .ico+.tl{margin-left:0}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 
-main{max-width:1500px;margin:0 auto;padding-inline:16px;padding-block:18px 60px}
+main{width:100%;max-width:1500px;margin:0 auto;padding-inline:16px;padding-block:18px 60px}
 h1,h2,h3{font-family:var(--f-cond);text-wrap:balance;margin:0}
 h1{font-size:28px;font-weight:700}
 h2{font-size:16px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2)}
@@ -378,7 +466,8 @@ input.rin.pend{color:var(--ink3);font-style:italic}.rok{all:unset;cursor:pointer
 table.cent td{vertical-align:top}table.cent select{max-width:190px}table.cent .chk{display:inline-flex;gap:3px;margin-right:6px;white-space:nowrap}
 .warn-t{color:var(--warn)}tr.cf-erro td{background:var(--bad-bg)}tr.cf-aviso td{background:var(--warn-bg)}
 .pendbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--card);font-size:13.5px}
-.pnfil{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.pnfil select,.pnfil input{width:auto;min-width:150px;flex:1 1 150px}.pnfil .btn{flex:0 0 auto}
+.pnfil{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.pnfil select,.pnfil input{border:1px solid var(--line2);background:var(--card);border-radius:7px;padding:6px 9px;font-size:14px;min-height:34px}.pnfil select,.pnfil input{width:auto;min-width:150px;flex:1 1 150px}.pnfil .btn{flex:0 0 auto}
+.stepper{display:flex;gap:4px;align-items:stretch}.stepper input{flex:1 1 auto;min-width:0;text-align:center}.stepper .btn{min-width:34px;font-size:16px}
 .t.perm td.c{text-align:center}.t.perm th{font-size:12px}
 .fsec{border:1px solid var(--line2);border-radius:10px;padding:10px 12px}.fsec h3{margin:0 0 8px;font-size:14px}.fsec>summary{cursor:pointer}.row2{display:flex;gap:6px}.row2 input{flex:1 1 auto;min-width:0}
 .thsort{all:unset;cursor:pointer;color:inherit}.thsort.on{text-decoration:underline}.star{all:unset;cursor:pointer;color:var(--muted,#999);font-size:16px;padding:0 4px}.star.on{color:var(--or)}.star:focus-visible,.thsort:focus-visible{outline:2px solid var(--or)}
@@ -427,31 +516,42 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 </style>
 
 <a class="skip" href="#app">Pular para o conteúdo</a>
+<div class="shell" id="shell">
+<aside class="sidenav" id="side" aria-label="Menu principal">
+  <div class="side-top">
+    <div class="brand"><span class="logo-plate"><img src="logo-lsfire.png" alt="LS Fire — Sistemas de Combate a Incêndio" width="130" height="48"></span><span class="bt">Pricer <small>REV22</small></span></div>
+    <button class="iconbtn side-x" id="bSideX" data-ico="x" aria-label="Fechar o menu"></button>
+  </div>
+  <nav class="nav" id="nav" aria-label="Seções">
+    <button data-view="inicio" data-ico="house" title="Início"><span class="nl">Início</span></button>
+    <button data-view="proposta" data-ico="file-text" title="Proposta aberta"><span class="nl">Propostas</span></button>
+    <button data-view="pendencias" data-ico="clipboard-list" title="Pendências"><span class="nl">Pendências</span></button>
+    <button data-view="documentos" data-ico="folder-open" title="Documentos"><span class="nl">Documentos</span></button>
+    <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens"><span class="nl">Margens</span></button>
+    <button data-view="cadastro" data-ico="database" title="Cadastros"><span class="nl">Cadastros</span></button>
+    <button data-view="config" data-ico="settings-2" title="Configurações"><span class="nl">Configurações</span></button>
+    <button data-view="guia" data-ico="circle-help" title="Ajuda"><span class="nl">Ajuda</span></button>
+  </nav>
+  <button class="side-col" id="bSideCol" data-ico="panel-left-close" aria-label="Recolher o menu" title="Recolher o menu"><span class="nl">Recolher</span></button>
+</aside>
+<div class="side-scrim" id="sideScrim" hidden></div>
+<div class="mainw">
 <header class="top">
   <div class="top-in">
-    <div class="brand"><span class="logo-plate"><img src="logo-lsfire.png" alt="LS Fire — Sistemas de Combate a Incêndio" width="130" height="48"></span><span>Pricer</span> <small>REV22</small></div>
+    <button class="iconbtn menu-btn" id="bMenu" data-ico="menu" aria-label="Abrir o menu"></button>
     <div class="doc-name" id="docName"></div><span id="saveSt" class="savest" hidden aria-live="polite"></span>
-    <nav class="nav" id="nav" aria-label="Seções">
-      <button data-view="inicio">Início</button>
-      <button data-view="pendencias">Pendências</button>
-      <button data-view="proposta">Proposta</button>
-      <button data-view="item" data-seqonly>Itens</button>
-      <button data-view="memorial" data-seqonly>Memorial</button>
-      <button data-view="documentos">Documentos</button>
-      <button data-view="margens">Margens</button>
-      <button data-view="cadastro">Cadastro</button>
-      <button data-view="guia">Guia</button>
-    </nav>
     <div class="actions">
-      <button class="btn ghost" id="bTheme" title="Tema da tela: automático (o do sistema), claro ou escuro">Tema</button>
-      <button class="btn ghost" id="bMode">Modo detalhado</button>
-      <button class="btn ghost" id="bNew">Nova</button>
-      <button class="btn ghost" id="bOpen">Abrir</button>
-      <button class="btn pri" id="bSave">Salvar</button>
+      <button class="btn ghost ic-only" id="bTheme" data-ico="sun-moon" title="Tema da tela: automático (o do sistema), claro ou escuro">Tema</button>
+      <button class="btn ghost" id="bMode" data-ico="table-2" title="Alterna entre a visão guiada e a visão completa da planilha">Modo detalhado</button>
+      <button class="btn ghost" id="bNew" data-ico="plus" title="Nova proposta">Nova</button>
+      <button class="btn ghost" id="bOpen" data-ico="folder-search" title="Abrir uma proposta salva">Abrir</button>
+      <button class="btn pri" id="bSave" data-ico="save" title="Salvar (Ctrl+S)">Salvar</button>
     </div>
   </div>
 </header>
 <main id="app"><div class="loading">Carregando a planilha…</div></main>
+</div>
+</div>
 <div id="overlay"></div>
 
 <script src="engine.js"></script>
@@ -466,6 +566,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 <script src="pedidos.js"></script>
 <script src="tributos.js"></script>
 <script src="conferencia.js"></script>
+<script src="icones.js"></script>
 <script src="familias.js"></script>
 <script src="regras.js"></script>
 <script src="pendencias.js"></script>

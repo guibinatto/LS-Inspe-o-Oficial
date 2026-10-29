@@ -62,19 +62,22 @@
       const r = i === 'novo' || i === 'dup' ? Object.assign({ nome: '', cond: [{ campo: 'C21', op: '=', valor: '' }], efeito: 'exige', componente: '', sev: 'aviso', mensagem: '', fonte: '', ativa: true, status: 'rascunho', prioridade: 50 }, editar.base || {}, { id: novoId(), versao: 1 }) : JSON.parse(JSON.stringify(L[+i]));
       if (i === 'dup') { i = 'novo'; editar.base = null; }
       const opt = (Lx, cur) => Lx.map(([k, t]) => `<option value="${esc(k)}"${k === cur ? ' selected' : ''}>${esc(t)}</option>`).join('');
-      const condRow = (c, j) => `<div class="rgcond" data-j="${j}"><select data-rc="campo" aria-label="Campo">${opt(CAMPOS, c.campo)}</select><select data-rc="op" aria-label="Condição">${opt(OPS, c.op)}</select><input data-rc="valor" value="${esc(c.valor || '')}" aria-label="Valor" placeholder="valor"><button class="restore" data-rcrm="${j}" aria-label="Tirar condição">×</button></div>`;
+      const condRow = (c, j) => `<div class="rgcond" data-j="${j}"><select data-rc="campo" aria-label="Campo">${opt(CAMPOS, c.campo)}</select><select data-rc="op" aria-label="Condição">${opt(OPS, c.op)}</select><input data-rc="valor" list="dl_rc_${j}" value="${esc(c.valor || '')}" aria-label="Valor" placeholder="valor"><datalist id="dl_rc_${j}">${(ctx.opcoes ? ctx.opcoes(c.campo) : []).slice(0, 400).map((x) => `<option value="${esc(x)}">`).join('')}</datalist><button class="restore" data-rcrm="${j}" aria-label="Tirar condição">×</button></div>`;
       modal(`<h2>${i === 'novo' ? 'Nova regra' : 'Regra'}</h2>
         <div class="fields"><div class="f span2 req"><label for="rgNome">Nome</label><input id="rgNome" value="${esc(r.nome)}" placeholder="ex.: skid com painel de comando"></div>
           <div class="f"><label for="rgSev">Criticidade</label><select id="rgSev">${opt(SEV, r.sev)}</select></div><div class="f"><label for="rgPri">Prioridade</label><input id="rgPri" inputmode="numeric" value="${esc(String(r.prioridade ?? 50))}"></div>
           <div class="f span2"><label for="rgSt">Situação</label><select id="rgSt">${opt(STATUS, r.ativa === false ? 'inativa' : (r.status || 'publicada'))}</select></div>
           <div class="f spanall"><label>Quando (todas as condições; sem condição = sempre)</label><div id="rgConds">${(r.cond || []).map(condRow).join('')}</div><button class="restore" id="rgAdd">+ condição</button></div>
-          <div class="f span2"><label for="rgEf">Então</label><select id="rgEf">${opt(EFEITOS, r.efeito)}</select></div><div class="f span2"><label for="rgComp">Componente (parte da descrição)</label><input id="rgComp" value="${esc(r.componente || '')}" placeholder="ex.: PAINEL"></div>
+          <div class="f span2"><label for="rgEf">Então</label><select id="rgEf">${opt(EFEITOS, r.efeito)}</select></div><div class="f span2"><label for="rgComp">Componente (parte da descrição)</label><input id="rgComp" list="dl_rgcomp" value="${esc(r.componente || '')}" placeholder="ex.: PAINEL"></div>
           <div class="f spanall"><label for="rgMsg">Mensagem do alerta (opcional)</label><input id="rgMsg" value="${esc(r.mensagem || '')}" placeholder="em branco: o app escreve"></div>
           <div class="f spanall req"><label for="rgFonte">Fonte ou justificativa</label><input id="rgFonte" value="${esc(r.fonte || '')}" placeholder="ex.: requisito do cliente X; decisão da Engenharia em 10/2026; item da norma conferido por quem cadastra"></div></div>
         <p class="sub" id="rgMsgSt" style="margin:0"></p>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="rgOk">Salvar regra</button>${i !== 'novo' ? '<button class="btn" id="rgDup">Duplicar</button><button class="btn" id="rgDel">Excluir</button>' : ''}<button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
         const ler = () => [...o.querySelectorAll('.rgcond')].map((d) => ({ campo: d.querySelector('[data-rc="campo"]').value, op: d.querySelector('[data-rc="op"]').value, valor: d.querySelector('[data-rc="valor"]').value.trim() }));
         const redraw = (cs) => { $('#rgConds', o).innerHTML = cs.map(condRow).join(''); };
+        // ao trocar o campo da condição, as sugestões de valor passam a ser as daquele campo
+        o.addEventListener('change', (e) => { if (e.target.matches('[data-rc="campo"]')) redraw(ler()); });
+        if (!$('#dl_rgcomp', o)) { const dl = document.createElement('datalist'); dl.id = 'dl_rgcomp'; dl.innerHTML = (ctx.opcoes ? ctx.opcoes('_comp') : []).slice(0, 1200).map((x) => `<option value="${esc(x)}">`).join(''); o.appendChild(dl); }
         $('#rgAdd', o).onclick = () => redraw(ler().concat([{ campo: 'C21', op: '=', valor: '' }]));
         o.addEventListener('click', (e) => { const x = e.target.closest('[data-rcrm]'); if (!x) return; const cs = ler(); cs.splice(+x.dataset.rcrm, 1); redraw(cs); });
         $('#rgOk', o).onclick = async () => {

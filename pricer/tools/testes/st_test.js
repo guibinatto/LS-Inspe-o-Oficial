@@ -19,7 +19,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   await p.click('[data-apdec$="|financeiro|aprovada"]'); await p.click('#adOk'); await p.waitForTimeout(400);
   console.log('após financeiro:', await p.$eval('#app section.card h2', (x) => x.innerText), '|', await p.$eval('.trilha', (x) => x.innerText.replace(/\s+/g, ' ')));
   await p.click('[data-view="inicio"]'); await p.waitForTimeout(300); console.log('home 2:', await row()); console.log('etapas 2:', await et());
-  await p.click('.home [data-hnext]'); await p.waitForTimeout(500); console.log('abriu em:', await p.$eval('.step.on', (x) => x.innerText.replace(/\s+/g, ' ')));
+  await p.click('.home [data-hnext]'); await p.waitForTimeout(500); console.log('abriu em:', await p.$eval('.ptab.on', (x) => x.innerText.replace(/\s+/g, ' ')));
   await p.click('[data-apaplica]'); await p.waitForTimeout(600); await p.click('#bSave'); await p.waitForTimeout(400);
   console.log('selo 3:', await p.$eval('.apselo', (x) => x.innerText));
   await p.click('[data-view="inicio"]'); await p.waitForTimeout(300); console.log('home 3:', await row()); console.log('etapas 3:', await et());

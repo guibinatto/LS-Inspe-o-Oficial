@@ -1,0 +1,174 @@
+{
+ "02-01": {
+  "id": "02-01",
+  "cap": 2,
+  "nome": "navegacao-tela-inicial",
+  "titulo": "Tela inicial e menu lateral",
+  "vp": "desktop",
+  "arquivo": "02-01-navegacao-tela-inicial.png",
+  "data": "2026-10-29T04:22:00.342Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Logotipo e nome do sistema (LS Pricer, revisão REV22).",
+    "sel": ".sidenav .brand, .sidenav .logo-plate",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Início: busca, novas propostas, painel e lista de propostas.",
+    "sel": "#nav [data-view=\"inicio\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Propostas: abre a proposta em edição, com as abas da proposta.",
+    "sel": "#nav [data-view=\"proposta\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Pendências: o que depende de você ou da sua área.",
+    "sel": "#nav [data-view=\"pendencias\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Documentos: orçamentos, notas, contratos e desenhos ligados às propostas.",
+    "sel": "#nav [data-view=\"documentos\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Margens: propostas fechadas, indicadores e custo real.",
+    "sel": "#nav [data-view=\"margens\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Cadastros: insumos, estruturas, kits, tabelas e regras.",
+    "sel": "#nav [data-view=\"cadastro\"]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Configurações: histórico, responsáveis, backup e planilha.",
+    "sel": "#nav [data-view=\"config\"]",
+    "ok": true
+   },
+   {
+    "n": 9,
+    "txt": "Ajuda: guia de campos da planilha original.",
+    "sel": "#nav [data-view=\"guia\"]",
+    "ok": true
+   },
+   {
+    "n": 10,
+    "txt": "Recolher/expandir o menu lateral.",
+    "sel": "#bSideCol",
+    "ok": true
+   }
+  ]
+ },
+ "02-02": {
+  "id": "02-02",
+  "cap": 2,
+  "nome": "navegacao-barra-superior",
+  "titulo": "Barra superior com a proposta aberta",
+  "vp": "desktop",
+  "arquivo": "02-02-navegacao-barra-superior.png",
+  "data": "2026-10-29T04:22:01.126Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Proposta aberta: divisão (SEQ/SPV), número e cliente.",
+    "sel": "#docName",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Tema: automático, claro ou escuro.",
+    "sel": "#bTheme",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Alterna entre a visão guiada e a planilha completa (só na proposta SEQ).",
+    "sel": "#bMode",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Nova proposta (SEQ em branco, SPV ou exemplo).",
+    "sel": "#bNew",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Abrir uma proposta salva.",
+    "sel": "#bOpen",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Salvar (também Ctrl+S).",
+    "sel": "#bSave",
+    "ok": true
+   }
+  ]
+ },
+ "02-03": {
+  "id": "02-03",
+  "cap": 2,
+  "nome": "navegacao-menu-recolhido",
+  "titulo": "Menu lateral recolhido (só ícones)",
+  "vp": "desktop",
+  "arquivo": "02-03-navegacao-menu-recolhido.png",
+  "data": "2026-10-29T04:22:02.952Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Clique de novo para expandir. A escolha fica guardada neste navegador.",
+    "sel": "#bSideCol",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Com o menu recolhido, passe o mouse sobre o ícone para ver o nome.",
+    "sel": "#nav [data-view=\"inicio\"]",
+    "ok": true
+   }
+  ]
+ },
+ "02-04": {
+  "id": "02-04",
+  "cap": 2,
+  "nome": "navegacao-celular",
+  "titulo": "No celular: menu pelo botão ☰",
+  "vp": "celular",
+  "arquivo": "02-04-navegacao-celular.png",
+  "data": "2026-10-29T04:22:07.388Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O menu abre por cima da tela; toque fora dele ou em ✕ para fechar.",
+    "sel": "#nav [data-view=\"proposta\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Fechar o menu.",
+    "sel": "#bSideX",
+    "ok": true
+   }
+  ]
+ }
+}

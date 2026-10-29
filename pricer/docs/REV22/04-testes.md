@@ -11,7 +11,9 @@ Data: 29/10/2026. Arquivo testado: `pricer/dist/ls-pricer.html` gerado do commit
 
 Detalhes em `05-regressao-calculo.md`.
 
-## 2. Testes de interface (16 scripts, `pricer/tools/testes/`)
+## 2. Testes de interface (19 scripts, `pricer/tools/testes/`)
+
+Depois da nova navegação, os scripts foram ajustados aos seletores novos (abas `.ptab`, Sistema em Configurações) e rodaram de novo: os 19 passam sem erro de página.
 
 Todos terminaram com código 0 e **sem erro de JavaScript na página**.
 

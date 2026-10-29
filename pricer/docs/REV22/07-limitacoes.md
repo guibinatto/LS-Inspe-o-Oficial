@@ -40,3 +40,10 @@
     - O preço do cadastro é sempre em R$; a moeda e o câmbio ficam nas cotações dos fornecedores.
 14. **Preços da época** valem para propostas SEQ salvas a partir da REV22. As salvas pela REV21 usam o cadastro do dia até a primeira gravação.
 15. O impacto de publicar uma estrutura é calculado sobre os modelos prontos. Propostas em rascunho com configuração própria não entram nessa conta.
+
+## Navegação e interface
+
+- O menu recolhido e o tema escolhido ficam guardados no navegador (não acompanham a pessoa em outro computador).
+- Os ícones são embutidos (sem internet); as fontes Barlow vêm do Google Fonts. Sem internet, o app usa Arial, com a mesma disposição.
+- O preenchimento inteligente sugere apenas valores que já existem nas propostas e no cadastro **deste banco** (no modo local, deste navegador). Não há base externa de clientes.
+- As capturas do manual foram feitas no modo local. No modo compartilhado aparecem, além do que está nas capturas, nomes de pessoas e selos de permissão.

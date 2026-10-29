@@ -375,6 +375,9 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const shown = kind === 'pct' ? (typeof v === 'number' ? NF[2].format(v * 100).replace(/,00$/, '') : '') : kind === 'num' ? (typeof v === 'number' ? String(+v.toFixed(6)).replace('.', ',') : '') : (v ?? '');
       return `<input data-sp="${path}" data-k="${kind}" value="${esc(shown)}"${kind === 'text' ? '' : ' inputmode="decimal"'}${opt.ph ? ` placeholder="${esc(opt.ph)}"` : ''}${opt.list ? ` list="${opt.list}"` : ''}${opt.cls ? ` class="${opt.cls}"` : ''} aria-label="${esc(opt.lb || path)}">`;
     };
+    const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+    // quantidade com − e + (continua aceitando digitação)
+    const stp = (path, v) => `<div class="stepper"><button type="button" class="btn sm" data-spstep="${path}|-1" aria-label="Diminuir">−</button>${inp(path, v)}<button type="button" class="btn sm" data-spstep="${path}|1" aria-label="Aumentar">+</button></div>`;
     const sel = (path, v, opts, lb) => `<select data-sp="${path}" data-k="text" aria-label="${esc(lb || path)}">${opts.map((o) => { const [k, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(k)}"${String(v) === String(k) ? ' selected' : ''}>${esc(l)}</option>`; }).join('')}</select>`;
     const fld = (lb, html, cls = '') => `<div class="f ${cls}"><label>${esc(lb)}</label><div class="ctl">${html}</div></div>`;
     function vSpv() {
@@ -408,9 +411,9 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="mchips">${mods.map((m) => `<button class="mchip${s.modelo === m.id ? ' on' : ''}" data-spmod="${esc(m.id)}"><b>${esc(m.nome)}</b>${m.equipe && m.equipe.length ? `<small>${esc(m.equipe.map((e) => e.tec + ' × ' + e.dias + 'd').join(' + '))}${m.pecas && m.pecas.length ? ' · ' + m.pecas.length + ' peça(s)' : ''}</small>` : ''}</button>`).join('')}</div>
           <div class="docbar" style="margin-top:10px">${REG.areaOk('servicos') ? '<button class="btn sm" data-spsavemod>Salvar esta proposta como modelo</button>' : ''}<button class="restore" data-spcfg="modelos">ver todos os modelos</button></div></section>
         <section class="card"><h2>Cliente e escopo</h2>
-          <div class="fields">${fld('Cliente', inp('cliente', s.cliente, 'text', { lb: 'Cliente' }), 'span2')}${fld('Contato', inp('contato', s.contato, 'text'))}${fld('Nº da proposta', inp('numero', s.numero, 'text', { ph: 'ex.: 10.250' }))}
-            ${fld('Local do serviço', inp('local', s.local, 'text', { ph: 'cidade / obra' }), 'span2')}${fld('UF', inp('uf', s.uf, 'text'))}${fld('Vendedor', inp('vendedor', s.vendedor, 'text'))}
-            ${fld('Tipo', sel('tipo', s.tipo, spvTipos().map((t) => [t.abrev, t.abrev + ' — ' + t.nome])), 'span2')}${fld('Pagamento', inp('pagamento', s.pagamento, 'text'))}${fld('Validade (dias)', inp('validade', s.validade, 'num'))}
+          <div class="fields">${fld('Cliente', inp('cliente', s.cliente, 'text', { lb: 'Cliente', list: 'dl_spcli' }) + `<datalist id="dl_spcli">${ctx.clientes ? [...ctx.clientes().values()].map((c) => `<option value="${esc(c.nome)}">`).join('') : ''}</datalist>`, 'span2')}${fld('Contato', inp('contato', s.contato, 'text'))}${fld('Nº da proposta', inp('numero', s.numero, 'text', { ph: 'ex.: 10.250' }))}
+            ${fld('Local do serviço', inp('local', s.local, 'text', { ph: 'cidade / obra' }), 'span2')}${fld('UF', sel('uf', s.uf || '', [['', '—']].concat(UFS.map((u) => [u, u])).concat(s.uf && !UFS.includes(s.uf) ? [[s.uf, s.uf]] : []), 'UF'))}${fld('Vendedor', (() => { const vs = ctx.vendedores ? ctx.vendedores() : []; return vs.length ? sel('vendedor', s.vendedor || '', [['', '—']].concat(vs.map((n) => [n, n])).concat(s.vendedor && !vs.includes(s.vendedor) ? [[s.vendedor, s.vendedor]] : []), 'Vendedor') : inp('vendedor', s.vendedor, 'text'); })())}
+            ${fld('Tipo', sel('tipo', s.tipo, spvTipos().map((t) => [t.abrev, t.abrev + ' — ' + t.nome])), 'span2')}${fld('Pagamento', inp('pagamento', s.pagamento, 'text', { list: 'dl_sppag' }) + `<datalist id="dl_sppag">${(ctx.pagamentos ? ctx.pagamentos() : []).map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`)}${fld('Validade (dias)', inp('validade', s.validade, 'num'))}
             ${fld('Escopo do serviço (vai na proposta)', `<textarea data-sp="descricao" data-k="text" rows="${Math.min(10, Math.max(3, String(s.descricao || '').split('\n').length + 1))}" placeholder="Ex.: pré-montagem e manutenção de 2 bombas verticais turbina com motor diesel…">${esc(s.descricao)}</textarea>`, 'spanall')}
             ${fld('Não incluso', `<textarea data-sp="exclusoes" data-k="text" rows="2">${esc(s.exclusoes)}</textarea>`, 'spanall')}${fld('Prazo de execução', inp('prazo_exec', s.prazo_exec, 'text', { ph: 'ex.: 2 dias em campo' }), 'span2')}</div>
           <div class="docbar" style="margin-top:10px"><span class="sub">Blocos:</span>${blk('equipe', 'Equipe e deslocamento')}${blk('pecas', 'Peças e materiais')}${blk('contrato', 'Contrato recorrente')}</div></section>
@@ -426,7 +429,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="docbar" style="margin-top:8px"><button class="btn sm" data-spadd="pecas">+ Peça</button><label class="btn sm pri" for="spImport">📎 Importar orçamento (PDF, XML, Excel ou foto)</label><input type="file" id="spImport" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden><span class="sub">Claude lê o documento e traz fornecedor, itens e preços.</span></div>${dl}</section>` : ''}
         ${s.blocos.contrato ? `<section class="card"><h2>Contrato recorrente <span class="sub">o preço acima vale por visita</span></h2>
           <div class="hchips" style="margin-bottom:10px">${FREQ.map(([v, lb]) => `<button class="hchip${num(s.contrato.visitas) === v ? ' on' : ''}" data-spvis="${v}">${lb} · ${v}×/ano</button>`).join('')}</div>
-          <div class="fields">${fld('Visitas por ano', inp('contrato.visitas', s.contrato.visitas))}${fld('Duração (meses)', inp('contrato.meses', s.contrato.meses))}${fld('Reajuste', inp('contrato.reajuste', s.contrato.reajuste, 'text'))}</div>
+          <div class="fields">${fld('Visitas por ano', stp('contrato.visitas', s.contrato.visitas))}${fld('Duração (meses)', stp('contrato.meses', s.contrato.meses))}${fld('Reajuste', inp('contrato.reajuste', s.contrato.reajuste, 'text'))}</div>
           <div class="kpis" style="margin-top:12px"><div class="kpi"><span>Por visita</span><b>${brl(r.ct.porVisita)}</b><em>${fmt(r.ct.nV, 0)} visitas no contrato</em></div>${r.ct.artV ? `<div class="kpi"><span>ART (uma vez)</span><b>${brl(r.ct.artV)}</b><em>custo ${brl(r.ct.artCusto)}</em></div>` : ''}<div class="kpi lead"><span>Mensalidade</span><b>${brl(r.ct.mensal)}</b></div><div class="kpi"><span>Total do contrato</span><b>${brl(r.ct.total)}</b></div></div></section>` : ''}
         ${ctx.confCard ? ctx.confCard() : ''}
         ${ctx.tribCard ? ctx.tribCard(snapshot(s), { uf: s.uf, cadfiscal: '', div: 'SPV' }) : ''}
@@ -488,7 +491,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         <p class="sub" id="mdStatus" style="margin:0">${esc(opts.status || '')}</p>
         <div class="fields">
           <div class="f"><label for="mdTipo">Tipo</label><select id="mdTipo">${DOC_TIPOS.map(([k, l]) => `<option value="${k}"${d.tipo === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
-          <div class="f span2"><label for="mdForn">Fornecedor / emitente</label><input id="mdForn" value="${esc(d.fornecedor || '')}"></div>
+          <div class="f span2"><label for="mdForn">Fornecedor / emitente</label><input id="mdForn" list="dl_mdforn" value="${esc(d.fornecedor || '')}"><datalist id="dl_mdforn">${[...new Set(docs.map((x) => x.fornecedor).concat(REG.insumos.flatMap((i) => (i.forn || []).map((f) => f.nome))).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist></div>
           <div class="f"><label for="mdNum">Número</label><input id="mdNum" value="${esc(d.numero || '')}"></div>
           <div class="f"><label for="mdData">Data</label><input id="mdData" type="date" value="${esc(d.data || '')}"></div>
           <div class="f"><label for="mdMoeda">Moeda</label><select id="mdMoeda">${['BRL', 'USD', 'EUR'].map((m) => `<option${d.moeda === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
@@ -676,6 +679,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         else setPath(s, p, v);
         const m = /^equipe\.(\d+)\.tec$/.exec(p); if (m) { const t = cfg().tecnicos.find((x) => x.nome === v); if (t) s.equipe[+m[1]].diaria = t.diaria; }
         const pm = /^pecas\.(\d+)\.desc$/.exec(p); if (pm) { const row = s.pecas[+pm[1]]; const h = pricebook().get(norm(v)); if (h && !num(row.unit)) { const x = h[0]; Object.assign(row, { unit: x.unit, moeda: x.moeda, forn: row.forn || x.forn, cod: row.cod || x.cod, ipi: x.ipi || 0 }); toast('Preço da última compra: ' + (x.forn || '')); } }
+        // cliente já conhecido: traz contato e UF da última proposta, só onde estiver vazio
+        if (p === 'cliente' && ctx.clientes) { const c = ctx.clientes().get(String(v || '').trim().toUpperCase()); if (c) { const f = []; if (c.contato && !s.contato) { s.contato = c.contato; f.push('contato'); } if (c.uf && !s.uf) { s.uf = c.uf; f.push('UF'); } if (f.length) toast('Cliente já conhecido: ' + f.join(' e ') + ' recuperado(s). Confira.'); } }
         if (p === 'tipo') { const ini = TIPO_INI[v]; if (ini) s.blocos = { equipe: !!ini.equipe || s.equipe.length > 0, pecas: !!ini.pecas || s.pecas.length > 0, contrato: !!ini.contrato }; }
         ctx.persist(); ctx.render(); return;
       }
@@ -698,6 +703,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     document.addEventListener('click', (e) => {
       const t = e.target;
       const ns = t.closest('[data-spvnew]'); if (ns) { novoSpv(ns.dataset.spvnew); return; }
+      const sp = t.closest('[data-spstep]'); if (sp && S()) { const [path, d] = sp.dataset.spstep.split('|'); const ks = path.split('.'); let o = S(); for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]] = o[ks[i]] || {}; const k = ks[ks.length - 1]; o[k] = Math.max(0, num(o[k]) + +d); ctx.persist(); ctx.render(); return; }
       if (t.closest('[data-seqnew]')) { ctx.newSeq(); return; }
       const sf = t.closest('[data-seqfam]'); if (sf) { ctx.newSeq(sf.dataset.seqfam); return; }
       const hd = t.closest('[data-hdiv]'); if (hd) { ctx.ui.homeDiv = hd.dataset.hdiv; ctx.render(); return; }

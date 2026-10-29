@@ -61,3 +61,13 @@ Toda função da REV21 foi mantida. A coluna "Como foi verificado" cita os teste
 | Kits | edição | Ampliada: duplicar, comparar, onde é usado | c3_test |
 | Preços nas propostas | sempre os do cadastro do dia | **Alterada**: enviadas, aprovadas e ganhas ficam com os preços da época; atualização seletiva | c2_test |
 | Teclado | parcial | Ampliada: Esc fecha janelas, Ctrl+S salva, "pular para o conteúdo", foco na janela aberta | p26_test |
+
+## Navegação e interface
+
+| Função | REV21 | REV22 | Como foi verificado |
+|---|---|---|---|
+| Navegação principal | barra superior com 9 entradas | **Alterada**: menu lateral com 8 entradas e ícones; recolhível; gaveta no celular | todos os testes de interface (seletores novos) |
+| Itens e Memorial | entradas gerais | **Alterada**: abas da proposta SEQ; SPV/FACTS só com Proposta e Histórico | cab_test, jor_test, p26_test |
+| Sistema (histórico, responsáveis, backup, planilha) | dentro de Cadastro | **Alterada**: em Configurações | ap_test, bk_test, p25_test, c2_test |
+| Cabeçalho de contexto da proposta | parcial | **Ampliada**: número, cliente, revisão, situação, total, margem, custo, itens, pendências | st_test, c2_test |
+| Preenchimento inteligente | — | **Nova**: listas de valores usados, botões de escolha, − e +, recuperação de dados do cliente só em campos vazios | c1_test, cab_test |

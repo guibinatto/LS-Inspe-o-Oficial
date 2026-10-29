@@ -68,7 +68,7 @@
       modal(`<h2>Pedir cadastro de insumo</h2>
         <p class="sub" style="margin:0">Preencha o básico. A descrição sai no padrão da família, e o pedido vai para a área de Custos cadastrar o preço. Você acompanha em Cadastro → Custos → Pedidos de cadastro.</p>
         <div class="fields"><div class="f span2"><label for="pdFam">Família</label><select id="pdFam">${fams.map((f) => `<option${f === fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></div>
-          <div class="f"><label for="pdFab">Fabricante</label><input id="pdFab" value="${esc(pre.fab || '')}"></div>
+          <div class="f"><label for="pdFab">Fabricante</label><input id="pdFab" list="dl_pdfab" value="${esc(pre.fab || '')}"><datalist id="dl_pdfab">${[...new Set(REG.insumos.map((i) => i.fab).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist></div>
           <div class="f"><label for="pdOri">Origem</label><select id="pdOri"><option value="NAC"${pre.origem === 'IMP' ? '' : ' selected'}>Nacional</option><option value="IMP"${pre.origem === 'IMP' ? ' selected' : ''}>Importado</option></select></div></div>
         <div id="pdCampos"></div>
         <div class="f"><label for="pdDesc">Descrição para o cadastro</label><input id="pdDesc" value="${esc(pre.produto || '')}"><small class="sub" id="pdChk"></small></div>

@@ -13,7 +13,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   await p.click('[data-seqfam="CONJUNTO MOTOBOMBA"]'); await p.waitForTimeout(500);
   console.log('view:', await p.$eval('#nav [aria-current="page"]', (x) => x.textContent), '| h2:', await p.$$eval('#app h2', (x) => x.map((e) => e.innerText.split('\n')[0]).join(' / ')));
   await p.click('[data-cabnext]'); await p.waitForTimeout(300); console.log('falta:', await p.$eval('.flowbar .sub', (x) => x.innerText), '| miss:', (await p.$$('.f.miss')).length);
-  await p.click('[data-view="item"]'); await p.waitForTimeout(300); console.log('item bloqueado? view =', await p.$eval('#nav [aria-current="page"]', (x) => x.textContent));
+  await p.click('.ptab[data-step="2"]'); await p.waitForTimeout(300); console.log('item bloqueado? view =', await p.$eval('#nav [aria-current="page"]', (x) => x.textContent));
   await p.fill('#cnpjIn', '79.114.450/0001-21'); await p.press('#cnpjIn', 'Tab'); await p.waitForTimeout(200); await p.click('#cnpjGo'); await p.waitForTimeout(800);
   console.log('cnpj msg:', await p.$eval('#cnpjMsg', (x) => x.innerText));
   const sel = async (a, i = 1) => { const el = await p.$(`[id$="PROPOSTA_${a}"]`); const tag = await el.evaluate((x) => x.tagName); if (tag === 'SELECT') { const o = await el.$$eval('option', (x) => x.map((y) => y.value)); await el.selectOption(o[i]); } else if (tag === 'INPUT') { await el.fill('X1'); await el.press('Tab'); } else { const r = await el.$$('input'); await r[i].evaluate((x) => x.closest('label').click()); } await p.waitForTimeout(250); };

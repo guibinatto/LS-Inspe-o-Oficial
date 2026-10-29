@@ -6,7 +6,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   const toast = () => p.$$eval('.toast', (x) => x.map((e) => e.innerText).join(' / '));
   const txt = (s) => p.$eval(s, (x) => x.innerText.replace(/\s+/g, ' ')).catch(() => 'NÃO ACHOU ' + s);
   const AREA = { mapa: 'mapa', qualidade: 'mapa', insumos: 'insumos', motor: 'insumos', historico: 'historico', testador: 'estruturas', estruturas: 'estruturas', campos: 'geral' };
-  const go = async (tab) => { await p.click('[data-view="cadastro"]'); await p.waitForTimeout(200); await p.click('.areatabs [data-cad="' + AREA[tab] + '"]'); await p.waitForTimeout(300); if (tab !== AREA[tab]) { await p.click('.subtabs [data-cad="' + tab + '"]'); await p.waitForTimeout(400); } };
+  const go = async (tab) => { const sis = AREA[tab] === 'historico'; await p.click(sis ? '[data-view="config"]' : '[data-view="cadastro"]'); await p.waitForTimeout(200); if (!sis) await p.click('.areatabs [data-cad="' + AREA[tab] + '"]'); await p.waitForTimeout(300); if (tab !== AREA[tab]) { await p.click('.subtabs [data-cad="' + tab + '"]'); await p.waitForTimeout(400); } };
   // 1. testador: resultado
   await go('testador'); await p.click('[data-tstrun]'); await p.waitForTimeout(1500);
   const r = await p.$$eval('#app section.card', (S) => S.map((x) => x.innerText.replace(/\s+/g, ' ')));

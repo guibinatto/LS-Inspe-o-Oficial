@@ -50,7 +50,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   // lixeira
   await p.click('#bOpen'); await p.waitForTimeout(300); await p.click('[data-del]'); await p.click('[data-del]'); await p.waitForTimeout(500); console.log('12 excluir:', await toast());
   await p.click('.modal [data-close]').catch(() => {}); await p.waitForTimeout(200);
-  await p.click('[data-view="cadastro"]'); await p.click('[data-cad="historico"]'); await p.waitForTimeout(200); await p.click('[data-cad="backup"]'); await p.waitForTimeout(300);
+  await p.click('[data-view="config"]'); await p.click('[data-cad="historico"]'); await p.waitForTimeout(200); await p.click('[data-cad="backup"]'); await p.waitForTimeout(300);
   console.log('13 lixeira:', await p.$$eval('.card h2', (x) => x.map((e) => e.innerText).filter((t) => /lixeira/i.test(t))));
   await p.click('[data-lxrest]'); await p.waitForTimeout(400); console.log('14 restaurar:', await toast(), '· excluída?', await p.evaluate(() => Object.values(JSON.parse(localStorage.getItem('lspricer.saved'))).map((x) => !!x.excluida)));
   // perfis

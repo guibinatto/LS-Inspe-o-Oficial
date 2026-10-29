@@ -22,3 +22,5 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
 6. [Implantação, migração e rollback](06-implantacao-migracao-rollback.md).
 7. [Limitações conhecidas](07-limitacoes.md).
 8. [Cadastros, padronização, estruturas e kits](08-cadastro.md): o que foi reaproveitado, cada requisito dos complementos e o que não foi feito, com o motivo.
+9. [Navegação e interface](09-interface.md): menu lateral, abas da proposta, modernização visual, preenchimento inteligente, capturas antes e depois.
+10. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).

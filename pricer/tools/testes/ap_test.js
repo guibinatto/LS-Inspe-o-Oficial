@@ -45,7 +45,7 @@ const L = __dirname + '/libs/';
   await p.click('[data-apback]'); await p.waitForTimeout(300); console.log('lista:', await p.$eval('#app table.t tbody', (x) => x.innerText.replace(/\s+/g, ' ')));
   await p.click('[data-view="proposta"]'); await p.waitForTimeout(400); await p.click('[data-step="5"]').catch(() => {}); await p.waitForTimeout(300);
   console.log('alertas aprovados:', await p.$$eval('ul.alerts li', (x) => x.map((e) => e.className + ':' + e.innerText.replace(/\s+/g, ' ')).slice(0, 3)));
-  await p.click('[data-view="cadastro"]'); await p.waitForTimeout(300); await p.click('[data-cad="historico"]'); await p.waitForTimeout(200); await p.click('[data-cad="acessos"]'); await p.waitForTimeout(300);
+  await p.click('[data-view="config"]'); await p.waitForTimeout(300); await p.click('[data-cad="historico"]'); await p.waitForTimeout(200); await p.click('[data-cad="acessos"]'); await p.waitForTimeout(300);
   console.log('e-mails card:', await p.$$eval('[data-avcfg]', (x) => x.length));
   await p.fill('[data-avcfg="diretoria"]', 'diretoria@lsfire.com.br'); await p.press('[data-avcfg="diretoria"]', 'Tab'); await p.waitForTimeout(400);
   await (await p.$('#app')).screenshot({ path: 'ap_acessos.png' }); console.log('erros', errs); await b.close();

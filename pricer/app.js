@@ -278,7 +278,9 @@
       return `<select ${data}>${opts}</select>`;
     }
     const dl = opt.datalist ? ` list="${opt.datalist}"` : '';
-    return `<input ${data}${dl} value="${esc(cur)}" inputmode="${kind === 'text' ? 'text' : 'decimal'}"${kind === 'pct' ? ' placeholder="%"' : ''} autocomplete="off">`;
+    const inp = `<input ${data}${dl} value="${esc(cur)}" inputmode="${kind === 'text' ? 'text' : 'decimal'}"${kind === 'pct' ? ' placeholder="%"' : opt.ph ? ` placeholder="${esc(opt.ph)}"` : ''} autocomplete="off">`;
+    // quantidades: − e + ao lado, sem impedir de digitar
+    return opt.step ? `<div class="stepper"><button type="button" class="btn sm" data-stepdo="-1" data-for="${esc(id(sheet, a))}" aria-label="Diminuir">−</button>${inp}<button type="button" class="btn sm" data-stepdo="1" data-for="${esc(id(sheet, a))}" aria-label="Aumentar">+</button></div>` : inp;
   }
   // célula editável dentro de tabela
   function cellIn(sheet, a, opt = {}) {
@@ -303,14 +305,24 @@
     commit(sheet, a, v);
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('input[data-addr]')) e.target.blur(); });
-  // teclado: Esc fecha a janela aberta; Ctrl+S (⌘S) salva a proposta
+  // menu lateral: recolher (computador) e gaveta (celular)
+  try { if (localStorage.getItem('lspricer.sidemini') === '1') document.body.classList.add('side-mini'); } catch (e) { /* sem preferência guardada */ }
+  const fechaMenu = () => { if (!document.body.classList.contains('side-open')) return; document.body.classList.remove('side-open'); $('#sideScrim').hidden = true; $('#bMenu').focus(); };
+  $('#bMenu').onclick = () => { document.body.classList.add('side-open'); $('#sideScrim').hidden = false; const f = $('#nav button[aria-current="page"]') || $('#nav button'); if (f) f.focus(); };
+  $('#bSideX').onclick = fechaMenu; $('#sideScrim').onclick = fechaMenu;
+  $('#nav').addEventListener('click', (e) => { if (e.target.closest('button')) fechaMenu(); });
+  const sideCol = () => { const m = document.body.classList.contains('side-mini'); const b = $('#bSideCol'); b.dataset.ico = m ? 'panel-left-open' : 'panel-left-close'; b.title = m ? 'Expandir o menu' : 'Recolher o menu'; b.setAttribute('aria-label', b.title); b.querySelector('.nl').textContent = m ? 'Expandir' : 'Recolher'; decorar(b.parentElement); };
+  $('#bSideCol').onclick = () => { const m = document.body.classList.toggle('side-mini'); try { localStorage.setItem('lspricer.sidemini', m ? '1' : '0'); } catch (e) { /* só nesta visita */ } sideCol(); };
+  sideCol();
+  // teclado: Esc fecha a janela aberta (ou o menu); Ctrl+S (⌘S) salva a proposta
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('side-open')) { fechaMenu(); return; } });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && $('#overlay') && $('#overlay').firstElementChild && !e.defaultPrevented) { const c = $('#overlay [data-close]'); if (c) c.click(); else $('#overlay').innerHTML = ''; return; }
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => $('#bSave').click(), 0); }
   });
   // tema: automático (segue o sistema), claro ou escuro; fica guardado neste navegador
   const TEMAS = [['auto', 'Tema: automático'], ['light', 'Tema: claro'], ['dark', 'Tema: escuro']];
-  function aplicaTema(t) { if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; const b = $('#bTheme'); if (b) { b.textContent = (TEMAS.find((x) => x[0] === t) || TEMAS[0])[1]; b.setAttribute('aria-label', b.textContent + ' (clique para trocar)'); } }
+  function aplicaTema(t) { if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; const b = $('#bTheme'); if (b) { const lb = (TEMAS.find((x) => x[0] === t) || TEMAS[0])[1]; b.innerHTML = '<span class="tl">' + lb + '</span>'; b.dataset.ico = t === 'light' ? 'sun' : t === 'dark' ? 'moon' : 'sun-moon'; b.title = lb + ' (clique para trocar)'; b.setAttribute('aria-label', lb + ' (clique para trocar)'); decorar(b.parentElement); } }
   let tema = 'auto'; try { tema = localStorage.getItem('lspricer.tema') || 'auto'; } catch (e) { tema = 'auto'; }
   aplicaTema(tema);
   $('#bTheme').onclick = () => { const i = TEMAS.findIndex((x) => x[0] === tema); tema = TEMAS[(i + 1) % TEMAS.length][0]; try { localStorage.setItem('lspricer.tema', tema); } catch (e) { /* só nesta visita */ } aplicaTema(tema); };
@@ -320,7 +332,7 @@
     const go = e.target.closest('[data-goitem]');
     if (go) { ui.item = +go.dataset.goitem; ui.itemFull = false; setView('item'); return; }
     const nv = e.target.closest('[data-view]');
-    if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = cabOk() ? 2 : 1; if (!cabOk()) ui.reqShow = true; ui.propFull = false; setView('proposta'); return; } setView(nv.dataset.view); return; }
+    if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = cabOk() ? 2 : 1; if (!cabOk()) ui.reqShow = true; ui.propFull = false; setView('proposta'); return; } if (nv.dataset.view === 'cadastro' && areaOfTab(ui.cad) === 'sistema') ui.cad = 'insumos'; setView(nv.dataset.view); return; }
   });
 
   document.addEventListener('click', async (e) => {
@@ -329,23 +341,56 @@
   });
 
   // ---------- visões ----------
+  // clientes já usados em propostas salvas: sugestões e dados que se repetem (CNPJ, UF, cadastro fiscal, segmento, contato)
+  function clientesConhecidos() {
+    const M = new Map();
+    for (const q of (REG.listPropostas() || []).slice().sort((a, b) => String(a.at).localeCompare(String(b.at)))) {
+      const P = ((q.doc || {}).PROPOSTA) || {}; const nome = String(q.cliente || P.F5 || (q.spv || {}).cliente || (q.facts || {}).cliente || '').trim(); if (!nome) continue;
+      const c = M.get(nome.toUpperCase()) || { nome };
+      for (const [k, v] of Object.entries({ L5: P.L5, F7: P.F7, J5: P.J5, F8: P.F8, contato: (q.spv || {}).contato, uf: (q.spv || {}).uf || P.F7 })) if (v !== undefined && v !== null && v !== '') c[k] = v;
+      M.set(nome.toUpperCase(), c);
+    }
+    return M;
+  }
+  const dlClientesHtml = () => `<datalist id="dl_clientes">${[...clientesConhecidos().values()].map((c) => `<option value="${esc(c.nome)}">`).join('')}</datalist>`;
+  document.addEventListener('change', (e) => {
+    const el = e.target; if (!(el.dataset && el.dataset.sheet === 'PROPOSTA' && el.dataset.addr === 'F5')) return;
+    const c = clientesConhecidos().get(String(el.value || '').trim().toUpperCase()); if (!c) return;
+    setTimeout(() => { const feitos = []; for (const [a, lb] of [['L5', 'CNPJ'], ['F7', 'UF'], ['J5', 'cadastro fiscal'], ['F8', 'segmento']]) if (c[a] !== undefined && !txt('PROPOSTA', a)) { commit('PROPOSTA', a, c[a]); feitos.push(lb); }
+      if (feitos.length) toast('Cliente já conhecido: ' + feitos.join(', ') + ' recuperado(s) da última proposta. Confira.'); }, 30);
+  });
+  // botões − e + das quantidades
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-stepdo]'); if (!b) return; const inp = document.getElementById(b.dataset.for); if (!inp) return; const n = parseInput(String(inp.value || '0'), 'num'); const v = Math.max(0, (typeof n === 'number' ? n : 0) + +b.dataset.stepdo); inp.value = String(v).replace('.', ','); inp.dispatchEvent(new Event('change', { bubbles: true })); });
+  // ícones: todo elemento com data-ico ganha o seu ícone (uma vez)
+  // botões do conteúdo ganham o ícone pelo sentido do rótulo (o texto continua: ação importante nunca fica só no ícone)
+  const ICO_AUTO = [[/^\+|^Nov[ao]\b|^Cadastrar|^Incluir|^Adicionar/i, 'plus'], [/^Salvar/i, 'save'], [/^Duplicar|^Copiar/i, 'copy'], [/^(Excluir|Remover|Apagar|Descartar)/i, 'trash-2'], [/^Editar/i, 'pencil'], [/^Ver\b|^Ver /i, 'eye'],
+    [/^(Exportar|Baixar)/i, 'download'], [/^(Importar|Anexar|Escolher arquivo)/i, 'upload'], [/^Aprovar/i, 'circle-check'], [/^Reprovar|^Recusar/i, 'circle-x'], [/^Comparar/i, 'git-compare'], [/^(Testar|Montar e testar)/i, 'flask-conical'],
+    [/^Publicar/i, 'send'], [/^(Restaurar|Desfazer|Voltar ao)/i, 'rotate-ccw'], [/^(Buscar|Pesquisar)/i, 'search'], [/^Pedir aprova/i, 'send'], [/^Revisar/i, 'refresh-cw'], [/^Abrir/i, 'external-link'], [/^Fechar$|^Cancelar$/i, 'x'], [/^Aplicar/i, 'check'], [/^Confirmar/i, 'check'], [/^Hist[óo]rico/i, 'history']];
+  function iconeAuto(root) { for (const el of (root || document).querySelectorAll('#app .btn:not([data-ico]):not([data-noico]), #overlay .btn:not([data-ico]):not([data-noico])')) { const t = (el.textContent || '').trim(); const hit = ICO_AUTO.find(([re]) => re.test(t)); el.dataset.ico = hit ? hit[1] : ''; } }
+  function decorar(root) { iconeAuto(root); for (const el of (root || document).querySelectorAll('[data-ico]')) { if (!el.dataset.ico) continue; const n = el.dataset.ico; const cur = el.querySelector(':scope > .ico'); if (cur && cur.dataset.n === n) continue; if (cur) cur.remove(); const t = document.createElement('template'); t.innerHTML = window.ICO ? window.ICO(n) : ''; const svg = t.content.firstChild; if (!svg) continue; svg.dataset.n = n; el.insertBefore(svg, el.firstChild); } }
   function setView(v) { if ((v === 'item' || v === 'memorial') && !cabOk()) { ui.step = 1; ui.reqShow = true; v = 'proposta'; toast('Preencha o cabeçalho antes do equipamento'); } ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
     const spv = isSpv(); const fx = isFacts(); const outro = spv || fx;
     aplicaLogo();
     if (outro && (ui.view === 'item' || ui.view === 'memorial')) ui.view = 'proposta';
-    for (const b of document.querySelectorAll('#nav button')) { b.setAttribute('aria-current', b.dataset.view === ui.view ? 'page' : 'false'); if ('seqonly' in b.dataset) b.hidden = outro; }
+    // Sistema (histórico, responsáveis, backup, planilha) fica em Configurações; o resto do cadastro em Cadastros
+    if (ui.view === 'cadastro' && CAD_TABS.some((x) => x[0] === ui.cad) && areaOfTab(ui.cad) === 'sistema') ui.view = 'config';
+    if (ui.view === 'config' && areaOfTab(ui.cad) !== 'sistema') ui.cad = 'historico';
+    const navAtual = viewDaProposta(ui.view) ? 'proposta' : ui.view;
+    for (const b of document.querySelectorAll('#nav button')) b.setAttribute('aria-current', b.dataset.view === navAtual ? 'page' : 'false');
     const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
-    for (const id of ['bMode']) { const b = $('#' + id); if (b) b.hidden = outro || ['inicio', 'documentos', 'margens'].includes(ui.view); }
+    { const b = $('#bMode'); if (b) b.hidden = outro || !['proposta', 'item'].includes(ui.view); }
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
     const full = !outro && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
     const views = spv ? { proposta: SPV.vSpv } : fx ? { proposta: FX.vFacts } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
-    const html = Object.assign({ inicio: SPV.vHome, pendencias: MG.vPendencias, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: vCadastro, guia: vGuia }, views)[ui.view]();
+    const html = (viewDaProposta(ui.view) ? propHeader() : '') + Object.assign({ inicio: SPV.vHome, pendencias: MG.vPendencias, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: () => vCadastro('cadastro'), config: () => vCadastro('config'), guia: vGuia, phist: vPropHist }, views)[ui.view]();
     MG.ensure(); SPV.ensureDocs(); PD.ensure();
-    { const nb = document.querySelector('#nav [data-view="cadastro"]'); const n = REG.areaOk('custos') ? PD.abertos().length : 0; if (nb) nb.innerHTML = 'Cadastro' + (n ? ` <span class="nbadge" title="${n} pedido(s) de cadastro em aberto">${n}</span>` : ''); }
-    { const pb = document.querySelector('#nav [data-view="pendencias"]'); const n = MG.nPendencias(); if (pb) pb.innerHTML = 'Pendências' + (n ? ` <span class="nbadge" title="${n} pendência(s) esperando você">${n}</span>` : ''); }
-    { const mb = document.querySelector('#nav [data-view="margens"]'); const n = MG.pendentesAprov(); if (mb) mb.innerHTML = 'Margens' + (n ? ` <span class="nbadge" title="${n} aprovação(ões) de desconto esperando você">${n}</span>` : ''); }
+    // contadores do menu: só o selo muda; o ícone e o nome ficam
+    const selo = (v, n, t) => { const b = document.querySelector('#nav [data-view="' + v + '"]'); if (!b) return; let x = b.querySelector('.nbadge'); if (!n) { if (x) x.remove(); return; } if (!x) { x = document.createElement('span'); x.className = 'nbadge'; b.appendChild(x); } x.textContent = n; x.title = t; b.setAttribute('aria-label', b.textContent.replace(/\d+$/, '').trim() + ' — ' + t); };
+    { const n = REG.areaOk('custos') ? PD.abertos().length : 0; selo('cadastro', n, n + ' pedido(s) de cadastro em aberto'); }
+    { const n = MG.nPendencias(); selo('pendencias', n, n + ' pendência(s) esperando você'); }
+    { const n = MG.pendentesAprov(); selo('margens', n, n + ' aprovação(ões) de desconto esperando você'); }
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
@@ -354,9 +399,10 @@
       + (ui.recuperado && dirty ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Recuperamos alterações não salvas</b>${typeof ui.recuperado === 'string' ? ' (última edição ' + esc(fmtAt(ui.recuperado)) + ')' : ''}. Elas estão na tela; ainda não foram gravadas.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-recsalva>Salvar agora</button>${salvaB ? '<button class="btn sm" data-recdesc>Descartar e abrir a versão salva</button>' : ''}</span></div>` : '')
       + (salvaB && state.verBase !== undefined && (salvaB.verDoc || 0) > state.verBase && !state.verRev ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${REG.mode === 'shared' ? who(salvaB.by) : 'Outra janela deste navegador'} salvou uma versão mais nova</b> desta proposta às ${esc(fmtAt(salvaB.at))}.${dirty ? ' Ao salvar, o app pede para você escolher o que fazer, sem sobrescrever.' : ''}</span>${dirty ? '' : '<span style="margin-left:auto"><button class="btn sm pri" data-recnova>Abrir a versão nova</button></span>'}</div>` : '');
     $('#app').innerHTML = avInteg + avRev + aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
-    const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
+    const bm = $('#bMode'); if (bm) { bm.innerHTML = '<span class="tl">' + (ui.simple ? 'Planilha completa' : 'Visão guiada') + '</span>'; bm.dataset.ico = ui.simple ? 'table-2' : 'list-checks'; }
     atualizaSaveSt();
-    if (ui.view === 'cadastro') bindCadastro();
+    if (ui.view === 'cadastro' || ui.view === 'config') bindCadastro();
+    decorar(document);
     window.scrollTo(0, scroll);
     if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') { f.focus(); if (f.type === 'search') f.setSelectionRange(f.value.length, f.value.length); } }
   }
@@ -655,7 +701,7 @@
             </details></section>
           <section class="card"><h2>Comercial e fiscal <span class="sub">herdado da proposta; mude aqui só o que for deste item</span></h2>
             <div class="fields">
-              ${f('C4', 'Descrição do item', { cls: 'spanall' })}${f('C5', 'Família de produto', { cls: 'span2' })}${f('C6', 'Quantidade')}${f('C7', 'Norma')}${f('C8', 'Desconto de negociação')}
+              ${f('C4', 'Descrição do item', { cls: 'spanall' })}${f('C5', 'Família de produto', { cls: 'span2' })}${f('C6', 'Quantidade', { step: 1 })}${f('C7', 'Norma')}${f('C8', 'Desconto de negociação')}
               ${f('G4', 'Segmento')}${f('G5', 'UF de destino')}${f('G6', 'Cadastro fiscal', { cls: 'span2' })}${fs('G7', 'NCM (do cadastro Fiscal)')}${f('G8', 'ICMS manual (opcional)')}
               ${f('K4', 'Condição de pagamento', { cls: 'span2' })}${f('K5', 'Comissão — vendedor')}${f('K6', 'Comissão — agente')}${f('K7', 'Folga de negociação')}${f('K8', 'Encargo financeiro')}
               ${f('J17', 'Modo de preço')}${f('L17', 'Margem alvo')}
@@ -718,7 +764,9 @@
     for (const x of hiddenLines(S)) if (x.desc) comps.push(x.desc);
     return { campos, comps };
   }
-  const RG = window.PricerRegras({ REG, esc, toast: (m) => toast(m), modal: (h, b) => modal(h, b), selecao: () => selecaoHtml() });
+  const RG = window.PricerRegras({ REG, esc, toast: (m) => toast(m), modal: (h, b) => modal(h, b), selecao: () => selecaoHtml(),
+    // sugestões de valor para cada campo de condição: a lista da própria planilha (validação) ou o cadastro
+    opcoes: (campo) => campo === '_comp' ? [...new Set(REG.insumos.map((i) => i.produto))] : campo === 'C21' ? famsEquip().map((f) => f[2]) : campo === 'E17' ? [...new Set(modelos().map((m) => m.code))] : (listFor(ITEMS[0], campo) || []) });
   // central de regras: as regras de seleção que já estão nas estruturas (MONTADOR), na mesma tela das regras de configuração
   function selecaoHtml() {
     const H2 = heads(); const L = recLines().filter((x) => x.regra || ['FAIXA', 'CV', 'VAZAO', 'TAMANHO', 'SPLIT'].includes(x.tipo));
@@ -1309,6 +1357,68 @@
     ui.step = go.step || 1; setView('proposta'); if (go.sel) setTimeout(() => { const el = document.querySelector(go.sel); if (el) el.scrollIntoView({ block: 'center' }); }, 60);
   });
 
+  // ---------- proposta: cabeçalho de contexto e abas ----------
+  // Itens e Memorial pertencem à proposta SEQ aberta: ficam nas abas da proposta, não no menu global.
+  const ABAS_SEQ = [['geral', 'Dados gerais', 'id-card', 1], ['itens', 'Itens', 'boxes', 2], ['custos', 'Custos', 'coins', 3], ['formacao', 'Formação', 'badge-percent', 4], ['conferencia', 'Conferência', 'clipboard-check', 5], ['memorial', 'Memorial', 'scroll-text', 0], ['documentos', 'Documentos', 'folder-open', 6], ['historico', 'Histórico', 'history', 0]];
+  const ABAS_OUTRO = [['proposta', 'Proposta', 'wrench'], ['historico', 'Histórico', 'history']];
+  const viewDaProposta = (v) => ['proposta', 'item', 'memorial', 'phist'].includes(v);
+  function abaAtual() { if (ui.view === 'item') return 'itens'; if (ui.view === 'memorial') return 'memorial'; if (ui.view === 'phist') return 'historico'; const st = ui.step || 1; return (ABAS_SEQ.find((a) => a[3] === st) || ABAS_SEQ[0])[0]; }
+  function estadoEtapas() {
+    const P = 'PROPOSTA'; const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => used(x.i));
+    const alerts = items.flatMap((x) => alertsFor(x.s).map((a) => Object.assign({ i: x.i }, a)));
+    const margem = val(P, 'J16'), mMin = val('PARÂMETROS', 'C34');
+    const rc = resumoConf(); const nCusto = (() => { try { const L = linhasCusto(); return { imped: L.filter((x) => x.al.some((a) => a[0] === 'imped')).length, aviso: L.filter((x) => x.al.some((a) => a[0] === 'aviso')).length }; } catch (e) { return { imped: 0, aviso: 0 }; } })();
+    const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    return { items, alerts, margem, mMin, rc, sv, e: {
+      1: faltaCab().length ? ['pend', faltaCab().length + ' campo(s) a preencher'] : ['ok', txt(P, 'F5')],
+      2: !items.some((x) => filled(x.s)) ? ['pend', 'nenhum equipamento'] : alerts.some((a) => !a.ack && a.lvl === 'bad' && !a.aprov) ? ['warn', items.length + ' item(ns) · alertas'] : ['ok', items.length + ' item(ns)'],
+      3: nCusto.imped ? ['bad', nCusto.imped + ' sem preço'] : nCusto.aviso ? ['warn', nCusto.aviso + ' a conferir'] : ['ok', brl(val(P, 'G16'))],
+      4: typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? ['warn', 'margem ' + pct(margem) + ' < mínimo'] : ['ok', 'margem ' + pct(margem)],
+      5: rc.imped ? ['bad', rc.imped + ' impede(m) seguir'] : rc.aviso ? ['warn', rc.aviso + ' aviso(s)'] : ['ok', 'conferida'],
+      6: sv ? ['ok', ({ rascunho: 'pronta para enviar', enviada: 'enviada', negociacao: 'em negociação', ganha: 'ganha', perdida: 'perdida' })[sv.status || 'rascunho'] || sv.status] : ['pend', 'salve a proposta'] } };
+  }
+  const STATUS_LB = { rascunho: 'Rascunho', enviada: 'Enviada', negociacao: 'Em negociação', ganha: 'Ganha', perdida: 'Perdida' };
+  // cabeçalho permanente: número, cliente, tipo, revisão, situação, total, margem, pendências e os atalhos da proposta
+  function ctxHeader() {
+    const spv = isSpv(), fx = isFacts(); const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    let num, cli, tot, mg, mMin, custo, nItens, pend;
+    if (spv) { const sn = SPV.snapshot(state.spv); num = state.spv.numero; cli = state.spv.cliente; tot = SPV.total(); mg = sn.margemPct; mMin = sn.minimo; custo = sn.custo; nItens = sn.itens.length; }
+    else if (fx) { const sn = FX.snapshot(state.facts); num = state.facts.numero; cli = state.facts.cliente; tot = FX.total(); mg = sn.margemPct; mMin = sn.minimo; custo = sn.custo; nItens = sn.itens.length; }
+    else { const P = 'PROPOSTA'; num = txt(P, 'C5'); cli = txt(P, 'F5'); tot = val(P, 'B16'); mg = val(P, 'J16'); mMin = val('PARÂMETROS', 'C34'); custo = val(P, 'G16'); nItens = ITEMS.filter((s, i) => used(i)).length; }
+    if (!spv && !fx) { const rc = resumoConf(); pend = rc.imped + rc.aviso; } else pend = 0;
+    const pnAb = state.id ? PN.daProposta(state.id).filter(PN.aberta).length : 0;
+    const sit = sv ? (MG.situacao ? MG.situacao(sv) : [STATUS_LB[sv.status || 'rascunho'], 'mute']) : ['Não salva', 'mute'];
+    const baixa = typeof mg === 'number' && typeof mMin === 'number' && mg < mMin;
+    return `<section class="ctxh${ui.ctxOpen ? ' open' : ''}" aria-label="Resumo da proposta">
+      <div class="ctx-id"><span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : fx ? 'FACTS' : 'SEQ'}</span><div class="ctx-tt"><h1>${esc(num || 'Proposta sem número')}</h1><div class="sub">${esc(cli || 'Cliente não informado')}</div></div>
+        <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[0])}</span>${spv || fx ? '' : apSelo()}</div></div>
+      <div class="ctx-kpis sumbar sticky">
+        <div class="k"><span>Valor total</span><b>${brl(tot)}</b></div>
+        <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b>${typeof mMin === 'number' ? `<em>mín. ${pct(mMin, 0)}</em>` : ''}</div>
+        <div class="k x"><span>Custo</span><b>${brl(custo)}</b></div>
+        <div class="k x"><span>Itens</span><b>${nItens}</b></div>
+        <div class="k"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>
+        <button class="btn sm ctx-more" data-ctxmore aria-expanded="${ui.ctxOpen ? 'true' : 'false'}" data-ico="${ui.ctxOpen ? 'chevron-down' : 'chevron-right'}">${ui.ctxOpen ? 'menos' : 'mais'}</button></div>
+    </section>`;
+  }
+  function propTabs() {
+    if (isSpv() || isFacts()) { const cur = ui.view === 'phist' ? 'historico' : 'proposta';
+      return `<nav class="ptabs" aria-label="Áreas da proposta">${ABAS_OUTRO.map(([k, lb, ic]) => `<button class="ptab${cur === k ? ' on' : ''}" data-view="${k === 'historico' ? 'phist' : 'proposta'}" data-ico="${ic}" aria-current="${cur === k ? 'page' : 'false'}"><span>${lb === 'Proposta' ? (isSpv() ? 'Serviço e pós-venda' : 'FACTS') : lb}</span></button>`).join('')}</nav>`; }
+    const E = estadoEtapas().e; const cur = abaAtual();
+    return `<nav class="ptabs" aria-label="Áreas da proposta">${ABAS_SEQ.map(([k, lb, ic, n]) => { const s = n ? E[n] : null; const at = n ? `data-step="${n}"` : `data-view="${k === 'memorial' ? 'memorial' : 'phist'}"`;
+      return `<button class="ptab${cur === k ? ' on' : ''}${s ? ' st-' + s[0] : ''}" ${at} data-ico="${ic}" aria-current="${cur === k ? 'page' : 'false'}" title="${esc(lb + (s && s[1] ? ' — ' + s[1] : ''))}"><span>${lb}</span>${s ? `<i class="pst" aria-label="${esc(s[1] || '')}">${s[0] === 'ok' ? '✓' : s[0] === 'bad' ? '!' : s[0] === 'warn' ? '•' : ''}</i>` : ''}</button>`; }).join('')}</nav>`;
+  }
+  const propHeader = () => ctxHeader() + propTabs();
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-ctxmore]')) { ui.ctxOpen = !ui.ctxOpen; render(); } });
+  // histórico da proposta: revisões, etapas e o que foi registrado sobre ela
+  function vPropHist() {
+    const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    if (!state.id) return '<section class="card"><p class="sub" style="margin:0">Salve a proposta para ter histórico e revisões.</p></section>';
+    const ev = (REG.historico || []).filter((h) => h.ref === state.id || (h.mudancas || []).some((m) => m.campo === state.id)).slice(0, 80);
+    return `<div class="stack"><section class="card"><h2>Situação e etapas</h2>${sv ? MG.etapasHtml(sv) : ''}</section>
+      <section class="card"><h2>Revisões <span class="sub">revisão atual ${revAtual()}</span></h2><div class="docbar"><button class="btn" data-revs data-ico="git-compare">Ver, comparar e restaurar revisões</button>${state.verRev ? '' : '<button class="btn" data-revisar data-ico="refresh-cw">Revisar (nova revisão)</button>'}</div></section>
+      <section class="card"><h2>Registro <span class="sub">${ev.length} evento(s) desta proposta</span></h2>${ev.length ? `<div class="hlist">${ev.map((h) => `<div class="hrow"><div class="hmeta"><b>${fmtAt(h.at)}</b><small>${who(h.by)}</small></div><div><span class="pill mute">${esc(h.tipo)}</span> ${esc(h.desc || '')}${(h.mudancas || []).length ? `<table class="t mini"><tbody>${h.mudancas.slice(0, 8).map((m) => `<tr><td>${esc(m.campo)}</td><td class="n sub">${esc(fmtVal(m.de))}</td><td>→</td><td class="n"><b>${esc(fmtVal(m.para))}</b></td></tr>`).join('')}</tbody></table>` : ''}</div></div>`).join('')}</div>` : '<p class="sub" style="margin:0">Nada registrado ainda.</p>'}</section></div>`;
+  }
   function vPropostaS() {
     const P = 'PROPOSTA'; let step = ui.step || 1; if (step > 6) step = 6;
     const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => used(x.i));
@@ -1324,11 +1434,7 @@
       5: rc.imped ? ['bad', rc.imped + ' impede(m) seguir'] : rc.aviso ? ['warn', rc.aviso + ' aviso(s)'] : ['ok', 'conferida'],
       6: sv ? ['ok', ({ rascunho: 'pronta para enviar', enviada: 'enviada', negociacao: 'em negociação', ganha: 'ganha', perdida: 'perdida' })[sv.status || 'rascunho'] || sv.status] : ['pend', 'salve a proposta'],
     };
-    const st = ([n, lb]) => { const [s, info] = estado[n]; const marca = s === 'ok' && step !== n ? '✓' : s === 'bad' ? '!' : n;
-      return `<button class="step st-${s} ${step === n ? 'on' : ''} ${s === 'ok' && step !== n ? 'done' : ''}" data-step="${n}" aria-current="${step === n ? 'step' : 'false'}"><span class="sn">${marca}</span><span class="st"><b>${lb}</b><small>${esc(info || '')}</small></span></button>`; };
-    const head = `<div class="flowhead"><div><h1>Proposta ${esc(txt(P, 'C5') || 'nova')}</h1><div class="sub">${esc(txt(P, 'F5') || 'Comece pela identificação')}</div></div>
-      <div class="sumbar sticky"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Custo</span><b>${brl(val(P, 'G16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div>${revSelo()}${apSelo()}</div></div>
-      <nav class="steps six" aria-label="Etapas da proposta">${ETAPAS_P.map(st).join('')}</nav>`;
+    const head = '';
     const nav = (ant, prox) => `<div class="flowbar">${ant ? `<button class="btn" data-step="${ant}">← ${ETAPAS_P[ant - 1][1]}</button>` : '<span></span>'}${prox ? `<button class="btn pri" data-step="${prox}">Próximo: ${ETAPAS_P[prox - 1][1].toLowerCase()} →</button>` : '<span></span>'}</div>`;
     let body = '';
     if (step === 1) {
@@ -1343,7 +1449,7 @@
         <section class="card"><h2>Cliente <span class="sub">todos os campos são obrigatórios</span></h2>
           <div class="fields">
             <div class="f span2 req${falta.has('L5') ? ' miss' : ''}"><label for="cnpjIn">CNPJ / CPF</label><div class="cnpjrow"><input id="cnpjIn" value="${esc(fmtDoc(txt(P, 'L5')))}" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off"><button class="btn" id="cnpjGo" type="button">Buscar na Receita</button></div><small class="sub" id="cnpjMsg">${esc(state.cnpjInfo || 'Preenche cliente, local, UF e cadastro fiscal.')}</small></div>
-            ${rq('F5', 'Cliente (razão social)', 'span2')}${rq('F6', 'Obra / local', 'span2')}${rq('F7', 'UF de destino')}${rq('J5', 'Cadastro fiscal', 'span2')}${rq('F8', 'Segmento')}</div></section>
+            ${rq('F5', 'Cliente (razão social)', 'span2').replace('<input ', '<input list="dl_clientes" ')}${dlClientesHtml()}${rq('F6', 'Obra / local', 'span2')}${rq('F7', 'UF de destino')}${rq('J5', 'Cadastro fiscal', 'span2')}${rq('F8', 'Segmento')}</div></section>
         <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
         <section class="card"><h2>Vendedor e comissões</h2><div class="fields">
             <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor</label>${chips(vs, 'C8', 'Nenhum vendedor cadastrado: cadastre em Cadastro → Precificação → Vendedores e agentes.')}</div>
@@ -1467,7 +1573,7 @@
       ${!montLines(S).length && groups.ESC.length ? `<div class="banner info">Este item foi montado linha a linha (${groups.ESC.length} componentes adicionais escolhidos do cadastro), sem usar a seleção abaixo. O preço vem dessas linhas, em Componentes.</div>` : ''}
       ${famPanel(S, c)}
       ${!famChosen(S, c) ? '' : `<section class="card"><h2>Equipamento <span class="sub">${esc(famLabel(String(val(S, 'AR2') || 'CMB')))} · <button class="restore" data-famreset>trocar a família</button></span></h2>
-        <div class="fields">${f('C17', 'Modelo pronto', { cls: 'span2', list: modelos().filter((m) => m.estr === String(val(S, 'AR2') || 'CMB')).map((m) => m.nome) })}${f('C6', 'Quantidade').replace('<input ', '<input placeholder="1" ')}</div>
+        <div class="fields">${f('C17', 'Modelo pronto', { cls: 'span2', list: modelos().filter((m) => m.estr === String(val(S, 'AR2') || 'CMB')).map((m) => m.nome) })}${f('C6', 'Quantidade', { step: 1, ph: '1' })}</div>
         <div class="sep-or">ou monte</div>
         <div class="fields">${fs('C21', 'Família')}${fromModel('G17') && val(S, 'AR4') ? modelTxt('G17', 'Vazão (USgpm)', fmtNum(val(S, 'AR4'))) : f('G17', 'Vazão (USgpm)')}${fs('H17', 'Pressão (mca)')}${fs('I17', 'Norma')}</div>
         <div class="arrbox">${arrUi}</div>
@@ -1714,18 +1820,20 @@
     if (REG.error) banner += `<div class="banner bad">Não consegui falar com o banco compartilhado (${esc(REG.error)}). O app segue com a última versão que carregou; recarregue a página para tentar de novo.</div>`;
     return `<div class="legend" style="gap:8px">${chips.join('')}</div>${banner}`;
   }
-  function vCadastro() {
+  const AREA_ICO = { visao: 'layout-dashboard', custos: 'coins', engenharia: 'wrench', fiscal: 'receipt', precificacao: 'badge-percent', servicos: 'users', geral: 'tag', sistema: 'settings-2' };
+  function vCadastro(modo) {
+    const cfg = modo === 'config';
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
-    if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
+    if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = cfg ? 'historico' : 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
     const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, regras: () => RG.vCfg(canEd()), mapa: vMapa, qualidade: vQualidade, fornecedores: vFornecedores, campos: vCampos, sinonimos: vSinonimos, testador: vTestador, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
-        <div><h1>Cadastro</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div></div>
+        <div>${cfg ? '<h1>Configurações</h1><div class="sub">Histórico de alterações, perfis e responsáveis, e-mails e logo, backup e restauração e a planilha completa (avançado). Itens para administradores.</div>' : `<h1>Cadastros</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div>`}</div>
         ${cadStatus()}
       </div>
-      <div class="areatabs" role="tablist">${AREAS.map(([k, lb, d, tabs]) => `<button role="tab" data-cad="${tabs[0][0]}" aria-selected="${k === area[0]}" title="${esc(d)}">${lb}${mine && (mine.includes(k) || REG.isOwner) ? ' <span class="mydot" title="sua área"></span>' : ''}</button>`).join('')}</div>
+      ${cfg ? '' : `<div class="areatabs" role="tablist">${AREAS.filter((a) => a[0] !== 'sistema').map(([k, lb, d, tabs]) => `<button role="tab" data-cad="${tabs[0][0]}" aria-selected="${k === area[0]}" title="${esc(d)}" data-ico="${AREA_ICO[k] || 'database'}">${lb}${mine && (mine.includes(k) || REG.isOwner) ? ' <span class="mydot" title="sua área"></span>' : ''}</button>`).join('')}</div>`}
       <p class="sub" style="margin:0">${esc(area[2])}.${REG.mode === 'shared' && REG.areasConfiguradas() ? ` Responsável: <span data-areaown="${area[0]}">${esc((REG.acessos[area[0]] || []).length ? '…' : 'ninguém definido (só o dono edita)')}</span>.` : ''}</p>
       ${area[3].length > 1 ? `<div class="subtabs" role="tablist">${area[3].map(([k, lb]) => `<button role="tab" data-cad="${k}" aria-selected="${k === tab}">${lb}</button>`).join('')}</div>` : ''}
       ${body}
@@ -1906,7 +2014,7 @@
         <div class="f" id="fNovaWrap" hidden><label for="fNova">Nova família (nn.NOME)</label><input id="fNova" placeholder="46.NOMEDAFAMILIA"></div>
         <div class="f"><label>Código (não muda)</label><div class="ro code" id="fCode">${esc(String(code.a).padStart(2, '0') + '-' + code.b)}</div></div>
         <div class="f"><label for="fSit">Situação</label><select id="fSit"${ro}>${SITUACOES.map(([k, lb]) => `<option value="${k}"${situ(rec) === k ? ' selected' : ''}>${esc(lb)}</option>`).join('')}</select></div>
-        <div class="f"><label for="fFab">Fabricante</label><input id="fFab" value="${esc(rec.fab || '')}"${ro}></div>
+        <div class="f"><label for="fFab">Fabricante</label><input id="fFab" list="dlFabAll" value="${esc(rec.fab || '')}"${ro}><datalist id="dlFabAll">${[...new Set(REG.insumos.map((i) => i.fab).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist></div>
         <div class="f"><label for="fCodFab">Código do fabricante</label><input id="fCodFab" value="${esc(rec.codFab || '')}"${ro}></div>
         <div class="f"><label for="fTipo">Tipo/config.</label><input id="fTipo" list="dlTipos" value="${esc(rec.tipo || '')}"${ro}><datalist id="dlTipos">${[...new Set(REG.insumos.filter((x) => x.fam === rec.fam && x.tipo).map((x) => x.tipo))].map((t) => `<option value="${esc(t)}">`).join('')}</datalist></div>
         <div class="f"><label for="fOri">Origem</label><select id="fOri"${ro}><option${rec.origem === 'NAC' ? ' selected' : ''}>NAC</option><option${rec.origem === 'IMP' ? ' selected' : ''}>IMP</option></select></div>
@@ -1929,7 +2037,7 @@
       <details class="fsec"${st.forn.length ? ' open' : ''}><summary><h3 style="display:inline">Fornecedores e cotações <span class="sub">${st.forn.length}</span></h3></summary><div id="fForn"></div></details>
       <details class="fsec"${st.equiv.length ? ' open' : ''}><summary><h3 style="display:inline">Equivalentes técnicos e alternativas <span class="sub">${st.equiv.length}</span></h3></summary><div id="fEquiv"></div></details>
       </form>
-      <datalist id="dlInsAll">${insOpts}</datalist>
+      <datalist id="dlInsAll">${insOpts}</datalist><datalist id="dl_fornall">${[...new Set(REG.insumos.flatMap((i) => (i.forn || []).map((f) => f.nome)).concat((() => { try { return SPV.docs().map((d) => d.fornecedor); } catch (e) { return []; } })()).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
       <div id="fErr" class="bad-t"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         ${ed ? `<button class="btn pri" id="fSave">${isNew ? 'Cadastrar' : 'Salvar'}</button>` : ''}
@@ -1950,12 +2058,24 @@
         const p = pad(); const sec = g('#fCarSec');
         if (!p || !(p.campos || []).length) { sec.hidden = true; g('#fGerWrap').hidden = true; return; }
         sec.hidden = false; g('#fGerWrap').hidden = !p.modelo; g('#fCarSub').textContent = p.nome + (p.modelo ? ' · modelo: ' + p.modelo : '');
-        g('#fCar').innerHTML = p.campos.map((c) => { const v = st.car[c.k] ?? ''; const idf = 'fc_' + c.k;
-          const inp = c.tipo === 'lista' ? `<input id="${idf}" data-car="${esc(c.k)}" list="dl_${idf}" value="${esc(v)}"${ro}><datalist id="dl_${idf}">${(c.ops || []).map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`
-            : `<input id="${idf}" data-car="${esc(c.k)}" value="${esc(v)}"${c.tipo === 'numero' ? ' inputmode="decimal"' : ''} placeholder="${esc(c.ex || '')}"${ro}>`;
+        // valores já usados nesta família (para sugerir modelos, bombas, marcas…)
+        const usados = (k) => { const set = new Set(); for (const i of REG.insumos) { if (i.fam !== famAtual()) continue; const v0 = (i.caract || {})[k] || FAMS_F.lerP(p, i.produto)[k]; if (v0) set.add(String(v0)); } return [...set].sort(); };
+        st.outro = st.outro || {};
+        g('#fCar').innerHTML = p.campos.map((c) => { const v = st.car[c.k] ?? ''; const idf = 'fc_' + c.k; const ops = c.ops || [];
+          // poucas opções: botões de escolha (com "outro" para o que não estiver na lista e "—" quando é opcional)
+          const inp = c.tipo === 'lista' && ops.length && ops.length <= 4 ? `<div class="seg" role="radiogroup" aria-label="${esc(c.lb)}">${(c.req ? [] : [['', '—']]).concat(ops.map((o) => [o, o])).map(([o, lb2]) => `<label class="${String(v) === o && !st.outro[c.k] ? 'on' : ''}"><input type="radio" name="${idf}" data-carr="${esc(c.k)}" value="${esc(o)}"${String(v) === o && !st.outro[c.k] ? ' checked' : ''}${ro}>${esc(lb2)}</label>`).join('')}<label class="${st.outro[c.k] || (v && !ops.includes(String(v))) ? 'on' : ''}"><input type="radio" name="${idf}" data-carr="${esc(c.k)}" value="\u0000outro"${st.outro[c.k] || (v && !ops.includes(String(v))) ? ' checked' : ''}${ro}>outro</label></div>${st.outro[c.k] || (v && !ops.includes(String(v))) ? `<input id="${idf}" data-car="${esc(c.k)}" value="${esc(v)}" placeholder="informe o valor"${ro}>` : ''}`
+            : c.tipo === 'lista' ? `<input id="${idf}" data-car="${esc(c.k)}" list="dl_${idf}" value="${esc(v)}"${ro}><datalist id="dl_${idf}">${ops.concat(usados(c.k).filter((x) => !ops.includes(x))).map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`
+            : c.tipo === 'texto' ? `<input id="${idf}" data-car="${esc(c.k)}" list="dl_${idf}" value="${esc(v)}" placeholder="${esc(c.ex || '')}"${ro}><datalist id="dl_${idf}">${usados(c.k).slice(0, 300).map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`
+            : `<input id="${idf}" data-car="${esc(c.k)}" value="${esc(v)}" inputmode="decimal" placeholder="${esc(c.ex || '')}"${ro}>`;
           return `<div class="f${c.tipo === 'texto' ? ' span2' : ''}${c.req ? ' req' : ''}"><label for="${idf}">${esc(c.lb)}${c.un ? ` <small class="sub">(${esc(c.un)})</small>` : ''}${c.req ? '' : ' <small class="sub">opcional</small>'}</label>${inp}</div>`; }).join('');
-        o.querySelectorAll('[data-car]').forEach((el) => { el.oninput = () => { st.car[el.dataset.car] = el.value; atualiza(); }; });
+        o.querySelectorAll('[data-car]').forEach((el) => { el.oninput = () => { st.car[el.dataset.car] = el.value; atualiza(); }; el.onchange = () => autoModelo(el.dataset.car, el.value); });
+        o.querySelectorAll('[data-carr]').forEach((el) => { el.onchange = () => { const k = el.dataset.carr; if (el.value === '\u0000outro') { st.outro[k] = true; st.car[k] = ''; } else { st.outro[k] = false; st.car[k] = el.value; } drawCar(); atualiza(); if (st.outro[k]) { const i = g('#fc_' + k); if (i) i.focus(); } }; });
       };
+      // modelo já cadastrado na família: preenche só o que é igual em todos os itens com esse modelo (e só campos vazios)
+      const autoModelo = (k, v) => { const p = pad(); if (!p || !v || !['modelo', 'bomba'].includes(k)) return;
+        const L = REG.insumos.filter((i) => i.fam === famAtual() && i.id !== rec.id).map((i) => Object.assign({}, FAMS_F.lerP(p, i.produto), i.caract || {})).filter((c) => FAMS_F.norm(c[k]) === FAMS_F.norm(v)); if (!L.length) return;
+        const feitos = []; for (const c of p.campos) { if (c.k === k || String(st.car[c.k] ?? '').trim()) continue; const vs = new Set(L.map((x) => x[c.k] ?? '')); if (vs.size === 1 && [...vs][0]) { st.car[c.k] = [...vs][0]; feitos.push(c.lb.toLowerCase()); } }
+        if (feitos.length) { drawCar(); atualiza(); toast('Do modelo já cadastrado (' + L.length + ' item(ns)): ' + feitos.join(', ') + '. Confira; o que varia entre eles não foi preenchido.'); } };
       const atualiza = () => {
         const p = pad(); const fam = famAtual(); const gerar = g('#fGerar').checked && p && p.modelo;
         if (gerar) { const falta = FAMS_F.faltando(p, st.car); const m = FAMS_F.montar(p, st.car); if (!falta.length) g('#fProd').value = m; g('#fProd').readOnly = true;
@@ -1978,7 +2098,7 @@
       const drawForn = () => {
         const tot = st.forn.map(custoTotalForn); const valid = tot.filter((x) => x !== null); const min = valid.length ? Math.min(...valid) : null; const hoje = new Date().toISOString().slice(0, 10);
         g('#fForn').innerHTML = `${st.forn.length ? `<div class="tw"><table class="t forn"><thead><tr><th>Fornecedor</th><th>Preço</th><th>Moeda</th><th>Câmbio</th><th>Impostos %</th><th>Frete</th><th>Prazo (dias)</th><th>Validade</th><th>Pagamento</th><th>Qtd. mín.</th><th>Custo total</th><th></th></tr></thead><tbody>${st.forn.map((f, i) => `<tr>
-          <td class="in"><input data-fo="${i}|nome" value="${esc(f.nome || '')}" aria-label="Fornecedor"${ro}></td><td class="in"><input data-fo="${i}|preco" value="${typeof f.preco === 'number' ? NF[2].format(f.preco) : ''}" inputmode="decimal" aria-label="Preço"${ro}></td>
+          <td class="in"><input data-fo="${i}|nome" list="dl_fornall" value="${esc(f.nome || '')}" aria-label="Fornecedor"${ro}></td><td class="in"><input data-fo="${i}|preco" value="${typeof f.preco === 'number' ? NF[2].format(f.preco) : ''}" inputmode="decimal" aria-label="Preço"${ro}></td>
           <td class="in"><select data-fo="${i}|moeda" aria-label="Moeda"${ro}>${['BRL', 'USD', 'EUR'].map((m) => `<option${(f.moeda || 'BRL') === m ? ' selected' : ''}>${m}</option>`).join('')}</select></td><td class="in"><input data-fo="${i}|cambio" value="${typeof f.cambio === 'number' ? NF[4].format(f.cambio) : ''}" inputmode="decimal" placeholder="${(f.moeda || 'BRL') === 'BRL' ? '—' : 'R$ por ' + f.moeda}" aria-label="Câmbio"${ro}></td>
           <td class="in"><input data-fo="${i}|impostos" value="${typeof f.impostos === 'number' ? NF[2].format(f.impostos * 100) : ''}" inputmode="decimal" aria-label="Impostos %"${ro}></td><td class="in"><input data-fo="${i}|frete" value="${typeof f.frete === 'number' ? NF[2].format(f.frete) : ''}" inputmode="decimal" aria-label="Frete por unidade"${ro}></td>
           <td class="in"><input data-fo="${i}|prazo" value="${f.prazo ?? ''}" inputmode="numeric" aria-label="Prazo em dias"${ro}></td><td class="in"><input type="date" data-fo="${i}|validade" value="${esc(f.validade || '')}" aria-label="Validade"${ro}></td>
@@ -2134,7 +2254,7 @@
       <div class="fields">
         <div class="f spanall"><label for="kDesc">Descrição (igual à do CADASTRO)</label><input id="kDesc" list="dlKitProd" value="${esc(rec.desc)}"${ro}><datalist id="dlKitProd">${prodList.map((p) => `<option value="${esc(p)}">`).join('')}</datalist></div>
         <div class="f"><label for="kTipo">Origem</label><select id="kTipo"${ro}><option${rec.tipo === 'NAC' ? ' selected' : ''}>NAC</option><option${rec.tipo === 'IMP' ? ' selected' : ''}>IMP</option></select></div>
-        <div class="f"><label for="kMarca">Marca</label><input id="kMarca" value="${esc(rec.marca || '')}"${ro}></div>
+        <div class="f"><label for="kMarca">Marca</label><input id="kMarca" list="dl_kmarca" value="${esc(rec.marca || '')}"${ro}><datalist id="dl_kmarca">${[...new Set(list.map((k) => k.marca).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist></div>
       </div>
       <p class="sub" id="kWarn"></p>
       <h2>Componentes (R$)</h2>
@@ -3552,6 +3672,7 @@
   function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
   function modal(html, bind) {
     const o = $('#overlay'); o.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><div class="card">${html}</div></div>`;
+    setTimeout(() => decorar(o), 0);
     setTimeout(() => { if (!o.contains(document.activeElement)) { const f = o.querySelector('input:not([type=hidden]):not([disabled]),select,textarea,button'); if (f) f.focus(); } }, 0);
     const close = () => { o.innerHTML = ''; };
     o.querySelector('.modal').addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close(); });
@@ -3611,7 +3732,7 @@
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
   const PNL = window.PricerPainel({ REG, esc, brl, pct, ui, render, MG: () => MG, PN: () => PN });
-  const SPV = window.PricerSPV({ painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
@@ -3621,7 +3742,10 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">SEQ em branco</button><button class="btn pri" id="mSpv">SPV (serviço, peças, contrato)</button><button class="btn" id="mExample">Exemplo SEQ (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
     (o, close) => { $('#mBlank', o).onclick = () => { close(); newSeq(); }; $('#mSpv', o).onclick = () => { close(); setView('inicio'); const t = document.querySelector('.tchips'); if (t) t.scrollIntoView({ block: 'center' }); toast('Escolha o tipo de SPV'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
 
-  $('#bSave').onclick = async (ev) => {
+  // salvar mostra o estado: girando enquanto grava, e volta ao normal no fim (sucesso ou erro)
+  $('#bSave').onclick = async (ev) => { const sb = $('#bSave'); if (sb.classList.contains('busy')) return; sb.classList.add('busy'); sb.dataset.ico = 'loader-circle'; decorar(sb.parentElement);
+    try { return await salvar0(ev); } finally { sb.classList.remove('busy'); sb.dataset.ico = 'save'; decorar(sb.parentElement); } };
+  const salvar0 = async (ev) => {
     if (state.verRev) { toast('Você está consultando a revisão ' + state.verRev.rev + '. Volte à atual ou restaure esta como nova revisão.'); return; }
     // proposta já enviada ao cliente: alterar cria revisão nova (a enviada fica guardada), salvo se for só correção
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id);

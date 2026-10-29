@@ -6,7 +6,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   console.log('SEQ:', await p.$$eval('.start.seq .tchip', (x) => x.map((e) => e.innerText.replace(/\s+/g, ' '))));
   await p.screenshot({ path: 'h_home.png' });
   await p.click('[data-seqfam="SKID"]'); await p.waitForTimeout(600);
-  console.log('abriu:', await p.$eval('.flowhead h1', (x) => x.innerText), '|', await p.$eval('#app h2', (x) => x.innerText.slice(0, 80)));
+  console.log('abriu:', await p.$eval('.ctxh h1', (x) => x.innerText), '|', await p.$eval('#app h2', (x) => x.innerText.slice(0, 80)));
   const sel = await p.$('select[id$="ITEM01_C21"]'); console.log('família:', sel ? await sel.evaluate((e) => e.options[e.selectedIndex].text) : 'sem select');
   console.log('erros', errs); await b.close();
 })();
