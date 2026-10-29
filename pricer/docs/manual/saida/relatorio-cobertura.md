@@ -231,8 +231,8 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 14-03 | 14-03-margens-custo-real-topo.png | Tela Custo real de uma proposta fechada (topo) | desktop | validada |
 | 14-04 | 14-04-margens-custo-real-item.png | Conferência do custo real de um item, linha a linha | desktop | validada |
 | 14-05 | 14-05-margens-painel.png | Menu Margens: filtros, indicadores e gráficos | desktop | validada |
-| 14-06 | 14-06-margens-fechadas.png | Aba Fechadas | desktop | validada |
-| 14-07 | 14-07-margens-em-aberto.png | Aba Em aberto | desktop | validada |
+| 14-06 | 14-06-margens-fechadas.png | Aba Ganhas | desktop | validada |
+| 14-07 | 14-07-margens-em-aberto.png | Aba Em andamento | desktop | validada |
 | 14-08 | 14-08-margens-painel-inicio.png | Painel da tela Início com "Como cada número é calculado" aberto | desktop | validada |
 | 14-09 | 14-09-margens-chips-lista.png | Chips de filtro da lista de propostas (tela Início) | desktop | validada |
 | 14-10 | 14-10-margens-perdida.png | Janela Proposta perdida | desktop | validada |
@@ -311,7 +311,7 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 
 | # | Verificação | Resultado |
 |---|---|---|
-| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 69 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
+| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 70 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
 | 2 | Os menus existem? | Sim: os 7 itens do menu lateral citados no manual são os do arquivo index.html. |
 | 3 | Os caminhos de navegação estão corretos? | Sim: cada caminho foi percorrido pela ferramenta de captura antes de cada foto (os passos clicam nos elementos reais). |
 | 4 | Os prints correspondem aos procedimentos? | Sim: cada figura é gerada pelos passos do próprio tutorial. |
@@ -378,6 +378,7 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 12 | O que / Na formação / No PDF |
 | 13 | aprovação de desconto com valor target |
 | 14 | Cadastros → Precificação → Margens e política |
+| 14 | Em aberto → Em aprovação → Enviada ao cliente → Ganha → Encerrada |
 | 14 | ✓ Conferir as N restantes como iguais ao previsto |
 | 15 | Criar revisão N+1 |
 | 15 | Salvar como revisão N+1 |

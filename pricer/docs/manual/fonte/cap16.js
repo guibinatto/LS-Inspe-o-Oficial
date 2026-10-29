@@ -129,7 +129,7 @@ module.exports = {
     { t: 'p', x: 'O banco do app compartilhado distingue só o nível de compartilhamento de cada pessoa. Os perfis do app (Comercial, Engenharia, Financeiro/Fiscal etc.) saem desse nível e das listas de responsáveis e aprovadores, que só o dono grava.' },
     { t: 'tab', cab: ['Papel', 'O que pode fazer', 'Como dar o acesso'], lin: [
       ['Leitor', 'Consulta propostas, margens e cadastro, sem alterar nada (perfil Consulta).', 'Compartilhar o app como Leitor.'],
-      ['Contribuidor', 'Cria, edita e salva propostas; pendências; documentos. Não altera nenhum cadastro (o banco bloqueia). Pode mandar para a lixeira o rascunho que criou (perfil Comercial).', 'Compartilhar como Contribuidor (comercial e vendedores).'],
+      ['Contribuidor', 'Cria, edita e salva propostas; pendências; documentos. Não altera nenhum cadastro (o banco bloqueia). Pode mandar para a lixeira a proposta em aberto que criou (perfil Comercial).', 'Compartilhar como Contribuidor (comercial e vendedores).'],
       ['Editor', 'Tudo do Contribuidor e, além disso, altera o cadastro das áreas em que está (Custos, Engenharia, Fiscal, Precificação, Serviços…). Sem ninguém definido nas áreas, todo Editor altera todo o cadastro; sem aprovadores definidos, qualquer Editor aprova desconto.', 'Compartilhar como Editor e incluir a pessoa na área, em Responsáveis.'],
       ['Dono (Administrador)', 'Tudo: define responsáveis, aprovadores e perfis; restaura backup; apaga proposta de vez; altera todas as áreas.', 'É quem publicou o app.'],
     ] },

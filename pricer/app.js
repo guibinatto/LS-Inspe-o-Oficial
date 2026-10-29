@@ -1397,7 +1397,7 @@
       5: rc.imped ? ['bad', rc.imped + ' impede(m) seguir'] : rc.aviso ? ['warn', rc.aviso + ' aviso(s)'] : ['ok', 'conferida'],
       6: sv ? ['ok', ({ rascunho: 'pronta para enviar', enviada: 'enviada', negociacao: 'em negociação', ganha: 'ganha', perdida: 'perdida' })[sv.status || 'rascunho'] || sv.status] : ['pend', 'salve a proposta'] } };
   }
-  const STATUS_LB = { rascunho: 'Rascunho', enviada: 'Enviada', negociacao: 'Em negociação', ganha: 'Ganha', perdida: 'Perdida' };
+  const STATUS_LB = { rascunho: 'Em aberto', enviada: 'Enviada ao cliente', negociacao: 'Enviada · em negociação', ganha: 'Ganha', perdida: 'Perdida' };
   // cabeçalho permanente: número, cliente, tipo, revisão, situação, total, margem, pendências e os atalhos da proposta
   function ctxHeader() {
     const spv = isSpv(), fx = isFacts(); const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
@@ -1412,7 +1412,7 @@
     const baixa = typeof mg === 'number' && typeof mMin === 'number' && mg < mMin;
     return `<section class="ctxh${ui.ctxOpen ? ' open' : ''}" aria-label="Resumo da proposta">
       <div class="ctx-id"><span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : fx ? 'FACTS' : 'SEQ'}</span><div class="ctx-tt"><h1>${esc(num || 'Proposta sem número')}</h1><div class="sub">${esc(cli || 'Cliente não informado')}</div></div>
-        <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[0])}</span>${spv || fx ? '' : apSelo()}</div></div>
+        <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[2] === 'aprovacao' && MG.faseLb ? MG.faseLb('aprovacao') : sit[0])}</span>${spv || fx ? '' : apSelo()}</div></div>
       <div class="ctx-kpis sumbar sticky">
         <div class="k"><span>Valor total</span><b>${brl(tot)}</b></div>
         <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b>${typeof mMin === 'number' ? `<em>mín. ${pct(mMin, 0)}</em>` : ''}</div>
@@ -3784,7 +3784,7 @@
     const b = e.target.closest('[data-spvnew],[data-seqnew],[data-seqfam],[data-factsnew]'); if (!b || !dirty || assinatura() === ui.assinaturaAberta) return;
     if (!window.confirm('A proposta aberta tem alterações não salvas. Começar uma nova mesmo assim? (as alterações se perdem)')) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
-  const SPV = window.PricerSPV({ clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ revisar: () => revisarModal(), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });

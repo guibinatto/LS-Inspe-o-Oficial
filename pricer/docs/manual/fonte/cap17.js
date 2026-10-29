@@ -65,7 +65,7 @@ module.exports = {
     { t: 'lista', itens: [
       '**Composição dos itens não fica congelada**: os preços da época congelam os preços, não a estrutura. Uma proposta enviada que monta pela estrutura, reaberta depois de uma mudança publicada na estrutura, passa a usar a estrutura nova (capítulo 9).',
       '**Tabelas por porte gravam direto**: editar uma faixa de porte grava na versão publicada mesmo com "editar em rascunho" marcado (capítulo 9).',
-      '**Margem em duas bases**: no menu Margens, os cartões e gráficos por divisão, família e item dividem a margem pela venda sem IPI; a proposta, a tabela Fechadas e o painel da tela Início usam a receita líquida. A mesma proposta pode aparecer com percentuais diferentes (capítulo 14).',
+      '**Margem em duas bases**: no menu Margens, os cartões e gráficos por divisão, família e item dividem a margem pela venda sem IPI; a proposta, a tabela Ganhas e o painel da tela Início usam a receita líquida. A mesma proposta pode aparecer com percentuais diferentes (capítulo 14).',
       '**Margem e custo do item entre telas**: nas abas Itens e Formação a margem e o custo do item não incluem o start-up; no Memorial, incluem (capítulos 4 e 5).',
       '**Busca com sinônimos**: grafias com espaço ("2 POLOS") e sinônimos muito curtos podem trazer itens sem relação (capítulo 8).',
       '**Exclusão de insumo é definitiva**: não há lixeira para insumos (só para propostas).',

@@ -97,3 +97,22 @@ Regras: o aviso da proposta considera só as linhas com preço vindo do cadastro
 ## 9. Documentos fora do menu principal
 
 A tela **Documentos** saiu do menu lateral, que ficou com 7 entradas. Nada foi apagado: a biblioteca continua igual e abre por três atalhos — **Anexar ou ver todos os documentos** (aba Documentos da proposta SEQ), **Todos os documentos** (ficha do insumo) e o botão **Documentos (N)** ao lado da busca da tela Início. Com uma proposta aberta, a tela mostra **Voltar à proposta**.
+
+## 10. Fases da proposta com um nome só, e botões da linha
+
+As fases passam a ser as mesmas em todo o app — situação da linha e do cabeçalho, chips de filtro, painel da tela Início, etapas e menu Margens:
+
+**Em aberto → Em aprovação → Enviada ao cliente → Ganha → Encerrada**, ou **Perdida**.
+
+| Antes (nomes diferentes para a mesma coisa) | Depois |
+|---|---|
+| Rascunho / Em elaboração / Em aberto | **Em aberto** |
+| Aprovação com … / Aguardando aprovação / Desconto aprovado · falta aplicar | **Em aprovação** (detalhe: "· com Diretoria e Financeiro", "· aprovada, falta aplicar") |
+| Desconto reprovado / Aprovação perdeu a validade | **Em aberto** · desconto reprovado / · aprovação perdeu a validade |
+| Enviada / Enviada ao cliente / Em negociação | **Enviada ao cliente** (detalhe "· em negociação") |
+| Fechada / Fechadas / Fechada (baixa) / Ganha | **Ganha** (etapa "Ganha (baixa)"; aba e cartão "Ganhas" no menu Margens) |
+| Aba e cartão "Em aberto" do menu Margens (tudo o que não fechou) | **Em andamento** (= Em aberto + Em aprovação + Enviada ao cliente) |
+
+Chips da tela Início: Todas, SEQ, SPV, Em aberto, Em aprovação, Enviadas ao cliente, Ganhas, Perdidas, Falta avisar financeiro, Falta avisar engenharia, Falta custo real. Um filtro salvo com o nome antigo continua funcionando.
+
+Linha da proposta: os botões ficam num grupo alinhado — próximo passo (destacado), **Revisar** (novo: abre a proposta e a janela de nova revisão; aparece em Em aberto, Em aprovação e Enviada ao cliente), **Abrir**, **Duplicar** e **Perdida** (antes um link solto, desalinhado). O símbolo de etapa em andamento passou de ◐ para •, que não sai cortado.

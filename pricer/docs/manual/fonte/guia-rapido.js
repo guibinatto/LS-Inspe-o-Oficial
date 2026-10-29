@@ -9,7 +9,7 @@ module.exports = {
         ['Início', 'Busca, começar proposta SEQ ou SPV, painel, lista de propostas e próximas etapas (cap. 2 e 14)'],
         ['Propostas', 'A proposta aberta, com as abas dela (cap. 3 a 6)'],
         ['Pendências', 'Acompanhamento e Minhas pendências (cap. 13)'],
-        ['Margens', 'Fechadas, em aberto, aprovações, custo real e gráficos (cap. 13 e 14)'],
+        ['Margens', 'Ganhas, em andamento, aprovações, custo real e gráficos (cap. 13 e 14)'],
         ['Cadastros', 'Visão geral, Custos, Engenharia, Fiscal, Precificação, Serviços e Cadastro geral (cap. 7 a 11)'],
         ['Configurações', 'Histórico, responsáveis e e-mails, backup e restauração, planilha avançada (cap. 16)'],
         ['Ajuda', 'Guia de campos da planilha original'],

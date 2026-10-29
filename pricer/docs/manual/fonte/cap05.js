@@ -122,7 +122,7 @@ module.exports = {
 
     { t: 'h', x: 'Aba Documentos (emissão)' },
     { t: 'fig', id: '05-05' },
-    { t: 'p', x: 'A aba **Documentos** é a última etapa. Ela tem três cartões: **Situação e próximo passo** (a trilha Conferência ok → Finalizada → Enviada ao cliente → Fechada (baixa) → …, com o botão do próximo passo), **Documentos da proposta** (PDFs e a lista de documentos ligados, onde entra o PDF conferido) e **Revisões**. Antes de salvar, ela mostra "Salve a proposta para acompanhar as etapas." e "Salve a proposta para ter revisões.".' },
+    { t: 'p', x: 'A aba **Documentos** é a última etapa. Ela tem três cartões: **Situação e próximo passo** (a trilha Conferência ok → Finalizada → Enviada ao cliente → Ganha (baixa) → …, com o botão do próximo passo), **Documentos da proposta** (PDFs e a lista de documentos ligados, onde entra o PDF conferido) e **Revisões**. Antes de salvar, ela mostra "Salve a proposta para acompanhar as etapas." e "Salve a proposta para ter revisões.".' },
     { t: 'tut', titulo: 'Gerar o Memorial e a FCI', objetivo: 'Baixar os documentos para o financeiro.', quem: 'Qualquer pessoa com acesso à proposta. No modo local não há controle de acesso.', pre: ['Proposta com itens precificados.', 'Acesso à internet (o app baixa a biblioteca que monta o PDF e o Excel).'], passos: [
       'Abra a aba **Documentos** (ou a aba **Memorial**).',
       { x: 'Clique em **Memorial (PDF)**, **FCI (PDF)** ou **FCI (Excel)**.', fig: '05-05' },

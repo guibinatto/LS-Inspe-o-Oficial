@@ -56,6 +56,6 @@ module.exports = {
       'Em **Pendências**, escolha o filtro "Resolvidas e não se aplica".',
       'Na tela **Início**, marque a proposta como enviada e dê baixa com **Valor fechado** 4.000.000,00.',
       'Abra **Margens** → aba **Fechadas**.',
-    ], resultado: 'Após salvar o exemplo, há 4 pendências abertas. Depois do CNPJ, "Falta preencher: CNPJ/CPF" aparece como Resolvida, com "Resolvida automaticamente: a falha não aparece mais na conferência." Na baixa, a prévia mostra "a margem vai de 33,2% para 29,0% (desconto de 6,1%)" e a aba Fechadas mostra margem fechada de 29,0%.', criterio: 'O participante sabe onde ver o que depende dele (Pendências) e onde acompanhar o resultado das propostas fechadas (Margens).' }),
+    ], resultado: 'Após salvar o exemplo, há 4 pendências abertas. Depois do CNPJ, "Falta preencher: CNPJ/CPF" aparece como Resolvida, com "Resolvida automaticamente: a falha não aparece mais na conferência." Na baixa, a prévia mostra "a margem vai de 33,2% para 29,0% (desconto de 6,1%)" e a aba Ganhas mostra margem fechada de 29,0%.', criterio: 'O participante sabe onde ver o que depende dele (Pendências) e onde acompanhar o resultado das propostas fechadas (Margens).' }),
   ],
 };

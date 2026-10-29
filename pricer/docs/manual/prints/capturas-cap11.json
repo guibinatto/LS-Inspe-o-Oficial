@@ -6,7 +6,7 @@
   "titulo": "Cadastros → Engenharia → Famílias: famílias de equipamento",
   "vp": "desktop",
   "arquivo": "11-01-modelos-familias-equipamento.png",
-  "data": "2026-10-29T12:11:53.092Z",
+  "data": "2026-10-29T14:37:41.098Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -55,7 +55,7 @@
   "titulo": "Editar uma família de insumo",
   "vp": "desktop",
   "arquivo": "11-02-modelos-familia-insumo.png",
-  "data": "2026-10-29T12:11:55.671Z",
+  "data": "2026-10-29T14:37:44.017Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -98,7 +98,7 @@
   "titulo": "Cadastros → Fiscal → Impostos e NCM: NCM e unidade por família",
   "vp": "desktop",
   "arquivo": "11-03-modelos-ncm-familia.png",
-  "data": "2026-10-29T12:11:57.088Z",
+  "data": "2026-10-29T14:37:45.501Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -135,7 +135,7 @@
   "titulo": "Itens da proposta: Salvar como modelo e o quadro Modelos de item",
   "vp": "desktop",
   "arquivo": "11-04-modelos-item.png",
-  "data": "2026-10-29T12:11:58.267Z",
+  "data": "2026-10-29T14:37:46.696Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -178,7 +178,7 @@
   "titulo": "Configurações já usadas: busca por \"skid\"",
   "vp": "desktop",
   "arquivo": "11-05-modelos-biblioteca.png",
-  "data": "2026-10-29T12:12:02.053Z",
+  "data": "2026-10-29T14:37:50.605Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -215,7 +215,7 @@
   "titulo": "Nova regra de configuração com a condição Componente presente",
   "vp": "desktop",
   "arquivo": "11-06-modelos-regra-nova.png",
-  "data": "2026-10-29T12:12:04.691Z",
+  "data": "2026-10-29T14:37:53.374Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -276,7 +276,7 @@
   "titulo": "Regras de configuração: a regra salva em rascunho",
   "vp": "desktop",
   "arquivo": "11-07-modelos-regras-lista.png",
-  "data": "2026-10-29T12:12:08.178Z",
+  "data": "2026-10-29T14:37:57.088Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -319,7 +319,7 @@
   "titulo": "Proposta SPV: Salvar esta proposta como modelo",
   "vp": "desktop",
   "arquivo": "11-08-modelos-spv.png",
-  "data": "2026-10-29T12:12:09.573Z",
+  "data": "2026-10-29T14:37:58.574Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -374,7 +374,7 @@
   "titulo": "Engenharia → Codificação: padrões e a tabela Configurações de bomba",
   "vp": "desktop",
   "arquivo": "11-09-modelos-codificacao.png",
-  "data": "2026-10-29T12:12:15.793Z",
+  "data": "2026-10-29T14:38:05.006Z",
   "ok": true,
   "problemas": [],
   "marcas": []

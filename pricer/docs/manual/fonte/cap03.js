@@ -88,7 +88,7 @@ module.exports = {
       clip: '.ctxh', pad: 10,
       marcas: [
         { sel: '.ctxh .ctx-tt h1', txt: 'Número da proposta e, abaixo, o cliente.', pos: 't' },
-        { sel: '.ctxh .ctx-tags', txt: 'Revisão atual ("Rev. 3 ▾": ver, comparar e restaurar revisões), botão Revisar e a situação (Não salva, Em aberto, Enviada ao cliente, Aprovação com…, Fechada…).', pos: 'r' },
+        { sel: '.ctxh .ctx-tags', txt: 'Revisão atual ("Rev. 3 ▾": ver, comparar e restaurar revisões), botão Revisar e a situação (Não salva, Em aberto, Em aprovação, Enviada ao cliente, Ganha, Encerrada, Perdida).', pos: 'r' },
         { sel: '.ctx-kpis .k:nth-child(1)', txt: 'Valor total da proposta (com IPI).', pos: 't' },
         { sel: '.ctx-kpis .k:nth-child(2)', txt: 'Margem líquida e o mínimo da política; fica vermelha abaixo do mínimo.', pos: 't' },
         { sel: '.ctx-kpis .k:nth-child(3)', txt: 'Custo total e, ao lado, o número de itens.', pos: 't' },
@@ -125,8 +125,9 @@ module.exports = {
       marcas: [
         { sel: '#app tr[data-hopen] .divb', txt: 'Divisão (SEQ ou SPV), número, revisão e cliente. Clicar na linha também abre.', pos: 'b' },
         { sel: '#app button[data-hnext]', txt: 'Próximo passo sugerido para a proposta (aqui, Conferir PDF).', pos: 'b' },
+        { sel: '#app button[data-hrev]', txt: 'Revisar: abre a proposta já na janela de nova revisão (em Em aberto, Em aprovação e Enviada ao cliente).', pos: 'b' },
         { sel: '#app button[data-hopen]', txt: 'Abrir a proposta.', pos: 'b' },
-        { sel: '#app button[data-hdup]', txt: 'Duplicar: cria uma cópia em rascunho, sem número.', pos: 'b' },
+        { sel: '#app button[data-hdup]', txt: 'Duplicar: cria uma cópia Em aberto, sem número.', pos: 'b' },
         { sel: '#app [data-hperdida]', txt: 'Marcar como perdida, com o motivo.', pos: 'r' },
       ] },
     { id: '03-12', nome: 'proposta-copia-duplicada', titulo: 'Cópia criada pelo Duplicar: sem número e ainda não salva',
@@ -208,7 +209,7 @@ module.exports = {
     { t: 'tut', titulo: 'Salvar a proposta', objetivo: 'Gravar a proposta e o resumo dela (total, margem, conferência).', quem: 'Contribuidor, Editor ou dono. No modo local não há controle de acesso.', pre: ['Proposta aberta.'], passos: [
       'Clique em **Salvar** na barra superior, ou pressione **Ctrl+S** (⌘S no Mac).',
       'Aguarde o botão parar de girar. Aparece o aviso "Salvo e confirmado neste navegador: …" (no modo compartilhado, "Salvo e confirmado no banco da equipe: …").',
-    ], resultado: 'O indicador mostra "✓ Salvo às hh:mm", a situação no cabeçalho passa de "Não salva" para "Rascunho" e surgem o selo de revisão e o botão **Revisar**.', atencao: 'Se a proposta já foi enviada ao cliente, salvar uma alteração abre a janela "Esta revisão já foi enviada ao cliente", com as opções **Salvar como revisão N** e **É só correção: salvar na revisão N**. Se outra pessoa salvou a mesma proposta enquanto você editava, o app não sobrescreve: abre a janela "Outra pessoa salvou esta proposta" para você escolher.', dica: 'Rascunhos já salvos uma vez são salvos sozinhos depois de 1 minuto sem edição. Se o navegador fechar antes, as alterações voltam na próxima abertura com a faixa "Recuperamos alterações não salvas" e o botão **Salvar agora**.' },
+    ], resultado: 'O indicador mostra "✓ Salvo às hh:mm", a situação no cabeçalho passa de "Não salva" para "Em aberto" e surgem o selo de revisão e o botão **Revisar**.', atencao: 'Se a proposta já foi enviada ao cliente, salvar uma alteração abre a janela "Esta revisão já foi enviada ao cliente", com as opções **Salvar como revisão N** e **É só correção: salvar na revisão N**. Se outra pessoa salvou a mesma proposta enquanto você editava, o app não sobrescreve: abre a janela "Outra pessoa salvou esta proposta" para você escolher.', dica: 'Rascunhos já salvos uma vez são salvos sozinhos depois de 1 minuto sem edição. Se o navegador fechar antes, as alterações voltam na próxima abertura com a faixa "Recuperamos alterações não salvas" e o botão **Salvar agora**.' },
     { t: 'nota', x: 'Ao salvar, o app também roda a conferência e cria ou resolve sozinho as pendências automáticas da proposta (ver o capítulo de Pendências).' },
 
     { t: 'h', x: 'Abrir uma proposta salva' },
@@ -227,7 +228,7 @@ module.exports = {
       { x: 'Clique em **Duplicar** na linha dela.', fig: '03-11' },
       { x: 'A cópia abre em Dados gerais, sem número e com a situação "Não salva".', fig: '03-12' },
       'Informe o novo **Nº da proposta**, ajuste o que mudar e clique em **Salvar**.',
-    ], resultado: 'Aviso "Cópia criada: dê um número novo e salve". Depois de salvar, existem duas propostas; a original não muda.', atencao: 'A cópia volta para rascunho e não leva as justificativas de alertas, os cenários do simulador nem as marcações "não se aplica" da original.', dica: 'Para reaproveitar só um equipamento (e não a proposta inteira), use os modelos de item ou **Buscar em configurações já usadas**, na aba Itens (capítulo 4).' },
+    ], resultado: 'Aviso "Cópia criada: dê um número novo e salve". Depois de salvar, existem duas propostas; a original não muda.', atencao: 'A cópia volta para Em aberto e não leva as justificativas de alertas, os cenários do simulador nem as marcações "não se aplica" da original.', dica: 'Para reaproveitar só um equipamento (e não a proposta inteira), use os modelos de item ou **Buscar em configurações já usadas**, na aba Itens (capítulo 4).' },
 
     { t: 'h', x: 'Cabeçalho de contexto' },
     { t: 'p', x: 'Em todas as abas da proposta aparece o mesmo cabeçalho, com a identificação à esquerda e os números principais à direita. Ele é atualizado a cada alteração.' },
@@ -258,9 +259,9 @@ module.exports = {
 // ---- trilha de etapas da proposta ----
 module.exports.conteudo.push(
   { t: 'h', x: 'A trilha de etapas da proposta' },
-  { t: 'p', x: 'Cada proposta na lista da tela **Início** tem uma trilha de círculos, uma por etapa, e a **situação** ao lado do valor (Em aberto, Aprovação com …, Enviada ao cliente, Fechada, Encerrada, Perdida). A etapa seguinte à última concluída fica destacada em laranja, com o nome embaixo (no celular, só ela mostra o nome); no computador, passe o mouse sobre um círculo para ver o nome e a data.' },
+  { t: 'p', x: 'Cada proposta na lista da tela **Início** tem uma trilha de círculos, uma por etapa, e a **situação** ao lado do valor (Em aberto, Em aprovação, Enviada ao cliente, Ganha, Encerrada, Perdida, às vezes com um detalhe, como "Em aprovação · com Diretoria e Financeiro"). A etapa seguinte à última concluída fica destacada em laranja, com o nome embaixo (no celular, só ela mostra o nome); no computador, passe o mouse sobre um círculo para ver o nome e a data.' },
   { t: 'tab', cab: ['Etapa', 'Fica marcada (✓) quando'], lin: [
-    ['Conferência ok', 'A conferência da proposta, gravada ao salvar, não tem nada que impeça nem aviso pendente. Com avisos, mostra ◐ e "N aviso(s)"; com impeditivos, ! e "N impede(m)"'],
+    ['Conferência ok', 'A conferência da proposta, gravada ao salvar, não tem nada que impeça nem aviso pendente. Com avisos, mostra • e "N aviso(s)"; com impeditivos, ! e "N impede(m)"'],
     ['Aprovação', 'Só aparece se houve pedido de aprovação de valor target: ✓ quando aprovada e aplicada'],
     ['Finalizada', 'O PDF da proposta foi conferido (aba Conferência) e continua valendo para a versão salva'],
     ['Enviada ao cliente', 'A proposta foi marcada como enviada'],
@@ -270,7 +271,7 @@ module.exports.conteudo.push(
     ['Encerrada', 'A execução foi encerrada'],
   ] },
   { t: 'tab', cab: ['Símbolo', 'Significado'], lin: [
-    ['✓ verde', 'Etapa concluída'], ['◐ amarelo', 'Em andamento ou com ressalva (avisos, aprovação esperando decisão, PDF desatualizado)'], ['! vermelho', 'Há algo que impede seguir'],
+    ['✓ verde', 'Etapa concluída'], ['• amarelo', 'Em andamento ou com ressalva (avisos, aprovação esperando decisão, PDF desatualizado)'], ['! vermelho', 'Há algo que impede seguir'],
     ['– tracejado', 'Etapa pulada: ficou para trás sem ser feita (por exemplo, a proposta foi enviada sem conferir o PDF)'], ['○ vazio', 'Ainda não chegou'],
   ] },
 );

@@ -6,7 +6,7 @@
   "titulo": "Aba Itens da proposta de exemplo",
   "vp": "desktop",
   "arquivo": "04-01-precificacao-itens-lista.png",
-  "data": "2026-10-29T12:11:22.302Z",
+  "data": "2026-10-29T14:37:05.640Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -49,7 +49,7 @@
   "titulo": "Item 02 aberto: resumo do item e alerta de margem",
   "vp": "desktop",
   "arquivo": "04-02-precificacao-item-alerta.png",
-  "data": "2026-10-29T12:11:23.581Z",
+  "data": "2026-10-29T14:37:07.262Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -92,7 +92,7 @@
   "titulo": "Aba Formação: resumo, condições comerciais e preço por item",
   "vp": "desktop",
   "arquivo": "04-03-precificacao-formacao.png",
-  "data": "2026-10-29T12:11:25.095Z",
+  "data": "2026-10-29T14:37:08.793Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -147,7 +147,7 @@
   "titulo": "Simulador de negociação com valor final de R$ 4.000.000,00",
   "vp": "desktop",
   "arquivo": "04-04-precificacao-simulador.png",
-  "data": "2026-10-29T12:11:26.575Z",
+  "data": "2026-10-29T14:37:10.348Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -196,7 +196,7 @@
   "titulo": "Aba Conferência: conferência central e pedido de aprovação",
   "vp": "desktop",
   "arquivo": "04-05-precificacao-conferencia.png",
-  "data": "2026-10-29T12:11:30.721Z",
+  "data": "2026-10-29T14:37:14.631Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -245,7 +245,7 @@
   "titulo": "Item novo: escolha da família",
   "vp": "desktop",
   "arquivo": "04-06-precificacao-item-familia.png",
-  "data": "2026-10-29T12:11:32.506Z",
+  "data": "2026-10-29T14:37:16.593Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -282,7 +282,7 @@
   "titulo": "Cartão Equipamento: modelo pronto ou montagem",
   "vp": "desktop",
   "arquivo": "04-07-precificacao-item-equipamento.png",
-  "data": "2026-10-29T12:11:34.580Z",
+  "data": "2026-10-29T14:37:18.708Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -331,7 +331,7 @@
   "titulo": "Modelo pronto aplicado: preço calculado e avisos de código e descrição",
   "vp": "desktop",
   "arquivo": "04-08-precificacao-item-modelo-alertas.png",
-  "data": "2026-10-29T12:11:36.231Z",
+  "data": "2026-10-29T14:37:20.515Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -374,7 +374,7 @@
   "titulo": "Condições deste item",
   "vp": "desktop",
   "arquivo": "04-09-precificacao-item-condicoes.png",
-  "data": "2026-10-29T12:11:38.396Z",
+  "data": "2026-10-29T14:37:22.811Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -417,7 +417,7 @@
   "titulo": "Componentes do item (do modelo pronto)",
   "vp": "desktop",
   "arquivo": "04-10-precificacao-item-componentes.png",
-  "data": "2026-10-29T12:11:39.270Z",
+  "data": "2026-10-29T14:37:23.612Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -478,7 +478,7 @@
   "titulo": "Aba Custos com o item novo (linhas com informação de cotação)",
   "vp": "desktop",
   "arquivo": "04-11-precificacao-custos.png",
-  "data": "2026-10-29T12:11:40.758Z",
+  "data": "2026-10-29T14:37:25.211Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -539,7 +539,7 @@
   "titulo": "Botão Planilha completa: visão com todas as colunas da proposta",
   "vp": "desktop",
   "arquivo": "04-12-precificacao-planilha-completa.png",
-  "data": "2026-10-29T12:11:41.980Z",
+  "data": "2026-10-29T14:37:26.645Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -582,7 +582,7 @@
   "titulo": "Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro",
   "vp": "desktop",
   "arquivo": "04-13-precificacao-preco-vencido.png",
-  "data": "2026-10-29T12:11:48.528Z",
+  "data": "2026-10-29T14:37:33.423Z",
   "ok": true,
   "problemas": [],
   "marcas": [

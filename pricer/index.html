@@ -79,6 +79,9 @@ body.side-mini .nav .nbadge{position:absolute;top:2px;right:4px}
 .btn.pri:hover{background:var(--or-ink);border-color:var(--or-ink)}
 .btn.ghost{background:transparent;border-color:rgba(255,255,255,.18);color:var(--bar-ink)}
 .btn.ghost:hover{border-color:var(--or)}
+.hbtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}.hbtns .btn{margin:0;white-space:nowrap}
+.btn.perd{color:var(--bad);background:transparent;border-color:transparent}.btn.perd:hover{border-color:var(--bad)}
+@media (max-width:860px){.hbtns{justify-content:flex-start}}
 .btn.busy{pointer-events:none;opacity:.75}
 .btn.busy .ico{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}

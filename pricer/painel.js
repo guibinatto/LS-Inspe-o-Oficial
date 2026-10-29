@@ -19,7 +19,7 @@
       if (st === 'enviada' || st === 'negociacao') return 'enviada';
       return 'rascunho';
     }
-    const ETAPAS = [['rascunho', 'Em elaboração'], ['aprovacao', 'Em aprovação'], ['enviada', 'Enviada ao cliente'], ['ganha', 'Ganha'], ['perdida', 'Perdida']];
+    const ETAPAS = [['rascunho', 'Em aberto'], ['aprovacao', 'Em aprovação'], ['enviada', 'Enviada ao cliente'], ['ganha', 'Ganha'], ['perdida', 'Perdida']];
     const PERIODOS = [['30', 'Últimos 30 dias'], ['90', 'Últimos 90 dias'], ['365', 'Últimos 12 meses'], ['tudo', 'Todo o período']];
     function dados() {
       const MG = ctx.MG(); const f = Object.assign({ per: '90', div: 'todas' }, ui.pnl || {});
@@ -78,7 +78,7 @@
     }
     document.addEventListener('change', (e) => { const t = e.target.closest('[data-pnl]'); if (!t) return; ui.pnl = Object.assign({ per: '90', div: 'todas' }, ui.pnl || {}, { [t.dataset.pnl]: t.value }); ctx.render(); });
     document.addEventListener('toggle', (e) => { if (e.target && e.target.id === 'painel') ui.painelFechado = !e.target.open; }, true);
-    document.addEventListener('click', (e) => { const b = e.target.closest('[data-pnletapa]'); if (!b) return; const map = { rascunho: 'abertas', aprovacao: 'aprovacao', enviada: 'abertas', ganha: 'fechadas', perdida: 'perdidas' }; ui.homeDiv = map[b.dataset.pnletapa] || 'todas'; ctx.render(); const t = document.querySelector('.hchips'); if (t) t.scrollIntoView({ block: 'center' }); });
+    document.addEventListener('click', (e) => { const b = e.target.closest('[data-pnletapa]'); if (!b) return; const map = { rascunho: 'aberto', aprovacao: 'aprovacao', enviada: 'enviada', ganha: 'ganha', perdida: 'perdida' }; ui.homeDiv = map[b.dataset.pnletapa] || 'todas'; ctx.render(); const t = document.querySelector('.hchips'); if (t) t.scrollIntoView({ block: 'center' }); });
     return { vPainel, dados, etapa };
   };
 })();

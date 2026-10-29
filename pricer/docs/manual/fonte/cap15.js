@@ -131,12 +131,12 @@ module.exports = {
       quem: 'Quem edita a proposta (no modo compartilhado, Contribuidor ou acima). No modo local não há controle de acesso.',
       pre: ['Proposta aberta na revisão atual (não numa revisão em consulta: aí o app avisa "Volte à revisão atual para revisar").'],
       passos: [
-        'Com a proposta aberta, clique em **Revisar**, ao lado do selo **Rev. N** no topo. O mesmo botão existe na aba **Documentos** (quadro Revisões, **Revisar (nova revisão)**), na aba **Histórico** e na lista de revisões.',
+        'Com a proposta aberta, clique em **Revisar**, ao lado do selo **Rev. N** no topo. O mesmo botão existe na aba **Documentos** (quadro Revisões, **Revisar (nova revisão)**), na aba **Histórico**, na lista de revisões e na tela **Início**, na linha da proposta (abre a proposta já nesta janela).',
         { x: 'Em **O que muda nesta revisão?**, descreva o motivo e clique em **Criar revisão N+1**.', fig: '15-02' },
         'Faça as alterações e clique em **Salvar**.',
       ],
-      resultado: 'O aviso "Revisão N+1 criada. A revisão N está guardada." aparece, o selo passa a mostrar a nova revisão, a proposta volta a **Rascunho** e a edição recomeça em Dados gerais. O histórico registra "Proposta — revisão".',
-      atencao: 'A nova revisão volta a ser rascunho: a conferência do PDF da revisão anterior não vale para ela ("conferência desatualizada") e o PDF precisa ser conferido de novo antes de enviar.',
+      resultado: 'O aviso "Revisão N+1 criada. A revisão N está guardada." aparece, o selo passa a mostrar a nova revisão, a proposta volta a **Em aberto** e a edição recomeça em Dados gerais. O histórico registra "Proposta — revisão".',
+      atencao: 'A nova revisão volta para Em aberto: a conferência do PDF da revisão anterior não vale para ela ("conferência desatualizada") e o PDF precisa ser conferido de novo antes de enviar.',
       dica: 'Use o motivo para dizer o que o cliente pediu. Ele aparece na lista de revisões ("na rev. N+1: …").' },
 
     { t: 'h', x: 'Salvar uma proposta já enviada' },
@@ -150,7 +150,7 @@ module.exports = {
         'Na janela **Esta revisão já foi enviada ao cliente**, escreva em **O que muda?** (opcional).',
         'Clique em **Salvar como revisão N+1** (o certo quando o cliente vai receber outra versão) ou em **É só correção: salvar na revisão N** (por exemplo, um erro de digitação que não muda o que foi enviado).',
       ],
-      resultado: 'Com revisão nova: "Salvo como revisão N+1", a enviada fica guardada e a proposta volta a rascunho. Com correção: a revisão N é gravada por cima, sem nova entrada na lista.',
+      resultado: 'Com revisão nova: "Salvo como revisão N+1", a enviada fica guardada e a proposta volta a Em aberto. Com correção: a revisão N é gravada por cima, sem nova entrada na lista.',
       atencao: '**Cancelar** não salva nada: as alterações continuam na tela, ainda não gravadas.' },
 
     { t: 'h', x: 'Lista de revisões, consulta e restauração' },
@@ -204,7 +204,7 @@ module.exports = {
     { t: 'fig', id: '15-09' },
     { t: 'fig', id: '15-10' },
     { t: 'tut', titulo: 'Excluir e restaurar uma proposta', objetivo: 'Tirar uma proposta da lista sem perdê-la, e trazê-la de volta se preciso.',
-      quem: 'Excluir: o administrador (dono do app) ou quem criou o rascunho (no modo compartilhado, com acesso de gravação). Restaurar: o administrador ou quem excluiu. Apagar de vez: só o administrador. No modo local não há controle de acesso: quem abre o arquivo é tratado como administrador.',
+      quem: 'Excluir: o administrador (dono do app) ou quem criou a proposta em aberto (no modo compartilhado, com acesso de gravação). Restaurar: o administrador ou quem excluiu. Apagar de vez: só o administrador. No modo local não há controle de acesso: quem abre o arquivo é tratado como administrador.',
       pre: ['A proposta salva.'],
       passos: [
         'Clique em **Abrir** na barra superior.',

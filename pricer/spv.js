@@ -49,7 +49,7 @@
     TRT: { equipe: 1, pecas: 0, titulo: 'Treinamento / start-up' }, REN: { equipe: 0, pecas: 1, locacao: 1, titulo: 'Locação' },
     PAN: { equipe: 1, pecas: 1, titulo: 'Painéis' }, TAQ: { equipe: 1, pecas: 1, titulo: 'Tanques' }, FRC: { equipe: 1, pecas: 1, titulo: 'Fireconnect' }, SFL: { equipe: 1, pecas: 1, titulo: 'Filtragem' },
   };
-  const STATUS = [['rascunho', 'Rascunho', 'mute'], ['enviada', 'Enviada', 'warn'], ['negociacao', 'Em negociação', 'warn'], ['ganha', 'Ganha', 'ok'], ['perdida', 'Perdida', 'bad']];
+  const STATUS = [['rascunho', 'Em aberto', 'mute'], ['enviada', 'Enviada ao cliente', 'warn'], ['negociacao', 'Enviada · em negociação', 'warn'], ['ganha', 'Ganha', 'ok'], ['perdida', 'Perdida', 'bad']];
   const DOC_TIPOS = [['orcamento', 'Orçamento de fornecedor'], ['nota', 'Nota fiscal'], ['pedido', 'Pedido de compra'], ['contrato', 'Contrato'], ['tecnico', 'Desenho / data sheet'], ['proposta', 'Proposta enviada'], ['outro', 'Outro']];
   // valores padrão, tirados da planilha MASTERDOC (diárias de 21/02/2025)
   const DEF = {
@@ -328,11 +328,12 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     }
     function vHome() {
       ensureDocs();
-      const ui = ctx.ui; const all = REG.listPropostas() || []; const q = norm(ui.homeQ || ''); const f = ui.homeDiv || 'todas';
+      const ui = ctx.ui; const all = REG.listPropostas() || []; const q = norm(ui.homeQ || ''); const f0 = ui.homeDiv || 'todas'; const f = ({ abertas: 'aberto', fechadas: 'ganha', perdidas: 'perdida' })[f0] || f0;
       const hay = (p) => norm([p.numero, p.cliente, p.name, p.status, divOf(p), p.tipo, p.spv && (p.spv.descricao + ' ' + p.spv.local + ' ' + (p.spv.pecas || []).map((x) => x.desc + ' ' + (x.forn || '')).join(' '))].join(' '));
       const pend = { pend_fin: 'financeiro', pend_eng: 'engenharia', pend_real: 'real' };
       const sit = (p) => (ctx.situacao ? ctx.situacao(p) : [(STATUS.find((y) => y[0] === (p.status || 'rascunho')) || STATUS[0])[1], 'mute']);
-      const porSit = { abertas: (p) => !['Fechada', 'Encerrada', 'Perdida'].includes(sit(p)[0]), aprovacao: (p) => /^Aprovação (?!perdeu)/.test(sit(p)[0]), fechadas: (p) => ['Fechada', 'Encerrada'].includes(sit(p)[0]), perdidas: (p) => sit(p)[0] === 'Perdida' };
+      const faseDe = (p) => sit(p)[2] || ({ rascunho: 'aberto', enviada: 'enviada', negociacao: 'enviada', ganha: 'ganha', perdida: 'perdida' })[p.status || 'rascunho'] || 'aberto';
+      const porSit = { aberto: (p) => faseDe(p) === 'aberto', aprovacao: (p) => faseDe(p) === 'aprovacao', enviada: (p) => faseDe(p) === 'enviada', ganha: (p) => ['ganha', 'encerrada'].includes(faseDe(p)), perdida: (p) => faseDe(p) === 'perdida' };
       const list = all.filter((p) => (f === 'todas' || divOf(p) === f || (porSit[f] && porSit[f](p)) || (pend[f] && ctx.etapaPendente && ctx.etapaPendente(p, pend[f]))) && (!q || hay(p).includes(q)));
       const sx = stats(all); const docsHit = q ? docs.filter((d) => norm([d.nome, d.fornecedor, d.numero, (d.itens || []).map((i) => i.descricao).join(' ')].join(' ')).includes(q)).slice(0, 6) : [];
       const rows = list.slice(0, 60).map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
@@ -341,8 +342,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
         <td><span class="pill ${sit(p)[1]}">${esc(sit(p)[0])}</span></td>
         <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
-        <td class="hacts">${(() => { const nx = ctx.proximo && ctx.proximo(p); return nx ? `<button class="btn sm pri" data-hnext="${esc(p.id)}|${nx.act}">${esc(nx.lb)}</button> ` : ''; })()}<button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${sit(p)[0] === 'Perdida' || ['Fechada', 'Encerrada'].includes(sit(p)[0]) ? '' : ` <button class="restore" data-hperdida="${esc(p.id)}" title="Marcar como perdida, com o motivo">perdida</button>`}</td></tr>${ctx.etapasHtml ? `<tr class="etrow"><td colspan="6">${ctx.etapasHtml(p)}</td></tr>` : ''}`).join('');
-      const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['abertas', 'Em aberto'], ['aprovacao', 'Aguardando aprovação'], ['fechadas', 'Fechadas'], ['pend_fin', 'Falta avisar financeiro'], ['pend_eng', 'Falta avisar engenharia'], ['pend_real', 'Falta custo real'], ['perdidas', 'Perdidas']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
+        <td class="hacts"><div class="hbtns">${(() => { const nx = ctx.proximo && ctx.proximo(p); return nx ? `<button class="btn sm pri" data-hnext="${esc(p.id)}|${nx.act}">${esc(nx.lb)}</button>` : ''; })()}${['aberto', 'aprovacao', 'enviada'].includes(faseDe(p)) ? `<button class="btn sm" data-hrev="${esc(p.id)}" data-ico="history" title="Criar uma nova revisão (a atual fica guardada)">Revisar</button>` : ''}<button class="btn sm" data-hopen="${esc(p.id)}" data-ico="external-link">Abrir</button><button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${['perdida', 'ganha', 'encerrada'].includes(faseDe(p)) ? '' : `<button class="btn sm perd" data-hperdida="${esc(p.id)}" data-ico="circle-x" title="Marcar como perdida, com o motivo">Perdida</button>`}</div></td></tr>${ctx.etapasHtml ? `<tr class="etrow"><td colspan="6">${ctx.etapasHtml(p)}</td></tr>` : ''}`).join('');
+      const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['aberto', 'Em aberto'], ['aprovacao', 'Em aprovação'], ['enviada', 'Enviadas ao cliente'], ['ganha', 'Ganhas'], ['perdida', 'Perdidas'], ['pend_fin', 'Falta avisar financeiro'], ['pend_eng', 'Falta avisar engenharia'], ['pend_real', 'Falta custo real']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
       const tipos = spvTipos().map((t) => `<button class="tchip" data-spvnew="${t.abrev}" title="${esc(t.desc)}"><b>${esc((TIPO_INI[t.abrev] || {}).titulo || t.nome)}</b><small>${esc(t.abrev)}</small></button>`).join('');
       return `<div class="stack home">
         <div class="hero"><div><h1>Formação de preço</h1><div class="sub">Busque uma proposta antiga ou comece uma nova.</div></div>
@@ -707,7 +708,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       if (t.closest('[data-seqnew]')) { ctx.newSeq(); return; }
       const sf = t.closest('[data-seqfam]'); if (sf) { ctx.newSeq(sf.dataset.seqfam); return; }
       const hd = t.closest('[data-hdiv]'); if (hd) { ctx.ui.homeDiv = hd.dataset.hdiv; ctx.render(); return; }
-      const ho = t.closest('[data-hopen]'); if (ho && !t.closest('select') && !t.closest('[data-hdup]') && !t.closest('[data-hnext]') && !t.closest('[data-hperdida]')) { const p = (REG.listPropostas() || []).find((x) => x.id === ho.dataset.hopen); if (p) ctx.openProposta(p, false); return; }
+      const ho = t.closest('[data-hopen]'); if (ho && !t.closest('select') && !t.closest('[data-hdup]') && !t.closest('[data-hnext]') && !t.closest('[data-hperdida]') && !t.closest('[data-hrev]')) { const p = (REG.listPropostas() || []).find((x) => x.id === ho.dataset.hopen); if (p) ctx.openProposta(p, false); return; }
+      const hr = t.closest('[data-hrev]'); if (hr) { const p = (REG.listPropostas() || []).find((x) => x.id === hr.dataset.hrev); if (p) { ctx.openProposta(p, false); if (ctx.revisar) setTimeout(() => ctx.revisar(), 60); } return; }
       const hu = t.closest('[data-hdup]'); if (hu) { const p = (REG.listPropostas() || []).find((x) => x.id === hu.dataset.hdup); if (p) ctx.openProposta(p, true); return; }
       const ad = t.closest('[data-spadd]'); if (ad && S()) { const s = S(); if (ad.dataset.spadd === 'equipe') s.equipe.push({ tec: '', diaria: 0, dias: s.equipe[0] ? s.equipe[0].dias : 1 }); else s.pecas.push({ desc: '', qtd: 1, unit: 0, ipi: 0, moeda: 'BRL', incluso: true }); ctx.persist(); ctx.render(); return; }
       const rm = t.closest('[data-sprm]'); if (rm && S()) { const [k, i] = rm.dataset.sprm.split('.'); S()[k].splice(+i, 1); ctx.persist(); ctx.render(); return; }

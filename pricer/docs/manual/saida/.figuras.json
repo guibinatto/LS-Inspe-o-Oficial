@@ -1145,7 +1145,7 @@
  {
   "num": "14.7",
   "id": "14-06",
-  "titulo": "Aba Fechadas",
+  "titulo": "Aba Ganhas",
   "arquivo": "14-06-margens-fechadas.png",
   "ok": true,
   "problemas": [],
@@ -1154,7 +1154,7 @@
  {
   "num": "14.8",
   "id": "14-07",
-  "titulo": "Aba Em aberto",
+  "titulo": "Aba Em andamento",
   "arquivo": "14-07-margens-em-aberto.png",
   "ok": true,
   "problemas": [],
