@@ -43,6 +43,9 @@
     }
     const fechDe = (propId) => fech.find((f) => f.id === propId);
     // custo real só depois da baixa e com a proposta ganha (perdida ou reaberta não lança)
+    // conferência do PDF vale para a revisão e o total que foram conferidos
+    const revDeP = (q) => { const v = q.spv ? q.spv.revisao : q.facts ? q.facts.revisao : ((q.doc || {}).PROPOSTA || {}).C6; const n = parseInt(String(v ?? '0').replace(/\D/g, ''), 10); return isFinite(n) ? n : 0; };
+    const conferidaOk = (p) => { const c = p && p.conferencia; return !!(c && c.ok && c.rev === revDeP(p) && Math.abs(num(c.total) - num(p.total)) < 1); };
     const liberaReal = (x) => { const id = typeof x === 'string' ? x : x && x.id; if (!id || !fechDe(id)) return false; const p = typeof x === 'object' && x.status !== undefined ? x : (REG.listPropostas() || []).find((y) => y.id === id); return !p || (p.status || 'ganha') === 'ganha'; };
 
     // ---------- contas: fechado (com o valor negociado) e realizado ----------
@@ -541,10 +544,11 @@
     function etapas(p) {
       ensure(); const F = fechDe(p.id); const e = p.etapas || {}; const st = p.status || 'rascunho'; const perdida = st === 'perdida';
       const R = F ? realizado(F) : null; const ap = aprovDe(p.id);
-      const lista = ETAPAS.slice(); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
+      const lista = ETAPAS.slice(); lista.splice(1, 0, ['conferida', 'PDF conferido']); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
       return lista.map(([k, lb]) => {
         let s = 'pend', info = '', act = null;
         if (k === 'formacao') { s = 'ok'; info = dt(p.at); }
+        else if (k === 'conferida') { const c = p.conferencia; act = 'conferir'; if (conferidaOk(p)) { s = 'ok'; info = dt(c.at); } else if (c) { s = 'parcial'; info = c.ok ? 'desatualizada' : 'divergências'; } else if (st !== 'rascunho' || F) { s = 'off'; info = 'não conferido'; } }
         else if (k === 'aprovacao') { const ea = estadoA(ap); act = 'aprovacao'; if (ea === 'aprovada') { s = ap.alvo && !ap.aplicadoEm && !F ? 'parcial' : 'ok'; info = s === 'ok' ? 'aprovada' : 'falta aplicar'; } else if (ea === 'reprovada') { s = 'parcial'; info = 'reprovada'; } else { s = 'parcial'; info = comQuem(ap); } }
         else if (k === 'cliente') { if (['enviada', 'negociacao', 'ganha', 'perdida'].includes(st) || F) { s = 'ok'; info = e.cliente ? dt(e.cliente.at) : ''; } else act = 'cliente'; }
         else if (perdida) { s = 'off'; info = k === 'baixa' ? 'perdida' : ''; }
@@ -574,6 +578,7 @@
       const [pid, k] = b.dataset.etp.split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
       const x = etapas(p).find((y) => y.k === k); if (!x) return;
       if (x.act === 'baixa') { fecharModal(p); return; }
+      if (x.act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
       if (x.act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'cliente') { const rec = Object.assign({}, p, { status: 'enviada', etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }); delete rec.id; delete rec.local;
@@ -824,6 +829,7 @@
         if (ea === 'pendente') return PAPEIS.some(([k]) => !(ap.decisoes || {})[k] && podeDecidir(k)) ? { lb: 'Analisar aprovação', act: 'aprovacao' } : { lb: 'Ver aprovação', act: 'aprovacao' };
         if (ea === 'aprovada' && ap.alvo && !ap.aplicadoEm) return { lb: 'Aplicar valor aprovado', act: 'aplicar' };
         if (ea === 'reprovada') return { lb: 'Ver motivo', act: 'aprovacao' }; }
+      if (!F && st === 'rascunho' && !conferidaOk(p)) return { lb: 'Conferir PDF', act: 'conferir' };
       if (!F) return st === 'rascunho' ? { lb: 'Enviar ao cliente', act: 'cliente' } : { lb: 'Dar baixa', act: 'baixa' };
       if (!e.financeiro || !e.engenharia) return { lb: 'Avisar áreas', act: 'avisar' };
       if (liberaReal(p) && realizado(F).cobertura < 1 - 1e-9) return { lb: 'Lançar custo real', act: 'real' };
@@ -844,6 +850,7 @@
       if (act === 'cliente') { salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
       if (act === 'baixa') { fecharModal(p); return; }
       if (act === 'aplicar') { ctx.abrirProposta && ctx.abrirProposta(p, 3); return; }
+      if (act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
       if (act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (act === 'avisar') { const e = p.etapas || {}; avisarModal(p, ['financeiro', 'engenharia'].filter((a) => !e[a])); return; }
       if (act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
@@ -855,7 +862,7 @@
         }); }
     });
 
-    return { liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
+    return { conferidaOk, liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();

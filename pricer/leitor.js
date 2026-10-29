@@ -135,5 +135,16 @@
     if (/^image\//.test(ty)) return Object.assign(lerTexto(await ocr([file], onStatus)), { _via: 'ocr' });
     return Object.assign(lerTexto((await file.text()).split(/\r?\n/)), { _via: 'texto' });
   }
-  window.PricerLeitor = { ler, lerTexto, lerXml, numBR };
+  // texto do documento em linhas (PDF com texto, ou reconhecimento de texto se for escaneado/foto)
+  async function linhas(file, onStatus) {
+    const nm = (file.name || '').toLowerCase(); const ty = file.type || '';
+    if (/pdf$/.test(ty) || /\.pdf$/.test(nm)) {
+      onStatus && onStatus('Lendo o PDF…'); const r = await pdfLinhas(file);
+      if (r.linhas.join('').replace(/\s/g, '').length >= 80) return r.linhas;
+      const imgs = []; for (const pg of r.pages.slice(0, 4)) imgs.push(await pageImage(pg)); return ocr(imgs, onStatus);
+    }
+    if (/^image\//.test(ty)) return ocr([file], onStatus);
+    return (await file.text()).split(/\r?\n/);
+  }
+  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR };
 })();

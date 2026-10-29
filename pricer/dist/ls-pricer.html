@@ -377,6 +377,7 @@ input.rin.pend{color:var(--ink3);font-style:italic}.rok{all:unset;cursor:pointer
 .aprovbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}.aprovbox small{flex:1 1 320px}
 .apselo{cursor:pointer;border:0;font:inherit;font-size:12px;font-weight:700}.etapas.trilha .etp{cursor:default}.etp.bad .etc{background:var(--bad);border-color:var(--bad);color:#fff}.etp.bad{color:var(--bad)}
 table.cent td{vertical-align:top}table.cent select{max-width:190px}table.cent .chk{display:inline-flex;gap:3px;margin-right:6px;white-space:nowrap}
+.warn-t{color:var(--warn)}tr.cf-erro td{background:var(--bad-bg)}tr.cf-aviso td{background:var(--warn-bg)}
 ul.uso{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
 table.porte td.ptxt{white-space:normal;min-width:110px;font-size:12.5px;line-height:1.3;vertical-align:top}
 .pedit{all:unset;cursor:pointer;display:block;border:1px dashed var(--line2);border-radius:6px;padding:4px 6px;word-break:break-word}.pedit:hover,.pedit:focus-visible{border-color:var(--or);background:var(--or-soft)}.cnpjrow input{flex:1 1 auto;min-width:0}
@@ -1968,7 +1969,18 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     if (/^image\//.test(ty)) return Object.assign(lerTexto(await ocr([file], onStatus)), { _via: 'ocr' });
     return Object.assign(lerTexto((await file.text()).split(/\r?\n/)), { _via: 'texto' });
   }
-  window.PricerLeitor = { ler, lerTexto, lerXml, numBR };
+  // texto do documento em linhas (PDF com texto, ou reconhecimento de texto se for escaneado/foto)
+  async function linhas(file, onStatus) {
+    const nm = (file.name || '').toLowerCase(); const ty = file.type || '';
+    if (/pdf$/.test(ty) || /\.pdf$/.test(nm)) {
+      onStatus && onStatus('Lendo o PDF…'); const r = await pdfLinhas(file);
+      if (r.linhas.join('').replace(/\s/g, '').length >= 80) return r.linhas;
+      const imgs = []; for (const pg of r.pages.slice(0, 4)) imgs.push(await pageImage(pg)); return ocr(imgs, onStatus);
+    }
+    if (/^image\//.test(ty)) return ocr([file], onStatus);
+    return (await file.text()).split(/\r?\n/);
+  }
+  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR };
 })();
 
 </script>
@@ -2402,6 +2414,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="hchips" style="margin-bottom:10px">${FREQ.map(([v, lb]) => `<button class="hchip${num(s.contrato.visitas) === v ? ' on' : ''}" data-spvis="${v}">${lb} · ${v}×/ano</button>`).join('')}</div>
           <div class="fields">${fld('Visitas por ano', inp('contrato.visitas', s.contrato.visitas))}${fld('Duração (meses)', inp('contrato.meses', s.contrato.meses))}${fld('Reajuste', inp('contrato.reajuste', s.contrato.reajuste, 'text'))}</div>
           <div class="kpis" style="margin-top:12px"><div class="kpi"><span>Por visita</span><b>${brl(r.ct.porVisita)}</b><em>${fmt(r.ct.nV, 0)} visitas no contrato</em></div>${r.ct.artV ? `<div class="kpi"><span>ART (uma vez)</span><b>${brl(r.ct.artV)}</b><em>custo ${brl(r.ct.artCusto)}</em></div>` : ''}<div class="kpi lead"><span>Mensalidade</span><b>${brl(r.ct.mensal)}</b></div><div class="kpi"><span>Total do contrato</span><b>${brl(r.ct.total)}</b></div></div></section>` : ''}
+        ${ctx.confCard ? ctx.confCard() : ''}
         ${ctx.tribCard ? ctx.tribCard(snapshot(s), { uf: s.uf, cadfiscal: '', div: 'SPV' }) : ''}
         <section class="card"><h2>Formação do preço</h2>
           <div class="split2">
@@ -2843,6 +2856,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       return `<div class="stack">
         <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-view="inicio">← Início</button><h1 style="margin-top:8px"><span class="divb seq">SEQ</span> FACTS ${f.numero ? '· ' + esc(f.numero) : ''}</h1><div class="sub">Teste automático de bombas de incêndio (MECON, FM 1330) · ${esc(f.cliente || 'cliente a definir')} · ${r.nSets} conjunto(s)</div></div>
           <div class="sumbar">${ctx.revSelo ? ctx.revSelo() : ''}<div><span>Preço sem IPI</span><b>${brl(r.V)}</b></div><div><span>Por conjunto</span><b>${brl(r.nSets ? r.Veq / r.nSets : 0)}</b></div><div><span>Margem líquida</span><b class="${below ? 'bad-t' : ''}">${pct(r.margemPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo do mínimo</span>' : '<span class="pill ok">dentro da meta</span>'}</div></div></div>
+        ${ctx.confCard ? ctx.confCard() : ''}
         <section class="card"><h2>Cliente</h2><div class="fields">${fld('Cliente', inp('cliente', f.cliente, 'text'), 'span2')}${fld('Nº da proposta', inp('numero', f.numero, 'text'))}${fld('Contato', inp('contato', f.contato, 'text'))}${fld('Local', inp('local', f.local, 'text'), 'span2')}${fld('UF', inp('uf', f.uf, 'text'))}${fld('Vendedor', inp('vendedor', f.vendedor, 'text'))}</div></section>
         ${conj}
         <div class="docbar"><button class="btn sm" data-fxadd>+ Outro conjunto (outra bomba com outra configuração)</button></div>
@@ -3255,6 +3269,131 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
 })();
 
 </script>
+<script>/* conferencia.js */
+/* LS Pricer — conferência do PDF da proposta comercial contra a formação.
+ * Lê o PDF no navegador (texto ou reconhecimento de texto), confere cabeçalho, valores, especificações e escopo.
+ * Tudo certo: salva o PDF nos documentos da formação e marca a proposta como conferida.
+ * Divergência: aponta o que corrigir; dá para aceitar com justificativa.
+ */
+(function () {
+  'use strict';
+  const norm = (s) => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/³/g, '3').replace(/[^A-Z0-9%.,/@\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const compacto = (s) => norm(s).replace(/[\s.\-/]+/g, '');
+  const PARADAS = new Set(['DE', 'DA', 'DO', 'DAS', 'DOS', 'E', 'COM', 'PARA', 'A', 'O', 'EM', 'LTDA', 'S', 'SA', 'S/A', 'ME', 'EIRELI', 'LS', 'FIRE', 'COMBATE', 'INCENDIO', '—', '-']);
+  const moedas = (txt) => (String(txt).match(/\d{1,3}(?:\.\d{3})+,\d{2}|\b\d+,\d{2}\b/g) || []).map((x) => parseFloat(x.replace(/\./g, '').replace(',', '.')));
+  // tokens técnicos que precisam aparecer: potência, rotação, vazão, pressão, modelo, norma
+  function tokensTecnicos(s) {
+    const T = new Set(); const t = norm(s);
+    for (const m of t.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(HP|RPM|CV|MCA|USGPM|GPM|M3\/H)\b/g)) T.add(m[1] + ' ' + m[2]);
+    for (const m of t.matchAll(/\b([A-Z]{2,4})\s?(\d{2,3}-\d{2,4})\b/g)) T.add(m[1] + ' ' + m[2]);
+    for (const m of t.matchAll(/\b(NFPA|NBR)\s?(\d{2,5})\b/g)) T.add(m[1] + m[2]);
+    for (const k of ['DIESEL', 'JOCKEY', 'SPLIT CASE', 'END SUCTION', 'MONOBLOCO', 'RADIADOR', 'TROCADOR', 'SKID', 'CONTAINER']) if (new RegExp('\\b' + k + '\\b').test(t)) T.add(k);
+    return [...T];
+  }
+  const palavras = (s) => [...new Set(norm(s).split(' ').filter((w) => w.length > 1 && !PARADAS.has(w)))];
+
+  function Conferencia(ctx) {
+    const { esc, brl, toast, modal, ui, REG } = ctx;
+    const $ = (s, el = document) => el.querySelector(s);
+    let ultimo = null; // { propId, rev, res, file }
+
+    function achaTexto(NT, NC, tok) { const n = norm(tok); if (!n) return true; if (NT.includes(n)) return true; return NC.includes(compacto(tok)); }
+    function cobertura(NT, NC, s) { const W = palavras(s); if (!W.length) return { pct: 1, falta: [] }; const falta = W.filter((w) => !achaTexto(NT, NC, w)); return { pct: 1 - falta.length / W.length, falta }; }
+    const valorNoPdf = (vals, v, tol = 0.5) => typeof v === 'number' && v > 0 && vals.some((x) => Math.abs(x - v) <= tol);
+
+    // monta e confere a lista; cada linha: grupo, o que, formação, situação (ok | erro | aviso), evidência
+    function conferir(texto, F) {
+      const NT = norm(texto), NC = compacto(texto), vals = moedas(texto); const out = [];
+      const add = (grupo, oque, formacao, st, pdf) => out.push({ grupo, oque, formacao, st, pdf: pdf || '' });
+      const maior = vals.length ? Math.max(...vals) : null;
+      // cabeçalho
+      if (F.cliente) { const c = cobertura(NT, NC, F.cliente); add('Cabeçalho', 'Cliente', F.cliente, c.pct >= 0.7 ? 'ok' : 'erro', c.pct >= 0.7 ? '' : 'não achei: ' + c.falta.join(', ')); }
+      if (F.numero) { const parts = String(F.numero).split(/[^0-9.]+/).filter((x) => x.replace(/\D/g, '').length >= 3); const ok = parts.length && parts.every((x) => NT.includes(x) || NC.includes(x.replace(/\D/g, ''))); add('Cabeçalho', 'Nº da proposta', F.numero, ok ? 'ok' : 'erro', ok ? '' : 'número não encontrado no PDF'); }
+      if (F.rev != null) { const n = +F.rev; const ok = new RegExp('\\b(REV|REVISAO|R)\\s*\\.?\\s*0*' + n + '\\b').test(NT); add('Cabeçalho', 'Revisão', 'Rev. ' + n, ok ? 'ok' : 'erro', ok ? '' : (NT.match(/\b(REV|REVISAO)\s*\.?\s*\d+/g) || []).slice(0, 2).join(' / ') || 'revisão não encontrada'); }
+      if (F.pagamento) { const nums = (norm(F.pagamento).match(/\d+%?|\d+\s*DDL/g) || []); const falta = nums.filter((x) => !NT.includes(x) && !NC.includes(x.replace(/\s/g, ''))); const c = cobertura(NT, NC, F.pagamento); const ok = !falta.length && c.pct >= 0.6; add('Cabeçalho', 'Condição de pagamento', F.pagamento, ok ? 'ok' : 'erro', ok ? '' : 'não achei: ' + (falta.length ? falta.join(', ') : c.falta.slice(0, 5).join(', '))); }
+      if (F.frete) { const k = /^CIF/.test(F.frete) ? 'CIF' : /^FOB/.test(F.frete) ? 'FOB' : ''; if (k) { const ok = NT.includes(k); const outro = k === 'CIF' ? 'FOB' : 'CIF'; add('Cabeçalho', 'Frete', F.frete, ok ? 'ok' : 'erro', ok ? '' : NT.includes(outro) ? 'no PDF está ' + outro : 'modalidade não encontrada'); } }
+      if (F.norma) { const ok = achaTexto(NT, NC, F.norma); add('Cabeçalho', 'Norma', F.norma, ok ? 'ok' : 'erro', ok ? '' : 'norma não encontrada'); }
+      // valores
+      const okTot = F.totais.some((v) => valorNoPdf(vals, v)); add('Valores', 'Total da proposta', F.totais.map(brl).join(' ou '), okTot ? 'ok' : 'erro', okTot ? '' : maior ? 'maior valor no PDF: ' + brl(maior) : 'nenhum valor em R$ no PDF');
+      // itens
+      F.itens.forEach((it, i) => {
+        const g = 'Item ' + String(i + 1).padStart(2, '0') + ' · ' + String(it.nome || '').slice(0, 40);
+        const okV = it.valores.some((v) => valorNoPdf(vals, v)); add(g, 'Preço', it.valores.filter((v) => v > 0).map(brl).slice(0, 2).join(' ou ') + ' (unit. ou total, com ou sem IPI)', okV ? 'ok' : 'erro', okV ? '' : 'nenhum desses valores no PDF');
+        if (it.qtd > 1) { const ok = new RegExp('\\b0*' + it.qtd + '([.,]0+)?\\s*(UN|UND|CJ|PC|CONJ|X)\\b|\\b' + it.qtd + '\\s*X\\b').test(NT) || NT.includes(' ' + it.qtd + ' '); add(g, 'Quantidade', String(it.qtd), ok ? 'ok' : 'aviso', ok ? '' : 'quantidade não identificada com certeza'); }
+        for (const tk of it.tecnicos) { const ok = achaTexto(NT, NC, tk) || achaTexto(NT, NC, tk.replace(' ', '')); add(g, 'Especificação', tk, ok ? 'ok' : 'erro', ok ? '' : 'não está no PDF'); }
+        if (it.descricao) { const c = cobertura(NT, NC, it.descricao); add(g, 'Descrição do equipamento', it.descricao, c.pct >= 0.8 ? 'ok' : c.pct >= 0.6 ? 'aviso' : 'erro', c.pct >= 0.8 ? '' : 'faltam: ' + c.falta.slice(0, 8).join(', ')); }
+        // escopo: o PDF comercial descreve com outras palavras; aponta o que não aparece, sem travar
+        if (it.escopo.length) { const nao = it.escopo.filter((e) => cobertura(NT, NC, e).pct < 0.6);
+          add(g, 'Escopo', it.escopo.length + ' componente(s) de escopo', nao.length ? 'aviso' : 'ok', nao.length ? `${it.escopo.length - nao.length} de ${it.escopo.length} citados · não citados: ${nao.slice(0, 8).join('; ')}${nao.length > 8 ? '…' : ''}` : ''); }
+      });
+      return { linhas: out, erros: out.filter((x) => x.st === 'erro').length, avisos: out.filter((x) => x.st === 'aviso').length };
+    }
+
+    function vResultado(R, conf) {
+      const icon = { ok: '<span class="ok-t">✓</span>', erro: '<span class="bad-t">✕</span>', aviso: '<span class="warn-t">!</span>' };
+      const grupos = [...new Set(R.linhas.map((x) => x.grupo))]; const tudo = !!ui.confTudo; const nOk = R.linhas.filter((x) => x.st === 'ok').length;
+      // por padrão só o que precisa de atenção; o que conferiu fica num clique
+      const tabela = grupos.map((g) => { const L = R.linhas.filter((x) => x.grupo === g); const er = L.filter((x) => x.st === 'erro').length, av = L.filter((x) => x.st === 'aviso').length; const vis = tudo ? L : L.filter((x) => x.st !== 'ok');
+        if (!vis.length && !tudo) return '';
+        return `<tr class="grp"><td colspan="4">${esc(g)} ${er ? `<span class="pill bad">${er} a corrigir</span>` : ''}${av ? ` <span class="pill warn">${av} para conferir</span>` : ''}${!er && !av ? '<span class="pill ok">ok</span>' : ''}</td></tr>` + vis.map((x) => `<tr class="cf-${x.st}"><td style="width:24px">${icon[x.st]}</td><td>${esc(x.oque)}</td><td>${esc(x.formacao)}</td><td class="sub">${esc(x.pdf)}</td></tr>`).join(''); }).join('');
+      const okGrupos = grupos.filter((g) => R.linhas.filter((x) => x.grupo === g).every((x) => x.st === 'ok'));
+      return `${R.erros ? `<div class="banner bad" style="margin:0 0 8px"><b>${R.erros} ponto(s) a corrigir</b>${R.avisos ? ` e ${R.avisos} para conferir` : ''}. Corrija a proposta e confira de novo o PDF corrigido.</div>` : `<div class="banner ok" style="margin:0 0 8px"><b>Tudo confere com a formação.</b>${R.avisos ? ` ${R.avisos} ponto(s) para dar uma olhada.` : ''} ${conf ? 'PDF salvo nos documentos desta proposta.' : ''}</div>`}
+        ${tabela ? `<div class="tw"><table class="t"><thead><tr><th></th><th>O que</th><th>Na formação</th><th>No PDF</th></tr></thead><tbody>${tabela}</tbody></table></div>` : ''}
+        <p class="sub" style="margin:6px 0 0">${nOk} ponto(s) conferem${okGrupos.length && !tudo ? ' (' + esc(okGrupos.join(', ')) + ' sem nenhuma pendência)' : ''}. <button class="restore" data-conftudo>${tudo ? 'mostrar só o que precisa de atenção' : 'ver tudo o que foi conferido'}</button></p>`;
+    }
+
+    // quadro na Revisão
+    function card(p, F) {
+      const c = p && p.conferencia; const valida = c && ctx.conferidaOk(p);
+      const st = !c ? '<span class="pill mute">não conferida</span>' : valida ? `<span class="pill ok">conferida ✓ ${esc(new Date(c.at).toLocaleDateString('pt-BR'))}${c.ressalva ? ' · com ressalva' : ''}</span>` : '<span class="pill warn">conferência desatualizada: a proposta mudou depois</span>';
+      const res = ultimo && p && ultimo.propId === p.id && ultimo.rev === F.rev ? vResultado(ultimo.res, ultimo.salvo) : '';
+      const aceitar = ultimo && p && ultimo.propId === p.id && ultimo.res.erros && !ultimo.salvo;
+      return `<section class="card" id="confCard"><h2>Conferência do PDF da proposta <span class="sub">o app confere o PDF com a formação: valores, especificações e escopo</span></h2>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">${st}${c && c.docId ? ' <span class="sub">PDF salvo: ' + esc(c.arquivo || '') + '</span>' : ''}</div>
+        ${p ? `<label class="drop" for="confUp"><b>Solte aqui o PDF da proposta comercial</b><span class="sub">ou clique para escolher. A leitura é feita neste navegador.</span><input type="file" id="confUp" accept="application/pdf,image/*" hidden></label>` : '<p class="sub" style="margin:0">Salve a proposta para conferir o PDF.</p>'}
+        <p class="sub" id="confSt" style="margin:6px 0 0"></p>${res}
+        ${aceitar ? '<div class="docbar" style="margin-top:8px"><button class="btn" data-confaceita>As divergências estão certas: aceitar e salvar o PDF</button></div>' : ''}</section>`;
+    }
+
+    async function rodar(file) {
+      const p = ctx.propostaAtual(); if (!p) { toast('Salve a proposta antes de conferir'); return; }
+      const F = ctx.formacao(); const st = (m) => { const el = $('#confSt'); if (el) el.textContent = m; };
+      let linhas;
+      try { linhas = await window.PricerLeitor.linhas(file, st); } catch (e) { st('Não consegui ler o PDF: ' + ((e && e.message) || e)); return; }
+      const texto = (linhas || []).join('\n'); if (texto.replace(/\s/g, '').length < 40) { st('O PDF não tem texto legível.'); return; }
+      const res = conferir(texto, F); ultimo = { propId: p.id, rev: F.rev, res, file, salvo: false };
+      ctx.log({ tipo: 'Proposta — conferência do PDF', ref: p.id, desc: (p.numero || p.name || '') + ' rev. ' + F.rev + ': ' + (res.erros ? res.erros + ' divergência(s)' : 'confere') + ' · ' + file.name, mudancas: res.linhas.filter((x) => x.st === 'erro').slice(0, 20).map((x) => ({ campo: x.grupo + ' · ' + x.oque, de: x.formacao, para: x.pdf })) });
+      if (!res.erros) await salvar(p, F, file, res, null); else { await marcar(p, F, { ok: false, erros: res.erros, arquivo: file.name }); ctx.render(); setTimeout(() => { const el = $('#confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 50); }
+    }
+    async function salvar(p, F, file, res, ressalva) {
+      let docId = null;
+      try { docId = await ctx.salvarDoc({ tipo: 'proposta', nome: file.name, propUid: p.uid || null, propNome: p.name || '', numero: (p.numero || '') + ' rev. ' + F.rev, notas: 'Proposta comercial conferida com a formação' + (ressalva ? ' — ressalva: ' + ressalva : ''), itens: [] }, file); }
+      catch (e) { toast((e && e.message) || 'Não consegui salvar o PDF'); }
+      await marcar(p, F, { ok: true, arquivo: file.name, docId, ressalva: ressalva || null, avisos: res.avisos });
+      if (ultimo) ultimo.salvo = true;
+      ctx.log({ tipo: 'Proposta — conferida', ref: p.id, desc: (p.numero || p.name || '') + ' rev. ' + F.rev + (ressalva ? ' com ressalva: ' + ressalva : '') + ' · PDF salvo: ' + file.name, mudancas: [] });
+      toast(ressalva ? 'Aceito com ressalva e PDF salvo' : 'Confere! PDF salvo na formação'); ctx.render();
+    }
+    async function marcar(p, F, c) {
+      const rec = Object.assign({}, p, { conferencia: Object.assign({ at: new Date().toISOString(), by: REG.me || null, rev: F.rev, total: F.totalRef }, c) }); delete rec.id; delete rec.local;
+      try { await REG.saveProposta(p.id, rec); } catch (e) { toast((e && e.message) || 'Não consegui registrar a conferência'); }
+    }
+    document.addEventListener('click', (e) => { if (e.target.closest('[data-conftudo]')) { ui.confTudo = !ui.confTudo; ctx.render(); setTimeout(() => { const el = $('#confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 30); } });
+    document.addEventListener('change', (e) => { if (e.target.id === 'confUp') { const f = e.target.files[0]; e.target.value = ''; if (f) rodar(f); } });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-confaceita]') || !ultimo) return;
+      modal(`<h2>Aceitar as divergências</h2><p class="sub" style="margin:0">Fica registrado no histórico, com o seu nome.</p><div class="f"><label for="cfJus">Por que está certo assim?</label><input id="cfJus" placeholder="ex.: o PDF mostra o preço por conjunto; o escopo está descrito com outras palavras"></div><div style="display:flex;gap:8px"><button class="btn pri" id="cfOk">Aceitar e salvar o PDF</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+        $('#cfJus', o).focus();
+        $('#cfOk', o).onclick = async () => { const j = $('#cfJus', o).value.trim(); if (!j) { toast('Escreva o motivo'); return; } close(); const p = ctx.propostaAtual(); if (!p) return; await salvar(p, ctx.formacao(), ultimo.file, ultimo.res, j); };
+      });
+    });
+    return { card, conferir, tokensTecnicos };
+  }
+  window.PricerConferencia = Conferencia;
+  window.PricerConferencia.tokensTecnicos = tokensTecnicos;
+})();
+
+</script>
 <script>/* margens.js */
 /* LS Pricer — registro de margens.
  * Fechamento ("dar baixa"): congela custos, impostos, comissões e margem de cada item e linha da proposta.
@@ -3301,6 +3440,9 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     }
     const fechDe = (propId) => fech.find((f) => f.id === propId);
     // custo real só depois da baixa e com a proposta ganha (perdida ou reaberta não lança)
+    // conferência do PDF vale para a revisão e o total que foram conferidos
+    const revDeP = (q) => { const v = q.spv ? q.spv.revisao : q.facts ? q.facts.revisao : ((q.doc || {}).PROPOSTA || {}).C6; const n = parseInt(String(v ?? '0').replace(/\D/g, ''), 10); return isFinite(n) ? n : 0; };
+    const conferidaOk = (p) => { const c = p && p.conferencia; return !!(c && c.ok && c.rev === revDeP(p) && Math.abs(num(c.total) - num(p.total)) < 1); };
     const liberaReal = (x) => { const id = typeof x === 'string' ? x : x && x.id; if (!id || !fechDe(id)) return false; const p = typeof x === 'object' && x.status !== undefined ? x : (REG.listPropostas() || []).find((y) => y.id === id); return !p || (p.status || 'ganha') === 'ganha'; };
 
     // ---------- contas: fechado (com o valor negociado) e realizado ----------
@@ -3799,10 +3941,11 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     function etapas(p) {
       ensure(); const F = fechDe(p.id); const e = p.etapas || {}; const st = p.status || 'rascunho'; const perdida = st === 'perdida';
       const R = F ? realizado(F) : null; const ap = aprovDe(p.id);
-      const lista = ETAPAS.slice(); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
+      const lista = ETAPAS.slice(); lista.splice(1, 0, ['conferida', 'PDF conferido']); if (ap) lista.splice(1, 0, ['aprovacao', 'Aprovação']);
       return lista.map(([k, lb]) => {
         let s = 'pend', info = '', act = null;
         if (k === 'formacao') { s = 'ok'; info = dt(p.at); }
+        else if (k === 'conferida') { const c = p.conferencia; act = 'conferir'; if (conferidaOk(p)) { s = 'ok'; info = dt(c.at); } else if (c) { s = 'parcial'; info = c.ok ? 'desatualizada' : 'divergências'; } else if (st !== 'rascunho' || F) { s = 'off'; info = 'não conferido'; } }
         else if (k === 'aprovacao') { const ea = estadoA(ap); act = 'aprovacao'; if (ea === 'aprovada') { s = ap.alvo && !ap.aplicadoEm && !F ? 'parcial' : 'ok'; info = s === 'ok' ? 'aprovada' : 'falta aplicar'; } else if (ea === 'reprovada') { s = 'parcial'; info = 'reprovada'; } else { s = 'parcial'; info = comQuem(ap); } }
         else if (k === 'cliente') { if (['enviada', 'negociacao', 'ganha', 'perdida'].includes(st) || F) { s = 'ok'; info = e.cliente ? dt(e.cliente.at) : ''; } else act = 'cliente'; }
         else if (perdida) { s = 'off'; info = k === 'baixa' ? 'perdida' : ''; }
@@ -3832,6 +3975,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const [pid, k] = b.dataset.etp.split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
       const x = etapas(p).find((y) => y.k === k); if (!x) return;
       if (x.act === 'baixa') { fecharModal(p); return; }
+      if (x.act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
       if (x.act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'cliente') { const rec = Object.assign({}, p, { status: 'enviada', etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }); delete rec.id; delete rec.local;
@@ -4082,6 +4226,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         if (ea === 'pendente') return PAPEIS.some(([k]) => !(ap.decisoes || {})[k] && podeDecidir(k)) ? { lb: 'Analisar aprovação', act: 'aprovacao' } : { lb: 'Ver aprovação', act: 'aprovacao' };
         if (ea === 'aprovada' && ap.alvo && !ap.aplicadoEm) return { lb: 'Aplicar valor aprovado', act: 'aplicar' };
         if (ea === 'reprovada') return { lb: 'Ver motivo', act: 'aprovacao' }; }
+      if (!F && st === 'rascunho' && !conferidaOk(p)) return { lb: 'Conferir PDF', act: 'conferir' };
       if (!F) return st === 'rascunho' ? { lb: 'Enviar ao cliente', act: 'cliente' } : { lb: 'Dar baixa', act: 'baixa' };
       if (!e.financeiro || !e.engenharia) return { lb: 'Avisar áreas', act: 'avisar' };
       if (liberaReal(p) && realizado(F).cobertura < 1 - 1e-9) return { lb: 'Lançar custo real', act: 'real' };
@@ -4102,6 +4247,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       if (act === 'cliente') { salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
       if (act === 'baixa') { fecharModal(p); return; }
       if (act === 'aplicar') { ctx.abrirProposta && ctx.abrirProposta(p, 3); return; }
+      if (act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
       if (act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (act === 'avisar') { const e = p.etapas || {}; avisarModal(p, ['financeiro', 'engenharia'].filter((a) => !e[a])); return; }
       if (act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
@@ -4113,7 +4259,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         }); }
     });
 
-    return { liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
+    return { conferidaOk, liberaReal, escala, ipiRatio, comQuem, marcarAplicado, lista: () => { ensure(); return fech; }, vMargens, fecharModal, ensure, fechDe, excel, etapasHtml, etapaPendente, avisarModal, proximo, situacao, pedirAprovacao, aprovDe, estadoA, ensureA, pendentesAprov: () => { ensureA(); return aprov.filter((a) => estadoA(a) === 'pendente' && PAPEIS.some(([k]) => !(a.decisoes || {})[k] && podeDecidir(k))).length; } };
   }
   window.PricerMargens = Margens;
 })();
@@ -5013,6 +5159,25 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       ui.step = 3; render(); toast('Revisão ' + x.rev + ' restaurada como revisão ' + (n + 1));
     } catch (e) { toast(errMsg(e)); }
   }
+  // ---------- conferência do PDF: o que a formação diz ----------
+  function formacaoConf() {
+    const tk = window.PricerConferencia.tokensTecnicos;
+    if (isSpv()) { const s = state.spv; const sn = SPV.snapshot(s); const tot = SPV.total();
+      return { rev: revAtual(), cliente: s.cliente, numero: s.numero, pagamento: s.pagamento || '', totais: [tot], totalRef: tot,
+        itens: sn.itens.map((x) => ({ nome: x.nome, qtd: 1, valores: [x.venda], tecnicos: [], descricao: '', escopo: x.n === 'pecas' ? (s.pecas || []).filter((y) => y.incluso !== false && y.desc).map((y) => y.desc) : [] })) }; }
+    if (isFacts()) { const f = state.facts; const sn = FX.snapshot(f); const tot = FX.total();
+      return { rev: revAtual(), cliente: f.cliente, numero: f.numero, pagamento: f.pagamento || '', totais: [tot, sn.venda].filter((v) => typeof v === 'number'), totalRef: tot,
+        itens: sn.itens.map((x) => ({ nome: x.nome, qtd: num0(x.qtd) || 1, valores: [x.venda, x.venda / (num0(x.qtd) || 1)], tecnicos: tk(x.nome), descricao: '', escopo: [] })) }; }
+    const P = 'PROPOSTA'; const sn = seqSnapshot();
+    return { rev: revAtual(), cliente: txt(P, 'F5'), numero: txt(P, 'C5'), pagamento: txt(P, 'J6'), frete: txt(P, 'B13'), norma: txt(P, 'F9'), totais: [val(P, 'P43'), sn.venda].filter((v) => typeof v === 'number'), totalRef: val(P, 'P43'),
+      itens: ITEMS.filter((S) => filled(S)).map((S) => { const it = sn.itens.find((x) => x.n === S) || {}; const q = num0(it.qtd) || 1; const esc2 = []; for (let r = 68; r <= 112; r++) { const d = txt(S, 'D' + r); if (d && !/BASE|MAODEOBRA|EMBALAGEM|MISC|TUBULAC|ADITIVO|OUTROS|MIUDEZA|INTERLIGAC/.test(txt(S, 'C' + r) + ' ' + d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) esc2.push(d); }
+        return { nome: txt(S, 'C28'), qtd: q, valores: [val(S, 'B15'), val(S, 'D15'), it.venda, it.venda / q].filter((v) => typeof v === 'number' && v > 0), tecnicos: tk(txt(S, 'C28') + ' ' + txt(S, 'C30')), descricao: txt(S, 'C28'), escopo: esc2 }; }) };
+  }
+  const propostaAtual = () => (state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null);
+  const CF = window.PricerConferencia({ esc, brl, toast, modal, ui, REG, render, log: (e) => logEv(e), salvarDoc: (m, f) => SPV.salvarDoc(m, f), conferidaOk: (p) => MG.conferidaOk(p),
+    propostaAtual: () => { const p = propostaAtual(); if (p && dirty) toast('Há alterações não salvas: salve antes de conferir para valer a versão certa'); return p; }, formacao: () => formacaoConf() });
+  const confCard = () => { try { return CF.card(propostaAtual(), formacaoConf()); } catch (e) { return ''; } };
+
   // selo "Rev. N" no topo da proposta
   const revSelo = () => (state.id ? `<div style="display:flex;gap:4px;align-items:center"><button class="pill ${state.verRev ? 'warn' : 'mute'} apselo" data-revs title="Ver as revisões desta proposta">${state.verRev ? 'Consultando rev. ' + state.verRev.rev : 'Rev. ' + revAtual()} ▾</button>${state.verRev ? '' : `<button class="btn sm" data-revisar title="Guarda a revisão ${revAtual()} e abre a ${revAtual() + 1} para editar">Revisar</button>`}</div>` : '');
 
@@ -5070,6 +5235,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
           <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
           <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
         ${(() => { const ai = aprovInfo(); return `<section class="card"><h2>Aprovação da proposta <span class="sub">desconto além da política: peça pela proposta toda, com o valor target</span></h2><div class="aprovbox">${ai.estado ? aprovLinha({ aprov: ai }).replace(/^<br>/, '') : '<small class="sub">Nenhum pedido de aprovação para esta proposta.</small>'}<button class="btn${ai.estado === 'pendente' || ai.estado === 'aprovada' ? '' : ' pri'}" data-alaprov>${ai.estado ? 'Pedir de novo (novo valor target)' : 'Pedir aprovação (valor target)'}</button></div></section>`; })()}
+        ${confCard()}
         <section class="card"><h2>Alertas</h2>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta: preços dentro da política, conferências fechando e FCI pronta.</p>'}${memoOk ? '' : `<ul class="alerts" style="margin-top:6px"><li class="bad"><span>A proposta não bate com o memorial: diferença de ${brl(memo)}.</span></li></ul>`}</section>
         <section class="card"><h2>Itens</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
         ${(() => { try { return TB.cardProposta(seqSnapshot(), { uf: txt(P, 'F7'), cadfiscal: txt(P, 'J5'), div: 'SEQ' }); } catch (e) { return ''; } })()}
@@ -6540,7 +6706,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
   }
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
-  const FX = window.PricerFacts({ revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
+  const FX = window.PricerFacts({ confCard: () => confCard(), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
   const MG = window.PricerMargens({ abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
@@ -6553,7 +6719,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     ui.step = 1; setView('proposta'); toast(fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
-  const SPV = window.PricerSPV({ revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ confCard: () => confCard(), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
@@ -6571,7 +6737,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
     // status, etapas e motivo de perda são mantidos pela tela inicial: preserva o que está no banco
     const prev = (REG.listPropostas() || []).find((x) => x.id === state.id);
-    const keep = prev ? JSON.parse(JSON.stringify({ etapas: prev.etapas, motivoPerda: prev.motivoPerda })) : {};
+    const keep = prev ? JSON.parse(JSON.stringify({ etapas: prev.etapas, motivoPerda: prev.motivoPerda, conferencia: prev.conferencia })) : {};
     let status = prev ? (prev.status || 'rascunho') : (state.status || 'rascunho');
     if (state._novaRev) { if (status !== 'ganha') { status = 'rascunho'; if (keep.etapas) delete keep.etapas.cliente; } delete state._novaRev; }
     state.status = status;

@@ -891,6 +891,25 @@
       ui.step = 3; render(); toast('Revisão ' + x.rev + ' restaurada como revisão ' + (n + 1));
     } catch (e) { toast(errMsg(e)); }
   }
+  // ---------- conferência do PDF: o que a formação diz ----------
+  function formacaoConf() {
+    const tk = window.PricerConferencia.tokensTecnicos;
+    if (isSpv()) { const s = state.spv; const sn = SPV.snapshot(s); const tot = SPV.total();
+      return { rev: revAtual(), cliente: s.cliente, numero: s.numero, pagamento: s.pagamento || '', totais: [tot], totalRef: tot,
+        itens: sn.itens.map((x) => ({ nome: x.nome, qtd: 1, valores: [x.venda], tecnicos: [], descricao: '', escopo: x.n === 'pecas' ? (s.pecas || []).filter((y) => y.incluso !== false && y.desc).map((y) => y.desc) : [] })) }; }
+    if (isFacts()) { const f = state.facts; const sn = FX.snapshot(f); const tot = FX.total();
+      return { rev: revAtual(), cliente: f.cliente, numero: f.numero, pagamento: f.pagamento || '', totais: [tot, sn.venda].filter((v) => typeof v === 'number'), totalRef: tot,
+        itens: sn.itens.map((x) => ({ nome: x.nome, qtd: num0(x.qtd) || 1, valores: [x.venda, x.venda / (num0(x.qtd) || 1)], tecnicos: tk(x.nome), descricao: '', escopo: [] })) }; }
+    const P = 'PROPOSTA'; const sn = seqSnapshot();
+    return { rev: revAtual(), cliente: txt(P, 'F5'), numero: txt(P, 'C5'), pagamento: txt(P, 'J6'), frete: txt(P, 'B13'), norma: txt(P, 'F9'), totais: [val(P, 'P43'), sn.venda].filter((v) => typeof v === 'number'), totalRef: val(P, 'P43'),
+      itens: ITEMS.filter((S) => filled(S)).map((S) => { const it = sn.itens.find((x) => x.n === S) || {}; const q = num0(it.qtd) || 1; const esc2 = []; for (let r = 68; r <= 112; r++) { const d = txt(S, 'D' + r); if (d && !/BASE|MAODEOBRA|EMBALAGEM|MISC|TUBULAC|ADITIVO|OUTROS|MIUDEZA|INTERLIGAC/.test(txt(S, 'C' + r) + ' ' + d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) esc2.push(d); }
+        return { nome: txt(S, 'C28'), qtd: q, valores: [val(S, 'B15'), val(S, 'D15'), it.venda, it.venda / q].filter((v) => typeof v === 'number' && v > 0), tecnicos: tk(txt(S, 'C28') + ' ' + txt(S, 'C30')), descricao: txt(S, 'C28'), escopo: esc2 }; }) };
+  }
+  const propostaAtual = () => (state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null);
+  const CF = window.PricerConferencia({ esc, brl, toast, modal, ui, REG, render, log: (e) => logEv(e), salvarDoc: (m, f) => SPV.salvarDoc(m, f), conferidaOk: (p) => MG.conferidaOk(p),
+    propostaAtual: () => { const p = propostaAtual(); if (p && dirty) toast('Há alterações não salvas: salve antes de conferir para valer a versão certa'); return p; }, formacao: () => formacaoConf() });
+  const confCard = () => { try { return CF.card(propostaAtual(), formacaoConf()); } catch (e) { return ''; } };
+
   // selo "Rev. N" no topo da proposta
   const revSelo = () => (state.id ? `<div style="display:flex;gap:4px;align-items:center"><button class="pill ${state.verRev ? 'warn' : 'mute'} apselo" data-revs title="Ver as revisões desta proposta">${state.verRev ? 'Consultando rev. ' + state.verRev.rev : 'Rev. ' + revAtual()} ▾</button>${state.verRev ? '' : `<button class="btn sm" data-revisar title="Guarda a revisão ${revAtual()} e abre a ${revAtual() + 1} para editar">Revisar</button>`}</div>` : '');
 
@@ -948,6 +967,7 @@
           <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
           <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
         ${(() => { const ai = aprovInfo(); return `<section class="card"><h2>Aprovação da proposta <span class="sub">desconto além da política: peça pela proposta toda, com o valor target</span></h2><div class="aprovbox">${ai.estado ? aprovLinha({ aprov: ai }).replace(/^<br>/, '') : '<small class="sub">Nenhum pedido de aprovação para esta proposta.</small>'}<button class="btn${ai.estado === 'pendente' || ai.estado === 'aprovada' ? '' : ' pri'}" data-alaprov>${ai.estado ? 'Pedir de novo (novo valor target)' : 'Pedir aprovação (valor target)'}</button></div></section>`; })()}
+        ${confCard()}
         <section class="card"><h2>Alertas</h2>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta: preços dentro da política, conferências fechando e FCI pronta.</p>'}${memoOk ? '' : `<ul class="alerts" style="margin-top:6px"><li class="bad"><span>A proposta não bate com o memorial: diferença de ${brl(memo)}.</span></li></ul>`}</section>
         <section class="card"><h2>Itens</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
         ${(() => { try { return TB.cardProposta(seqSnapshot(), { uf: txt(P, 'F7'), cadfiscal: txt(P, 'J5'), div: 'SEQ' }); } catch (e) { return ''; } })()}
@@ -2418,7 +2438,7 @@
   }
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
-  const FX = window.PricerFacts({ revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
+  const FX = window.PricerFacts({ confCard: () => confCard(), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
   const MG = window.PricerMargens({ abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
@@ -2431,7 +2451,7 @@
     ui.step = 1; setView('proposta'); toast(fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
-  const SPV = window.PricerSPV({ revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ confCard: () => confCard(), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
@@ -2449,7 +2469,7 @@
     const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
     // status, etapas e motivo de perda são mantidos pela tela inicial: preserva o que está no banco
     const prev = (REG.listPropostas() || []).find((x) => x.id === state.id);
-    const keep = prev ? JSON.parse(JSON.stringify({ etapas: prev.etapas, motivoPerda: prev.motivoPerda })) : {};
+    const keep = prev ? JSON.parse(JSON.stringify({ etapas: prev.etapas, motivoPerda: prev.motivoPerda, conferencia: prev.conferencia })) : {};
     let status = prev ? (prev.status || 'rascunho') : (state.status || 'rascunho');
     if (state._novaRev) { if (status !== 'ganha') { status = 'rascunho'; if (keep.etapas) delete keep.etapas.cliente; } delete state._novaRev; }
     state.status = status;
