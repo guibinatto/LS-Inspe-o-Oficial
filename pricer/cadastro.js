@@ -139,7 +139,11 @@
       for (const [k, lb] of fields) { const a = nz(before ? before[k] : undefined), b = nz(after ? after[k] : undefined); if (JSON.stringify(a) !== JSON.stringify(b)) out.push({ campo: lb, de: a, para: b }); }
       return out;
     }
-    const INS_FIELDS = [['fam', 'Família'], ['produto', 'Produto'], ['fab', 'Fabricante'], ['tipo', 'Tipo/config.'], ['valor', 'Valor'], ['origem', 'Origem'], ['obs', 'Observações']];
+    const INS_FIELDS = [['fam', 'Família'], ['produto', 'Produto'], ['fab', 'Fabricante'], ['tipo', 'Tipo/config.'], ['valor', 'Valor'], ['origem', 'Origem'], ['obs', 'Observações'],
+      // REV22: ficha técnica e governança (campos opcionais; registros da REV21 continuam válidos sem eles)
+      ['situacao', 'Situação'], ['codFab', 'Código do fabricante'], ['caract', 'Características'], ['descCom', 'Descrição comercial'], ['descFab', 'Descrição do fabricante'],
+      ['excecao', 'Exceção ao padrão'], ['substituto', 'Substituto'], ['fonte', 'Origem do preço'], ['dataCot', 'Data da cotação'], ['forn', 'Fornecedores'], ['equiv', 'Equivalentes']];
+    R.INS_FIELDS = INS_FIELDS;
     const guard = () => { if (!R.canEditCadastro) throw new Error('Sem permissão para editar o cadastro. Peça acesso de Editor a quem publicou o app.'); if (R.mode === 'shared' && !R.seeded) throw new Error('O cadastro compartilhado ainda não foi carregado.'); };
 
     // ---- insumos ----
@@ -162,6 +166,33 @@
       else { R.insumos = before ? R.insumos.map((x) => x.id === rec.id ? Object.assign({ id: rec.id }, body) : x) : R.insumos.concat([Object.assign({ id: rec.id }, body)]); saveLocal(); changed('insumos'); }
       await log({ tipo: isNew ? 'Insumo novo' : 'Insumo', ref: rec.id, desc: rec.produto, mudancas: mud });
       return true;
+    };
+    // edição em lote (edição em massa, consolidação): grava por família, registra de/para de cada campo e devolve o lote para desfazer
+    R.saveInsumosLote = async (changes, desc, tipo) => {
+      guard(); const at = new Date().toISOString(); const byFam = new Map(); const mud = [];
+      for (const c of changes) { const rec = R.insumos.find((x) => x.id === c.id); if (!rec) continue; if (!byFam.has(rec.fam)) byFam.set(rec.fam, []); byFam.get(rec.fam).push([c, rec]); }
+      const lote = 'L' + Date.now().toString(36);
+      for (const [fam, list] of byFam) {
+        const upd = (it, c) => { for (const [k, v] of Object.entries(c.campos)) { if (v === null || v === '' || v === undefined) delete it[k]; else it[k] = JSON.parse(JSON.stringify(v)); } it.upd = at; if (R.me) it.updBy = R.me; };
+        if (R.mode === 'shared') await mutate(famDoc(fam), (d) => { d.itens = d.itens || {}; for (const [c] of list) if (d.itens[c.id]) upd(d.itens[c.id], c); return d; });
+        else for (const [c, rec] of list) upd(rec, c);
+        for (const [c, rec] of list) for (const [k, v] of Object.entries(c.campos)) mud.push({ campo: c.id + ' · ' + k, de: c.de ? c.de[k] ?? null : null, para: v ?? null, id: c.id, k });
+      }
+      if (R.mode === 'local') { R.insumos = R.insumos.slice(); saveLocal(); changed('insumos'); }
+      await log({ tipo: tipo || 'Edição em massa', ref: lote, desc: desc || changes.length + ' insumo(s)', mudancas: mud });
+      return { lote, n: changes.length };
+    };
+    // desfazer um lote (edição em massa ou importação): só volta o que ainda está como o lote deixou
+    R.desfazerLote = async (h) => {
+      guard(); const volta = []; const conflito = [];
+      for (const m of h.mudancas || []) {
+        let id = m.id, k = m.k; if (!id) { const mm = /^(\d{2}-\d+)/.exec(String(m.campo)); if (!mm) continue; id = mm[1]; k = 'valor'; }
+        const rec = R.insumos.find((x) => x.id === id); if (!rec) { conflito.push(id); continue; }
+        if (JSON.stringify(rec[k] ?? null) !== JSON.stringify(m.para ?? null)) { conflito.push(id); continue; }
+        let c = volta.find((x) => x.id === id); if (!c) { c = { id, campos: {}, de: {} }; volta.push(c); } c.campos[k] = m.de ?? null; c.de[k] = m.para ?? null;
+      }
+      if (volta.length) await R.saveInsumosLote(volta, 'Desfeito: ' + (h.desc || h.tipo), 'Desfazer lote');
+      return { n: volta.length, conflito };
     };
     R.deleteInsumo = async (id) => {
       guard(); const before = R.insumos.find((x) => x.id === id); if (!before) return;

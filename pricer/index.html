@@ -380,6 +380,9 @@ table.cent td{vertical-align:top}table.cent select{max-width:190px}table.cent .c
 .pendbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--card);font-size:13.5px}
 .pnfil{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.pnfil select,.pnfil input{width:auto;min-width:150px;flex:1 1 150px}.pnfil .btn{flex:0 0 auto}
 .t.perm td.c{text-align:center}.t.perm th{font-size:12px}
+.fsec{border:1px solid var(--line2);border-radius:10px;padding:10px 12px}.fsec h3{margin:0 0 8px;font-size:14px}.fsec>summary{cursor:pointer}.row2{display:flex;gap:6px}.row2 input{flex:1 1 auto;min-width:0}
+.thsort{all:unset;cursor:pointer;color:inherit}.thsort.on{text-decoration:underline}.star{all:unset;cursor:pointer;color:var(--muted,#999);font-size:16px;padding:0 4px}.star.on{color:var(--or)}.star:focus-visible,.thsort:focus-visible{outline:2px solid var(--or)}
+.t.forn input,.t.forn select{min-width:70px}.cadmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}.cadmap .card{margin:0}.cadmap ul{margin:6px 0 0;padding-left:18px}.cadmap li{margin:3px 0}
 .skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--card);color:var(--ink);padding:8px 12px;border-radius:0 0 8px 0}.skip:focus{left:0}
 .rgcond{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:6px;align-items:center;margin-bottom:6px}
 .painel>summary{cursor:pointer;list-style:none}.painel>summary::-webkit-details-marker{display:none}.painel>summary h2::before{content:"▸ ";color:var(--muted,#888)}.painel[open]>summary h2::before{content:"▾ "}
@@ -463,6 +466,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 <script src="pedidos.js"></script>
 <script src="tributos.js"></script>
 <script src="conferencia.js"></script>
+<script src="familias.js"></script>
 <script src="regras.js"></script>
 <script src="pendencias.js"></script>
 <script src="painel.js"></script>

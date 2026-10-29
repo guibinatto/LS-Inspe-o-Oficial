@@ -83,8 +83,71 @@
     for (const sh of Object.values(doc)) if (sh && typeof sh === 'object') for (const [a, v] of Object.entries(sh)) if (typeof v === 'string' && map[v]) { sh[a] = res(v); n++; }
     return n;
   }
-  function build() { if (migrar(state.doc)) store.set(SK.cur, state); wb = new Workbook(MODEL); REG.applyTo(wb); wb.applyDoc(state.doc || {}); listCache = new Map(); }
+  function build() { if (migrar(state.doc)) store.set(SK.cur, state); wb = new Workbook(MODEL); REG.applyTo(wb); if (state.precosFix) aplicaPrecos(wb, state.precosFix); wb.applyDoc(state.doc || {}); listCache = new Map(); }
   function persist() { store.set(SK.cur, state); }
+  // ---------- preços da época ----------
+  // Ao salvar, a proposta SEQ guarda os preços do cadastro que usou (insumos e kits). Enviadas, aprovadas e ganhas
+  // continuam calculando com eles (state.precosFix) mesmo que o cadastro mude; o rascunho acompanha o cadastro
+  // (salvo se a política de Custos mandar congelar também). Trocar para os vigentes é escolha de quem abre, item a item.
+  function aplicaPrecos(w, pr, extra) {
+    const ins = Object.assign({}, (pr && pr.ins) || {}, extra || {}); const km = (pr && pr.km) || {}, kb = (pr && pr.kb) || {};
+    if (!Object.keys(ins).length && !Object.keys(km).length && !Object.keys(kb).length) return 0;
+    const Hh = REG.helpers; const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k); let n = 0;
+    const cad = w.sheet('CADASTRO').cells;
+    for (let r = 2; r <= 1000; r++) { const d = cad.get('D' + r); if (d === undefined || !has(ins, String(d)) || typeof ins[String(d)] !== 'number') continue; if (cad.get('G' + r) !== ins[String(d)]) { cad.set('G' + r, ins[String(d)]); n++; } }
+    const kit = (sheet, map, cols, tot, tc, rmax) => { const c = w.sheet(sheet).cells; for (let r = 2; r <= rmax; r++) { const d = c.get('A' + r); if (d === undefined || !has(map, String(d))) continue; const p = map[String(d)] || {};
+      for (const k of cols) { if (typeof p[k] === 'number') c.set(k + r, p[k]); else c.delete(k + r); } const t = tot(p); c.set(tc[0] + r, t[0]); c.set(tc[1] + r, t[1]); n++; } };
+    kit('KIT MOTORES DIESEL', km, Hh.KMD_COLS, (p) => { const t = Hh.kmdTotals(p); return [t.nbr, t.padrao]; }, ['U', 'V'], 71);
+    kit('KIT BOMBA', kb, Hh.KB_COLS, (p) => { const t = Hh.kbTotals(p); return [t.es, t.bp]; }, ['I', 'J'], 78);
+    if (n) w.invalidate(); return n;
+  }
+  // os preços efetivamente usados pela proposta aberta (o primeiro com o nome, como a fórmula pega)
+  function precosUsados() {
+    const descs = new Set();
+    for (const S of ITEMS) { if (!filled(S)) continue; for (let r = 34; r <= 127; r++) for (const c of ['D', 'AJ']) { const v = txt(S, c + r); if (v) descs.add(v); } for (const a of ['C20', 'H20', 'D19', 'J19', 'BA19']) { const v = txt(S, a); if (v) descs.add(v); } }
+    const cad = wb.sheet('CADASTRO').cells; const ins = {};
+    for (let r = 2; r <= 1000; r++) { const d = cad.get('D' + r); if (d === undefined) continue; const k = String(d); if (descs.has(k) && !(k in ins) && typeof cad.get('G' + r) === 'number') ins[k] = cad.get('G' + r); }
+    const kits = (sheet, cols, rmax) => { const c = wb.sheet(sheet).cells; const o = {}; for (let r = 2; r <= rmax; r++) { const d = c.get('A' + r); if (d === undefined) continue; const k = String(d); if (!descs.has(k) || k in o) continue; const p = {}; for (const x of cols) if (typeof c.get(x + r) === 'number') p[x] = c.get(x + r); o[k] = p; } return o; };
+    return { at: new Date().toISOString(), ins, km: kits('KIT MOTORES DIESEL', REG.helpers.KMD_COLS, 71), kb: kits('KIT BOMBA', REG.helpers.KB_COLS, 78) };
+  }
+  function precosFixos(q) {
+    if (!q || !q.precos) return false; if ((q.status || 'rascunho') !== 'rascunho') return true;
+    try { const ap = MG.aprovDe(q.id); if (ap && MG.estadoA(ap) === 'aprovada') return true; } catch (e) { /* sem aprovações carregadas */ }
+    return !!custosCfg().congelarRascunho;
+  }
+  // diferença entre os preços guardados e os do cadastro de hoje
+  function difPrecos(pr) {
+    const out = []; if (!pr) return out; const Hh = REG.helpers;
+    for (const [d, v] of Object.entries(pr.ins || {})) { const i = REG.insumos.find((x) => x.produto === d); const cur = i ? i.valor : null; if (typeof cur !== 'number' || Math.abs(cur - v) > 0.004) out.push({ t: 'ins', d, de: v, para: typeof cur === 'number' ? cur : null, id: i ? i.id : null }); }
+    const kt = (map, list, tot, lb) => { for (const [d, p] of Object.entries(map || {})) { const k = list.find((x) => x.desc === d); const a = tot(p), b = k ? tot(k.p || {}) : null; if (b === null || Math.abs(a - b) > 0.004) out.push({ t: lb, d, de: a, para: b, p: k ? k.p : null }); } };
+    kt(pr.km, REG.kitMotor, (p) => Hh.kmdTotals(p).padrao, 'kit motor'); kt(pr.kb, REG.kitBomba, (p) => Hh.kbTotals(p).bp, 'kit bomba');
+    return out;
+  }
+  function precosCard() {
+    if (isSpv() || isFacts()) return '';
+    const fixo = !!state.precosFix; const pr = state.precosFix || state.precosSalvos; if (!pr) return '';
+    const D = difPrecos(pr); if (!D.length) return fixo ? `<div class="banner info" style="margin:0">Esta proposta usa os preços do cadastro de ${esc(new Date(pr.at).toLocaleDateString('pt-BR'))} (preços da época), que continuam iguais aos de hoje.</div>` : '';
+    return fixo ? `<div class="banner warn" style="margin:0"><b>Preços da época:</b> esta proposta calcula com os preços de ${esc(new Date(pr.at).toLocaleDateString('pt-BR'))}. ${D.length} preço(s) mudaram no cadastro desde então; nada muda aqui sem a sua escolha. <button class="btn sm" data-precocmp>Comparar e atualizar</button></div>`
+      : `<div class="banner info" style="margin:0">${D.length} preço(s) do cadastro mudaram desde a última gravação (${esc(new Date(pr.at).toLocaleDateString('pt-BR'))}). Este rascunho já calcula com os preços de hoje. <button class="restore" data-precocmp>ver quais</button></div>`;
+  }
+  function precosModal() {
+    const fixo = !!state.precosFix; const pr = state.precosFix || state.precosSalvos; const D = difPrecos(pr); if (!D.length) { toast('Nenhum preço mudou'); return; }
+    modal(`<h2>Preços da proposta × cadastro de hoje</h2><p class="sub" style="margin:0">${fixo ? 'Marque o que deve passar a usar o preço de hoje. O resto continua com o preço da época.' : 'O rascunho já usa os preços de hoje. A lista mostra o que mudou desde a última gravação.'}</p>
+      <div class="tw"><table class="t"><thead><tr>${fixo ? '<th></th>' : ''}<th>Item</th><th>Na proposta</th><th>Hoje</th><th>Variação</th></tr></thead><tbody>${D.map((x, i) => `<tr>${fixo ? `<td class="in"><input type="checkbox" data-prsel="${i}"${x.para === null ? ' disabled' : ''} aria-label="Atualizar ${esc(x.d)}"></td>` : ''}<td>${esc(x.d)}<br><small class="sub">${esc(x.t === 'ins' ? 'insumo' + (x.id ? ' ' + x.id : '') : x.t)}</small></td><td class="n">${brl(x.de)}</td><td class="n">${x.para === null ? '<span class="pill bad">saiu do cadastro</span>' : brl(x.para)}</td><td class="n">${x.para === null || !x.de ? '—' : (x.para > x.de ? '+' : '') + pct((x.para - x.de) / x.de, 1)}</td></tr>`).join('')}</tbody></table></div>
+      ${fixo ? `<p class="sub" style="margin:0">${['enviada', 'negociacao', 'ganha'].includes(state.status) ? 'A proposta já foi enviada: ao salvar com preços novos, o app pede para criar uma nova revisão.' : ''} Aprovações cujo custo mude perdem a validade.</p>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${fixo ? '<button class="btn" id="prTodos">Marcar todos</button><button class="btn pri" id="prOk">Atualizar os marcados</button>' : ''}<button class="btn" data-close>Fechar</button></div>`, (o, close) => {
+      const t = $('#prTodos', o); if (t) t.onclick = () => o.querySelectorAll('[data-prsel]:not([disabled])').forEach((c) => { c.checked = true; });
+      const ok = $('#prOk', o); if (ok) ok.onclick = () => {
+        const sel = [...o.querySelectorAll('[data-prsel]:checked')].map((c) => D[+c.dataset.prsel]); if (!sel.length) { toast('Marque pelo menos um'); return; }
+        const pr2 = JSON.parse(JSON.stringify(state.precosFix));
+        for (const x of sel) { if (x.t === 'ins') pr2.ins[x.d] = x.para; else if (x.t === 'kit motor') pr2.km[x.d] = JSON.parse(JSON.stringify(x.p)); else pr2.kb[x.d] = JSON.parse(JSON.stringify(x.p)); }
+        state.precosFix = pr2; build(); persist(); dirty = true; close(); render();
+        logEv({ tipo: 'Proposta — preços atualizados', ref: state.id || '', desc: docTitle() + ': ' + sel.length + ' preço(s) da época trocado(s) pelos de hoje', mudancas: sel.map((x) => ({ campo: x.d, de: x.de, para: x.para })) });
+        toast(sel.length + ' preço(s) atualizado(s). Salve a proposta para gravar.');
+      };
+    });
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-precocmp]')) precosModal(); });
 
   // ---------- validações (listas) ----------
   const dvIndex = {};
@@ -1002,11 +1065,11 @@
   // ---------- jornada da proposta SEQ em 6 etapas ----------
   const ETAPAS_P = [[1, 'Identificação'], [2, 'Configuração'], [3, 'Custos'], [4, 'Formação'], [5, 'Conferência'], [6, 'Emissão']];
   // parâmetros de custos (Custos): validade das cotações e variação de preço que pede atenção
-  const custosCfg = () => Object.assign({ validadeDias: 90, avisoDias: 15, variacaoPct: 0.15, bloquearEnvio: true }, ((REG.tabelas || {}).CUSTOS_CFG || {}).cfg || {});
+  const custosCfg = () => Object.assign({ validadeDias: 90, avisoDias: 15, variacaoPct: 0.15, bloquearEnvio: true, congelarRascunho: false }, ((REG.tabelas || {}).CUSTOS_CFG || {}).cfg || {});
   const insPorProduto = (() => { let m = null, v = null; return (d) => { if (v !== REG.insumos) { m = new Map(REG.insumos.map((i) => [i.produto, i])); v = REG.insumos; } return m.get(d) || null; }; })();
   function variacaoPreco(ins) {
-    for (const h of REG.historico || []) { if (h.ref !== ins.id && h.ref !== 'import') continue;
-      for (const m of h.mudancas || []) { if (!(h.ref === ins.id ? /valor/i.test(m.campo) : String(m.campo).startsWith(ins.id))) continue; if (typeof m.de === 'number' && typeof m.para === 'number' && m.de) return { pct: (m.para - m.de) / m.de, at: h.at, de: m.de, para: m.para }; } }
+    for (const h of REG.historico || []) { if (h.ref !== ins.id && h.ref !== 'import' && !/^L/.test(String(h.ref))) continue;
+      for (const m of h.mudancas || []) { if (!(h.ref === ins.id ? /valor/i.test(m.campo) : String(m.campo).startsWith(ins.id) && (h.ref === 'import' || /· valor$/.test(m.campo)))) continue; if (typeof m.de === 'number' && typeof m.para === 'number' && m.de) return { pct: (m.para - m.de) / m.de, at: h.at, de: m.de, para: m.para }; } }
     return null;
   }
   // linhas de custo de todos os itens, com origem, data e validade da cotação e os alertas de cada uma
@@ -1018,7 +1081,7 @@
         if (['startup', 'frete'].includes(l.k)) continue;
         const ins = l.desc ? insPorProduto(l.desc) : null; const r = /^[me]\d+$/.test(l.k) ? +l.k.slice(1) : null;
         const manual = r && state.doc && state.doc[S] && state.doc[S]['G' + r] !== undefined;
-        const upd = ins && ins.upd ? Date.parse(ins.upd) : null; const idade = upd ? (hoje - upd) / 864e5 : null;
+        const dq = ins && (ins.dataCot || ins.upd); const upd = dq ? Date.parse(dq) : null; const idade = upd ? (hoje - upd) / 864e5 : null;
         const al = [];
         const principal = /MOTOR|BOMBA|JOCKEY/.test(String(l.grupo || '') + ' ' + String(l.fam || '')) && !/ACOPLAMENTO|CAPA/.test(String(l.fam || ''));
         if (l.desc && !(l.custo > 0)) al.push(principal ? ['imped', 'componente principal sem preço'] : ['aviso', 'item sem custo']);
@@ -1026,7 +1089,9 @@
         if (l.qtd === 0 && l.custo > 0) al.push(['aviso', 'quantidade zero com custo']);
         if (l.qtd && l.unit && Math.abs(l.unit * l.qtd - l.custo) > Math.max(1, l.custo * 0.01)) al.push(['aviso', 'quantidade × unitário não fecha com o total']);
         if (!manual && ins && idade !== null) { if (idade > C.validadeDias) al.push(['aviso', 'cotação vencida (' + Math.round(idade) + ' dias)']); else if (idade > C.validadeDias - C.avisoDias) al.push(['info', 'cotação vence em ' + Math.round(C.validadeDias - idade) + ' dias']); }
-        if (!manual && ins && !ins.upd) al.push(['info', 'preço da planilha original, sem data de cotação']);
+        if (!manual && ins && !ins.upd && !ins.dataCot) al.push(['info', 'preço da planilha original, sem data de cotação']);
+        if (ins && foraDeUso(ins)) al.push(['aviso', 'insumo ' + situ(ins) + (ins.substituto ? ' — substituto: ' + ins.substituto : '')]);
+        else if (ins && ['provisorio', 'validacao', 'preco'].includes(situ(ins))) al.push(['aviso', 'cadastro ' + (SITUACOES.find((x) => x[0] === situ(ins)) || [0, ''])[1].toLowerCase()]);
         const vp = ins && variacaoPreco(ins); if (vp && Math.abs(vp.pct) >= C.variacaoPct) al.push(['aviso', 'preço mudou ' + (vp.pct > 0 ? '+' : '') + pct(vp.pct, 0) + ' em ' + new Date(vp.at).toLocaleDateString('pt-BR')]);
         if (l.desc && !ins && !manual) al.push(['info', 'fora do cadastro (nome não encontrado)']);
         const key = S + '|' + l.k; const marcado = na[key];
@@ -1036,6 +1101,9 @@
     return out;
   }
   function vCustos() {
+    return precosCard() + vCustos0();
+  }
+  function vCustos0() {
     const L = linhasCusto(); const C = custosCfg(); const sev = { imped: 0, aviso: 0, info: 0 }; for (const x of L) for (const [s] of x.al) sev[s]++;
     const filtro = ui.custoFiltro || 'alertas';
     const vis = filtro === 'todos' ? L : L.filter((x) => x.al.length || x.na);
@@ -1068,12 +1136,13 @@
     const C = custosCfg(); const ed = canEd();
     const f = (k, lb, suf, d) => `<div class="f"><label for="cc_${k}">${lb}</label><div class="mbc"><input id="cc_${k}" data-ccfg="${k}" value="${esc(k === 'variacaoPct' ? NF[0].format(C[k] * 100) : C[k])}" inputmode="decimal"${ed ? '' : ' disabled'}><span class="sub">${suf}</span></div><small class="sub">${d}</small></div>`;
     return `<section class="card"><h2>Validade das cotações e alertas de custo</h2><div class="fields">${f('validadeDias', 'Validade da cotação', 'dias', 'depois disso a linha aparece como cotação vencida')}${f('avisoDias', 'Avisar antes de vencer', 'dias', 'informa que a cotação está perto de vencer')}${f('variacaoPct', 'Variação de preço que pede atenção', '%', 'mudança do preço do insumo desde a última referência')}
-      <div class="f span2"><label>Política de envio</label><label class="chk"><input type="checkbox" data-ccfg="bloquearEnvio"${C.bloquearEnvio ? ' checked' : ''}${ed ? '' : ' disabled'}> Travar "Enviar ao cliente" quando a conferência tiver itens que impedem seguir</label></div></div>
+      <div class="f span2"><label>Política de envio</label><label class="chk"><input type="checkbox" data-ccfg="bloquearEnvio"${C.bloquearEnvio ? ' checked' : ''}${ed ? '' : ' disabled'}> Travar "Enviar ao cliente" quando a conferência tiver itens que impedem seguir</label></div>
+      <div class="f span2"><label>Preços da época</label><label class="chk"><input type="checkbox" data-ccfg="congelarRascunho"${C.congelarRascunho ? ' checked' : ''}${ed ? '' : ' disabled'}> Rascunhos também ficam com os preços de quando foram salvos</label><small class="sub">Propostas enviadas, aprovadas e ganhas sempre ficam com os preços da época; a atualização é escolhida item a item.</small></div></div>
       <p class="sub" style="margin:8px 0 0">${ed ? 'Alterações ficam no histórico.' : 'Só quem cuida de Custos altera.'}</p></section>`;
   }
   document.addEventListener('change', async (e) => {
     const el = e.target.closest('[data-ccfg]'); if (!el) return; const k = el.dataset.ccfg; const C = custosCfg(); let v;
-    if (k === 'bloquearEnvio') v = el.checked; else { const n = parseInput(el.value, 'num'); if (typeof n !== 'number' || n < 0) { toast('Número inválido'); return; } v = k === 'variacaoPct' ? n / 100 : Math.round(n); }
+    if (k === 'bloquearEnvio' || k === 'congelarRascunho') v = el.checked; else { const n = parseInput(el.value, 'num'); if (typeof n !== 'number' || n < 0) { toast('Número inválido'); return; } v = k === 'variacaoPct' ? n / 100 : Math.round(n); }
     try { await REG.setTable('CUSTOS_CFG', { cfg: Object.assign({}, ((REG.tabelas || {}).CUSTOS_CFG || {}).cfg || {}, { [k]: v }) }, 'Política de custos', [{ campo: k, de: C[k], para: v }]); toast('Salvo'); } catch (er) { toast(errMsg(er)); }
   });
 
@@ -1112,7 +1181,7 @@
     if (sc.comA !== undefined) doc.PROPOSTA.J8 = sc.comA ? 'SEQ' : 'SEM COMISSÃO';
     if (typeof sc.desc === 'number') doc.PROPOSTA.C9 = sc.desc;
     const k = 1 + num0(sc.custoPct);
-    const monta = (d) => { const w2 = new Workbook(MODEL); REG.applyTo(w2);
+    const monta = (d) => { const w2 = new Workbook(MODEL); REG.applyTo(w2); if (state.precosFix) aplicaPrecos(w2, state.precosFix);
       if (Math.abs(k - 1) > 1e-9) { for (const [sh, cols] of [['CADASTRO', ['G']], ['KIT MOTORES DIESEL', ['U', 'V']], ['KIT BOMBA', ['I', 'J']]]) { const s = w2.sheet(sh); for (const [a, v] of s.cells) if (typeof v === 'number' && cols.includes(a.replace(/\d+/, '')) && +a.replace(/\D/g, '') > 1) s.cells.set(a, v * k); }
         for (const S of ITEMS) if (d[S]) for (let r = 34; r <= 112; r++) if (typeof d[S]['G' + r] === 'number') d[S]['G' + r] *= k; }
       w2.applyDoc(d); return w2; };
@@ -1186,6 +1255,7 @@
     }
     try { const L = linhasCusto(); const n = (s) => L.filter((y) => y.al.some((a) => a[0] === s)).length;
       if (n('imped')) add('imped', 'Custos', n('imped') + ' componente(s) principal(is) sem preço', { step: 3 }); if (n('aviso')) add('aviso', 'Custos', n('aviso') + ' linha(s) de custo pedindo atenção (sem custo, cotação vencida, variação)', { step: 3 }); if (n('info')) add('info', 'Custos', n('info') + ' linha(s) com informação de cotação', { step: 3 }); } catch (e) { /* segue */ }
+    if (state.precosFix) { const D = difPrecos(state.precosFix); if (D.length) add('info', 'Custos', D.length + ' preço(s) do cadastro mudaram desde a época desta proposta; ela continua com os preços da época', { step: 3 }); }
     const memo = val(P, 'E83'); if (typeof memo === 'number' && Math.abs(memo) > 0.005) add('imped', 'Integridade do cálculo', 'A proposta não bate com o memorial: diferença de ' + brl(memo), { step: 4 });
     const ai = aprovInfo(); if (ai.estado === 'pendente') add('aviso', 'Aprovação', 'Aprovação ' + (ai.com || '').replace(/<[^>]+>/g, ''), { step: 5, sel: '.aprovbox' }); else if (ai.estado === 'reprovada') add('imped', 'Aprovação', 'Desconto reprovado: ajuste o preço ou peça de novo', { step: 5, sel: '.aprovbox' }); else if (ai.estado === 'vencida') add('imped', 'Aprovação', ai.motivo ? 'A aprovação perdeu a validade: ' + ai.motivo : 'Proposta abaixo do valor aprovado', { step: 5, sel: '.aprovbox' });
     const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
@@ -1522,9 +1592,11 @@
   let dlMap = null;
   function buildDl() {
     dlMap = new Map(); const all = new Set();
+    // inativos e descontinuados saem das listas de escolha (continuam no cadastro e no cálculo das propostas que já os usam)
+    const fora = new Set(REG.insumos.filter((i) => foraDeUso(i)).map((i) => i.produto));
     for (let r = 2; r <= 1000; r++) {
       const fam = wb.value('CADASTRO', 'C' + r), prod = wb.value('CADASTRO', 'D' + r);
-      if (!prod || isErr(prod) || !fam || isErr(fam)) continue;
+      if (!prod || isErr(prod) || !fam || isErr(fam) || fora.has(String(prod))) continue;
       const k = String(fam); if (!dlMap.has(k)) dlMap.set(k, new Set()); dlMap.get(k).add(String(prod)); all.add(String(prod));
     }
     dlMap.set('*', all);
@@ -1532,7 +1604,7 @@
   // data da última atualização do preço do insumo (cadastro; ou a data escrita nas observações)
   function precoData(prod) {
     const i = prod && REG.insumos.find((x) => x.produto === prod); if (!i) return null;
-    let d = i.upd ? new Date(i.upd) : null;
+    let d = i.dataCot ? new Date(i.dataCot + 'T12:00') : i.upd ? new Date(i.upd) : null;
     if (!d || isNaN(d)) { const m = String(i.obs || '').match(/(\d{2})\/(\d{2})\/(\d{4})(?!.*\d{2}\/\d{2}\/\d{4})/); if (m) d = new Date(+m[3], +m[2] - 1, +m[1]); }
     return d && !isNaN(d) ? d : null;
   }
@@ -1575,12 +1647,13 @@
   const H = REG.helpers;
   // cadastro por área: cada área tem um responsável e só ele edita o que é dela
   const AREAS = [
-    ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação'], ['facts', 'FACTS (MECON)'], ['custoscfg', 'Validade e alertas'], ['pedidos', 'Pedidos de cadastro']]],
-    ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['mobase', 'Mão de obra e bases'], ['familias', 'Famílias'], ['codificacao', 'Codificação'], ['regras', 'Regras de configuração']]],
+    ['visao', 'Visão geral', 'Mapa do cadastro (produtos, equipamentos, estruturas, padronização e parâmetros) e qualidade dos dados mestres', [['mapa', 'Mapa do cadastro'], ['qualidade', 'Qualidade dos dados']]],
+    ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação'], ['facts', 'FACTS (MECON)'], ['custoscfg', 'Validade e alertas'], ['pedidos', 'Pedidos de cadastro'], ['fornecedores', 'Fornecedores e fabricantes']]],
+    ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['mobase', 'Mão de obra e bases'], ['familias', 'Famílias'], ['codificacao', 'Codificação'], ['regras', 'Regras de configuração'], ['testador', 'Testador de estruturas']]],
     ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado, FCI e os cenários da reforma tributária', [['fiscal', 'Impostos e NCM'], ['cenarios', 'Cenários tributários (reforma)']]],
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
-    ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições']]],
+    ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições'], ['campos', 'Campos por família'], ['sinonimos', 'Sinônimos e abreviações']]],
     ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
@@ -1613,7 +1686,7 @@
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, regras: () => RG.vCfg(canEd()), padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, regras: () => RG.vCfg(canEd()), mapa: vMapa, qualidade: vQualidade, fornecedores: vFornecedores, campos: vCampos, sinonimos: vSinonimos, testador: vTestador, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -1628,18 +1701,47 @@
   }
 
   // ---- insumos ----
+  // índice de uso dos nomes do cadastro (estruturas, tabelas por porte, kits, propostas e baixas): para "sem uso", qualidade e edição em massa
+  function usoIndex() {
+    const nomes = new Map(); const add = (n, onde) => { if (!n) return; const k = String(n); if (!nomes.has(k)) nomes.set(k, new Set()); nomes.get(k).add(onde); };
+    const famSel = new Set();
+    for (const x of recLines()) {
+      if (x.tipo === 'FIXO' || x.tipo === 'SPLIT') add(x.campo, 'estrutura');
+      else if (x.tipo === 'TAMANHO') for (let r = 157; r <= 166; r++) { const n = val(MO, 'D' + r); if (n !== null) add(String(x.pre || '') + fmtPlain(n) + String(x.suf || ''), 'estrutura'); }
+      else if (['MOTOR', 'BOMBA', 'JOCKEY'].includes(x.tipo) && x.fam) famSel.add(x.fam);
+    }
+    const tab = (sh, r1, r2, c1, c2) => { for (let r = r1; r <= r2; r++) for (let c = colToNum(c1); c <= colToNum(c2); c++) { const v = val(sh, numToCol(c) + r); if (typeof v === 'string' && v) add(v, 'tabela por porte'); } };
+    tab(MO, 157, 166, 'E', 'M'); tab(MO, 172, 187, 'D', 'G'); tab('KIT HIDRÁULICA', 4, 32, 'B', 'Q');
+    for (const k of REG.kitMotor.concat(REG.kitBomba)) add(k.desc, 'kit');
+    for (const q of REG.listPropostas() || []) { for (const [sh, cells] of Object.entries(q.doc || {})) if (/^ITEM/.test(sh)) for (const v of Object.values(cells || {})) if (typeof v === 'string') add(v, 'proposta'); for (const d of Object.keys((q.precos || {}).ins || {})) add(d, 'proposta'); }
+    for (const F of MG.lista ? MG.lista() : []) for (const it of (F.snap || {}).itens || []) for (const l of it.linhas || []) add(l.desc, 'baixa');
+    for (const r of RG.lista()) if (r.componente) add('regra:' + r.componente, 'regra');
+    return { nomes, famSel, de: (i) => [...(nomes.get(i.produto) || [])].concat(famSel.has(i.fam) ? ['escolhido no item (família)'] : []) };
+  }
+  const favKey = () => 'lspricer.fav.' + (REG.me || 'local');
+  const favs = () => { try { return new Set(JSON.parse(localStorage.getItem(favKey()) || '[]')); } catch (e) { return new Set(); } };
+  function favToggle(id) { const f = favs(); if (f.has(id)) f.delete(id); else f.add(id); try { localStorage.setItem(favKey(), JSON.stringify([...f])); } catch (e) { toast('O navegador não deixou guardar o favorito'); } }
+  const selIns = new Set();
   function vInsumos() {
-    const q = (ui.insQ || '').trim().toLowerCase(); const fam = ui.insFam || ''; const sem = !!ui.insSem;
-    const all = H.sortIns(REG.insumos);
+    const fam = ui.insFam || ''; const fab = ui.insFab || ''; const sit = ui.insSit || ''; const sem = !!ui.insSem; const soFav = !!ui.insFav; const ord = ui.insOrd || 'codigo';
+    const all = H.sortIns(REG.insumos); const cfg = famCfg(); const F = favs(); const C = custosCfg();
     const semPreco = all.filter((x) => typeof x.valor !== 'number');
-    let list = all;
-    if (fam) list = list.filter((x) => x.fam === fam);
-    if (sem) list = list.filter((x) => typeof x.valor !== 'number');
-    if (q) list = list.filter((x) => [x.id, x.produto, x.fab, x.tipo, x.obs, x.fam].join(' ').toLowerCase().includes(q));
-    const shown = list.slice(0, 400);
+    const grupos = FAMS_F.termos(ui.insQ || '', sinonimos());
+    const pend = (x) => { const L = []; if (typeof x.valor !== 'number') L.push(['sem preço', 'warn']); const m = FAMS_F.checar(x.fam, x.produto, cfg); if (m && !x.excecao) L.push(['fora do padrão', 'warn']);
+      const dq = x.dataCot || x.upd; if (dq && (Date.now() - Date.parse(dq)) / 864e5 > C.validadeDias) L.push(['cotação vencida', 'warn']); return L; };
+    let list = all.filter((x) => (!fam || x.fam === fam) && (!fab || (x.fab || '') === fab) && (!sem || typeof x.valor !== 'number') && (!soFav || F.has(x.id))
+      && (!sit || (sit === 'pend' ? pend(x).length || situ(x) !== 'ativo' : situ(x) === sit))
+      && (!grupos.length || FAMS_F.casa([x.id, x.produto, x.fab, x.tipo, x.obs, x.fam, x.codFab, x.descCom, x.descFab, Object.values(x.caract || {}).join(' ')].join(' '), grupos)));
+    const cmp = { codigo: () => 0, produto: (a, b) => a.produto.localeCompare(b.produto), valor: (a, b) => (b.valor ?? -1) - (a.valor ?? -1), upd: (a, b) => String(b.dataCot || b.upd || '').localeCompare(String(a.dataCot || a.upd || '')) }[ord] || (() => 0);
+    list = list.slice().sort((a, b) => (F.has(b.id) - F.has(a.id)) || cmp(a, b));
+    const shown = list.slice(0, 400); const ed = canEd();
     const last = all.reduce((m, x) => (x.upd && x.upd > (m.upd || '') ? x : m), {});
-    const rows = shown.map((x) => `<tr class="click" data-ins="${esc(x.id)}"><td class="code">${esc(x.id)}</td><td>${esc(x.fam)}</td><td style="min-width:280px">${esc(x.produto)}</td><td>${esc(x.fab || '')}</td><td>${esc(x.tipo || '')}</td><td class="n">${typeof x.valor === 'number' ? brl(x.valor) : '<span class="pill warn">sem preço</span>'}</td><td>${esc(x.origem || '')}</td><td class="sub">${x.upd ? fmtAt(x.upd) : ''}</td></tr>`).join('');
-    const fams = famList();
+    const th = (k, lb) => `<th><button class="thsort${ord === k ? ' on' : ''}" data-insord="${k}">${lb}${ord === k ? ' ▾' : ''}</button></th>`;
+    const rows = shown.map((x) => `<tr class="click" data-ins="${esc(x.id)}">${ed ? `<td class="in"><input type="checkbox" data-inssel="${esc(x.id)}"${selIns.has(x.id) ? ' checked' : ''} aria-label="Selecionar ${esc(x.id)}"></td>` : ''}<td><button class="star${F.has(x.id) ? ' on' : ''}" data-insfav="${esc(x.id)}" aria-label="${F.has(x.id) ? 'Tirar dos favoritos' : 'Favoritar'}">${F.has(x.id) ? '★' : '☆'}</button></td><td class="code">${esc(x.id)}</td><td>${esc(x.fam)}</td>
+      <td style="min-width:280px">${esc(x.produto)} ${situPillIns(x)} ${pend(x).filter((p) => p[0] !== 'sem preço').map(([t, c]) => `<span class="pill ${c}">${t}</span>`).join(' ')}</td><td>${esc(x.fab || '')}</td><td>${esc(x.tipo || '')}</td>
+      <td class="n">${typeof x.valor === 'number' ? brl(x.valor) : '<span class="pill warn">sem preço</span>'}</td><td>${esc(x.origem || '')}</td><td class="sub">${x.dataCot ? esc(new Date(x.dataCot + 'T12:00').toLocaleDateString('pt-BR')) : x.upd ? esc(new Date(x.upd).toLocaleDateString('pt-BR')) : '—'}</td></tr>`).join('');
+    const fams = famList(); const fabs = [...new Set(all.map((x) => x.fab).filter(Boolean))].sort();
+    for (const id of [...selIns]) if (!REG.insumos.some((x) => x.id === id)) selIns.delete(id);
     return `<div class="kpis">
         <div class="kpi"><span>Insumos</span><b>${NF[0].format(all.length)}</b><em>limite da planilha: ${H.LIMITS.insumos}</em></div>
         <div class="kpi"><span>Famílias</span><b>${fams.length}</b></div>
@@ -1648,85 +1750,299 @@
       </div>
       <section class="card">
         <div class="sheetbar">
-          <input id="insQ" type="search" placeholder="Buscar por código, produto, fabricante…" value="${esc(ui.insQ || '')}" aria-label="Buscar insumo" style="flex:1 1 260px">
+          <input id="insQ" type="search" placeholder="Buscar código, fabricante, modelo, característica… (aceita sinônimos)" value="${esc(ui.insQ || '')}" aria-label="Buscar insumo" style="flex:1 1 260px">
           <select id="insFam" aria-label="Família"><option value="">Todas as famílias</option>${fams.map((f) => `<option${f === fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select>
+          <select id="insFab" aria-label="Fabricante"><option value="">Todos os fabricantes</option>${fabs.map((f) => `<option${f === fab ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select>
+          <select id="insSit" aria-label="Situação"><option value="">Toda situação</option><option value="pend"${sit === 'pend' ? ' selected' : ''}>Com pendência</option>${SITUACOES.map(([k, lb]) => `<option value="${k}"${sit === k ? ' selected' : ''}>${esc(lb)}</option>`).join('')}</select>
           <label class="chk"><input type="checkbox" id="insSem"${sem ? ' checked' : ''}> Só sem preço</label>
+          <label class="chk"><input type="checkbox" id="insFavF"${soFav ? ' checked' : ''}> ★ Favoritos</label>
           <span style="flex:1"></span>
           <button class="btn sm" id="insCsv">Exportar CSV</button>
-          ${canEd() ? '<button class="btn sm pri" id="insNew">+ Novo insumo</button>' : ''}
+          ${ed ? `<button class="btn sm" id="insLote"${selIns.size ? '' : ' disabled'}>Edição em massa (${selIns.size})</button><button class="btn sm pri" id="insNew">+ Novo insumo</button>` : ''}
         </div>
-        <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + '; refine a busca' : ''}. Clique numa linha para ver ou editar.</p>
-        <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr><th>Código</th><th>Família</th><th>Produto</th><th>Fabricante</th><th>Tipo/config.</th><th>Valor</th><th>Origem</th><th>Atualizado</th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="sub">Nenhum insumo com esse filtro.</td></tr>'}</tbody></table></div>
+        <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + '; refine a busca' : ''}. Clique numa linha para ver ou editar.${ed ? ' Marque as caixas para a edição em massa.' : ''}</p>
+        <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr>${ed ? `<th><input type="checkbox" id="insSelAll" aria-label="Marcar os visíveis"></th>` : ''}<th></th>${th('codigo', 'Código')}<th>Família</th>${th('produto', 'Produto')}<th>Fabricante</th><th>Tipo/config.</th>${th('valor', 'Valor')}<th>Origem</th>${th('upd', 'Cotação')}</tr></thead><tbody>${rows || `<tr><td colspan="${ed ? 10 : 9}" class="sub">Nenhum insumo com esse filtro.</td></tr>`}</tbody></table></div>
       </section>`;
   }
+  // edição em massa: escolhe o campo, vê a prévia e o impacto, confirma; fica no histórico e pode ser desfeita
+  function loteModal() {
+    const ids = [...selIns].filter((id) => REG.insumos.some((x) => x.id === id)); if (!ids.length) return;
+    const recs = ids.map((id) => REG.insumos.find((x) => x.id === id)); const U = usoIndex();
+    const CAMPOS = [['situacao', 'Situação'], ['fab', 'Fabricante'], ['tipo', 'Tipo/config.'], ['origem', 'Origem (NAC/IMP)'], ['reajuste', 'Reajuste de preço (%)'], ['dataCot', 'Data da cotação'], ['fonte', 'Origem do preço']];
+    modal(`<h2>Edição em massa · ${ids.length} insumo(s)</h2>
+      <div class="fields"><div class="f"><label for="ltCampo">Campo</label><select id="ltCampo">${CAMPOS.map(([k, lb]) => `<option value="${k}">${esc(lb)}</option>`).join('')}</select></div><div class="f span2" id="ltValWrap"></div></div>
+      <div id="ltPrev"></div><p class="sub" style="margin:0">O nome (descrição técnica) não se edita em massa: ele é a chave das fórmulas. Cada alteração fica no histórico e o lote inteiro pode ser desfeito em Sistema → Histórico.</p>
+      <div style="display:flex;gap:8px"><button class="btn pri" id="ltOk" disabled>Aplicar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+      const g = (s) => $(s, o);
+      const drawVal = () => { const k = g('#ltCampo').value;
+        g('#ltValWrap').innerHTML = `<label for="ltVal">Novo valor</label>` + (k === 'situacao' ? `<select id="ltVal">${SITUACOES.map(([s, lb]) => `<option value="${s}">${esc(lb)}</option>`).join('')}</select>` : k === 'origem' ? '<select id="ltVal"><option>NAC</option><option>IMP</option></select>' : k === 'dataCot' ? '<input id="ltVal" type="date">' : `<input id="ltVal"${k === 'reajuste' ? ' inputmode="decimal" placeholder="ex.: 5 ou -3"' : ''}>`);
+        g('#ltVal').oninput = prev; g('#ltVal').onchange = prev; prev(); };
+      let ch = [];
+      const prev = () => { const k = g('#ltCampo').value; const raw = g('#ltVal').value.trim(); ch = [];
+        for (const x of recs) { let para;
+          if (k === 'reajuste') { const p = parseInput(raw, 'num'); if (typeof p !== 'number' || typeof x.valor !== 'number') continue; para = Math.round(x.valor * (1 + p / 100) * 100) / 100; ch.push({ id: x.id, campos: { valor: para }, de: { valor: x.valor }, nome: x.produto, uso: U.de(x).length }); continue; }
+          para = k === 'situacao' || k === 'origem' || k === 'dataCot' ? raw : raw.toUpperCase(); if (k === 'fonte') para = raw; if (!raw) continue;
+          if ((x[k] ?? (k === 'situacao' ? 'ativo' : '')) === para) continue; ch.push({ id: x.id, campos: { [k]: para }, de: { [k]: x[k] ?? null }, nome: x.produto, uso: U.de(x).length }); }
+        const k2 = k === 'reajuste' ? 'valor' : k;
+        g('#ltPrev').innerHTML = ch.length ? `<div class="tw" style="max-height:40vh;overflow:auto"><table class="t"><thead><tr><th>Insumo</th><th>Atual</th><th>Novo</th><th>Em uso</th></tr></thead><tbody>${ch.map((c) => `<tr><td><b>${esc(c.id)}</b> ${esc(c.nome)}</td><td class="n">${esc(fmtVal(c.de[k2]))}</td><td class="n"><b>${esc(fmtVal(c.campos[k2]))}</b></td><td>${c.uso ? `<span class="pill warn">${c.uso} uso(s)</span>` : '<span class="sub">—</span>'}</td></tr>`).join('')}</tbody></table></div>${k === 'situacao' && ['inativo', 'descontinuado'].includes(raw) && ch.some((c) => c.uso) ? '<div class="banner warn" style="margin:6px 0 0">Itens em uso continuam no cálculo das estruturas e propostas; só saem das listas de escolha.</div>' : ''}` : '<p class="sub" style="margin:0">Nada muda com esse valor.</p>';
+        g('#ltOk').disabled = !ch.length; g('#ltOk').textContent = 'Aplicar em ' + ch.length; };
+      g('#ltCampo').onchange = drawVal; drawVal();
+      g('#ltOk').onclick = async () => { const b = g('#ltOk'); if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar: alterar ' + ch.length + ' insumo(s)'; return; } b.disabled = true;
+        try { const r = await REG.saveInsumosLote(ch.map((c) => ({ id: c.id, campos: c.campos, de: c.de })), CAMPOS.find((x) => x[0] === g('#ltCampo').value)[1] + ' em ' + ch.length + ' insumo(s)', 'Edição em massa'); selIns.clear(); close(); render(); toast(r.n + ' insumo(s) alterado(s). Para desfazer: Sistema → Histórico.'); }
+        catch (er) { b.disabled = false; toast(errMsg(er)); } };
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const fv = e.target.closest('[data-insfav]'); if (fv) { e.stopPropagation(); favToggle(fv.dataset.insfav); render(); return; }
+    const so = e.target.closest('[data-insord]'); if (so) { ui.insOrd = so.dataset.insord; render(); return; }
+    if (e.target.closest('#insLote')) { loteModal(); return; }
+    const dz = e.target.closest('[data-desfaz]'); if (dz) { const h = REG.historico.find((x) => x.at === dz.dataset.desfaz && String(x.ref) === dz.dataset.ref); if (!h) return;
+      if (!dz.dataset.sure) { dz.dataset.sure = 1; dz.textContent = 'confirmar: desfazer este lote'; return; }
+      REG.desfazerLote(h).then((r) => toast(r.n + ' insumo(s) voltaram' + (r.conflito.length ? '; ' + r.conflito.length + ' já tinham mudado de novo e ficaram como estão' : ''))).catch((er) => toast(errMsg(er))); }
+  }, true);
+  document.addEventListener('change', (e) => {
+    const s = e.target.closest('[data-inssel]'); if (s) { if (s.checked) selIns.add(s.dataset.inssel); else selIns.delete(s.dataset.inssel); const b = $('#insLote'); if (b) { b.disabled = !selIns.size; b.textContent = 'Edição em massa (' + selIns.size + ')'; } return; }
+    if (e.target.id === 'insSelAll') { document.querySelectorAll('[data-inssel]').forEach((c) => { c.checked = e.target.checked; if (c.checked) selIns.add(c.dataset.inssel); else selIns.delete(c.dataset.inssel); }); const b = $('#insLote'); if (b) { b.disabled = !selIns.size; b.textContent = 'Edição em massa (' + selIns.size + ')'; } return; }
+    if (e.target.id === 'insFab') { ui.insFab = e.target.value; render(); } else if (e.target.id === 'insSit') { ui.insSit = e.target.value; render(); } else if (e.target.id === 'insFavF') { ui.insFav = e.target.checked; render(); }
+  });
+  // ---------- ficha do insumo (REV22): campos por família, descrição gerada, três descrições, duplicidade, fornecedores, equivalentes ----------
+  const FAMS_F = window.PricerFamilias;
+  const famCfg = () => (((REG.tabelas || {}).FAM_CAMPOS || {}).fams) || {};
+  FAMS_F.cfgFn = famCfg;
+  // sinônimos e abreviações para a busca (ponto de partida: as grafias que o documento de padrões já unificou)
+  const SIN_PADRAO = { TRIF: ['TRIFASICO', 'TRI'], '2P': ['2 POLOS'], '4P': ['4 POLOS'], '6P': ['6 POLOS'], IP55: ['IP-55', 'IPW55'], TROCADOR: ['TROCADOR DE CALOR'], ELETRICO: ['ELETRICA'], MOTOBOMBA: ['CMB', 'CONJUNTO MOTOBOMBA'], 'C/': ['COM'] };
+  const sinonimos = () => (((REG.tabelas || {}).SINONIMOS || {}).map) || SIN_PADRAO;
+  const SITUACOES = [['ativo', 'Ativo', 'ok'], ['provisorio', 'Provisório', 'warn'], ['validacao', 'Aguardando validação técnica', 'warn'], ['preco', 'Aguardando preço', 'warn'], ['inativo', 'Inativo', 'mute'], ['descontinuado', 'Descontinuado', 'bad']];
+  const situ = (i) => (i && i.situacao) || 'ativo';
+  const situPillIns = (i) => { const s = SITUACOES.find((x) => x[0] === situ(i)) || SITUACOES[0]; return s[0] === 'ativo' ? '' : `<span class="pill ${s[2]}">${esc(s[1])}</span>`; };
+  const foraDeUso = (i) => ['inativo', 'descontinuado'].includes(situ(i));
+  // histórico de preço de um insumo: alterações na ficha, importações e edições em massa
+  function historicoPreco(ins) {
+    const out = [];
+    for (const h of REG.historico || []) for (const m of h.mudancas || []) {
+      const c = String(m.campo || '');
+      const hit = (h.ref === ins.id && /^valor$/i.test(c)) || c === ins.id + ' · valor' || (c.startsWith(ins.id + ' · ') && /Importação|Mão de obra|critério/i.test(h.tipo + ' ' + (h.desc || '')));
+      if (hit && (typeof m.para === 'number' || typeof m.de === 'number')) out.push({ at: h.at, by: h.by, de: m.de, para: m.para, fonte: h.tipo === 'Insumo' ? (ins.fonte || 'ficha do insumo') : h.desc || h.tipo });
+    }
+    return out.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  }
+  // renomear sem quebrar o motor: estruturas (insumo fixo) e tabelas por porte com o nome exato acompanham;
+  // nomes montados pela estrutura (prefixo + porte) ou saídos de fórmula não podem ser renomeados por aqui
+  function renomeImpacto(rec, novo) {
+    const old = rec.produto; const fix = {}; const bloqueios = []; const put = (sh, a) => { (fix[sh] = fix[sh] || {})[a] = novo; };
+    for (const x of recLines()) {
+      if ((x.tipo === 'FIXO' || x.tipo === 'SPLIT') && x.campo === old) put(MO, REC_COLS.campo + x.r);
+      if (x.tipo === 'TAMANHO' && x.fam === rec.fam) for (let r = 157; r <= 166; r++) { const n = val(MO, 'D' + r); if (n !== null && String(x.pre || '') + fmtPlain(n) + String(x.suf || '') === old) bloqueios.push(`a estrutura "${x.rot}" monta este nome (prefixo + porte); mude o prefixo da estrutura em vez de renomear o insumo`); }
+    }
+    const tab = (sh, r1, r2, c1, c2) => { for (let r = r1; r <= r2; r++) for (let c = colToNum(c1); c <= colToNum(c2); c++) { const a = numToCol(c) + r; if (val(sh, a) !== old) continue; if (isFormulaBase(sh, a)) bloqueios.push(`${sh} ${a} calcula este nome por fórmula`); else put(sh, a); } };
+    tab(MO, 157, 166, 'B', 'M'); tab(MO, 172, 187, 'B', 'G'); tab('KIT HIDRÁULICA', 4, 32, 'A', 'Q');
+    const kits = REG.kitMotor.concat(REG.kitBomba).filter((k) => k.desc === old);
+    const u = ondeUsado(rec);
+    return { fix, bloqueios: [...new Set(bloqueios)], kits, props: u.props.length, fech: u.fech.length, nCel: Object.values(fix).reduce((t, o) => t + Object.keys(o).length, 0) };
+  }
+  async function aplicarRenome(rec, novo) {
+    const imp = renomeImpacto(rec, novo); if (imp.bloqueios.length) throw new Error('Não dá para renomear: ' + imp.bloqueios[0]);
+    const ren = await REG.renameInsumos([{ id: rec.id, de: rec.produto, produto: novo }], 'Renomeado: ' + rec.produto + ' → ' + novo);
+    await REG.setTable('RENOMES', { map: Object.assign({}, renomes(), ren, { [rec.produto]: novo }) }, 'Nome antigo → novo: ' + novo, [{ campo: rec.produto, de: null, para: novo }]);
+    for (const [sh, ch] of Object.entries(imp.fix)) await REG.setCells(sh, ch, 'Renomeado nas estruturas e tabelas: ' + novo, baseOf(sh));
+    return imp;
+  }
+  // custo total de aquisição de cada fornecedor, na mesma base (R$ por unidade): preço × câmbio × (1 + impostos) + frete
+  function custoTotalForn(f) {
+    const moeda = f.moeda || 'BRL'; const cambio = moeda === 'BRL' ? 1 : (typeof f.cambio === 'number' && f.cambio > 0 ? f.cambio : null);
+    if (typeof f.preco !== 'number' || cambio === null) return null;
+    return f.preco * cambio * (1 + (typeof f.impostos === 'number' ? f.impostos : 0)) + (typeof f.frete === 'number' ? f.frete : 0);
+  }
   function insumoModal(id, presetFam) {
-    const isNew = !id; const rec = isNew ? { fam: presetFam || ui.insFam || famList()[0], origem: 'NAC' } : Object.assign({}, REG.insumos.find((x) => x.id === id));
+    const isNew = !id; const rec = isNew ? { fam: presetFam || ui.insFam || famList()[0], origem: 'NAC', situacao: 'ativo' } : JSON.parse(JSON.stringify(REG.insumos.find((x) => x.id === id) || null));
     if (!rec) return;
-    const ro = !canEd() ? ' disabled' : '';
-    const fams = famList();
-    const tipos = [...new Set(REG.insumos.filter((x) => x.fam === rec.fam && x.tipo).map((x) => x.tipo))];
+    const ed = canEd(); const ro = ed ? '' : ' disabled';
+    const fams = famList(); const cfg = famCfg();
     const code = isNew ? REG.nextCode(rec.fam) : { a: rec.a, b: rec.b };
+    const st = { fam: rec.fam, car: Object.assign({}, FAMS_F.ler(rec.fam, rec.produto, cfg), rec.caract || {}), forn: JSON.parse(JSON.stringify(rec.forn || [])), equiv: JSON.parse(JSON.stringify(rec.equiv || [])) };
+    const p0 = FAMS_F.padraoDe(rec.fam, cfg);
+    st.gerar = !!(p0 && p0.modelo) && (isNew || FAMS_F.montar(p0, st.car) === rec.produto);
     const hist = REG.historico.filter((h) => h.ref === id).slice(0, 12);
-    const histHtml = hist.length ? `<div class="hist">${hist.map((h) => `<div><small>${fmtAt(h.at)} · ${who(h.by)}</small>${(h.mudancas || []).map((m) => `<div class="chg"><b>${esc(m.campo)}</b> ${esc(fmtVal(m.de))} → ${esc(fmtVal(m.para))}</div>`).join('')}</div>`).join('')}</div>` : '<p class="sub">Sem alterações registradas — valor da planilha REV21.</p>';
-    modal(`<h2>${isNew ? 'Novo insumo' : 'Insumo ' + esc(rec.id)}</h2>
-      <form id="insForm" class="fields" autocomplete="off">
-        <div class="f span2"><label for="fFam">Família</label><select id="fFam"${ro || (!isNew ? '' : '')}>${fams.map((f) => `<option${f === rec.fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}${canEd() ? '<option value="__nova">+ Nova família…</option>' : ''}</select></div>
+    const histHtml = hist.length ? `<div class="hist">${hist.map((h) => `<div><small>${fmtAt(h.at)} · ${who(h.by)}</small>${(h.mudancas || []).map((m) => `<div class="chg"><b>${esc(m.campo)}</b> ${esc(fmtVal(typeof m.de === 'object' && m.de ? JSON.stringify(m.de) : m.de))} → ${esc(fmtVal(typeof m.para === 'object' && m.para ? JSON.stringify(m.para) : m.para))}</div>`).join('')}</div>`).join('')}</div>` : '<p class="sub">Sem alterações registradas.</p>';
+    const hp = isNew ? [] : historicoPreco(rec); const C = custosCfg();
+    const hpHtml = hp.length ? `<div class="tw"><table class="t"><thead><tr><th>Quando</th><th>De</th><th>Para</th><th>Variação</th><th>Origem</th></tr></thead><tbody>${hp.slice(0, 15).map((x) => { const v = typeof x.de === 'number' && x.de && typeof x.para === 'number' ? (x.para - x.de) / x.de : null; return `<tr><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.de === 'number' ? brl(x.de) : '—'}</td><td class="n">${typeof x.para === 'number' ? brl(x.para) : '—'}</td><td class="n ${v !== null && Math.abs(v) >= C.variacaoPct ? 'bad-t' : ''}">${v === null ? '—' : (v > 0 ? '+' : '') + pct(v, 1)}</td><td><small>${esc(x.fonte || '')}</small></td></tr>`; }).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0">Sem alteração de preço registrada (o valor é o da planilha ou da última gravação).</p>';
+    const insOpts = REG.insumos.filter((i) => i.id !== rec.id).map((i) => `<option value="${esc(i.id + ' · ' + i.produto)}">`).join('');
+    modal(`<h2>${isNew ? 'Novo insumo' : 'Insumo ' + esc(rec.id)} ${isNew ? '' : situPillIns(rec)}</h2>
+      <form id="insForm" autocomplete="off" class="stack" style="gap:10px">
+      <div class="fields">
+        <div class="f span2"><label for="fFam">Família</label><select id="fFam"${ro}>${fams.map((f) => `<option${f === rec.fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}${ed ? '<option value="__nova">+ Nova família…</option>' : ''}</select></div>
         <div class="f" id="fNovaWrap" hidden><label for="fNova">Nova família (nn.NOME)</label><input id="fNova" placeholder="46.NOMEDAFAMILIA"></div>
-        <div class="f"><label>Código</label><div class="ro code" id="fCode">${esc(String(code.a).padStart(2, '0') + '-' + code.b)}</div></div>
-        <div class="f spanall"><label for="fProd">Produto (descrição)</label><input id="fProd" value="${esc(rec.produto || '')}" required${ro}></div>
+        <div class="f"><label>Código (não muda)</label><div class="ro code" id="fCode">${esc(String(code.a).padStart(2, '0') + '-' + code.b)}</div></div>
+        <div class="f"><label for="fSit">Situação</label><select id="fSit"${ro}>${SITUACOES.map(([k, lb]) => `<option value="${k}"${situ(rec) === k ? ' selected' : ''}>${esc(lb)}</option>`).join('')}</select></div>
         <div class="f"><label for="fFab">Fabricante</label><input id="fFab" value="${esc(rec.fab || '')}"${ro}></div>
-        <div class="f"><label for="fTipo">Tipo/config.</label><input id="fTipo" list="dlTipos" value="${esc(rec.tipo || '')}"${ro}><datalist id="dlTipos">${tipos.map((t) => `<option value="${esc(t)}">`).join('')}</datalist></div>
-        <div class="f"><label for="fVal">Valor (R$)</label><input id="fVal" inputmode="decimal" value="${typeof rec.valor === 'number' ? esc(NF[2].format(rec.valor)) : ''}"${ro}></div>
+        <div class="f"><label for="fCodFab">Código do fabricante</label><input id="fCodFab" value="${esc(rec.codFab || '')}"${ro}></div>
+        <div class="f"><label for="fTipo">Tipo/config.</label><input id="fTipo" list="dlTipos" value="${esc(rec.tipo || '')}"${ro}><datalist id="dlTipos">${[...new Set(REG.insumos.filter((x) => x.fam === rec.fam && x.tipo).map((x) => x.tipo))].map((t) => `<option value="${esc(t)}">`).join('')}</datalist></div>
         <div class="f"><label for="fOri">Origem</label><select id="fOri"${ro}><option${rec.origem === 'NAC' ? ' selected' : ''}>NAC</option><option${rec.origem === 'IMP' ? ' selected' : ''}>IMP</option></select></div>
-        <div class="f spanall"><label for="fObs">Observações</label><input id="fObs" value="${esc(rec.obs || '')}"${ro}></div>
+        <div class="f span2" id="fSubWrap"${['inativo', 'descontinuado'].includes(situ(rec)) ? '' : ' hidden'}><label for="fSub">Substituto (quando descontinuado)</label><input id="fSub" list="dlInsAll" value="${esc(rec.substituto ? rec.substituto + ' · ' + ((REG.insumos.find((i) => i.id === rec.substituto) || {}).produto || '') : '')}"${ro}></div>
+      </div>
+      <section class="fsec" id="fCarSec"><h3>Características técnicas <span class="sub" id="fCarSub"></span></h3><div class="fields" id="fCar"></div></section>
+      <section class="fsec"><h3>Descrições</h3>
+        <div class="fields"><div class="f spanall"><label for="fProd">Descrição técnica padronizada <small class="sub">(é o nome que as fórmulas e as estruturas usam)</small></label>
+          <input id="fProd" value="${esc(rec.produto || '')}"${ro}><label class="chk" id="fGerWrap"><input type="checkbox" id="fGerar"${st.gerar ? ' checked' : ''}${ro}> gerar pelas características da família</label><small class="sub" id="fPad"></small></div>
+          <div class="f spanall" id="fExcWrap" hidden><label for="fExc">Justificativa da exceção ao padrão</label><input id="fExc" value="${esc(rec.excecao || '')}" placeholder="ex.: código do fabricante não segue a série; nome exigido pelo cliente"${ro}></div>
+          <div class="f spanall"><label for="fCom">Descrição comercial <small class="sub">(para documentos ao cliente)</small></label><div class="row2"><input id="fCom" value="${esc(rec.descCom || '')}"${ro}><button type="button" class="btn sm" id="fComSug"${ro}>Sugerir</button></div></div>
+          <div class="f spanall"><label for="fDescFab">Descrição do fabricante <small class="sub">(texto original do catálogo ou da cotação)</small></label><input id="fDescFab" value="${esc(rec.descFab || '')}"${ro}></div>
+          <div class="f spanall"><label for="fObs">Observações</label><input id="fObs" value="${esc(rec.obs || '')}"${ro}></div></div>
+        <div id="fDup"></div></section>
+      <section class="fsec"><h3>Preço de aquisição</h3>
+        <div class="fields"><div class="f"><label for="fVal">Valor (R$)</label><input id="fVal" inputmode="decimal" value="${typeof rec.valor === 'number' ? esc(NF[2].format(rec.valor)) : ''}" placeholder="sem preço"${ro}></div>
+          <div class="f span2"><label for="fFonte">Origem do preço</label><input id="fFonte" value="${esc(rec.fonte || '')}" placeholder="fornecedor, nº do orçamento"${ro}></div>
+          <div class="f"><label for="fDataCot">Data da cotação</label><input id="fDataCot" type="date" value="${esc(rec.dataCot || '')}"${ro}></div></div>
+        <div id="fImp"></div></section>
+      <details class="fsec"${st.forn.length ? ' open' : ''}><summary><h3 style="display:inline">Fornecedores e cotações <span class="sub">${st.forn.length}</span></h3></summary><div id="fForn"></div></details>
+      <details class="fsec"${st.equiv.length ? ' open' : ''}><summary><h3 style="display:inline">Equivalentes técnicos e alternativas <span class="sub">${st.equiv.length}</span></h3></summary><div id="fEquiv"></div></details>
       </form>
-      ${!isNew ? '<p class="sub">Propostas usam o insumo pelo nome do produto: se você renomear, as propostas que já usam o nome antigo passam a mostrar "fora do catálogo".</p>' : ''}
-      <p class="sub" id="fHint"></p>
+      <datalist id="dlInsAll">${insOpts}</datalist>
       <div id="fErr" class="bad-t"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${canEd() ? `<button class="btn pri" id="fSave">${isNew ? 'Cadastrar' : 'Salvar'}</button>` : ''}
-        ${canEd() && !isNew ? '<button class="btn" id="fDel">Excluir</button>' : ''}
-        <button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button>
+        ${ed ? `<button class="btn pri" id="fSave">${isNew ? 'Cadastrar' : 'Salvar'}</button>` : ''}
+        ${ed && !isNew ? '<button class="btn" id="fDup2">Duplicar</button>' : ''}
+        ${ed && !isNew ? '<button class="btn" id="fDel">Excluir</button>' : ''}
+        <button class="btn" data-close>${ed ? 'Cancelar' : 'Fechar'}</button>
       </div>
       ${!isNew ? ondeUsadoHtml(rec) : ''}
+      ${!isNew ? `<h2>Histórico de preço</h2>${hpHtml}` : ''}
       ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden></div>` : ''}
       ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
     (o, close) => {
       fillNames(o);
-      const famSel = $('#fFam', o), nova = $('#fNova', o);
-      const hint = () => {
-        const f = famSel.value === '__nova' ? nova.value.trim().toUpperCase() : famSel.value;
-        const h = { '11.BOMBAMANCAL': 'Bomba: preencha o Tipo/config. com END SUCTION ou SPLIT CASE — é ele que escolhe qual total do KIT BOMBA usar. Cadastre também o kit na aba Kits de bomba.', '13.JOCKEY': 'Jockey: use MONOBLOCO em Tipo/config. Aparece no seletor na hora.', '01.MOTORDIESEL': 'Motor diesel: descreva no padrão MODELO 000HP@0000RPM 0CIL 00VCC ARREFECIMENTO e cadastre também o kit em Kits de motor diesel.' }[f] || '';
-        $('#fHint', o).textContent = h;
-        if (isNew) { const c = famSel.value === '__nova' ? (/^\d{1,2}\./.test(f) ? { a: H.famCode(f), b: H.famCode(f) * 1000 + 1 } : null) : REG.nextCode(f); $('#fCode', o).textContent = c ? String(c.a).padStart(2, '0') + '-' + c.b : '—'; }
+      const g = (s) => $(s, o); const famSel = g('#fFam'), nova = g('#fNova');
+      const famAtual = () => (famSel.value === '__nova' ? nova.value.trim().toUpperCase().replace(/\s+/g, '') : famSel.value);
+      const pad = () => FAMS_F.padraoDe(famAtual(), cfg);
+      const drawCar = () => {
+        const p = pad(); const sec = g('#fCarSec');
+        if (!p || !(p.campos || []).length) { sec.hidden = true; g('#fGerWrap').hidden = true; return; }
+        sec.hidden = false; g('#fGerWrap').hidden = !p.modelo; g('#fCarSub').textContent = p.nome + (p.modelo ? ' · modelo: ' + p.modelo : '');
+        g('#fCar').innerHTML = p.campos.map((c) => { const v = st.car[c.k] ?? ''; const idf = 'fc_' + c.k;
+          const inp = c.tipo === 'lista' ? `<input id="${idf}" data-car="${esc(c.k)}" list="dl_${idf}" value="${esc(v)}"${ro}><datalist id="dl_${idf}">${(c.ops || []).map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`
+            : `<input id="${idf}" data-car="${esc(c.k)}" value="${esc(v)}"${c.tipo === 'numero' ? ' inputmode="decimal"' : ''} placeholder="${esc(c.ex || '')}"${ro}>`;
+          return `<div class="f${c.tipo === 'texto' ? ' span2' : ''}${c.req ? ' req' : ''}"><label for="${idf}">${esc(c.lb)}${c.un ? ` <small class="sub">(${esc(c.un)})</small>` : ''}${c.req ? '' : ' <small class="sub">opcional</small>'}</label>${inp}</div>`; }).join('');
+        o.querySelectorAll('[data-car]').forEach((el) => { el.oninput = () => { st.car[el.dataset.car] = el.value; atualiza(); }; });
       };
-      const pchk = () => { const m = window.PricerPadraoCheck(famSel.value, $('#fProd', o).value); let el = $('#fPad', o); if (!el) { el = document.createElement('small'); el.id = 'fPad'; $('#fProd', o).after(el); } el.textContent = m ? '⚠ ' + m : ''; el.className = 'sub bad-t'; };
-      $('#fProd', o).addEventListener('input', pchk); famSel.addEventListener('change', pchk); pchk();
-      famSel.onchange = () => { $('#fNovaWrap', o).hidden = famSel.value !== '__nova'; hint(); };
-      nova.oninput = hint; hint();
-      const sv = $('#fSave', o);
+      const atualiza = () => {
+        const p = pad(); const fam = famAtual(); const gerar = g('#fGerar').checked && p && p.modelo;
+        if (gerar) { const falta = FAMS_F.faltando(p, st.car); const m = FAMS_F.montar(p, st.car); if (!falta.length) g('#fProd').value = m; g('#fProd').readOnly = true;
+          g('#fPad').innerHTML = falta.length ? `<span class="bad-t">Faltam: ${esc(falta.join(', '))}.</span> A descrição sai quando todos os obrigatórios estiverem preenchidos.` : '<span class="ok-t">Gerada pelo padrão da família.</span>'; g('#fExcWrap').hidden = true; }
+        else { g('#fProd').readOnly = !ed; const m = FAMS_F.checar(fam, g('#fProd').value, cfg); g('#fPad').innerHTML = m ? '<span class="bad-t">⚠ ' + esc(m) + '</span>' : '<span class="ok-t">No padrão.</span>'; g('#fExcWrap').hidden = !m; }
+        // duplicidade: só aponta; quem decide é a pessoa
+        const cand = { id: rec.id, fam, produto: g('#fProd').value, fab: g('#fFab').value, codFab: g('#fCodFab').value, caract: st.car };
+        const dups = cand.produto.trim() ? FAMS_F.duplicidades(cand, REG.insumos, cfg) : []; const LB = { mesmo: ['Mesmo produto', 'bad'], equivalente: ['Possivelmente equivalente', 'warn'], semelhante: ['Semelhante, com diferenças', 'mute'] };
+        g('#fDup').innerHTML = dups.length ? `<div class="banner ${dups[0].nivel === 'mesmo' ? 'bad' : 'warn'}" style="margin:6px 0 0"><b>Antes de salvar, confira:</b><ul class="uso">${dups.map((d) => `<li><span class="pill ${LB[d.nivel][1]}">${LB[d.nivel][0]}</span> <b>${esc(d.x.id)}</b> ${esc(d.x.produto)} <small class="sub">· ${esc(d.motivo)} · ${typeof d.x.valor === 'number' ? brl(d.x.valor) : 'sem preço'}${situ(d.x) !== 'ativo' ? ' · ' + esc(situ(d.x)) : ''}</small></li>`).join('')}</ul><small>Produtos com potência, tensão, material ou configuração diferentes são produtos distintos: nada é juntado automaticamente.</small></div>` : '';
+        st.dups = dups;
+        // preço: impacto da mudança
+        const vt = g('#fVal').value.trim(); const novo = vt === '' ? null : parseInput(vt, 'num');
+        if (!isNew && typeof novo === 'number' && typeof rec.valor === 'number' && Math.abs(novo - rec.valor) > 0.004) {
+          const u = ondeUsado(rec); const v = (novo - rec.valor) / rec.valor;
+          g('#fImp').innerHTML = `<div class="banner ${Math.abs(v) >= C.variacaoPct ? 'warn' : 'info'}" style="margin:6px 0 0"><b>Mudança de preço:</b> ${brl(rec.valor)} → ${brl(novo)} (${v > 0 ? '+' : ''}${pct(v, 1)}). Usado em ${u.est.length} componente(s) de estrutura${u.props.length ? ', ' + u.props.length + ' proposta(s) escolhido à parte' : ''}${u.fech.length ? ', ' + u.fech.length + ' formação(ões) fechada(s) (não mudam)' : ''}. Propostas enviadas, aprovadas e ganhas guardam o preço da época; rascunhos passam a usar o novo. <button type="button" class="restore" id="fImpCalc">calcular o impacto na margem das propostas</button><div id="fImpRes"></div></div>`;
+          const b = g('#fImpCalc'); if (b) b.onclick = () => { g('#fImpRes').innerHTML = '<small class="sub">Calculando…</small>'; setTimeout(() => { g('#fImpRes').innerHTML = impactoPrecoHtml(rec, novo); }, 20); };
+        } else g('#fImp').innerHTML = '';
+        g('#fSubWrap').hidden = !['inativo', 'descontinuado'].includes(g('#fSit').value);
+      };
+      const drawForn = () => {
+        const tot = st.forn.map(custoTotalForn); const valid = tot.filter((x) => x !== null); const min = valid.length ? Math.min(...valid) : null; const hoje = new Date().toISOString().slice(0, 10);
+        g('#fForn').innerHTML = `${st.forn.length ? `<div class="tw"><table class="t forn"><thead><tr><th>Fornecedor</th><th>Preço</th><th>Moeda</th><th>Câmbio</th><th>Impostos %</th><th>Frete</th><th>Prazo (dias)</th><th>Validade</th><th>Pagamento</th><th>Qtd. mín.</th><th>Custo total</th><th></th></tr></thead><tbody>${st.forn.map((f, i) => `<tr>
+          <td class="in"><input data-fo="${i}|nome" value="${esc(f.nome || '')}" aria-label="Fornecedor"${ro}></td><td class="in"><input data-fo="${i}|preco" value="${typeof f.preco === 'number' ? NF[2].format(f.preco) : ''}" inputmode="decimal" aria-label="Preço"${ro}></td>
+          <td class="in"><select data-fo="${i}|moeda" aria-label="Moeda"${ro}>${['BRL', 'USD', 'EUR'].map((m) => `<option${(f.moeda || 'BRL') === m ? ' selected' : ''}>${m}</option>`).join('')}</select></td><td class="in"><input data-fo="${i}|cambio" value="${typeof f.cambio === 'number' ? NF[4].format(f.cambio) : ''}" inputmode="decimal" placeholder="${(f.moeda || 'BRL') === 'BRL' ? '—' : 'R$ por ' + f.moeda}" aria-label="Câmbio"${ro}></td>
+          <td class="in"><input data-fo="${i}|impostos" value="${typeof f.impostos === 'number' ? NF[2].format(f.impostos * 100) : ''}" inputmode="decimal" aria-label="Impostos %"${ro}></td><td class="in"><input data-fo="${i}|frete" value="${typeof f.frete === 'number' ? NF[2].format(f.frete) : ''}" inputmode="decimal" aria-label="Frete por unidade"${ro}></td>
+          <td class="in"><input data-fo="${i}|prazo" value="${f.prazo ?? ''}" inputmode="numeric" aria-label="Prazo em dias"${ro}></td><td class="in"><input type="date" data-fo="${i}|validade" value="${esc(f.validade || '')}" aria-label="Validade"${ro}></td>
+          <td class="in"><input data-fo="${i}|pagamento" value="${esc(f.pagamento || '')}" aria-label="Pagamento"${ro}></td><td class="in"><input data-fo="${i}|qmin" value="${f.qmin ?? ''}" inputmode="numeric" aria-label="Quantidade mínima"${ro}></td>
+          <td class="n">${tot[i] === null ? `<small class="bad-t">${(f.moeda || 'BRL') !== 'BRL' && !(f.cambio > 0) ? 'informe o câmbio' : '—'}</small>` : `<b>${brl(tot[i])}</b>${tot[i] === min && valid.length > 1 ? '<br><span class="pill ok">menor total</span>' : ''}`}${f.validade && f.validade < hoje ? '<br><span class="pill warn">vencida</span>' : ''}</td>
+          <td style="white-space:nowrap">${ed && tot[i] !== null ? `<button type="button" class="restore" data-fouse="${i}">usar este preço</button> ` : ''}${ed ? `<button type="button" class="restore" data-form="${i}" aria-label="Remover">×</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0 0 6px">Nenhum fornecedor cadastrado para este item.</p>'}
+          ${ed ? '<button type="button" class="btn sm" id="foAdd">+ Fornecedor</button>' : ''}<p class="sub" style="margin:6px 0 0">Custo total = preço × câmbio × (1 + impostos) + frete, por unidade. O app não escolhe sozinho pelo menor preço: compare também prazo, validade, pagamento e conformidade, e use "usar este preço" para levar a cotação ao cadastro.</p>`;
+        o.querySelectorAll('[data-fo]').forEach((el) => { el.onchange = () => { const [i, k] = el.dataset.fo.split('|'); const f = st.forn[+i]; const t = el.value.trim();
+          if (['preco', 'cambio', 'frete'].includes(k)) { const n = t === '' ? null : parseInput(t, 'num'); f[k] = typeof n === 'number' ? n : null; } else if (k === 'impostos') { const n = t === '' ? null : parseInput(t, 'num'); f[k] = typeof n === 'number' ? n / 100 : null; }
+          else if (['prazo', 'qmin'].includes(k)) { const n = parseInt(t, 10); f[k] = isFinite(n) ? n : null; } else f[k] = t || null; drawForn(); }; });
+        const ad = g('#foAdd'); if (ad) ad.onclick = () => { st.forn.push({ nome: '', moeda: 'BRL', at: new Date().toISOString().slice(0, 10) }); drawForn(); };
+        o.querySelectorAll('[data-form]').forEach((b) => { b.onclick = () => { st.forn.splice(+b.dataset.form, 1); drawForn(); }; });
+        o.querySelectorAll('[data-fouse]').forEach((b) => { b.onclick = () => { const f = st.forn[+b.dataset.fouse]; const t = custoTotalForn(f); g('#fVal').value = NF[2].format(Math.round(t * 100) / 100); g('#fFonte').value = [f.nome, f.moeda !== 'BRL' ? f.moeda + ' ' + NF[2].format(f.preco) + ' × ' + NF[4].format(f.cambio) : '', 'cotação'].filter(Boolean).join(' · '); if (f.at) g('#fDataCot').value = f.at; atualiza(); toast('Preço do fornecedor levado para o cadastro; salve para gravar'); }; });
+      };
+      const EQ = [['tecnica', 'Equivalência técnica validada'], ['comercial', 'Alternativa comercial (sujeita a aprovação)'], ['substituto', 'Substituto de produto descontinuado']];
+      const drawEquiv = () => {
+        g('#fEquiv').innerHTML = `${st.equiv.length ? `<div class="tw"><table class="t"><thead><tr><th>Produto</th><th>Tipo</th><th>Características comparadas · justificativa</th><th>Restrições</th><th>Validado</th><th></th></tr></thead><tbody>${st.equiv.map((q, i) => { const x = REG.insumos.find((y) => y.id === q.id); return `<tr>
+          <td>${x ? `<b>${esc(x.id)}</b> ${esc(x.produto)}` : `<span class="bad-t">${esc(q.id)} (não existe mais)</span>`}</td><td>${esc((EQ.find((e) => e[0] === q.tipo) || [0, q.tipo])[1])}</td><td><small>${esc(q.caracts || '')}${q.justificativa ? '<br>' + esc(q.justificativa) : ''}</small></td><td><small>${esc(q.restricoes || '—')}</small></td>
+          <td><small>${esc(q.at || '')}<br>${who(q.por)}</small></td><td>${ed ? `<button type="button" class="restore" data-eqrm="${i}" aria-label="Remover">×</button>` : ''}</td></tr>`; }).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0 0 6px">Nenhum equivalente cadastrado.</p>'}
+          ${ed ? `<div class="fields" style="margin-top:6px"><div class="f span2"><label for="eqIns">Produto equivalente</label><input id="eqIns" list="dlInsAll" placeholder="buscar pelo código ou nome"></div><div class="f span2"><label for="eqTipo">Tipo</label><select id="eqTipo">${EQ.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
+            <div class="f spanall"><label for="eqCar">Características comparadas e justificativa (obrigatório)</label><input id="eqCar" placeholder="ex.: mesma potência, rotação e flange; ficha técnica do fabricante anexada"></div><div class="f spanall"><label for="eqRes">Restrições de uso</label><input id="eqRes" placeholder="ex.: não vale para projetos UL/FM"></div></div>
+            <button type="button" class="btn sm" id="eqAdd">+ Registrar equivalente</button>` : ''}<p class="sub" style="margin:6px 0 0">O app nunca troca um produto por outro sozinho: o equivalente fica registrado para consulta e para a escolha de quem monta a proposta.</p>`;
+        fillNames(g('#fEquiv'));
+        o.querySelectorAll('[data-eqrm]').forEach((b) => { b.onclick = () => { st.equiv.splice(+b.dataset.eqrm, 1); drawEquiv(); }; });
+        const ad = g('#eqAdd'); if (ad) ad.onclick = () => { const idq = g('#eqIns').value.split(' · ')[0].trim(); if (!REG.insumos.some((i) => i.id === idq)) { toast('Escolha um produto da lista'); return; } const car = g('#eqCar').value.trim(); if (!car) { toast('Informe as características comparadas e a justificativa'); return; }
+          st.equiv.push({ id: idq, tipo: g('#eqTipo').value, caracts: car, restricoes: g('#eqRes').value.trim() || null, por: REG.me || null, at: new Date().toISOString().slice(0, 10) }); drawEquiv(); };
+      };
+      famSel.onchange = () => { g('#fNovaWrap').hidden = famSel.value !== '__nova'; if (famSel.value !== '__nova') { const p = pad(); st.car = Object.assign({}, FAMS_F.ler(famSel.value, g('#fProd').value, cfg)); g('#fGerar').checked = !!(p && p.modelo) && isNew; } if (isNew) { const c = famSel.value === '__nova' ? null : REG.nextCode(famSel.value); g('#fCode').textContent = c ? String(c.a).padStart(2, '0') + '-' + c.b : '—'; } drawCar(); atualiza(); };
+      nova.oninput = () => { drawCar(); atualiza(); };
+      g('#fGerar').onchange = () => atualiza(); g('#fProd').oninput = () => atualiza(); g('#fFab').oninput = atualiza; g('#fCodFab').oninput = atualiza; g('#fVal').oninput = atualiza; g('#fSit').onchange = atualiza;
+      g('#fComSug').onclick = () => { const p = pad(); const t = p ? FAMS_F.montarCom(p, st.car, { fab: g('#fFab').value.trim() }) : ''; if (t) g('#fCom').value = t; else toast('Esta família não tem modelo de descrição comercial; escreva à mão ou configure em Campos por família'); };
+      drawCar(); drawForn(); drawEquiv(); atualiza();
+      const sv = g('#fSave');
       if (sv) sv.onclick = async (e) => {
-        e.preventDefault();
+        e.preventDefault(); const err = (m) => { g('#fErr').textContent = m; };
         let fam = famSel.value;
-        if (fam === '__nova') { fam = nova.value.trim().toUpperCase().replace(/\s+/g, ''); if (!/^\d{1,2}\.[A-Z0-9]+$/.test(fam)) { $('#fErr', o).textContent = 'Nova família: use o formato nn.NOME, sem acento e sem espaço (ex.: 46.KITSUCCAO).'; return; } fam = fam.replace(/^(\d)\./, '0$1.'); }
-        const produto = $('#fProd', o).value.trim(); if (!produto) { $('#fErr', o).textContent = 'Informe a descrição do produto.'; return; }
-        const dupe = REG.insumos.find((x) => x.produto.toLowerCase() === produto.toLowerCase() && x.id !== rec.id);
-        if (dupe && !sv.dataset.dupeOk) { $('#fErr', o).textContent = 'Já existe ' + dupe.id + ' com essa mesma descrição — a proposta puxa sempre o primeiro. Clique de novo para salvar mesmo assim.'; sv.dataset.dupeOk = 1; return; }
-        const vtxt = $('#fVal', o).value.trim(); const valor = vtxt === '' ? null : parseInput(vtxt, 'num');
-        if (valor !== null && typeof valor !== 'number') { $('#fErr', o).textContent = 'Valor inválido. Use por exemplo 12.345,67.'; return; }
+        if (fam === '__nova') { fam = famAtual(); if (!/^\d{1,2}\.[A-Z0-9]+$/.test(fam)) return err('Nova família: use o formato nn.NOME, sem acento e sem espaço (ex.: 46.KITSUCCAO).'); fam = fam.replace(/^(\d)\./, '0$1.'); }
+        const p = pad(); const gerar = g('#fGerar').checked && p && p.modelo;
+        if (gerar) { const falta = FAMS_F.faltando(p, st.car); if (falta.length) return err('Preencha as características obrigatórias: ' + falta.join(', ') + '. Dado ausente não é inventado: se não houver, desmarque "gerar" e justifique a exceção.'); }
+        const produto = (gerar ? FAMS_F.montar(p, st.car) : g('#fProd').value).replace(/\s+/g, ' ').trim().toUpperCase(); if (!produto) return err('Informe a descrição técnica.');
+        const padMsg = FAMS_F.checar(fam, produto, cfg); const exc = g('#fExc').value.trim();
+        if (padMsg && !exc) { g('#fExcWrap').hidden = false; return err(padMsg + ' — informe a justificativa da exceção ou corrija a descrição.'); }
+        const mesmo = (st.dups || []).filter((d) => d.nivel === 'mesmo');
+        if (mesmo.length && !sv.dataset.dupeOk) { sv.dataset.dupeOk = 1; return err('Já existe ' + mesmo.map((d) => d.x.id).join(', ') + ' com ' + mesmo[0].motivo + '. A fórmula pega sempre o primeiro com o mesmo nome. Clique de novo só se for mesmo outro produto.'); }
+        const vtxt = g('#fVal').value.trim(); const valor = vtxt === '' ? null : parseInput(vtxt, 'num');
+        if (valor !== null && typeof valor !== 'number') return err('Valor inválido. Use por exemplo 12.345,67.');
+        const sit = g('#fSit').value; const subId = g('#fSub').value.split(' · ')[0].trim();
+        if (sit === 'descontinuado' && subId && !REG.insumos.some((i) => i.id === subId)) return err('Substituto não encontrado: escolha da lista.');
+        if (sit === 'descontinuado' && !isNew && !sv.dataset.descOk) { const u = ondeUsado(rec); if (u.est.length) { sv.dataset.descOk = 1; return err('Este insumo ainda entra em ' + u.est.length + ' componente(s) de estrutura. Descontinuar não tira das estruturas (o cálculo continua igual); troque-o lá ou no substituto. Clique de novo para confirmar.'); } }
         let a = rec.a, b = rec.b, nid = rec.id;
         if (isNew || H.famCode(fam) !== rec.a) { const c = REG.insumos.some((x) => x.fam === fam) ? REG.nextCode(fam) : { a: H.famCode(fam), b: H.famCode(fam) * 1000 + 1 }; a = c.a; b = c.b; if (isNew) nid = REG.newInsumoId(a, b); }
-        const out = { id: nid, a, b, fam, produto, fab: $('#fFab', o).value.trim(), tipo: $('#fTipo', o).value.trim().toUpperCase(), valor, origem: $('#fOri', o).value, obs: $('#fObs', o).value.trim() };
+        const caract = {}; for (const [k, v] of Object.entries(st.car)) if (String(v ?? '').trim()) caract[k] = String(v).trim().toUpperCase();
+        const out = { id: nid, a, b, fam, produto, fab: g('#fFab').value.trim().toUpperCase(), tipo: g('#fTipo').value.trim().toUpperCase(), valor, origem: g('#fOri').value, obs: g('#fObs').value.trim(),
+          situacao: sit === 'ativo' && !rec.situacao ? undefined : sit, codFab: g('#fCodFab').value.trim() || undefined, caract: Object.keys(caract).length ? caract : undefined, descCom: g('#fCom').value.trim() || undefined, descFab: g('#fDescFab').value.trim() || undefined,
+          excecao: padMsg ? exc : undefined, substituto: subId || undefined, fonte: g('#fFonte').value.trim() || undefined, dataCot: g('#fDataCot').value || undefined,
+          forn: st.forn.filter((f) => f.nome || typeof f.preco === 'number').length ? st.forn.filter((f) => f.nome || typeof f.preco === 'number') : undefined, equiv: st.equiv.length ? st.equiv : undefined };
+        // renomear um insumo em uso: mostra o impacto e pede confirmação; estruturas e tabelas acompanham
+        if (!isNew && produto !== rec.produto) {
+          const imp = renomeImpacto(rec, produto);
+          if (imp.bloqueios.length) return err('Não dá para renomear: ' + imp.bloqueios.join('; ') + '.');
+          if (!sv.dataset.renOk) { sv.dataset.renOk = 1; return err(`Renomear "${rec.produto}" → "${produto}": ${imp.nCel} célula(s) de estrutura ou tabela por porte, ${imp.kits.length} kit(s) e ${imp.props} proposta(s) passam a usar o novo nome (o nome antigo continua reconhecido nas propostas salvas). Clique de novo para confirmar.`); }
+        }
         sv.disabled = true; sv.textContent = 'Salvando…';
-        try { const ch = await REG.saveInsumo(out, isNew); close(); toast(ch === false ? 'Nada mudou' : (isNew ? 'Cadastrado: ' + nid : 'Salvo: ' + nid)); }
-        catch (err) { sv.disabled = false; sv.textContent = isNew ? 'Cadastrar' : 'Salvar'; $('#fErr', o).textContent = errMsg(err); }
+        try {
+          if (!isNew && produto !== rec.produto) await aplicarRenome(rec, produto);
+          const ch = await REG.saveInsumo(out, isNew); close(); toast(ch === false ? 'Nada mudou' : (isNew ? 'Cadastrado: ' + nid : 'Salvo: ' + nid));
+        } catch (er) { sv.disabled = false; sv.textContent = isNew ? 'Cadastrar' : 'Salvar'; err(errMsg(er)); }
       };
-      const del = $('#fDel', o);
+      const dp = g('#fDup2'); if (dp) dp.onclick = () => { const cp = JSON.parse(JSON.stringify(rec)); close(); insumoModalCopia(cp); };
+      const del = g('#fDel');
       if (del) del.onclick = async () => {
-        if (!del.dataset.sure) { del.dataset.sure = 1; del.textContent = 'Confirmar exclusão'; del.classList.add('pri'); $('#fErr', o).textContent = 'Propostas que usam este insumo passam a mostrar "fora do catálogo".'; return; }
-        try { await REG.deleteInsumo(rec.id); close(); toast('Excluído: ' + rec.id); } catch (err) { $('#fErr', o).textContent = errMsg(err); }
+        const u = ondeUsado(rec);
+        if (!del.dataset.sure) { del.dataset.sure = 1; del.textContent = 'Confirmar exclusão'; del.classList.add('pri'); g('#fErr').textContent = (u.est.length || u.props.length ? `Em uso: ${u.est.length} componente(s) de estrutura e ${u.props.length} proposta(s) — prefira marcar como Inativo ou Descontinuado, que preserva o histórico. ` : '') + 'Propostas que usam este insumo passam a mostrar "fora do catálogo".'; return; }
+        try { await REG.deleteInsumo(rec.id); close(); toast('Excluído: ' + rec.id); } catch (er) { g('#fErr').textContent = errMsg(er); }
       };
     });
+  }
+  // duplicar: abre a ficha nova já preenchida (o código novo sai na hora de salvar)
+  function insumoModalCopia(cp) {
+    insumoModal(null, cp.fam);
+    setTimeout(() => { const o = $('#overlay'); if (!o) return; const set = (s, v) => { const el = $(s, o); if (el && v !== undefined && v !== null) el.value = v; };
+      set('#fFab', cp.fab); set('#fCodFab', ''); set('#fTipo', cp.tipo); set('#fOri', cp.origem); set('#fCom', cp.descCom); set('#fObs', 'cópia de ' + cp.id);
+      for (const [k, v] of Object.entries(Object.assign({}, FAMS_F.ler(cp.fam, cp.produto, famCfg()), cp.caract || {}))) { const el = $('[data-car="' + k + '"]', o); if (el) { el.value = v; el.dispatchEvent(new Event('input')); } }
+      if (!$('#fGerar', o).checked) { set('#fProd', cp.produto + ' (CÓPIA)'); $('#fProd', o).dispatchEvent(new Event('input')); }
+      toast('Cópia de ' + cp.id + ': ajuste o que muda antes de cadastrar');
+    }, 30);
+  }
+  // impacto de um novo preço nas propostas que usam o insumo (recalcula no motor, sem gravar nada)
+  function impactoPrecoHtml(rec, novo) {
+    const props = (REG.listPropostas() || []).filter((q) => q.div !== 'SPV' && !q.facts && q.doc && ((q.precos && q.precos.ins && rec.produto in q.precos.ins) || Object.entries(q.doc).some(([sh, cells]) => /^ITEM/.test(sh) && Object.values(cells || {}).includes(rec.produto)) || (q.resumo && 0))).slice(0, 12);
+    const cand = props.length ? props : (REG.listPropostas() || []).filter((q) => q.div !== 'SPV' && !q.facts && q.doc && (q.status || 'rascunho') === 'rascunho').slice(0, 8);
+    const rows = []; for (const q of cand) {
+      try { const a = snapshotOf(q); const b = snapshotOf(q, { [rec.produto]: novo }); if (Math.abs(b.custo - a.custo) < 0.005) continue;
+        const fixo = precosFixos(q); rows.push(`<tr><td>${esc(q.numero || q.name || '')}<br><small class="sub">${esc(q.cliente || '')} · ${esc(q.status || 'rascunho')}</small></td><td class="n">${brl(b.custo - a.custo)}</td><td class="n">${pct(a.margemPct, 1)} → <b class="${b.margemPct < a.margemPct ? 'bad-t' : ''}">${pct(b.margemPct, 1)}</b></td><td>${fixo ? '<span class="pill mute">congelada: não muda sozinha</span>' : '<span class="pill warn">rascunho: muda ao abrir</span>'}</td></tr>`); } catch (e) { /* proposta antiga sem cálculo */ }
+    }
+    return rows.length ? `<div class="tw" style="margin-top:6px"><table class="t"><thead><tr><th>Proposta</th><th>Custo</th><th>Margem</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<small class="sub">Nenhuma proposta salva muda de custo com este preço.</small>';
   }
   function errMsg(e) {
     if (!e) return 'Algo deu errado.';
@@ -1751,17 +2067,33 @@
     const q = (ui.kitQ || '').trim().toLowerCase();
     const rows = list.filter((k) => !q || [k.desc, k.marca, k.tipo].join(' ').toLowerCase().includes(q)).map((k) => {
       const p = k.p || {}; const t = motor ? H.kmdTotals(p) : H.kbTotals(p);
-      return `<tr class="click" data-kit="${esc(k.id)}"><td style="min-width:300px">${esc(k.desc)}</td><td>${esc(k.tipo || '')}</td><td>${esc(k.marca || '')}</td><td class="n">${brl(p.D || 0)}</td><td class="n">${brl(motor ? t.nbr : t.es)}</td><td class="n"><b>${brl(motor ? t.padrao : t.bp)}</b></td><td class="sub">${k.upd ? fmtAt(k.upd) : ''}</td></tr>`;
+      return `<tr class="click" data-kit="${esc(k.id)}"><td class="in"><input type="checkbox" data-kitsel="${esc(k.id)}"${kitSel.has(k.id) ? ' checked' : ''} aria-label="Comparar ${esc(k.desc)}"></td><td style="min-width:300px">${esc(k.desc)}${REG.insumos.some((i) => i.produto === k.desc) ? '' : ' <span class="pill warn">sem insumo de mesmo nome</span>'}</td><td>${esc(k.tipo || '')}</td><td>${esc(k.marca || '')}</td><td class="n">${brl(p.D || 0)}</td><td class="n">${brl(motor ? t.nbr : t.es)}</td><td class="n"><b>${brl(motor ? t.padrao : t.bp)}</b></td><td class="sub">${k.upd ? fmtAt(k.upd) : ''}</td></tr>`;
     }).join('');
     return `<section class="card">
-      <div class="sheetbar"><input id="kitQ" type="search" placeholder="Buscar kit…" value="${esc(ui.kitQ || '')}" aria-label="Buscar kit" style="flex:1 1 240px"><span class="sub">${list.length} de ${lim} linhas usadas</span><span style="flex:1"></span>${canEd() ? `<button class="btn sm pri" id="kitNew" data-kind="${kind}">+ Novo kit</button>` : ''}</div>
+      <div class="sheetbar"><input id="kitQ" type="search" placeholder="Buscar kit…" value="${esc(ui.kitQ || '')}" aria-label="Buscar kit" style="flex:1 1 240px"><span class="sub">${list.length} de ${lim} linhas usadas</span><button class="btn sm" id="kitCmp"${kitSel.size < 2 ? ' disabled' : ''}>Comparar (${kitSel.size})</button><span style="flex:1"></span>${canEd() ? `<button class="btn sm pri" id="kitNew" data-kind="${kind}">+ Novo kit</button>` : ''}</div>
       <p class="sub" style="margin:8px 0">${motor ? 'O montador lê daqui o custo total do conjunto do motor (peça, painel, base, tanque, escape, bateria…). "Total NBR 13714" usa o painel e o tanque NBR; o outro, o painel padrão.' : 'O montador lê daqui o custo da bomba com os acessórios. A bomba END SUCTION usa o total sem as válvulas; a SPLIT CASE (bipartida) usa o total completo — quem decide é o Tipo/config. do insumo no CADASTRO.'} A descrição tem de ser igual à do insumo no CADASTRO.</p>
-      <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr><th>Descrição</th><th>Origem</th><th>Marca</th><th>${motor ? 'Motor' : 'Bomba'}</th><th>${motor ? 'Total NBR 13714' : 'Total end suction'}</th><th>${motor ? 'Total' : 'Total split case'}</th><th>Atualizado</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum kit.</td></tr>'}</tbody></table></div>
+      <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr><th></th><th>Descrição</th><th>Origem</th><th>Marca</th><th>${motor ? 'Motor' : 'Bomba'}</th><th>${motor ? 'Total NBR 13714' : 'Total end suction'}</th><th>${motor ? 'Total' : 'Total split case'}</th><th>Atualizado</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="sub">Nenhum kit.</td></tr>'}</tbody></table></div>
     </section>`;
   }
-  function kitModal(kind, id) {
+  // onde o kit entra: modelos prontos, propostas (pelo nome ou pelos preços da época) e o insumo de mesmo nome
+  function kitUso(k) {
+    const mods = modelos().filter((m) => m.motor === k.desc || m.bomba === k.desc).map((m) => m.nome);
+    const props = (REG.listPropostas() || []).filter((q) => ((q.precos || {}).km || {})[k.desc] || ((q.precos || {}).kb || {})[k.desc] || Object.entries(q.doc || {}).some(([sh, c]) => /^ITEM/.test(sh) && Object.values(c || {}).includes(k.desc)));
+    return { mods, props, ins: REG.insumos.find((i) => i.produto === k.desc) || null };
+  }
+  function kitCompara(kind, ids) {
+    const motor = kind === 'motor'; const list = motor ? REG.kitMotor : REG.kitBomba; const K = ids.map((id) => list.find((x) => x.id === id)).filter(Boolean); if (K.length < 2) return;
+    const labels = motor ? H.KMD_LABELS : H.KB_LABELS; const tot = (k) => (motor ? H.kmdTotals(k.p || {}) : H.kbTotals(k.p || {}));
+    modal(`<h2>Comparar kits</h2><div class="tw"><table class="t"><thead><tr><th>Componente</th>${K.map((k) => `<th>${esc(k.desc)}</th>`).join('')}</tr></thead><tbody>
+      ${Object.entries(labels).map(([c, lb]) => { const vs = K.map((k) => (k.p || {})[c]); const dif = new Set(vs.map((v) => v ?? null)).size > 1; return `<tr${dif ? ' class="cf-aviso"' : ''}><td>${esc(lb)}</td>${vs.map((v) => `<td class="n">${typeof v === 'number' ? brl(v) : '—'}</td>`).join('')}</tr>`; }).join('')}
+      <tr class="tot"><td>${motor ? 'Total' : 'Total split case'}</td>${K.map((k) => `<td class="n">${brl(motor ? tot(k).padrao : tot(k).bp)}</td>`).join('')}</tr></tbody></table></div><div><button class="btn" data-close>Fechar</button></div>`);
+  }
+  const kitSel = new Set();
+  document.addEventListener('change', (e) => { const c = e.target.closest('[data-kitsel]'); if (!c) return; if (c.checked) kitSel.add(c.dataset.kitsel); else kitSel.delete(c.dataset.kitsel); const b = $('#kitCmp'); if (b) { b.disabled = kitSel.size < 2; b.textContent = 'Comparar (' + kitSel.size + ')'; } });
+  document.addEventListener('click', (e) => { if (e.target.closest('#kitCmp')) kitCompara(ui.cad === 'bomba' ? 'bomba' : 'motor', [...kitSel]); }, true);
+  function kitModal(kind, id, preset) {
     const motor = kind === 'motor'; const list = motor ? REG.kitMotor : REG.kitBomba;
-    const isNew = !id; const rec = isNew ? { desc: '', tipo: 'NAC', marca: '', p: {} } : JSON.parse(JSON.stringify(list.find((x) => x.id === id)));
+    const isNew = !id; const rec = isNew ? (preset || { desc: '', tipo: 'NAC', marca: '', p: {} }) : JSON.parse(JSON.stringify(list.find((x) => x.id === id)));
     const labels = motor ? H.KMD_LABELS : H.KB_LABELS; const ro = canEd() ? '' : ' disabled';
     const hist = REG.historico.filter((h) => h.ref === id).slice(0, 10);
     const parts = Object.entries(labels).map(([c, lb]) => `<div class="f"><label for="k${c}">${esc(lb)}</label><input id="k${c}" data-part="${c}" inputmode="decimal" value="${typeof rec.p[c] === 'number' ? esc(NF[2].format(rec.p[c])) : ''}"${ro}></div>`).join('');
@@ -1777,7 +2109,8 @@
       <div class="fields" id="kParts">${parts}</div>
       <div class="kpis" id="kTot"></div>
       <div id="kErr" class="bad-t"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${canEd() ? `<button class="btn pri" id="kSave">${isNew ? 'Cadastrar kit' : 'Salvar'}</button>` : ''}${canEd() && !isNew ? '<button class="btn" id="kDel">Excluir</button>' : ''}<button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${canEd() ? `<button class="btn pri" id="kSave">${isNew ? 'Cadastrar kit' : 'Salvar'}</button>` : ''}${canEd() && !isNew ? '<button class="btn" id="kDup">Duplicar</button><button class="btn" id="kDel">Excluir</button>' : ''}<button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button></div>
+      ${!isNew ? (() => { const u = kitUso(rec); return `<h2>Onde é usado</h2><p class="sub" style="margin:0">${u.ins ? 'Insumo de mesmo nome: ' + esc(u.ins.id) + (typeof u.ins.valor === 'number' ? ' (' + brl(u.ins.valor) + ')' : ' (sem preço)') : '<span class="bad-t">Nenhum insumo com este nome no cadastro: o seletor do item não o oferece.</span>'}${u.mods.length ? '<br>Modelos prontos: ' + esc(u.mods.join(', ')) : ''}${u.props.length ? '<br>' + u.props.length + ' proposta(s): ' + esc(u.props.slice(0, 6).map((q) => q.numero || q.name || '').join(', ')) : ''}. Propostas enviadas e aprovadas guardam os valores do kit da época.</p>`; })() : ''}
       ${!isNew ? `<h2>Histórico deste kit</h2>${hist.length ? `<div class="hist">${hist.map((h) => `<div><small>${fmtAt(h.at)} · ${who(h.by)}</small>${(h.mudancas || []).map((m) => `<div class="chg"><b>${esc(m.campo)}</b> ${esc(fmtVal(m.de))} → ${esc(fmtVal(m.para))}</div>`).join('')}</div>`).join('')}</div>` : '<p class="sub">Sem alterações registradas — valores da planilha REV21.</p>'}` : ''}`,
     (o, close) => {
       fillNames(o);
@@ -1796,6 +2129,7 @@
         sv.disabled = true;
         try { const ch = await REG.saveKit(kind, out, isNew); close(); toast(ch === false ? 'Nada mudou' : 'Kit salvo'); } catch (err) { sv.disabled = false; $('#kErr', o).textContent = errMsg(err); }
       };
+      const dk = $('#kDup', o); if (dk) dk.onclick = () => { const cp = JSON.parse(JSON.stringify(rec)); delete cp.id; delete cp.ord; cp.desc = cp.desc + ' (CÓPIA)'; close(); kitModal(kind, null, cp); toast('Cópia: troque a descrição e ajuste os componentes'); };
       const del = $('#kDel', o);
       if (del) del.onclick = async () => { if (!del.dataset.sure) { del.dataset.sure = 1; del.textContent = 'Confirmar exclusão'; del.classList.add('pri'); return; } try { await REG.deleteKit(kind, rec.id); close(); toast('Kit excluído'); } catch (err) { $('#kErr', o).textContent = errMsg(err); } };
     });
@@ -2172,7 +2506,8 @@
     const list = REG.historico.filter((h) => !T || grupoH(h.tipo || '') === T).filter((h) => !q || [h.tipo, h.desc, h.ref, ...(h.mudancas || []).map((m) => m.campo)].join(' ').toLowerCase().includes(q)).slice(0, 250);
     const items = list.map((h) => {
       const muds = h.mudancas || []; const many = muds.length > 12;
-      return `<div class="hrow"><div class="hmeta"><b>${fmtAt(h.at)}</b><small>${who(h.by)}</small></div><div><div><span class="pill mute">${esc(h.tipo)}</span> ${esc(h.desc || '')} ${h.ref && !/^import$/.test(h.ref) && !String(h.ref).includes('!') && REG.insumos.some((x) => x.id === h.ref) ? `<button class="restore" data-ins="${esc(h.ref)}">abrir</button>` : ''}</div>
+      const lote = /^(Edição em massa|Importação de preços|Consolidação de cadastro)$/.test(h.tipo || '') && REG.areaOk('custos') ? `<button class="restore" data-desfaz="${esc(h.at)}" data-ref="${esc(String(h.ref))}">desfazer este lote</button> ` : '';
+      return `<div class="hrow"><div class="hmeta"><b>${fmtAt(h.at)}</b><small>${who(h.by)}</small></div><div><div><span class="pill mute">${esc(h.tipo)}</span> ${esc(h.desc || '')} ${lote}${h.ref && !/^import$/.test(h.ref) && !String(h.ref).includes('!') && REG.insumos.some((x) => x.id === h.ref) ? `<button class="restore" data-ins="${esc(h.ref)}">abrir</button>` : ''}</div>
         ${muds.length ? `<table class="t mini"><tbody>${muds.slice(0, 12).map((m) => `<tr><td>${esc(m.campo)}</td><td class="n sub">${esc(fmtVal(m.de))}</td><td>→</td><td class="n"><b>${esc(fmtVal(m.para))}</b></td></tr>`).join('')}</tbody></table>${many ? `<small class="sub">+ ${muds.length - 12} alterações</small>` : ''}` : ''}</div></div>`;
     }).join('');
     return `<section class="card">
@@ -2336,26 +2671,327 @@
   const recChanges = (r, x) => { const ch = {}; for (const [k, c] of Object.entries(REC_COLS)) ch[c + r] = x[k] === '' || x[k] === undefined ? null : x[k]; return ch; };
   const baseOf = (sheet) => (a) => { const v = baseRaw(sheet, a); return v === undefined ? null : v; };
 
-  function vEstruturas() {
+  // ---------- mapa do cadastro: as áreas funcionais (A a E) apontando para as telas que já existem ----------
+  function vMapa() {
+    const nIns = REG.insumos.length; const semP = REG.insumos.filter((i) => typeof i.valor !== 'number').length; const nFab = new Set(REG.insumos.map((i) => i.fab).filter(Boolean)).size;
+    const nForn = new Set(REG.insumos.flatMap((i) => (i.forn || []).map((f) => f.nome)).filter(Boolean)).size; const cfgN = Object.keys(famCfg()).length;
+    const lk = (tab, lb, info) => `<li><button class="restore" data-cad="${tab}">${esc(lb)}</button>${info ? ` <small class="sub">${info}</small>` : ''}</li>`;
+    const G = [
+      ['A', 'Produtos e insumos', [lk('insumos', 'Insumos e componentes', nIns + ' itens · ' + semP + ' sem preço'), lk('fornecedores', 'Fornecedores e fabricantes', nForn + ' fornecedores · ' + nFab + ' fabricantes'), lk('familias', 'Famílias de insumos'), lk('campos', 'Características técnicas por família', cfgN ? cfgN + ' família(s) ajustada(s)' : 'padrão da REV21'), lk('importar', 'Preços de aquisição (importar)'), lk('custoscfg', 'Validade das cotações e alertas')]],
+      ['B', 'Equipamentos e modelos', [lk('familias', 'Famílias de equipamento e modelos prontos'), lk('regras', 'Compatibilidades (regras de configuração)', RG.lista().length + ' regra(s)'), lk('codificacao', 'Codificação')]],
+      ['C', 'Estruturas e kits', [lk('estruturas', 'Estruturas padrão e tabelas por porte', recLines().length + ' componentes'), lk('testador', 'Testador de estruturas (motor real)'), lk('motor', 'Kits de motor diesel', REG.kitMotor.length + ' kits'), lk('bomba', 'Kits de bomba', REG.kitBomba.length + ' kits'), lk('valvulas', 'Válvulas de alívio'), lk('mobase', 'Mão de obra e bases')]],
+      ['D', 'Padronização', [lk('padrao', 'Padrões de descrição'), lk('campos', 'Modelos de descrição técnica e comercial'), lk('sinonimos', 'Sinônimos e abreviações', Object.keys(sinonimos()).length + ' grupo(s)'), lk('qualidade', 'Qualidade dos dados mestres'), lk('pedidos', 'Pedidos de cadastro (novos itens)')]],
+      ['E', 'Parâmetros comerciais e fiscais', [lk('preco', 'Políticas de preço, margens, comissões'), lk('fiscal', 'NCM e impostos'), lk('cenarios', 'Cenários tributários'), lk('cambio', 'Câmbio e importação'), lk('servicos', 'Serviços (SPV)'), lk('geral', 'Listas auxiliares e empresa')]]];
+    return `<div class="stack"><p class="sub" style="margin:0">O cadastro é a fonte única de dados do app: cada item é cadastrado uma vez e reaproveitado nas estruturas, kits, propostas, custos e documentos. As permissões continuam por área (Custos, Engenharia, Fiscal…); este mapa só organiza o caminho.</p>
+      <div class="cadmap">${G.map(([l, t, L]) => `<section class="card"><h2>${l}. ${esc(t)}</h2><ul>${L.join('')}</ul></section>`).join('')}</div></div>`;
+  }
+  // ---------- campos técnicos por família (sem mexer no código) ----------
+  function cobertura(fam, p) {
+    const L = REG.insumos.filter((i) => i.fam === fam); let ok = 0; const fora = [];
+    for (const i of L) { const m = FAMS_F.montar(p, FAMS_F.lerP(p, i.produto)); if (m && m === i.produto) ok++; else if (fora.length < 8) fora.push(i.produto); }
+    return { n: L.length, ok, fora };
+  }
+  function vCampos() {
+    const ed = canEd(); const cfg = famCfg();
+    const rows = famList().map((fam) => { const p = FAMS_F.padraoDe(fam, cfg); const c = H.famCode(fam); const cob = p && p.modelo ? cobertura(fam, p) : null;
+      return `<tr><td class="n">${String(c).padStart(2, '0')}</td><td><b>${esc(fam.replace(/^\d+\./, ''))}</b>${p ? `<br><small class="sub">${esc(p.nome || '')}</small>` : ''}</td><td class="code" style="white-space:normal">${p && p.modelo ? esc(p.modelo) : '<span class="sub">texto livre (regras gerais de escrita)</span>'}</td>
+        <td>${p ? (p.campos || []).length + ' campo(s)' : '—'}</td><td>${cob ? `${cob.ok} de ${cob.n} nomes no modelo` : '—'}</td><td>${cfg[String(c)] ? '<span class="pill warn">ajustado</span>' : p ? '<span class="pill mute">padrão REV21</span>' : ''}</td>
+        <td>${ed ? `<button class="btn sm" data-campofam="${esc(fam)}">${p ? 'Editar' : 'Criar modelo'}</button>` : ''}</td></tr>`; }).join('');
+    return `<div class="stack"><section class="card"><h2>Campos técnicos e modelo de descrição por família</h2>
+      <p class="sub" style="margin:0 0 8px">Cada família pode ter campos próprios (tipo, unidade, obrigatório, opções) e o modelo que monta a descrição técnica. Nas famílias de motor diesel, motor elétrico, bomba, motobomba e jockey <b>as fórmulas leem o nome</b> (potência, rotação, série): o modelo dessas famílias segue docs/padroes-descricoes.md e qualquer ajuste é testado contra o cadastro antes de salvar. Unidades nunca são convertidas.</p>
+      <div class="tw"><table class="t"><thead><tr><th>Cód.</th><th>Família</th><th>Modelo da descrição</th><th>Campos</th><th>Cadastro no modelo</th><th></th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section></div>`;
+  }
+  function camposModal(fam) {
+    const cfg = famCfg(); const c = H.famCode(fam); const base = FAMS_F.PADRAO[c] || null; const p = FAMS_F.padraoDe(fam, cfg) || { nome: fam.replace(/^\d+\./, ''), modelo: '', comercial: '', campos: [] };
+    const st = { campos: JSON.parse(JSON.stringify(p.campos || [])) }; const leitura = [1, 10, 11, 12, 13].includes(c);
+    modal(`<h2>Campos e modelo · ${esc(fam)}</h2>
+      <div class="fields"><div class="f span2"><label for="cmNome">Nome da família</label><input id="cmNome" value="${esc(p.nome || '')}"></div>
+        <div class="f spanall"><label for="cmMod">Modelo da descrição técnica <small class="sub">{campo} = valor · [ ... ] = trecho opcional</small></label><input id="cmMod" class="code" value="${esc(p.modelo || '')}" placeholder="ex.: {modelo} {pot}{unid} {fase}[ {ip}]"></div>
+        <div class="f spanall"><label for="cmCom">Modelo da descrição comercial</label><input id="cmCom" value="${esc(p.comercial || '')}" placeholder="ex.: Bomba jockey {modelo}, {pot} {unid}"></div>
+        <div class="f spanall"><label for="cmRe">Validação extra (expressão regular, opcional)</label><input id="cmRe" class="code" value="${esc(cfg[String(c)] && cfg[String(c)].regex || '')}" placeholder="${base && base.ok ? esc(String(base.ok).slice(1, -1)) : ''}"></div></div>
+      <h3>Campos</h3><div id="cmCampos"></div><button type="button" class="btn sm" id="cmAdd">+ Campo</button>
+      <div id="cmPrev" class="banner info" style="margin:8px 0 0"></div>
+      ${leitura ? '<div class="banner warn" style="margin:0">As fórmulas leem o nome nesta família. Se o modelo deixar de reproduzir os nomes que hoje estão no padrão, o app avisa e pede confirmação.</div>' : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="cmOk">Salvar</button>${cfg[String(c)] ? '<button class="btn" id="cmPad">Voltar ao padrão da REV21</button>' : ''}<button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+      const g = (s) => $(s, o);
+      const draw = () => { g('#cmCampos').innerHTML = `<div class="tw"><table class="t"><thead><tr><th>Chave</th><th>Rótulo</th><th>Tipo</th><th>Unidade</th><th>Opções (lista)</th><th>Obrig.</th><th>Minúsc. (comercial)</th><th></th></tr></thead><tbody>${st.campos.map((f, i) => `<tr>
+        <td class="in"><input data-cm="${i}|k" value="${esc(f.k)}" aria-label="Chave"></td><td class="in"><input data-cm="${i}|lb" value="${esc(f.lb || '')}" aria-label="Rótulo"></td>
+        <td class="in"><select data-cm="${i}|tipo" aria-label="Tipo">${[['texto', 'texto'], ['numero', 'número'], ['lista', 'lista']].map(([k, l]) => `<option value="${k}"${f.tipo === k ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
+        <td class="in"><input data-cm="${i}|un" value="${esc(f.un || '')}" aria-label="Unidade" placeholder="HP, CV, kW…"></td><td class="in"><input data-cm="${i}|ops" value="${esc((f.ops || []).join(', '))}" aria-label="Opções"></td>
+        <td class="in"><input type="checkbox" data-cm="${i}|req"${f.req ? ' checked' : ''} aria-label="Obrigatório"></td><td class="in"><input type="checkbox" data-cm="${i}|minusc"${f.minusc ? ' checked' : ''} aria-label="Minúsculas"></td><td><button type="button" class="restore" data-cmrm="${i}" aria-label="Remover">×</button></td></tr>`).join('')}</tbody></table></div>`;
+        o.querySelectorAll('[data-cm]').forEach((el) => { el.onchange = () => { const [i, k] = el.dataset.cm.split('|'); const f = st.campos[+i]; if (k === 'req' || k === 'minusc') f[k] = el.checked; else if (k === 'ops') f.ops = el.value.split(',').map((x) => x.trim().toUpperCase()).filter(Boolean); else f[k] = k === 'k' ? el.value.trim().replace(/\W/g, '') : el.value.trim(); prev(); }; });
+        o.querySelectorAll('[data-cmrm]').forEach((b) => { b.onclick = () => { st.campos.splice(+b.dataset.cmrm, 1); draw(); prev(); }; }); };
+      const atual = () => ({ nome: g('#cmNome').value.trim(), modelo: g('#cmMod').value.trim(), comercial: g('#cmCom').value.trim(), regex: g('#cmRe').value.trim() || undefined, campos: st.campos.filter((f) => f.k) });
+      let cobNova = null, cobBase = null;
+      const prev = () => { const a = atual(); const ex = Object.fromEntries(a.campos.map((f) => [f.k, f.ex || (f.ops && f.ops[0]) || (f.tipo === 'numero' ? '10' : 'X')]));
+        const pp = { nome: a.nome, modelo: a.modelo, comercial: a.comercial, campos: a.campos };
+        cobNova = a.modelo ? cobertura(fam, pp) : null; cobBase = base ? cobertura(fam, base) : null;
+        g('#cmPrev').innerHTML = `Exemplo: <b class="code">${esc(FAMS_F.montar(pp, ex) || '—')}</b>${a.comercial ? ` · comercial: <b>${esc(FAMS_F.montarCom(pp, ex, {}))}</b>` : ''}${cobNova ? `<br>No cadastro: ${cobNova.ok} de ${cobNova.n} nomes desta família seguem este modelo${cobBase ? ` (padrão da REV21: ${cobBase.ok})` : ''}.${cobNova.fora.length ? ' Fora do modelo, por exemplo: ' + cobNova.fora.slice(0, 3).map((x) => `<span class="code">${esc(x)}</span>`).join(' · ') : ''}` : ''}`; };
+      g('#cmAdd').onclick = () => { st.campos.push({ k: 'campo' + (st.campos.length + 1), lb: '', tipo: 'texto', req: false }); draw(); prev(); };
+      ['#cmNome', '#cmMod', '#cmCom', '#cmRe'].forEach((s) => { g(s).oninput = prev; });
+      draw(); prev();
+      g('#cmOk').onclick = async () => { const a = atual(); const b = g('#cmOk');
+        if (a.regex) { try { new RegExp(a.regex); } catch (e) { toast('Expressão regular inválida'); return; } }
+        const ks = [...a.modelo.matchAll(/\{(\w+)\}/g)].map((x) => x[1]).filter((k) => !a.campos.some((f) => f.k === k)); if (ks.length) { toast('O modelo usa campos que não existem: ' + ks.join(', ')); return; }
+        if (leitura && cobBase && cobNova && cobNova.ok < cobBase.ok && !b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar mesmo assim'; toast(`Com este modelo, ${cobBase.ok - cobNova.ok} nome(s) que hoje estão no padrão deixam de casar. As fórmulas leem o nome: confira antes.`); return; }
+        const all = JSON.parse(JSON.stringify(famCfg())); all[String(c)] = a;
+        try { await REG.setTable('FAM_CAMPOS', { fams: all }, 'Campos e modelo da família ' + fam, [{ campo: fam, de: p.modelo || null, para: a.modelo || null }]); close(); toast('Família ' + fam + ' salva'); } catch (er) { toast(errMsg(er)); } };
+      const pd = g('#cmPad'); if (pd) pd.onclick = async () => { const all = JSON.parse(JSON.stringify(famCfg())); delete all[String(c)]; try { await REG.setTable('FAM_CAMPOS', { fams: all }, 'Família ' + fam + ' voltou ao padrão da REV21', []); close(); toast('Voltou ao padrão'); } catch (er) { toast(errMsg(er)); } };
+    });
+  }
+  // ---------- sinônimos e abreviações (só para a busca; os dados originais não mudam) ----------
+  function vSinonimos() {
+    const ed = canEd(); const map = sinonimos();
+    return `<section class="card"><h2>Sinônimos e abreviações <span class="sub">a busca de insumos e configurações encontra qualquer uma das grafias</span></h2>
+      <div class="tw"><table class="t"><thead><tr><th>Termo</th><th>Também procura por</th><th></th></tr></thead><tbody>${Object.entries(map).map(([k, v]) => `<tr><td class="code">${esc(k)}</td><td>${esc((v || []).join(', '))}</td><td>${ed ? `<button class="restore" data-sinrm="${esc(k)}" aria-label="Remover">×</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+      ${ed ? `<div class="fields" style="margin-top:8px"><div class="f"><label for="sinK">Termo</label><input id="sinK" placeholder="ex.: TRIF"></div><div class="f span2"><label for="sinV">Outras grafias (separadas por vírgula)</label><input id="sinV" placeholder="ex.: TRIFÁSICO, TRI"></div><div class="f"><button class="btn pri" data-sinadd style="margin-top:22px">Incluir</button></div></div>` : ''}
+      <p class="sub" style="margin:8px 0 0">Os sinônimos ampliam o que a busca encontra; nenhum nome do cadastro é trocado por eles.</p></section>`;
+  }
+  async function salvaSin(map, desc) { try { await REG.setTable('SINONIMOS', { map }, desc, []); toast('Sinônimos salvos'); } catch (e) { toast(errMsg(e)); } }
+  // ---------- fornecedores e fabricantes (a partir das cotações dos insumos e dos documentos) ----------
+  function vFornecedores() {
+    const hoje = new Date().toISOString().slice(0, 10); const M = new Map();
+    for (const i of REG.insumos) for (const f of i.forn || []) { if (!f.nome) continue; const k = f.nome.toUpperCase(); const x = M.get(k) || { nome: f.nome, itens: 0, vencidas: 0, prazo: [], ult: '' }; x.itens++; if (f.validade && f.validade < hoje) x.vencidas++; if (typeof f.prazo === 'number') x.prazo.push(f.prazo); if ((f.at || '') > x.ult) x.ult = f.at || ''; M.set(k, x); }
+    const docs = (() => { try { return SPV.docs(); } catch (e) { return []; } })(); for (const d of docs) { if (!d.fornecedor) continue; const k = d.fornecedor.toUpperCase(); const x = M.get(k) || { nome: d.fornecedor, itens: 0, vencidas: 0, prazo: [], ult: '' }; x.docs = (x.docs || 0) + 1; M.set(k, x); }
+    const fabs = new Map(); for (const i of REG.insumos) if (i.fab) fabs.set(i.fab, (fabs.get(i.fab) || 0) + 1);
+    const L = [...M.values()].sort((a, b) => b.itens - a.itens);
+    return `<div class="stack"><section class="card"><h2>Fornecedores <span class="sub">${L.length}, a partir das cotações cadastradas nos insumos e dos documentos</span></h2>
+      ${L.length ? `<div class="tw"><table class="t"><thead><tr><th>Fornecedor</th><th>Itens cotados</th><th>Cotações vencidas</th><th>Prazo médio</th><th>Documentos</th></tr></thead><tbody>${L.map((x) => `<tr><td><b>${esc(x.nome)}</b></td><td class="n">${x.itens}</td><td class="n">${x.vencidas ? `<span class="pill warn">${x.vencidas}</span>` : '0'}</td><td class="n">${x.prazo.length ? Math.round(x.prazo.reduce((t, v) => t + v, 0) / x.prazo.length) + ' dias' : '—'}</td><td class="n">${x.docs || 0}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0">Nenhum fornecedor cadastrado ainda. Cadastre as cotações na ficha de cada insumo (seção Fornecedores e cotações).</p>'}</section>
+      <section class="card"><h2>Fabricantes <span class="sub">${fabs.size}</span></h2><div style="display:flex;gap:6px;flex-wrap:wrap">${[...fabs].sort((a, b) => b[1] - a[1]).map(([f, n]) => `<button class="pill mute apselo" data-fabgo="${esc(f)}">${esc(f)} · ${n}</button>`).join('')}</div></section></div>`;
+  }
+  document.addEventListener('click', async (e) => {
+    const cf = e.target.closest('[data-campofam]'); if (cf) { camposModal(cf.dataset.campofam); return; }
+    const sr = e.target.closest('[data-sinrm]'); if (sr) { const m = Object.assign({}, sinonimos()); delete m[sr.dataset.sinrm]; salvaSin(m, 'Sinônimo removido: ' + sr.dataset.sinrm); return; }
+    if (e.target.closest('[data-sinadd]')) { const k = FAMS_F.norm($('#sinK').value); const v = $('#sinV').value.split(',').map((x) => FAMS_F.norm(x)).filter(Boolean); if (!k || !v.length) { toast('Informe o termo e as outras grafias'); return; } const m = Object.assign({}, sinonimos(), { [k]: v }); salvaSin(m, 'Sinônimo: ' + k + ' = ' + v.join(', ')); return; }
+    const fg = e.target.closest('[data-fabgo]'); if (fg) { ui.insFab = fg.dataset.fabgo; ui.cad = 'insumos'; render(); }
+  });
+  // ---------- qualidade dos dados mestres: aponta, filtra e leva ao registro; nada é alterado sozinho ----------
+  function qualidade() {
+    const cfg = famCfg(); const C = custosCfg(); const U = usoIndex(); const out = []; const add = (sev, tipo, fam, msg, go) => out.push({ sev, tipo, fam: fam || '', msg, go });
+    const nomes = new Map(); for (const i of REG.insumos) { const k = FAMS_F.norm(i.produto); if (!nomes.has(k)) nomes.set(k, []); nomes.get(k).push(i); }
+    const prodSet = new Set(REG.insumos.map((i) => i.produto));
+    for (const i of REG.insumos) {
+      const usos = U.de(i); const emUso = usos.length > 0; const go = { ins: i.id };
+      if (!i.fam) add('imped', 'Sem família', '', i.id + ' ' + i.produto, go);
+      if (!i.fab && FAMS_F.PADRAO[H.famCode(i.fam)]) add('aviso', 'Sem fabricante', i.fam, i.id + ' ' + i.produto, go);
+      if (typeof i.valor !== 'number') add(emUso ? 'imped' : 'aviso', 'Sem preço', i.fam, i.id + ' ' + i.produto + (emUso ? ' — em uso: ' + usos.join(', ') : ''), go);
+      const dq = i.dataCot || i.upd; if (typeof i.valor === 'number' && dq && (Date.now() - Date.parse(dq)) / 864e5 > C.validadeDias && emUso) add('aviso', 'Preço desatualizado', i.fam, i.id + ' ' + i.produto + ' — cotação de ' + new Date(dq).toLocaleDateString('pt-BR'), go);
+      const m = FAMS_F.checar(i.fam, i.produto, cfg); if (m && !i.excecao) add('aviso', 'Descrição fora do padrão', i.fam, i.id + ' ' + i.produto + ' — ' + m, go);
+      const p = FAMS_F.padraoDe(i.fam, cfg); if (p && p.modelo && !m) { const falta = FAMS_F.faltando(p, Object.assign({}, FAMS_F.lerP(p, i.produto), i.caract || {})); if (falta.length) add('info', 'Características obrigatórias ausentes', i.fam, i.id + ' ' + i.produto + ' — falta: ' + falta.join(', '), go); }
+      if (foraDeUso(i) && (usos.includes('estrutura') || usos.includes('tabela por porte'))) add('imped', 'Descontinuado ainda utilizado', i.fam, i.id + ' ' + i.produto + ' — ' + usos.join(', ') + (i.substituto ? ' · substituto ' + i.substituto : ' · sem substituto'), go);
+      if (i.substituto && !REG.insumos.some((x) => x.id === i.substituto)) add('aviso', 'Substituto inexistente', i.fam, i.id + ' aponta para ' + i.substituto, go);
+    }
+    for (const [, L] of nomes) if (L.length > 1) { const vs = new Set(L.map((x) => x.valor ?? null)); add(vs.size > 1 ? 'imped' : 'aviso', 'Possível duplicidade (mesmo nome)', L[0].fam, L.map((x) => x.id + (typeof x.valor === 'number' ? ' (' + brl(x.valor) + ')' : ' (sem preço)')).join(' · ') + ' — ' + L[0].produto + (vs.size > 1 ? ' — a fórmula pega o primeiro' : ''), { dup: L.map((x) => x.id).join(',') }); }
+    // estruturas e tabelas: referências a nomes que não estão no cadastro
+    for (const x of recLines()) {
+      if ((x.tipo === 'FIXO' || x.tipo === 'SPLIT') && x.campo && !prodSet.has(String(x.campo))) add('imped', 'Estrutura com insumo inexistente', x.fam, `"${x.rot}" usa "${x.campo}", que não está no cadastro`, { rec: x.r });
+      if (!x.rot || !x.fam) add('aviso', 'Estrutura incompleta', x.fam, `linha ${x.r}: ${!x.rot ? 'sem nome' : 'sem família'}`, { rec: x.r });
+    }
+    const tab = (sh, r1, r2, c1, c2, lb) => { for (let r = r1; r <= r2; r++) for (let c = colToNum(c1); c <= colToNum(c2); c++) { const a = numToCol(c) + r; const v = val(sh, a); if (typeof v === 'string' && v && !/^\d/.test(v) && !prodSet.has(v) && !isFormulaBase(sh, a)) add('aviso', 'Tabela por porte com insumo inexistente', '', `${lb} ${a}: "${v}"`, { cad: 'estruturas' }); } };
+    tab(MO, 157, 166, 'E', 'M', 'Potência diesel'); tab(MO, 172, 187, 'D', 'G', 'Potência elétrica');
+    for (const k of REG.kitMotor) if (!prodSet.has(k.desc)) add('aviso', 'Kit sem insumo no cadastro', '01.MOTORDIESEL', k.desc, { cad: 'motor' });
+    for (const k of REG.kitBomba) if (!prodSet.has(k.desc)) add('aviso', 'Kit sem insumo no cadastro', '11.BOMBAMANCAL', k.desc, { cad: 'bomba' });
+    // famílias de equipamento e modelos prontos sem estrutura própria
+    for (const [k, lb] of famsEquip()) if (!estrList().includes(k) && !['OEM', 'JOCKEYPAINEL'].includes(k)) add('info', 'Família de equipamento sem estrutura própria', '', lb + ' usa a estrutura mais próxima', { cad: 'estruturas' });
+    // regras de configuração que citam componente que não existe
+    for (const r of RG.lista()) if (r.componente && !REG.insumos.some((i) => FAMS_F.norm(i.produto).includes(FAMS_F.norm(r.componente)))) add('aviso', 'Regra com componente que não existe no cadastro', '', `"${r.nome}" procura "${r.componente}"`, { cad: 'regras' });
+    return out;
+  }
+  function semUso() { const U = usoIndex(); return REG.insumos.filter((i) => !U.de(i).length && !foraDeUso(i)); }
+  function vQualidade() {
+    const L = qualidade(); const sev = ui.qSev || ''; const fam = ui.qFam || ''; const tipo = ui.qTipo || '';
+    const F = L.filter((x) => (!sev || x.sev === sev) && (!fam || x.fam === fam) && (!tipo || x.tipo === tipo));
+    const tipos = [...new Set(L.map((x) => x.tipo))]; const cont = (s) => L.filter((x) => x.sev === s).length;
+    const ic = { imped: '<span class="bad-t">✕</span>', aviso: '<span class="warn-t">!</span>', info: '<span class="sub">i</span>' };
+    const goBtn = (g) => g.ins ? `<button class="btn sm" data-ins="${esc(g.ins)}">Abrir</button>` : g.rec ? `<button class="btn sm" data-qrec="${g.rec}">Abrir</button>` : g.dup ? `<button class="btn sm" data-qdup="${esc(g.dup)}">Consolidar…</button>` : g.cad ? `<button class="btn sm" data-cad="${esc(g.cad)}">Ir</button>` : '';
+    const SU = semUso(); const ed = REG.areaOk('custos');
+    return `<div class="stack"><section class="card"><h2>Qualidade dos dados mestres</h2>
+      <div class="kpis" style="margin-bottom:8px"><div class="kpi"><span>Impede ou distorce o cálculo</span><b class="${cont('imped') ? 'bad-t' : 'ok-t'}">${cont('imped')}</b></div><div class="kpi"><span>Pede atenção</span><b class="${cont('aviso') ? 'warn-t' : 'ok-t'}">${cont('aviso')}</b></div><div class="kpi"><span>Informação</span><b>${cont('info')}</b></div><div class="kpi"><span>Sem utilização</span><b>${SU.length}</b></div></div>
+      <div class="pnfil"><select data-qf="qSev" aria-label="Criticidade"><option value="">Toda criticidade</option>${[['imped', 'Impede'], ['aviso', 'Atenção'], ['info', 'Informação']].map(([k, l]) => `<option value="${k}"${sev === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
+        <select data-qf="qTipo" aria-label="Tipo"><option value="">Todos os tipos</option>${tipos.map((t) => `<option${t === tipo ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>
+        <select data-qf="qFam" aria-label="Família"><option value="">Todas as famílias</option>${famList().map((f) => `<option${f === fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></div>
+      ${F.length ? `<div class="tw" style="max-height:55vh;overflow:auto"><table class="t"><tbody>${F.slice(0, 400).map((x) => `<tr class="${x.sev === 'imped' ? 'cf-erro' : x.sev === 'aviso' ? 'cf-aviso' : ''}"><td style="width:24px">${ic[x.sev]}</td><td><small class="sub">${esc(x.tipo)}${x.fam ? ' · ' + esc(x.fam) : ''}</small><br>${esc(x.msg)}</td><td style="text-align:right">${goBtn(x.go)}</td></tr>`).join('')}</tbody></table></div>${F.length > 400 ? '<p class="sub">Mostrando 400; use os filtros.</p>' : ''}` : '<p class="ok-t" style="margin:0">Nada com esses filtros.</p>'}
+      <p class="sub" style="margin:8px 0 0">O painel só aponta. Correções são feitas no registro (botão Abrir) e ficam no histórico. "Consolidar" junta duplicidades de mesmo nome mediante confirmação, sem apagar nada.</p></section>
+      <section class="card"><h2>Cadastros sem utilização <span class="sub">${SU.length} insumo(s) fora de estruturas, tabelas, kits, regras, propostas e baixas</span></h2>
+        ${SU.length ? `<div class="tw" style="max-height:40vh;overflow:auto"><table class="t"><tbody>${SU.slice(0, 300).map((i) => `<tr>${ed ? `<td class="in"><input type="checkbox" data-susel="${esc(i.id)}" aria-label="Marcar ${esc(i.id)}"></td>` : ''}<td class="code">${esc(i.id)}</td><td>${esc(i.produto)}</td><td>${esc(i.fam)}</td><td class="n">${typeof i.valor === 'number' ? brl(i.valor) : '—'}</td><td><button class="btn sm" data-ins="${esc(i.id)}">Abrir</button></td></tr>`).join('')}</tbody></table></div>
+          ${ed ? '<div class="docbar" style="margin-top:8px"><button class="btn sm" data-suinat="inativo">Marcar os selecionados como inativos</button><button class="btn sm" data-suinat="descontinuado">… como descontinuados</button></div>' : ''}` : '<p class="sub" style="margin:0">Todos os insumos têm alguma referência.</p>'}
+        <p class="sub" style="margin:8px 0 0">Nenhum registro é excluído: inativo e descontinuado saem das listas de escolha e o histórico fica preservado. Itens escolhidos no próprio item (motores, bombas, jockey) contam como usados pela família.</p></section></div>`;
+  }
+  function consolidarModal(ids) {
+    const L = ids.split(',').map((id) => REG.insumos.find((x) => x.id === id)).filter(Boolean); if (L.length < 2) return;
+    if (!REG.areaOk('custos')) { toast('Só a área de Custos consolida cadastros'); return; }
+    modal(`<h2>Consolidar cadastros com o mesmo nome</h2><p class="sub" style="margin:0">${esc(L[0].produto)}</p>
+      <p class="sub" style="margin:0">Escolha o registro que fica. Os outros passam a <b>descontinuados</b>, com o que fica como substituto, e ganham um sufixo no nome para a fórmula passar a pegar o escolhido. Nada é apagado e tudo pode ser desfeito pelo histórico.</p>
+      <div class="tw"><table class="t"><thead><tr><th></th><th>Código</th><th>Preço</th><th>Fabricante</th><th>Atualizado</th></tr></thead><tbody>${L.map((x, i) => `<tr><td class="in"><input type="radio" name="csKeep" value="${esc(x.id)}"${i === 0 ? ' checked' : ''} aria-label="Manter ${esc(x.id)}"></td><td class="code">${esc(x.id)}</td><td class="n">${typeof x.valor === 'number' ? brl(x.valor) : 'sem preço'}</td><td>${esc(x.fab || '')}</td><td class="sub">${x.upd ? esc(fmtAt(x.upd)) : '—'}</td></tr>`).join('')}</tbody></table></div>
+      <div class="banner warn" id="csImp" style="margin:0"></div>
+      <div style="display:flex;gap:8px"><button class="btn pri" id="csOk">Consolidar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+      const keep = () => (o.querySelector('input[name="csKeep"]:checked') || {}).value;
+      const imp = () => { const k = REG.insumos.find((x) => x.id === keep()); const first = H.sortIns(L)[0]; $('#csImp', o).innerHTML = first.id === k.id ? 'O registro escolhido já é o que a fórmula usa: os preços das propostas não mudam.' : `Hoje a fórmula usa ${esc(first.id)} (${typeof first.valor === 'number' ? brl(first.valor) : 'sem preço'}); depois passa a usar ${esc(k.id)} (${typeof k.valor === 'number' ? brl(k.valor) : 'sem preço'}). Rascunhos que usam este nome mudam de custo; propostas com preços da época, não.`; };
+      o.querySelectorAll('input[name="csKeep"]').forEach((r) => { r.onchange = imp; }); imp();
+      $('#csOk', o).onclick = async () => { const k = keep(); const outros = L.filter((x) => x.id !== k); const b = $('#csOk', o); b.disabled = true;
+        try { await REG.saveInsumosLote(outros.map((x) => ({ id: x.id, campos: { situacao: 'descontinuado', substituto: k, produto: x.produto + ' (SUBSTITUÍDO POR ' + k + ')' }, de: { situacao: x.situacao ?? null, substituto: x.substituto ?? null, produto: x.produto } })), 'Consolidação: ' + L[0].produto + ' → ' + k, 'Consolidação de cadastro');
+          close(); toast('Consolidado em ' + k); render(); } catch (er) { b.disabled = false; toast(errMsg(er)); } };
+    });
+  }
+  document.addEventListener('change', (e) => { const q = e.target.closest('[data-qf]'); if (q) { ui[q.dataset.qf] = q.value; render(); } });
+  document.addEventListener('click', async (e) => {
+    const d = e.target.closest('[data-qdup]'); if (d) { consolidarModal(d.dataset.qdup); return; }
+    const r = e.target.closest('[data-qrec]'); if (r) { ui.cad = 'estruturas'; render(); recModal(+r.dataset.qrec); return; }
+    const s = e.target.closest('[data-suinat]'); if (s) { const ids = [...document.querySelectorAll('[data-susel]:checked')].map((c) => c.dataset.susel); if (!ids.length) { toast('Marque os insumos'); return; }
+      if (!s.dataset.sure) { s.dataset.sure = 1; s.textContent = 'Confirmar: ' + ids.length + ' insumo(s) → ' + s.dataset.suinat; return; }
+      try { await REG.saveInsumosLote(ids.map((id) => { const x = REG.insumos.find((y) => y.id === id); return { id, campos: { situacao: s.dataset.suinat }, de: { situacao: x.situacao ?? null } }; }), ids.length + ' insumo(s) sem uso → ' + s.dataset.suinat, 'Edição em massa'); toast(ids.length + ' insumo(s) marcados'); render(); } catch (er) { toast(errMsg(er)); } }
+  });
+  // ---------- estruturas: rascunho, publicação controlada e testador no motor real ----------
+  // O rascunho guarda alterações da estrutura sem tocar no MONTADOR que as propostas usam. O testador e a prévia de impacto
+  // rodam a planilha de verdade (o mesmo motor das propostas) com o rascunho aplicado numa cópia.
+  const rascunho = () => (((REG.tabelas || {}).ESTR_RASCUNHO || {}).cells) || {};
+  const emRascunho = () => !!ui.estrRasc;
+  function wbCom(opts) { const w = new Workbook(MODEL); REG.applyTo(w); if (opts && opts.rasc) { const s = w.sheet(MO); for (const [a, v] of Object.entries(rascunho())) { if (v === null || v === '') s.cells.delete(a); else s.cells.set(a, v); } w.invalidate(); } if (opts && opts.doc) w.applyDoc(JSON.parse(JSON.stringify(opts.doc))); return w; }
+  function comWb(w, fn) { const keep = wb; const kc = listCache; wb = w; listCache = new Map(); try { return fn(); } finally { wb = keep; listCache = kc; } }
+  // toda gravação da estrutura passa por aqui: em rascunho, vai para o rascunho; publicada, vai para o MONTADOR (e para o histórico, que é a trilha de versões)
+  async function gravaMO(ch, desc) {
+    if (!emRascunho()) return REG.setCells(MO, ch, desc, baseOf(MO));
+    const cur = Object.assign({}, rascunho()); const base = (a) => { const v = baseRaw(MO, a); const t = (REG.tabelas[MO] || {})[a]; return t !== undefined ? (t === '' ? null : t) : v === undefined ? null : v; };
+    for (const [a, v] of Object.entries(ch)) { const nv = v === undefined || v === '' ? null : v; if ((nv ?? null) === (base(a) ?? null)) delete cur[a]; else cur[a] = nv; }
+    await REG.setTable('ESTR_RASCUNHO', { cells: cur, desc: [].concat((((REG.tabelas || {}).ESTR_RASCUNHO || {}).desc) || [], [desc]).slice(-30) }, 'Rascunho de estrutura: ' + desc, []);
+    return true;
+  }
+  // diferenças do rascunho em relação ao publicado, por linha da estrutura
+  function difRascunho() {
+    const R = rascunho(); const rows = [...new Set(Object.keys(R).map((a) => +a.replace(/\D/g, '')))].sort((a, b) => a - b); const out = [];
+    const pub = new Map(recLines().map((x) => [x.r, x])); const dr = comWb(wbCom({ rasc: true }), () => new Map(recLines().map((x) => [x.r, x])));
+    for (const r of rows) { const a = pub.get(r), b = dr.get(r); out.push({ r, tipo: !a && b ? 'incluído' : a && !b ? 'excluído' : 'alterado', a, b, campos: a && b ? Object.keys(REC_COLS).filter((k) => String(a[k]) !== String(b[k])).map((k) => ({ k, de: a[k], para: b[k] })) : [] }); }
+    return out;
+  }
+  // um item montado pela planilha, lido como a tela de item lê: componentes, origem, regra e custo
+  function montarTeste(cfg, rasc) {
+    const fam = (FAMS.find((f) => f[0] === cfg.estr) || [0, 0, 'CONJUNTO MOTOBOMBA'])[2];
+    const it = { C21: fam }; if (cfg.modelo) it.C17 = cfg.modelo; else { for (const a of ['E17', 'D19', 'C19', 'H19', 'F19', 'I19', 'L19', 'J19', 'G17', 'BA19']) if (cfg[a] !== undefined && cfg[a] !== '') it[a] = /^(C19|H19|I19|G17)$/.test(a) && typeof parseInput(String(cfg[a]), 'num') === 'number' ? parseInput(String(cfg[a]), 'num') : cfg[a]; }
+    for (const r of cfg.opc || []) it['BC' + r] = 1;
+    const w = wbCom({ rasc, doc: { PROPOSTA: MODEL.example.PROPOSTA, 'ITEM 01': it } });
+    return comWb(w, () => {
+      const S = 'ITEM 01'; const lines = recLines(); const byR = new Map(lines.map((x) => [x.r, x])); const H2 = heads(); const comps = []; const usados = new Set();
+      for (let r = 34; r <= 63; r++) { const d = txt(S, 'D' + r); if (!d && !txt(S, 'B' + r)) continue; const k = val(S, 'AE' + r); const ln = typeof k === 'number' ? byR.get(91 + k) : null; if (ln) usados.add(ln.r);
+        const ins = d ? REG.insumos.find((i) => i.produto === d) : null; const unit = val(S, 'G' + r); const tot = val(S, 'H' + r);
+        comps.push({ rot: ln ? ln.rot : txt(S, 'B' + r), desc: d, qtd: val(S, 'F' + r), unit, tot, acion: ln ? (ln.acion || 'TODOS') : 'TODOS', origem: ln ? origemTxt(ln, H2) : 'linha fixa da planilha', regra: ln ? regraTxt(ln.regra) : '', ln: ln ? ln.r : null, obs: txt(S, 'L' + r), ins, semCad: !!d && !ins, semPreco: !!d && !(typeof unit === 'number' && unit > 0) }); }
+      for (const x of hiddenLines(S)) { const ln = byR.get(91 + (x.r - 67)); if (ln) usados.add(ln.r); comps.push({ rot: x.rot, desc: x.desc, qtd: x.qtd, unit: x.unit, tot: x.tot, acion: x.acion, origem: ln ? origemTxt(ln, H2) : '', regra: ln ? regraTxt(ln.regra) : '', ln: ln ? ln.r : null, obs: '', ins: REG.insumos.find((i) => i.produto === x.desc) || null, semCad: !!x.desc && !REG.insumos.some((i) => i.produto === x.desc), semPreco: !(x.unit > 0) }); }
+      const c = arrCounts(S); const est = String(val(S, 'AR2') || cfg.estr);
+      const has = { DIESEL: c.d > 0, ELETRICA: c.e > 0, JOCKEY: c.j, TODOS: true };
+      const naoEntrou = lines.filter((x) => estrOf(x).includes(est) && !usados.has(x.r)).map((x) => ({ x, porque: !has[x.acion || 'TODOS'] ? 'o arranjo ' + (c.code || '—') + ' não tem ' + (ACIONS.find((a) => a[0] === x.acion) || [0, x.acion])[1].toLowerCase() : x.regra === 'OPCIONAL' ? 'opcional não marcado' : x.regra ? 'condição "' + regraTxt(x.regra) + '" não atendida' : 'a origem não devolveu insumo (' + origemTxt(x, H2) + ')' }));
+      const alertas = []; for (const a of ['B32', 'P84', 'P78', 'P105', 'C185', 'C187']) { const t = txt(S, a); if (t && !/^OK/.test(t)) alertas.push(t); }
+      let regrasCfg = []; try { regrasCfg = RG.avaliar(itemRegras(S)); } catch (e) { regrasCfg = []; }
+      return { comps, naoEntrou, alertas, regrasCfg, custo: val(S, 'H114'), desc: txt(S, 'C28'), code: c.code, est, arr: c };
+    });
+  }
+  function vTestador() {
+    const t = ui.tst || (ui.tst = { estr: estrList()[0], modo: 'modelo', modelo: '', opc: [], rasc: false });
+    const mods = modelos().filter((m) => m.estr === t.estr); if (t.modo === 'modelo' && !mods.some((m) => m.nome === t.modelo)) t.modelo = mods.length ? mods[0].nome : '';
+    const temRasc = Object.keys(rascunho()).length > 0;
+    const inp = (a, lb, list) => { const L = list ? listFor(ITEMS[0], a) || [] : []; return `<div class="f"><label for="ts_${a}">${esc(lb)}</label><input id="ts_${a}" data-tst="${a}" value="${esc(t[a] || '')}"${L.length ? ` list="dl_ts_${a}"` : ''}>${L.length ? `<datalist id="dl_ts_${a}">${L.slice(0, 400).map((x) => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</div>`; };
+    const opcs = recLines().filter((x) => x.regra === 'OPCIONAL' && estrOf(x).includes(t.estr));
+    let res = null, erro = '';
+    if (t.rodou) { try { res = montarTeste(t, t.rasc && temRasc); } catch (e) { erro = e.message || String(e); } }
+    const sum = (L) => L.reduce((s, x) => s + num0(x.tot), 0);
+    const grupos = res ? ACIONS.map(([k, lb]) => [k, lb, res.comps.filter((x) => (x.acion || 'TODOS') === k)]).filter((g) => g[2].length) : [];
+    return `<div class="stack"><section class="card"><h2>Testador de estruturas <span class="sub">monta um item de teste na planilha real; nada é gravado</span></h2>
+      <div class="fields"><div class="f"><label for="tsEstr">Estrutura</label><select id="tsEstr" data-tst="estr">${ESTRSf().map(([k, lb]) => `<option value="${k}"${k === t.estr ? ' selected' : ''}>${esc(lb)}</option>`).join('')}</select></div>
+        <div class="f span2"><label>Configurar por</label><div class="seg"><label class="${t.modo === 'modelo' ? 'on' : ''}"><input type="radio" name="tsModo" value="modelo"${t.modo === 'modelo' ? ' checked' : ''}>modelo pronto</label><label class="${t.modo === 'manual' ? 'on' : ''}"><input type="radio" name="tsModo" value="manual"${t.modo === 'manual' ? ' checked' : ''}>características</label></div></div>
+        ${temRasc ? `<div class="f"><label class="chk" style="margin-top:22px"><input type="checkbox" data-tstr${t.rasc ? ' checked' : ''}> usar o rascunho da estrutura</label></div>` : ''}</div>
+      ${t.modo === 'modelo' ? `<div class="fields"><div class="f span2"><label for="tsMod">Modelo pronto</label><select id="tsMod" data-tst="modelo">${mods.map((m) => `<option${m.nome === t.modelo ? ' selected' : ''}>${esc(m.nome)}</option>`).join('') || '<option value="">nenhum modelo nesta estrutura</option>'}</select></div></div>`
+        : `<div class="fields">${inp('E17', 'Arranjo (ex.: D, E, DJ, DDJ)')}${inp('D19', 'Bomba', true)}${inp('C19', 'Potência diesel (HP)', true)}${inp('H19', 'Rotação (RPM)', true)}${inp('F19', 'Arrefecimento', true)}${inp('I19', 'Potência elétrica (CV)', true)}${inp('L19', 'Tensão do painel', true)}${inp('J19', 'Bomba jockey', true)}${inp('G17', 'Vazão')}</div>`}
+      ${opcs.length ? `<div class="f"><label>Opcionais</label><div class="chks">${opcs.map((x) => { const row = 67 + (x.r - 91); return `<label class="chk"><input type="checkbox" data-tsopc="${row}"${(t.opc || []).includes(row) ? ' checked' : ''}> ${esc(x.rot)}</label>`; }).join('')}</div></div>` : ''}
+      <div class="docbar"><button class="btn pri" data-tstrun>Montar e testar</button></div></section>
+      ${erro ? `<div class="banner bad">${esc(erro)}</div>` : ''}
+      ${res ? `<section class="card"><h2>Resultado <span class="sub">${esc(res.desc || '')}</span></h2>
+        <div class="kpis"><div class="kpi lead"><span>Custo do item (planilha)</span><b>${brl(res.custo)}</b></div><div class="kpi"><span>Componentes</span><b>${res.comps.length}</b></div><div class="kpi"><span>Sem cadastro / sem preço</span><b class="${res.comps.some((x) => x.semCad || x.semPreco) ? 'bad-t' : 'ok-t'}">${res.comps.filter((x) => x.semCad).length} / ${res.comps.filter((x) => x.semPreco).length}</b></div><div class="kpi"><span>Arranjo</span><b>${esc(res.code || '—')}</b></div></div>
+        ${res.alertas.length || res.regrasCfg.length ? `<ul class="alerts" style="margin-top:8px">${res.alertas.map((a) => `<li class="warn"><span>${esc(a)}</span></li>`).join('')}${res.regrasCfg.map((a) => `<li class="${a.sev === 'imped' ? 'bad' : a.sev === 'aviso' ? 'warn' : 'info'}"><span>${esc(a.msg)}</span></li>`).join('')}</ul>` : ''}
+        <div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>Componente</th><th>Insumo</th><th>Qtd</th><th>Unit.</th><th>Total</th><th>Por que entrou</th></tr></thead><tbody>${grupos.map(([k, lb, L]) => `<tr class="grp"><td colspan="4">${esc(lb)}</td><td class="n">${brl(sum(L))}</td><td class="n sub">${res.custo ? pct(sum(L) / res.custo, 1) : ''}</td></tr>` + L.map((x) => `<tr><td>${esc(x.rot || '')}</td><td>${esc(x.desc || '—')}${x.semCad ? ' <span class="pill bad">sem cadastro</span>' : x.semPreco ? ' <span class="pill warn">sem preço</span>' : ''}${x.ins && foraDeUso(x.ins) ? ' <span class="pill bad">' + esc(situ(x.ins)) + '</span>' : ''}${x.obs ? `<br><small class="sub">${esc(x.obs)}</small>` : ''}</td><td class="n">${fmtNum(x.qtd)}</td><td class="n">${typeof x.unit === 'number' ? brl(x.unit) : '—'}</td><td class="n">${typeof x.tot === 'number' ? brl(x.tot) : '—'}</td><td><small>${esc(x.origem)}${x.regra && x.regra !== 'Sempre' ? ' · ' + esc(x.regra) : ''}${x.ln ? ` · <button class="restore" data-qrec="${x.ln}">linha ${x.ln}</button>` : ''}</small></td></tr>`).join('')).join('')}</tbody></table></div>
+        <h3 style="margin:10px 0 4px">Componentes da estrutura que não entraram <span class="sub">${res.naoEntrou.length}</span></h3>
+        ${res.naoEntrou.length ? `<ul class="uso">${res.naoEntrou.map((n) => `<li><b>${esc(n.x.rot)}</b> — ${esc(n.porque)} <button class="restore" data-qrec="${n.x.r}">linha ${n.x.r}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">Todos os componentes da estrutura entraram.</p>'}</section>` : ''}</div>`;
+  }
+  document.addEventListener('change', (e) => {
+    const t = ui.tst; if (!t || ui.cad !== 'testador') return;
+    const el = e.target; if (el.dataset && el.dataset.tst) { t[el.dataset.tst] = el.value; if (el.dataset.tst === 'estr') { t.opc = []; t.modelo = ''; } t.rodou = false; render(); return; }
+    if (el.name === 'tsModo') { t.modo = el.value; t.rodou = false; render(); return; }
+    if (el.dataset && el.dataset.tsopc) { const r = +el.dataset.tsopc; t.opc = (t.opc || []).filter((x) => x !== r); if (el.checked) t.opc.push(r); return; }
+    if (el.matches('[data-tstr]')) { t.rasc = el.checked; render(); }
+  });
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-tstrun]')) { document.querySelectorAll('[data-tst]').forEach((el) => { ui.tst[el.dataset.tst] = el.value; }); ui.tst.rodou = true; render(); } });
+  // painel do rascunho na tela de estruturas: diferenças, impacto nos modelos prontos, publicar, descartar; versões publicadas com desfazer
+  function rascunhoCard() {
+    const R = rascunho(); const n = Object.keys(R).length; const ed = canEd();
+    const vers = REG.historico.filter((h) => h.tipo === 'Estrutura' && h.ref === MO).slice(0, 8);
+    const ver = vers.length ? `<details><summary class="sub">Versões publicadas recentes (${vers.length})</summary><ul class="uso">${vers.map((h) => `<li>${esc(fmtAt(h.at))} · ${who(h.by)} — ${esc(h.desc || '')} <small class="sub">(${(h.mudancas || []).length} célula(s))</small>${ed ? ` <button class="restore" data-estrdesf="${esc(h.at)}">desfazer esta versão</button>` : ''}</li>`).join('')}</ul></details>` : '';
+    return `<section class="card"><h2>Publicação <span class="sub">${emRascunho() ? 'editando em rascunho: as propostas não veem estas alterações' : 'editando a estrutura publicada'}</span></h2>
+      <div class="docbar">${ed ? `<label class="chk"><input type="checkbox" data-estrrasc${emRascunho() ? ' checked' : ''}> editar em rascunho</label>` : ''}${n ? `<span class="pill warn">rascunho com ${n} célula(s) alterada(s)</span><button class="btn sm" data-rascdif>Ver diferenças e impacto</button>${ed ? '<button class="btn sm pri" data-rascpub>Publicar…</button><button class="btn sm" data-rascdesc>Descartar rascunho</button>' : ''}<button class="btn sm" data-cad="testador">Testar no testador</button>` : '<span class="sub">Sem rascunho pendente.</span>'}</div>${ver}</section>`;
+  }
+  async function impactoRascunho(onProg) {
+    const D = difRascunho(); const est = new Set(); for (const d of D) for (const x of [d.a, d.b]) if (x) estrOf(x).forEach((k) => est.add(k));
+    const mods = modelos().filter((m) => est.has(m.estr)); const out = [];
+    for (let i = 0; i < mods.length; i++) { const m = mods[i]; onProg && onProg(i + 1, mods.length); await new Promise((r) => setTimeout(r, 0));
+      try { const a = montarTeste({ estr: m.estr, modelo: m.nome }, false); const b = montarTeste({ estr: m.estr, modelo: m.nome }, true);
+        const na = new Set(a.comps.map((x) => x.desc)), nb = new Set(b.comps.map((x) => x.desc));
+        const mais = [...nb].filter((x) => !na.has(x)), menos = [...na].filter((x) => !nb.has(x));
+        if (Math.abs(num0(a.custo) - num0(b.custo)) > 0.005 || mais.length || menos.length) out.push({ m, a: a.custo, b: b.custo, mais, menos }); } catch (e) { out.push({ m, erro: e.message }); } }
+    return { D, out, n: mods.length };
+  }
+  function rascDifModal(publicar) {
+    const D = difRascunho();
+    modal(`<h2>${publicar ? 'Publicar o rascunho da estrutura' : 'Rascunho da estrutura'}</h2>
+      <div class="tw"><table class="t"><thead><tr><th>Linha</th><th>Componente</th><th>Mudança</th></tr></thead><tbody>${D.map((d) => `<tr><td class="n">${d.r}</td><td>${esc((d.b || d.a || {}).rot || '')}</td><td><span class="pill ${d.tipo === 'incluído' ? 'ok' : d.tipo === 'excluído' ? 'bad' : 'warn'}">${d.tipo}</span> ${d.campos.map((c) => `<small>${esc(c.k)}: ${esc(String(c.de))} → <b>${esc(String(c.para))}</b></small>`).join(' · ')}</td></tr>`).join('')}</tbody></table></div>
+      <div id="riRes" class="banner info" style="margin:0">Calculando o impacto nos modelos prontos…</div>
+      <div style="display:flex;gap:8px">${publicar ? '<button class="btn pri" id="riPub" disabled>Publicar</button>' : ''}<button class="btn" data-close>Fechar</button></div>`, (o, close) => {
+      impactoRascunho((i, n) => { const el = $('#riRes', o); if (el) el.textContent = 'Testando modelos prontos: ' + i + ' de ' + n + '…'; }).then((r) => {
+        const el = $('#riRes', o); if (!el) return;
+        el.className = 'banner ' + (r.out.length ? 'warn' : 'ok');
+        el.innerHTML = r.out.length ? `<b>${r.out.length} de ${r.n} modelo(s) pronto(s) mudam:</b><ul class="uso">${r.out.slice(0, 20).map((x) => `<li><b>${esc(x.m.nome)}</b> ${x.erro ? '<span class="bad-t">' + esc(x.erro) + '</span>' : `custo ${brl(x.a)} → ${brl(x.b)}${x.mais.length ? ' · entra: ' + esc(x.mais.join(', ')) : ''}${x.menos.length ? ' · sai: ' + esc(x.menos.join(', ')) : ''}`}</li>`).join('')}</ul>Propostas com preços da época não mudam; rascunhos passam a montar com a estrutura nova.` : `Testados ${r.n} modelo(s) pronto(s) das estruturas alteradas: nenhum muda de custo nem de componentes.`;
+        const pb = $('#riPub', o); if (pb) { pb.disabled = false; pb.onclick = async () => { pb.disabled = true; try { const R = rascunho(); const descs = ((((REG.tabelas || {}).ESTR_RASCUNHO || {}).desc) || []).slice(-5);
+          await REG.setCells(MO, R, 'Publicado: ' + (descs.join('; ') || Object.keys(R).length + ' célula(s)'), baseOf(MO)); await REG.setTable('ESTR_RASCUNHO', { cells: {}, desc: [] }, 'Rascunho de estrutura publicado', []); ui.estrRasc = false; close(); toast('Estrutura publicada'); render(); } catch (er) { pb.disabled = false; toast(errMsg(er)); } }; }
+      });
+    });
+  }
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-rascdif]')) { rascDifModal(false); return; }
+    if (e.target.closest('[data-rascpub]')) { rascDifModal(true); return; }
+    const dc = e.target.closest('[data-rascdesc]'); if (dc) { if (!dc.dataset.sure) { dc.dataset.sure = 1; dc.textContent = 'Confirmar: descartar o rascunho'; return; } try { await REG.setTable('ESTR_RASCUNHO', { cells: {}, desc: [] }, 'Rascunho de estrutura descartado', []); toast('Rascunho descartado'); } catch (er) { toast(errMsg(er)); } return; }
+    const df = e.target.closest('[data-estrdesf]'); if (df) { const h = REG.historico.find((x) => x.at === df.dataset.estrdesf && x.tipo === 'Estrutura'); if (!h) return;
+      if (!df.dataset.sure) { df.dataset.sure = 1; df.textContent = 'confirmar: voltar estas ' + (h.mudancas || []).length + ' célula(s)'; return; }
+      const ch = {}; const conf = []; for (const m of h.mudancas || []) { const cur = val(MO, m.campo); if ((cur ?? null) !== (m.para ?? null) && !(cur === '' && m.para === null)) { conf.push(m.campo); continue; } ch[m.campo] = m.de ?? null; }
+      try { if (Object.keys(ch).length) await REG.setCells(MO, ch, 'Desfeita a versão de ' + fmtAt(h.at) + ': ' + (h.desc || ''), baseOf(MO)); toast(Object.keys(ch).length + ' célula(s) voltaram' + (conf.length ? '; ' + conf.length + ' já tinham mudado de novo e ficaram' : '')); } catch (er) { toast(errMsg(er)); } }
+  });
+  document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-estrrasc]')) { ui.estrRasc = e.target.checked; render(); } });
+  document.addEventListener('click', (e) => { const f = e.target.closest('[data-fold]'); if (!f || ui.view !== 'cadastro') return; ui.estrFold = Object.assign({}, ui.estrFold || {}, { [f.dataset.fold]: !(ui.estrFold || {})[f.dataset.fold] }); render(); });
+  // comparar duas estruturas: o que é comum, o que só uma tem e onde a regra, a origem ou a quantidade diferem
+  function estrComparaModal(A, B) {
+    const L = recLines(); const H2 = heads(); const a = L.filter((x) => estrOf(x).includes(A)), b = L.filter((x) => estrOf(x).includes(B));
+    const key = (x) => (x.acion || 'TODOS') + '|' + x.rot; const ma = new Map(a.map((x) => [key(x), x])), mb = new Map(b.map((x) => [key(x), x]));
+    const rows = [...new Set([...ma.keys(), ...mb.keys()])].map((k) => { const x = ma.get(k), y = mb.get(k); const d = x && y ? ['tipo', 'campo', 'qtd', 'regra', 'fam'].filter((f) => String(x[f]) !== String(y[f])) : [];
+      return `<tr><td>${esc((x || y).rot)}<br><small class="sub">${esc((ACIONS.find((q) => q[0] === ((x || y).acion || 'TODOS')) || [0, ''])[1])}</small></td><td>${x ? esc(origemTxt(x, H2)) + '<br><small class="sub">' + esc(qtdTxt(x.qtd)) + ' · ' + esc(regraTxt(x.regra)) + '</small>' : '<span class="pill mute">não tem</span>'}</td><td>${y ? esc(origemTxt(y, H2)) + '<br><small class="sub">' + esc(qtdTxt(y.qtd)) + ' · ' + esc(regraTxt(y.regra)) + '</small>' : '<span class="pill mute">não tem</span>'}</td><td>${!x || !y ? '<span class="pill warn">só em uma</span>' : x.r === y.r ? '<span class="pill ok">mesma linha</span>' : d.length ? '<span class="pill warn">difere: ' + esc(d.join(', ')) + '</span>' : '<span class="pill ok">igual</span>'}</td></tr>`; }).join('');
+    modal(`<h2>Comparar estruturas · ${esc(famLabel(A))} × ${esc(famLabel(B))}</h2><div class="tw"><table class="t"><thead><tr><th>Componente</th><th>${esc(famLabel(A))}</th><th>${esc(famLabel(B))}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div><div><button class="btn" data-close>Fechar</button></div>`);
+  }
+  document.addEventListener('change', (e) => { if (e.target.id === 'estrCmp' && e.target.value) { const A = estrList().includes(ui.estr) ? ui.estr : estrList()[0]; const B = e.target.value; e.target.value = ''; estrComparaModal(A, B); } });
+  function vEstruturas() { const card = rascunhoCard(); return emRascunho() ? comWb(wbCom({ rasc: true }), () => card + '<div class="banner warn" style="margin:0">Mostrando o <b>rascunho</b>. As propostas continuam usando a estrutura publicada até você publicar.</div>' + vEstruturas0()) : card + vEstruturas0(); }
+  function vEstruturas0() {
     const est = estrList().includes(ui.estr) ? ui.estr : estrList()[0]; const H = heads(); const lines = recLines();
     const free = 151 - 91 - lines.length;
     const tabs = ESTRSf().map(([k, lb]) => `<button role="tab" aria-selected="${k === est}" data-estr="${k}">${lb}</button>`).join('') + (canEd() && estrList().length < FAMS.length ? '<button data-estrnew>+ Nova estrutura</button>' : '');
     const mine = lines.filter((x) => estrOf(x).includes(est));
     const groups = ACIONS.map(([k, lb]) => {
       const g = mine.filter((x) => (x.acion || 'TODOS') === k); if (!g.length) return '';
-      return `<tr class="grp"><td colspan="6">${lb} <span class="sub">· ${g.length} componentes</span></td></tr>` + g.map((x) => `<tr class="click" data-recedit="${x.r}">
+      const fold = (ui.estrFold || {})[k];
+      return `<tr class="grp click" data-fold="${k}"><td colspan="6">${fold ? '▸' : '▾'} ${lb} <span class="sub">· ${g.length} componentes · ${g.filter((x) => !x.regra).length} obrigatório(s), ${g.filter((x) => x.regra === 'OPCIONAL').length} opcional(is), ${g.filter((x) => x.regra && x.regra !== 'OPCIONAL').length} condicional(is)</span></td></tr>` + (fold ? '' : g.map((x) => `<tr class="click" data-recedit="${x.r}">
         <td><b>${esc(x.rot || '(sem nome)')}</b><br><small class="sub">${esc(x.fam)} · ${esc(x.bloco)}</small></td>
         <td>${esc(origemTxt(x, H))}</td><td>${esc(qtdTxt(x.qtd))}</td>
-        <td>${x.regra ? `<span class="pill ${x.regra === 'OPCIONAL' ? 'mute' : 'warn'}">${esc(regraTxt(x.regra))}</span>` : ''}</td>
+        <td>${x.regra ? `<span class="pill ${x.regra === 'OPCIONAL' ? 'mute' : 'warn'}">${x.regra === 'OPCIONAL' ? 'opcional' : 'condicional: ' + esc(regraTxt(x.regra))}</span>` : '<span class="pill ok">obrigatório</span>'}</td>
         <td>${x.estr === 'TODOS' ? '<span class="pill mute">todas</span>' : estrOf(x).map((e) => `<span class="pill mute">${esc(e)}</span>`).join(' ')}</td>
-        <td><button class="btn sm" data-recedit="${x.r}">Editar</button></td></tr>`).join('');
+        <td><button class="btn sm" data-recedit="${x.r}">Editar</button></td></tr>`).join(''));
     }).join('');
     const sug = SUGESTOES.map((sg) => { const done = sugFeita(sg, lines); return `<label class="sugrow${done ? ' done' : ''}"><input type="checkbox" data-sug="${sg.id}" data-done="${done ? 1 : 0}"${done ? ' checked' : ''}${canEd() ? '' : ' disabled'}><span><b>${esc(sg.t)}</b>${done ? ' <span class="pill ok">aplicada</span> <small class="sub">desmarque para desfazer</small>' : ''}<br><small class="sub">${esc(sg.d)}</small></span></label>`; }).join('');
     const changed = Object.keys(REG.tabelas[MO] || {}).length + Object.keys(REG.tabelas['KIT HIDRÁULICA'] || {}).length;
     return `<div class="stack">
       <p class="sub" style="margin:0">A estrutura padrão diz o que entra em cada equipamento montado: quais componentes, de onde sai o insumo (o que foi escolhido no item, a tabela por porte ou um insumo fixo), quantos por bomba e em que condição. Toda proposta nova monta o item por aqui. ${free} linha(s) livre(s) de 60.</p>
       <div class="subtabs" role="tablist" aria-label="Estrutura">${tabs}</div>
-      <div class="docbar"><button class="btn sm pri" data-recnew${canEd() && free > 0 ? '' : ' disabled'}>+ Novo componente</button>${changed ? `<span class="sub">${changed} alteração(ões) sobre a planilha</span><button class="btn sm" data-recreset>Voltar à estrutura da planilha</button>` : ''}</div>
+      <div class="docbar"><button class="btn sm pri" data-recnew${canEd() && free > 0 ? '' : ' disabled'}>+ Novo componente</button><select id="estrCmp" aria-label="Comparar com outra estrutura"><option value="">Comparar com…</option>${ESTRSf().filter(([k]) => k !== est).map(([k, lb]) => `<option value="${k}">${esc(lb)}</option>`).join('')}</select><button class="btn sm" data-cad="testador">Testar esta estrutura</button>${changed ? `<span class="sub">${changed} alteração(ões) sobre a planilha</span><button class="btn sm" data-recreset>Voltar à estrutura da planilha</button>` : ''}</div>
       <div class="tw"><table class="t"><thead><tr><th>Componente</th><th>De onde sai o insumo</th><th>Quantidade</th><th>Condição</th><th>Vale para</th><th></th></tr></thead><tbody>${groups || '<tr><td colspan="6" class="sub">Nenhum componente nesta estrutura.</td></tr>'}</tbody></table></div>
       <section class="card"><h2>Sugestões <span class="sub">marque o que quiser aplicar; opcionais não entram no preço até serem marcados no item</span></h2>
         <div class="sugs">${sug}</div>
@@ -2394,7 +3030,8 @@
     }
     return `<div class="tw" style="margin-top:10px"><table class="t porte"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${k === 'VAZAO' ? '<p class="sub" style="margin:8px 0 0">Nesta tabela você muda as bitolas (colunas à esquerda); os nomes dos insumos à direita saem delas.</p>' : ''}`;
   }
-  function recModal(r, preset) {
+  function recModal(r, preset) { if (emRascunho()) return comWb(wbCom({ rasc: true }), () => recModal0(r, preset)); return recModal0(r, preset); }
+  function recModal0(r, preset) {
     const H = heads(); const isNew = !!preset;
     const x = preset || recLines().find((y) => y.r === r) || {};
     const opt = (list, cur) => list.map(([k, lb]) => `<option value="${esc(k)}"${String(cur) === String(k) ? ' selected' : ''}>${esc(lb)}</option>`).join('');
@@ -2434,12 +3071,12 @@
         const qn = parseInput(g('#rQn').value, 'num');
         const nx = { rot: g('#rRot').value.trim(), estr: ests.length === estrList().length ? 'TODOS' : ests.join('+'), acion: g('#rAc').value, bloco: g('#rBl').value, fam: g('#rFam').value, tipo: t, campo,
           pre: t === 'TAMANHO' ? g('#rPre').value : '', suf: t === 'TAMANHO' ? g('#rSuf').value : '', qtd: g('#rQ').value === 'FIX' ? (typeof qn === 'number' ? qn : 1) : g('#rQ').value, regra: g('#rRg').value };
-        try { await REG.setCells(MO, recChanges(x.r, nx), 'Estrutura: ' + nx.rot, baseOf(MO)); close(); toast('Estrutura salva: ' + nx.rot); if (['FIXO', 'SPLIT'].includes(t) && !REG.insumos.some((i) => i.produto === campo)) toast('Atenção: "' + campo + '" não está no cadastro de insumos; entra com custo zero.'); }
+        try { await gravaMO(recChanges(x.r, nx), 'Estrutura: ' + nx.rot); close(); toast('Estrutura salva: ' + nx.rot); if (['FIXO', 'SPLIT'].includes(t) && !REG.insumos.some((i) => i.produto === campo)) toast('Atenção: "' + campo + '" não está no cadastro de insumos; entra com custo zero.'); }
         catch (e) { g('#rMsg').textContent = errMsg(e); }
       };
       const del = g('#rDel'); if (del) del.onclick = async () => {
         if (!del.dataset.sure) { del.dataset.sure = 1; del.textContent = 'Confirmar exclusão'; del.classList.add('pri'); return; }
-        try { const ch = {}; for (const c of Object.values(REC_COLS)) ch[c + x.r] = null; await REG.setCells(MO, ch, 'Estrutura: excluiu ' + x.rot, baseOf(MO)); close(); toast('Componente excluído da estrutura'); } catch (e) { g('#rMsg').textContent = errMsg(e); }
+        try { const ch = {}; for (const c of Object.values(REC_COLS)) ch[c + x.r] = null; await gravaMO(ch, 'Estrutura: excluiu ' + x.rot); close(); toast('Componente excluído da estrutura'); } catch (e) { g('#rMsg').textContent = errMsg(e); }
       };
     });
   }
@@ -2453,7 +3090,7 @@
       $('#nOk', o).onclick = async () => {
         const k = $('#nFam', o).value, src = $('#nCopy', o).value; const ch = { N91: estrList().concat([k]).join(',') };
         if (src) for (const x of recLines()) if (x.estr !== 'TODOS' && estrOf(x).includes(src)) ch['C' + x.r] = x.estr + '+' + k;
-        try { await REG.setCells(MO, ch, 'Nova estrutura: ' + famLabel(k), baseOf(MO)); ui.estr = k; close(); toast('Estrutura criada: ' + famLabel(k)); } catch (e) { toast(errMsg(e)); }
+        try { await gravaMO(ch, 'Nova estrutura: ' + famLabel(k)); ui.estr = k; close(); toast('Estrutura criada: ' + famLabel(k)); } catch (e) { toast(errMsg(e)); }
       };
     });
   }
@@ -2466,7 +3103,7 @@
       nomes.push(sg.t);
     }
     for (const n of novos) { const { a, b } = REG.nextCode(n.fam); await REG.saveInsumo({ id: REG.newInsumoId(a, b), a, b, fam: n.fam, produto: n.produto, origem: n.origem }, true); }
-    if (Object.keys(ch).length) await REG.setCells(MO, ch, 'Sugestões aplicadas: ' + nomes.join('; '), baseOf(MO));
+    if (Object.keys(ch).length) await gravaMO(ch, 'Sugestões aplicadas: ' + nomes.join('; '));
     toast(nomes.length + ' sugestão(ões) aplicada(s)');
   }
   // desfaz: nomes voltam ao da planilha; linhas opcionais saem da estrutura (o insumo criado fica no cadastro)
@@ -2793,7 +3430,7 @@
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-cad]'); if (t) { ui.cad = t.dataset.cad; store.set(SK.view, ui); render(); return; }
     const ins = e.target.closest('[data-ins]'); if (ins && !e.target.closest('input')) { insumoModal(ins.dataset.ins); return; }
-    const kit = e.target.closest('[data-kit]'); if (kit) { kitModal(ui.cad === 'bomba' ? 'bomba' : 'motor', kit.dataset.kit); return; }
+    const kit = e.target.closest('[data-kit]'); if (kit && !e.target.closest('input')) { kitModal(ui.cad === 'bomba' ? 'bomba' : 'motor', kit.dataset.kit); return; }
   });
 
   function vGuia() {
@@ -2836,11 +3473,11 @@
     return { div: 'SEQ', venda: T.venda, vendaIpi: T.vendaIpi, custo: T.custo, impostos: T.impostos, comissao: T.comissao, margem: T.margem, margemPct: T.margemPct, minimo: n(val(PA, 'C34')), itens };
   }
   // fotografia de qualquer proposta salva, sem mexer na que está aberta
-  function snapshotOf(p) {
+  function snapshotOf(p, extraIns) {
     if (p.div === 'SPV' && p.spv) return SPV.snapshot(p.spv);
     if (p.facts) return FX.snapshot(p.facts);
     const doc = JSON.parse(JSON.stringify(p.doc || {})); migrar(doc);
-    const keep = wb; const w2 = new Workbook(MODEL); REG.applyTo(w2); w2.applyDoc(doc);
+    const keep = wb; const w2 = new Workbook(MODEL); REG.applyTo(w2); aplicaPrecos(w2, precosFixos(p) ? p.precos : null, extraIns); w2.applyDoc(doc);
     wb = w2; listCache = new Map();
     try { return seqSnapshot(); } finally { wb = keep; listCache = new Map(); }
   }
@@ -2865,7 +3502,7 @@
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
   function openProposta(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
-    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}) };
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null) };
     if (p.div === 'SPV' && p.spv) {
       const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
@@ -2899,7 +3536,7 @@
     return S;
   }
   document.addEventListener('click', (e) => { const g = e.target.closest('[data-pendgo]'); if (!g) return; const [v, c] = g.dataset.pendgo.split('|'); if (g.dataset.cenpend) ui.cenSel = g.dataset.cenpend; ui.view = v; if (c) ui.cad = c; store.set(SK.view, ui); render(); window.scrollTo(0, 0); });
-  const MG = window.PricerMargens({ acompanhamento: () => PN.vLista(), aoEnviar: (p) => congelarMarco(p.id, 'enviada'), aoAprovar: (id) => congelarMarco(id, 'aprovada'), bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
+  const MG = window.PricerMargens({ acompanhamento: () => PN.vLista(), aoEnviar: (p) => { congelarMarco(p.id, 'enviada'); if (state.id === p.id && p.precos && !state.precosFix) { state.precosFix = JSON.parse(JSON.stringify(p.precos)); build(); persist(); } }, aoAprovar: (id) => congelarMarco(id, 'aprovada'), bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
     // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas
@@ -2935,6 +3572,7 @@
     if (state.cenSim && state.cenSim.length) p.cenSim = state.cenSim;
     if (!isSpv() && !isFacts()) { try { p.checagem = Object.assign(resumoConf(), { at: new Date().toISOString() }); } catch (e) { /* segue */ } }
     if (state.naCustos && Object.keys(state.naCustos).length) p.naCustos = state.naCustos;
+    if (!isSpv() && !isFacts()) { try { p.precos = precosUsados(); } catch (e) { /* segue sem a fotografia de preços */ } }
     try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
     // status, etapas, conferência e motivo de perda são da tela inicial: vêm do registro atual do banco
     const ajustar = (body, cur) => {
@@ -2946,7 +3584,7 @@
     const base = state.id && state.verBase !== undefined ? state.verBase : undefined;
     try {
       const novo = !state.id; const where = await REG.saveProposta(id, p, { editor: true, base, ajustar });
-      delete state._novaRev; state.id = id; state.verBase = (REG.ultimaVersao[id] || {}).verDoc; state.status = (REG.listPropostas() || []).find((x) => x.id === id)?.status || state.status;
+      delete state._novaRev; state.id = id; state.verBase = (REG.ultimaVersao[id] || {}).verDoc; if (p.precos) { state.precosSalvos = p.precos; if (state.precosFix) state.precosFix = JSON.parse(JSON.stringify(p.precos)); } state.status = (REG.listPropostas() || []).find((x) => x.id === id)?.status || state.status;
       dirty = false; ui.salvoEm = new Date().toISOString(); ui.erroSalvar = null; persist(); atualizaSaveSt();
       if (!isSpv() && !isFacts()) { try { PN.sincronizar({ id, numero: p.numero, cliente: p.cliente }, conferenciaCentral()).catch(() => {}); } catch (e) { /* a conferência não impede salvar */ } }
       if (!(ev && ev.auto)) toast((where === 'shared' ? 'Salvo e confirmado no banco da equipe: ' : 'Salvo e confirmado neste navegador: ') + docTitle());
