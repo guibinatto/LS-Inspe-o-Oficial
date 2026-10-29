@@ -208,11 +208,11 @@
         const linhas = s.equipe.filter((e) => num(e.dias) > 0).map((e, i) => ({ k: 'eq' + i, grupo: 'EQUIPE', rot: e.tec, desc: e.tec + ' — diárias', qtd: num(e.dias) * nV, unit: num(e.diaria), custo: num(e.diaria) * num(e.dias) * nV }))
           .concat(r.log.filter((x) => x.tot).map((x) => { const once = r.ct && x.f === 'art_qtd'; return { k: x.f, grupo: 'DESLOCAMENTO', rot: x.lb, desc: x.lb, qtd: num(x.qtd) * (once ? 1 : nV), unit: num(x.p), custo: x.tot * (once ? 1 : nV) }; }));
         const venda = r.Vs * nV + (r.ct ? r.ct.artV : 0); const custo = r.custoServ * nV + (r.ct ? r.ct.artCusto : 0);
-        itens.push(item('servico', ((TIPO_INI[s.tipo] || {}).titulo || ti.nome) + (r.ct ? ' — contrato' : ''), venda, custo, tx + num(mk.irpj) + num(mk.iss), linhas));
+        itens.push(Object.assign(item('servico', ((TIPO_INI[s.tipo] || {}).titulo || ti.nome) + (r.ct ? ' — contrato' : ''), venda, custo, tx + num(mk.irpj) + num(mk.iss), linhas), { pisCofinsPct: tx, irPct: num(mk.irpj), issPct: num(mk.iss), icmsPct: 0 }));
       }
       if (s.blocos.pecas && r.Vp) {
         const linhas = r.pecas.filter((p) => p.incluso !== false).map((p, i) => ({ k: 'pc' + i, grupo: 'PEÇAS', rot: p.forn || '', desc: p.desc, cod: p.cod || '', qtd: num(p.qtd) * nV, unit: p.unitBRL, custo: p.custo * nV }));
-        itens.push(item('pecas', 'Peças e materiais', r.Vp * nV, r.custoPecas * nV, tx + num(mk.irpj_pecas) + r.icms, linhas));
+        itens.push(Object.assign(item('pecas', 'Peças e materiais', r.Vp * nV, r.custoPecas * nV, tx + num(mk.irpj_pecas) + r.icms, linhas), { pisCofinsPct: tx, irPct: num(mk.irpj_pecas), issPct: 0, icmsPct: r.icms }));
       }
       const sum = (k) => itens.reduce((t, x) => t + x[k], 0); const venda = sum('venda'), margem = sum('margem');
       return { div: 'SPV', tipo: s.tipo, venda, vendaIpi: venda, custo: sum('custo'), impostos: sum('impostos'), comissao: sum('comissao'), margem, margemPct: venda ? margem / venda : 0, minimo: mk.lucro_min, itens };
@@ -427,6 +427,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="hchips" style="margin-bottom:10px">${FREQ.map(([v, lb]) => `<button class="hchip${num(s.contrato.visitas) === v ? ' on' : ''}" data-spvis="${v}">${lb} · ${v}×/ano</button>`).join('')}</div>
           <div class="fields">${fld('Visitas por ano', inp('contrato.visitas', s.contrato.visitas))}${fld('Duração (meses)', inp('contrato.meses', s.contrato.meses))}${fld('Reajuste', inp('contrato.reajuste', s.contrato.reajuste, 'text'))}</div>
           <div class="kpis" style="margin-top:12px"><div class="kpi"><span>Por visita</span><b>${brl(r.ct.porVisita)}</b><em>${fmt(r.ct.nV, 0)} visitas no contrato</em></div>${r.ct.artV ? `<div class="kpi"><span>ART (uma vez)</span><b>${brl(r.ct.artV)}</b><em>custo ${brl(r.ct.artCusto)}</em></div>` : ''}<div class="kpi lead"><span>Mensalidade</span><b>${brl(r.ct.mensal)}</b></div><div class="kpi"><span>Total do contrato</span><b>${brl(r.ct.total)}</b></div></div></section>` : ''}
+        ${ctx.tribCard ? ctx.tribCard(snapshot(s), { uf: s.uf, cadfiscal: '', div: 'SPV' }) : ''}
         <section class="card"><h2>Formação do preço</h2>
           <div class="split2">
             <div class="kv">

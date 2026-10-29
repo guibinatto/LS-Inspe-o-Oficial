@@ -950,6 +950,7 @@
         ${(() => { const ai = aprovInfo(); return `<section class="card"><h2>Aprovação da proposta <span class="sub">desconto além da política: peça pela proposta toda, com o valor target</span></h2><div class="aprovbox">${ai.estado ? aprovLinha({ aprov: ai }).replace(/^<br>/, '') : '<small class="sub">Nenhum pedido de aprovação para esta proposta.</small>'}<button class="btn${ai.estado === 'pendente' || ai.estado === 'aprovada' ? '' : ' pri'}" data-alaprov>${ai.estado ? 'Pedir de novo (novo valor target)' : 'Pedir aprovação (valor target)'}</button></div></section>`; })()}
         <section class="card"><h2>Alertas</h2>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta: preços dentro da política, conferências fechando e FCI pronta.</p>'}${memoOk ? '' : `<ul class="alerts" style="margin-top:6px"><li class="bad"><span>A proposta não bate com o memorial: diferença de ${brl(memo)}.</span></li></ul>`}</section>
         <section class="card"><h2>Itens</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
+        ${(() => { try { return TB.cardProposta(seqSnapshot(), { uf: txt(P, 'F7'), cadfiscal: txt(P, 'J5'), div: 'SEQ' }); } catch (e) { return ''; } })()}
         <section class="card"><h2>Documentos</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-savebtn>Salvar proposta</button><button class="btn" data-propfull>Ver todas as colunas</button></div></section>
         <div class="flowbar"><button class="btn" data-step="2">← Itens</button><span></span></div>`;
     }
@@ -1229,7 +1230,7 @@
   const AREAS = [
     ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação'], ['facts', 'FACTS (MECON)'], ['pedidos', 'Pedidos de cadastro']]],
     ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['mobase', 'Mão de obra e bases'], ['familias', 'Famílias'], ['codificacao', 'Codificação']]],
-    ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado e FCI', [['fiscal', 'Impostos e NCM']]],
+    ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado, FCI e os cenários da reforma tributária', [['fiscal', 'Impostos e NCM'], ['cenarios', 'Cenários tributários (reforma)']]],
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
     ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições']]],
@@ -1265,7 +1266,7 @@
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, mobase: vMoBase, facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -2368,7 +2369,7 @@
       if (m.custoStartup) linhas.push({ k: 'startup', grupo: 'SERVIÇOS', rot: 'Start-up', desc: 'Start-up', qtd: 1, unit: m.custoStartup / qtd, custo: m.custoStartup / qtd });
       if (m.custoFrete) linhas.push({ k: 'frete', grupo: 'SERVIÇOS', rot: 'Frete', desc: 'Frete', qtd: 1, unit: m.custoFrete / qtd, custo: m.custoFrete / qtd });
       const ro = rows.custoMat ? (() => { for (let r = 3; r <= 38; r++) if (txt('MEMORIAL', 'B' + r) === 'Origem do conjunto') return txt('MEMORIAL', numToCol(3 + i) + r); return ''; })() : '';
-      const pol = { fatorTabela: n(val(S, 'P20')), descMax: n(val(S, 'P24')), piso: n(val(S, 'P25')), fatorAplicado: n(val(S, 'P23')), pisPct: n(val(PA, 'C5')), cofinsPct: n(val(PA, 'C6')) };
+      const pol = { fatorTabela: n(val(S, 'P20')), descMax: n(val(S, 'P24')), piso: n(val(S, 'P25')), fatorAplicado: n(val(S, 'P23')), pisPct: n(val(PA, 'C5')), cofinsPct: n(val(PA, 'C6')), ncm: txt(S, 'G7') };
       itens.push(Object.assign(pol, { n: S, origem: ro, nome: txt(S, 'C28') || txt('PROPOSTA', 'C' + (20 + i)) || S, codigo: txt(S, 'C27'), familia: fam, familiaNome: famLabel(fam), linhas }, m, { qtd }));
     });
     const T = pick('M');
@@ -2419,6 +2420,7 @@
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
   const FX = window.PricerFacts({ revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
+  const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
   const MG = window.PricerMargens({ abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
@@ -2429,7 +2431,7 @@
     ui.step = 1; setView('proposta'); toast(fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco'); }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));
-  const SPV = window.PricerSPV({ revSelo: () => revSelo(), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
