@@ -305,9 +305,45 @@
 
     // ---- propostas ----
     R.listPropostas = () => R.mode === 'shared' && R.propostas ? R.propostas : Object.entries(ls.get(LS.saved, {})).map(([id, p]) => Object.assign({ id, local: true }, p)).sort((a, b) => String(b.at).localeCompare(String(a.at)));
-    R.saveProposta = async (id, p) => {
-      if (R.mode === 'shared' && R.canSaveShared) { await R.db.doc('propostas/' + id).set(clean(Object.assign({}, p, { by: R.me || undefined }))); return 'shared'; }
-      const saved = ls.get(LS.saved, {}); saved[id] = p; ls.set(LS.saved, saved); return 'local';
+    // gravação com versão: 'ver' sobe a cada gravação; 'verDoc' só quando o conteúdo (editor) muda.
+    // O editor informa a versão que abriu (base): se outra pessoa gravou o conteúdo antes, é conflito — nunca sobrescreve calado.
+    // Status, etapas e conferência gravam por patch: relê o registro atual, aplica só a mudança, grava e confere.
+    const emShared = () => R.mode === 'shared' && R.canSaveShared;
+    R.lerProposta = async (id) => {
+      if (emShared()) { const d = await R.db.doc('propostas/' + id).get(); return d.exists ? JSON.parse(JSON.stringify(d.data())) : null; }
+      const x = ls.get(LS.saved, {})[id]; return x ? JSON.parse(JSON.stringify(x)) : null;
+    };
+    async function gravarConferido(id, body) {
+      if (emShared()) {
+        const b = clean(Object.assign({}, body, { by: R.me || undefined })); await R.db.doc('propostas/' + id).set(b);
+        const v = await R.db.doc('propostas/' + id).get();
+        if (!v.exists || (v.data() || {}).ver !== b.ver) { const e = new Error('O banco não confirmou a gravação (outra gravação chegou junto). Tente salvar de novo.'); e.code = 'nao_confirmado'; throw e; }
+        return 'shared';
+      }
+      const saved = ls.get(LS.saved, {}); saved[id] = body;
+      if (!ls.set(LS.saved, saved)) { const e = new Error('O navegador não deixou gravar (sem espaço ou bloqueado). Baixe um backup em Cadastro → Sistema e libere espaço.'); e.code = 'armazenamento'; throw e; }
+      if (((ls.get(LS.saved, {})[id]) || {}).ver !== body.ver) { const e = new Error('A gravação neste navegador não se confirmou. Tente de novo.'); e.code = 'nao_confirmado'; throw e; }
+      return 'local';
+    }
+    R.ultimaVersao = {};
+    R.saveProposta = async (id, p, opts = {}) => {
+      const cur = await R.lerProposta(id);
+      if (opts.base !== undefined && opts.base !== null && cur && (cur.verDoc || 0) !== opts.base) { const e = new Error('Outra pessoa salvou esta proposta enquanto você editava.'); e.code = 'conflito'; e.remoto = cur; throw e; }
+      const body = JSON.parse(JSON.stringify(p)); delete body.id; delete body.local;
+      if (opts.ajustar) opts.ajustar(body, cur);
+      body.ver = (cur ? cur.ver || 0 : 0) + 1; body.verDoc = opts.editor ? (cur ? cur.verDoc || 0 : 0) + 1 : (cur ? cur.verDoc || 0 : body.verDoc || 0);
+      const onde = await gravarConferido(id, body); R.ultimaVersao[id] = { ver: body.ver, verDoc: body.verDoc };
+      if (R.mode === 'shared' && R.propostas) { const i = R.propostas.findIndex((x) => x.id === id); const rec = Object.assign({ id }, body, { by: R.me || body.by }); if (i >= 0) R.propostas[i] = rec; }
+      return onde;
+    };
+    R.patchProposta = async (id, mut) => {
+      for (let t = 0; t < 3; t++) {
+        const cur = await R.lerProposta(id); if (!cur) throw new Error('Proposta não encontrada.');
+        const body = JSON.parse(JSON.stringify(cur)); if (typeof mut === 'function') mut(body); else Object.assign(body, mut);
+        body.ver = (cur.ver || 0) + 1; body.verDoc = cur.verDoc || 0;
+        try { await gravarConferido(id, body); R.ultimaVersao[id] = { ver: body.ver, verDoc: body.verDoc }; if (R.mode === 'local') changed('propostas'); return body; }
+        catch (e) { if (e.code !== 'nao_confirmado' || t === 2) throw e; }
+      }
     };
     R.deleteProposta = async (id, isLocal) => {
       if (!isLocal && R.mode === 'shared') { await R.db.doc('propostas/' + id).delete(); return; }

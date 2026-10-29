@@ -103,8 +103,7 @@
       toast(ressalva ? 'Aceito com ressalva e PDF salvo' : 'Confere! PDF salvo na formação'); ctx.render();
     }
     async function marcar(p, F, c) {
-      const rec = Object.assign({}, p, { conferencia: Object.assign({ at: new Date().toISOString(), by: REG.me || null, rev: F.rev, total: F.totalRef }, c) }); delete rec.id; delete rec.local;
-      try { await REG.saveProposta(p.id, rec); } catch (e) { toast((e && e.message) || 'Não consegui registrar a conferência'); }
+      try { await REG.patchProposta(p.id, { conferencia: Object.assign({ at: new Date().toISOString(), by: REG.me || null, rev: F.rev, total: F.totalRef }, c) }); } catch (e) { toast((e && e.message) || 'Não consegui registrar a conferência'); }
     }
     document.addEventListener('click', (e) => { if (e.target.closest('[data-conftudo]')) { ui.confTudo = !ui.confTudo; ctx.render(); setTimeout(() => { const el = $('#confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 30); } });
     document.addEventListener('change', (e) => { if (e.target.id === 'confUp') { const f = e.target.files[0]; e.target.value = ''; if (f) rodar(f); } });

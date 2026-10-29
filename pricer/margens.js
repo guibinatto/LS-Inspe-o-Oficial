@@ -26,7 +26,7 @@
     // ---------- fechamentos: banco da equipe ou navegador ----------
     let fech = []; let sub = false;
     const lsGet = () => { try { return JSON.parse(localStorage.getItem(LSK) || '{}'); } catch (e) { return {}; } };
-    const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { toast('Sem espaço no navegador para guardar o fechamento'); } };
+    const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { throw new Error('O navegador não deixou gravar a baixa (sem espaço). Baixe um backup e libere espaço.'); } };
     function ensure() {
       const m = shared() ? 'shared' : 'local'; if (sub === m || sub === 'shared') return; sub = m;
       if (m === 'shared') REG.db.collection('fechamentos').orderBy('fechadoEm', 'desc').limit(500).onSnapshot((s) => { fech = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
@@ -108,8 +108,7 @@
           try {
             await gravar(p.id, F);
             ctx.log && ctx.log({ tipo: 'Baixa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || ''), mudancas: [{ campo: 'Valor proposto', de: null, para: snap.venda }, { campo: 'Valor fechado', de: null, para: v }, { campo: 'Margem', de: snap.margemPct, para: fechado(F).margemPct }, { campo: 'Pedido', de: null, para: F.pedido || null }] });
-            const rec = Object.assign({}, p, { status: 'ganha', resumo: ctx.resumoOf(snap) }); delete rec.id; delete rec.local;
-            await REG.saveProposta(p.id, rec);
+            await REG.patchProposta(p.id, { status: 'ganha', resumo: ctx.resumoOf(snap) });
             if (!shared()) fech = Object.entries(lsGet()).map(([k, f]) => Object.assign({ id: k }, f));
             close(); toast('Baixa registrada: ' + (p.numero || p.name || 'proposta'));
             if (querXls) excel(Object.assign({ id: p.id }, F)).catch((e) => toast(e.message || 'Não consegui gerar o Excel'));
@@ -499,7 +498,7 @@
     async function calcularAntigas() {
       const list = (REG.listPropostas() || []).filter((p) => ABERTAS.includes(p.status || 'rascunho') && !(p.resumo && p.resumo.venda > 0));
       let ok = 0; toast('Calculando ' + list.length + ' proposta(s)…');
-      for (const p of list) { try { const snap = ctx.snapshotOf(p); const rec = Object.assign({}, p, { resumo: ctx.resumoOf(snap) }); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec); ok++; } catch (e) { /* segue */ } await new Promise((r) => setTimeout(r, 0)); }
+      for (const p of list) { try { const snap = ctx.snapshotOf(p); await REG.patchProposta(p.id, { resumo: ctx.resumoOf(snap) }); ok++; } catch (e) { /* segue */ } await new Promise((r) => setTimeout(r, 0)); }
       toast(ok + ' proposta(s) com margem calculada'); ctx.render();
     }
 
@@ -529,7 +528,7 @@
       if (t.closest('[data-mgcalc]')) { calcularAntigas(); return; }
       const xl = t.closest('[data-mgxls]'); if (xl) { const F = fech.find((f) => f.id === xl.dataset.mgxls); if (F) excel(F).catch((er) => toast(er.message || 'Não consegui gerar o Excel')); return; }
       const ro = t.closest('[data-mgreopen]'); if (ro) { if (!ro.dataset.sure) { ro.dataset.sure = 1; ro.textContent = 'Confirmar: desfazer a baixa'; ro.classList.add('pri'); return; }
-        const F = fech.find((f) => f.id === ro.dataset.mgreopen); apagar(ro.dataset.mgreopen).then(async () => { ctx.log && ctx.log({ tipo: 'Baixa desfeita', ref: ro.dataset.mgreopen, desc: F ? (F.numero || F.nome || '') : '', mudancas: [] }); const p = (REG.listPropostas() || []).find((x) => x.id === (F && F.propId)); if (p) { const rec = Object.assign({}, p, { status: 'negociacao' }); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec).catch(() => {}); } ui.mgId = null; ctx.render(); toast('Baixa desfeita'); }).catch((er) => toast(er.message || 'Não consegui desfazer')); return; }
+        const F = fech.find((f) => f.id === ro.dataset.mgreopen); apagar(ro.dataset.mgreopen).then(async () => { ctx.log && ctx.log({ tipo: 'Baixa desfeita', ref: ro.dataset.mgreopen, desc: F ? (F.numero || F.nome || '') : '', mudancas: [] }); const p = (REG.listPropostas() || []).find((x) => x.id === (F && F.propId)); if (p) await REG.patchProposta(p.id, { status: 'negociacao' }).catch(() => {}); ui.mgId = null; ctx.render(); toast('Baixa desfeita'); }).catch((er) => toast(er.message || 'Não consegui desfazer')); return; }
       const ad = t.closest('[data-rexadd]'); if (ad) { const n = ad.dataset.rexadd;
         modal(`<h2>Custo não previsto</h2><div class="fields"><div class="f span2"><label for="rxD">Descrição</label><input id="rxD" placeholder="retrabalho, frete extra, peça trocada…"></div><div class="f"><label for="rxV">Valor (R$)</label><input id="rxV" inputmode="decimal"></div></div><div style="display:flex;gap:8px"><button class="btn pri" id="rxOk">Lançar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
           $('#rxOk', o).onclick = () => { const d = $('#rxD', o).value.trim(); const v = parseInput($('#rxV', o).value, 'num'); if (!d || typeof v !== 'number') { toast('Preencha descrição e valor'); return; } close(); setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].extras = (real[n].extras || []).concat([{ desc: d, v }]); }); };
@@ -568,8 +567,7 @@
         <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
     }
     async function salvarEtapa(p, k, val, desc) {
-      const rec = Object.assign({}, p); delete rec.id; delete rec.local; rec.etapas = Object.assign({}, p.etapas || {}); if (val) rec.etapas[k] = val; else delete rec.etapas[k];
-      await REG.saveProposta(p.id, rec);
+      await REG.patchProposta(p.id, (r) => { r.etapas = Object.assign({}, r.etapas || {}); if (val) r.etapas[k] = val; else delete r.etapas[k]; });
       ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — ' + desc, mudancas: [{ campo: (ETAPAS.find((x) => x[0] === k) || [0, k])[1], de: val ? null : 'feito', para: val ? 'feito' + (val.obs ? ' · ' + val.obs : '') : null }] });
       ctx.render();
     }
@@ -581,8 +579,8 @@
       if (x.act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
       if (x.act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
-      if (x.act === 'cliente') { const rec = Object.assign({}, p, { status: 'enviada', etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }); delete rec.id; delete rec.local;
-        REG.saveProposta(p.id, rec).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
+      if (x.act === 'cliente') { ctx.aoEnviar && ctx.aoEnviar(p);
+        REG.patchProposta(p.id, (r) => { r.status = 'enviada'; r.etapas = Object.assign({}, r.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }); }).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
       if (x.act === 'avisar' && x.s !== 'ok') { avisarModal(p, [k]); return; }
       if (x.act !== 'marcar' && x.act !== 'avisar') return;
       if (x.s === 'ok') { if (!window.confirm('Desmarcar "' + x.lb + '"?')) return; salvarEtapa(p, k, null, x.lb + ' desmarcada').catch((e) => toast(e.message || 'Não consegui salvar')); return; }
@@ -612,9 +610,7 @@
       return { assunto: `Proposta ${n} fechada — formação disponível${F.cliente ? ' · ' + F.cliente : ''}`, corpo: linhas.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim() };
     }
     async function marcarAvisadas(p, areas, obs) {
-      const rec = Object.assign({}, p); delete rec.id; delete rec.local; rec.etapas = Object.assign({}, p.etapas || {});
-      for (const a of areas) rec.etapas[a] = { at: new Date().toISOString(), by: REG.me || null, obs };
-      await REG.saveProposta(p.id, rec);
+      await REG.patchProposta(p.id, (r) => { r.etapas = Object.assign({}, r.etapas || {}); for (const a of areas) r.etapas[a] = { at: new Date().toISOString(), by: REG.me || null, obs }; });
       ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' — ' + areas.map((a) => (ETAPAS.find((x) => x[0] === a) || [0, a])[1]).join(' e ') + (obs ? ': ' + obs : ''), mudancas: areas.map((a) => ({ campo: (ETAPAS.find((x) => x[0] === a) || [0, a])[1], de: null, para: 'feito' })) });
       ctx.render();
     }
@@ -683,7 +679,7 @@
     async function gravarA(id, rec) {
       const body = JSON.parse(JSON.stringify(rec)); delete body.id;
       if (shared()) await REG.db.doc('aprovacoes/' + id).set(body);
-      else { let all = {}; try { all = JSON.parse(localStorage.getItem('lspricer.aprovacoes.v1') || '{}'); } catch (e) { all = {}; } all[id] = body; try { localStorage.setItem('lspricer.aprovacoes.v1', JSON.stringify(all)); } catch (e) { /* sem espaço */ } aprov = Object.entries(all).map(([k, x]) => Object.assign({ id: k }, x)); ctx.render(); }
+      else { let all = {}; try { all = JSON.parse(localStorage.getItem('lspricer.aprovacoes.v1') || '{}'); } catch (e) { all = {}; } all[id] = body; try { localStorage.setItem('lspricer.aprovacoes.v1', JSON.stringify(all)); } catch (e) { throw new Error('O navegador não deixou gravar a aprovação (sem espaço). Baixe um backup e libere espaço.'); } aprov = Object.entries(all).map(([k, x]) => Object.assign({ id: k }, x)); ctx.render(); }
     }
     const PAPEIS = [['diretoria', 'Diretoria'], ['financeiro', 'Financeiro']];
     const aprovDe = (propId) => { ensureA(); return aprov.find((a) => a.id === propId) || null; };
@@ -846,8 +842,8 @@
     document.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-hnext]'); const pd = ev.target.closest('[data-hperdida]'); if (!b && !pd) return;
       const [pid, act] = (b ? b.dataset.hnext : pd.dataset.hperdida + '|perdida').split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
-      const salvaStatus = async (status, extra, desc) => { const rec = Object.assign({}, p, { status }, extra || {}); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec); ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + (desc ? ' — ' + desc : ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: status }] }); ctx.render(); };
-      if (act === 'cliente') { salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
+      const salvaStatus = async (status, extra, desc) => { await REG.patchProposta(p.id, (r) => { r.status = status; for (const [k, v] of Object.entries(extra || {})) { if (k === 'etapas') r.etapas = Object.assign({}, r.etapas || {}, v); else r[k] = v; } }); ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + (desc ? ' — ' + desc : ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: status }] }); ctx.render(); };
+      if (act === 'cliente') { ctx.aoEnviar && ctx.aoEnviar(p); salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
       if (act === 'baixa') { fecharModal(p); return; }
       if (act === 'aplicar') { ctx.abrirProposta && ctx.abrirProposta(p, 3); return; }
       if (act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }

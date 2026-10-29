@@ -40,7 +40,7 @@
     const shared = () => REG.mode === 'shared' && !!REG.db;
     let lista = []; let sub = null;
     const lsGet = () => { try { return JSON.parse(localStorage.getItem(LSK) || '{}'); } catch (e) { return {}; } };
-    const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { /* sem espaço */ } };
+    const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { throw new Error('O navegador não deixou gravar o pedido (sem espaço). Baixe um backup e libere espaço.'); } };
     function ensure() {
       const m = shared() ? 'shared' : 'local'; if (sub === m || sub === 'shared') return; sub = m;
       if (m === 'shared') REG.db.collection('pedidos').orderBy('at', 'desc').limit(300).onSnapshot((s) => { lista = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});

@@ -379,6 +379,7 @@ input.rin.pend{color:var(--ink3);font-style:italic}.rok{all:unset;cursor:pointer
 table.cent td{vertical-align:top}table.cent select{max-width:190px}table.cent .chk{display:inline-flex;gap:3px;margin-right:6px;white-space:nowrap}
 .warn-t{color:var(--warn)}tr.cf-erro td{background:var(--bad-bg)}tr.cf-aviso td{background:var(--warn-bg)}
 .pendbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--card);font-size:13.5px}
+.savest{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;align-self:center}.savest.ok{color:var(--ok);background:var(--ok-bg)}.savest.warn{color:var(--warn);background:var(--warn-bg)}.savest.bad{color:var(--bad);background:var(--bad-bg)}.savest.mute{color:var(--ink3);background:var(--card)}
 ul.uso{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
 table.porte td.ptxt{white-space:normal;min-width:110px;font-size:12.5px;line-height:1.3;vertical-align:top}
 .pedit{all:unset;cursor:pointer;display:block;border:1px dashed var(--line2);border-radius:6px;padding:4px 6px;word-break:break-word}.pedit:hover,.pedit:focus-visible{border-color:var(--or);background:var(--or-soft)}.cnpjrow input{flex:1 1 auto;min-width:0}
@@ -419,7 +420,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 <header class="top">
   <div class="top-in">
     <div class="brand"><span class="logo-plate"><img src="data:image/png;base64,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" alt="LS Fire — Sistemas de Combate a Incêndio" width="130" height="48"></span><span>Pricer</span> <small>REV21</small></div>
-    <div class="doc-name" id="docName"></div>
+    <div class="doc-name" id="docName"></div><span id="saveSt" class="savest" hidden aria-live="polite"></span>
     <nav class="nav" id="nav" aria-label="Seções">
       <button data-view="inicio">Início</button>
       <button data-view="pendencias">Pendências</button>
@@ -1423,9 +1424,45 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 
     // ---- propostas ----
     R.listPropostas = () => R.mode === 'shared' && R.propostas ? R.propostas : Object.entries(ls.get(LS.saved, {})).map(([id, p]) => Object.assign({ id, local: true }, p)).sort((a, b) => String(b.at).localeCompare(String(a.at)));
-    R.saveProposta = async (id, p) => {
-      if (R.mode === 'shared' && R.canSaveShared) { await R.db.doc('propostas/' + id).set(clean(Object.assign({}, p, { by: R.me || undefined }))); return 'shared'; }
-      const saved = ls.get(LS.saved, {}); saved[id] = p; ls.set(LS.saved, saved); return 'local';
+    // gravação com versão: 'ver' sobe a cada gravação; 'verDoc' só quando o conteúdo (editor) muda.
+    // O editor informa a versão que abriu (base): se outra pessoa gravou o conteúdo antes, é conflito — nunca sobrescreve calado.
+    // Status, etapas e conferência gravam por patch: relê o registro atual, aplica só a mudança, grava e confere.
+    const emShared = () => R.mode === 'shared' && R.canSaveShared;
+    R.lerProposta = async (id) => {
+      if (emShared()) { const d = await R.db.doc('propostas/' + id).get(); return d.exists ? JSON.parse(JSON.stringify(d.data())) : null; }
+      const x = ls.get(LS.saved, {})[id]; return x ? JSON.parse(JSON.stringify(x)) : null;
+    };
+    async function gravarConferido(id, body) {
+      if (emShared()) {
+        const b = clean(Object.assign({}, body, { by: R.me || undefined })); await R.db.doc('propostas/' + id).set(b);
+        const v = await R.db.doc('propostas/' + id).get();
+        if (!v.exists || (v.data() || {}).ver !== b.ver) { const e = new Error('O banco não confirmou a gravação (outra gravação chegou junto). Tente salvar de novo.'); e.code = 'nao_confirmado'; throw e; }
+        return 'shared';
+      }
+      const saved = ls.get(LS.saved, {}); saved[id] = body;
+      if (!ls.set(LS.saved, saved)) { const e = new Error('O navegador não deixou gravar (sem espaço ou bloqueado). Baixe um backup em Cadastro → Sistema e libere espaço.'); e.code = 'armazenamento'; throw e; }
+      if (((ls.get(LS.saved, {})[id]) || {}).ver !== body.ver) { const e = new Error('A gravação neste navegador não se confirmou. Tente de novo.'); e.code = 'nao_confirmado'; throw e; }
+      return 'local';
+    }
+    R.ultimaVersao = {};
+    R.saveProposta = async (id, p, opts = {}) => {
+      const cur = await R.lerProposta(id);
+      if (opts.base !== undefined && opts.base !== null && cur && (cur.verDoc || 0) !== opts.base) { const e = new Error('Outra pessoa salvou esta proposta enquanto você editava.'); e.code = 'conflito'; e.remoto = cur; throw e; }
+      const body = JSON.parse(JSON.stringify(p)); delete body.id; delete body.local;
+      if (opts.ajustar) opts.ajustar(body, cur);
+      body.ver = (cur ? cur.ver || 0 : 0) + 1; body.verDoc = opts.editor ? (cur ? cur.verDoc || 0 : 0) + 1 : (cur ? cur.verDoc || 0 : body.verDoc || 0);
+      const onde = await gravarConferido(id, body); R.ultimaVersao[id] = { ver: body.ver, verDoc: body.verDoc };
+      if (R.mode === 'shared' && R.propostas) { const i = R.propostas.findIndex((x) => x.id === id); const rec = Object.assign({ id }, body, { by: R.me || body.by }); if (i >= 0) R.propostas[i] = rec; }
+      return onde;
+    };
+    R.patchProposta = async (id, mut) => {
+      for (let t = 0; t < 3; t++) {
+        const cur = await R.lerProposta(id); if (!cur) throw new Error('Proposta não encontrada.');
+        const body = JSON.parse(JSON.stringify(cur)); if (typeof mut === 'function') mut(body); else Object.assign(body, mut);
+        body.ver = (cur.ver || 0) + 1; body.verDoc = cur.verDoc || 0;
+        try { await gravarConferido(id, body); R.ultimaVersao[id] = { ver: body.ver, verDoc: body.verDoc }; if (R.mode === 'local') changed('propostas'); return body; }
+        catch (e) { if (e.code !== 'nao_confirmado' || t === 2) throw e; }
+      }
     };
     R.deleteProposta = async (id, isLocal) => {
       if (!isLocal && R.mode === 'shared') { await R.db.doc('propostas/' + id).delete(); return; }
@@ -2667,7 +2704,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       if (el.dataset && el.dataset.spblk && S()) { S().blocos[el.dataset.spblk] = el.checked; ctx.persist(); ctx.render(); return; }
       if (el.dataset && el.dataset.cfg) { const v = parseV(el); if (v === undefined) return toast('Número inválido'); saveCfg((c) => setPath(c, el.dataset.cfg, v), el.dataset.cfg); return; }
       if (el.dataset && el.dataset.hstatus) { const p = (REG.listPropostas() || []).find((x) => x.id === el.dataset.hstatus); if (!p) return;
-        if (el.value === 'ganha' && ctx.fechar) { ctx.render(); ctx.fechar(p); return; } const rec = Object.assign({}, p, { status: el.value }); delete rec.id; delete rec.local; REG.saveProposta(p.id, rec).then(() => { ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: el.value }] }); toast('Status: ' + (STATUS.find((x) => x[0] === el.value) || [0, el.value])[1]); if (st().id === p.id) st().status = el.value; ctx.render(); }).catch((er) => toast(er.message || 'Não consegui salvar')); return; }
+        if (el.value === 'ganha' && ctx.fechar) { ctx.render(); ctx.fechar(p); return; } REG.patchProposta(p.id, { status: el.value }).then(() => { ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: el.value }] }); toast('Status: ' + (STATUS.find((x) => x[0] === el.value) || [0, el.value])[1]); if (st().id === p.id) st().status = el.value; ctx.render(); }).catch((er) => toast(er.message || 'Não consegui salvar')); return; }
       if (el.id === 'spImport') { importar(el.files[0], true); el.value = ''; return; }
       if (el.id === 'spAttach') { importar(el.files[0], false); el.value = ''; return; }
       if (el.id === 'docUp') { importar(el.files[0], false); el.value = ''; return; }
@@ -2973,7 +3010,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const shared = () => REG.mode === 'shared' && !!REG.db;
     let lista = []; let sub = null;
     const lsGet = () => { try { return JSON.parse(localStorage.getItem(LSK) || '{}'); } catch (e) { return {}; } };
-    const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { /* sem espaço */ } };
+    const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { throw new Error('O navegador não deixou gravar o pedido (sem espaço). Baixe um backup e libere espaço.'); } };
     function ensure() {
       const m = shared() ? 'shared' : 'local'; if (sub === m || sub === 'shared') return; sub = m;
       if (m === 'shared') REG.db.collection('pedidos').orderBy('at', 'desc').limit(300).onSnapshot((s) => { lista = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
@@ -3378,8 +3415,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       toast(ressalva ? 'Aceito com ressalva e PDF salvo' : 'Confere! PDF salvo na formação'); ctx.render();
     }
     async function marcar(p, F, c) {
-      const rec = Object.assign({}, p, { conferencia: Object.assign({ at: new Date().toISOString(), by: REG.me || null, rev: F.rev, total: F.totalRef }, c) }); delete rec.id; delete rec.local;
-      try { await REG.saveProposta(p.id, rec); } catch (e) { toast((e && e.message) || 'Não consegui registrar a conferência'); }
+      try { await REG.patchProposta(p.id, { conferencia: Object.assign({ at: new Date().toISOString(), by: REG.me || null, rev: F.rev, total: F.totalRef }, c) }); } catch (e) { toast((e && e.message) || 'Não consegui registrar a conferência'); }
     }
     document.addEventListener('click', (e) => { if (e.target.closest('[data-conftudo]')) { ui.confTudo = !ui.confTudo; ctx.render(); setTimeout(() => { const el = $('#confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 30); } });
     document.addEventListener('change', (e) => { if (e.target.id === 'confUp') { const f = e.target.files[0]; e.target.value = ''; if (f) rodar(f); } });
@@ -3426,7 +3462,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     // ---------- fechamentos: banco da equipe ou navegador ----------
     let fech = []; let sub = false;
     const lsGet = () => { try { return JSON.parse(localStorage.getItem(LSK) || '{}'); } catch (e) { return {}; } };
-    const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { toast('Sem espaço no navegador para guardar o fechamento'); } };
+    const lsSet = (o) => { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) { throw new Error('O navegador não deixou gravar a baixa (sem espaço). Baixe um backup e libere espaço.'); } };
     function ensure() {
       const m = shared() ? 'shared' : 'local'; if (sub === m || sub === 'shared') return; sub = m;
       if (m === 'shared') REG.db.collection('fechamentos').orderBy('fechadoEm', 'desc').limit(500).onSnapshot((s) => { fech = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); ctx.render(); }, () => {});
@@ -3508,8 +3544,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
           try {
             await gravar(p.id, F);
             ctx.log && ctx.log({ tipo: 'Baixa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || ''), mudancas: [{ campo: 'Valor proposto', de: null, para: snap.venda }, { campo: 'Valor fechado', de: null, para: v }, { campo: 'Margem', de: snap.margemPct, para: fechado(F).margemPct }, { campo: 'Pedido', de: null, para: F.pedido || null }] });
-            const rec = Object.assign({}, p, { status: 'ganha', resumo: ctx.resumoOf(snap) }); delete rec.id; delete rec.local;
-            await REG.saveProposta(p.id, rec);
+            await REG.patchProposta(p.id, { status: 'ganha', resumo: ctx.resumoOf(snap) });
             if (!shared()) fech = Object.entries(lsGet()).map(([k, f]) => Object.assign({ id: k }, f));
             close(); toast('Baixa registrada: ' + (p.numero || p.name || 'proposta'));
             if (querXls) excel(Object.assign({ id: p.id }, F)).catch((e) => toast(e.message || 'Não consegui gerar o Excel'));
@@ -3899,7 +3934,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     async function calcularAntigas() {
       const list = (REG.listPropostas() || []).filter((p) => ABERTAS.includes(p.status || 'rascunho') && !(p.resumo && p.resumo.venda > 0));
       let ok = 0; toast('Calculando ' + list.length + ' proposta(s)…');
-      for (const p of list) { try { const snap = ctx.snapshotOf(p); const rec = Object.assign({}, p, { resumo: ctx.resumoOf(snap) }); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec); ok++; } catch (e) { /* segue */ } await new Promise((r) => setTimeout(r, 0)); }
+      for (const p of list) { try { const snap = ctx.snapshotOf(p); await REG.patchProposta(p.id, { resumo: ctx.resumoOf(snap) }); ok++; } catch (e) { /* segue */ } await new Promise((r) => setTimeout(r, 0)); }
       toast(ok + ' proposta(s) com margem calculada'); ctx.render();
     }
 
@@ -3929,7 +3964,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       if (t.closest('[data-mgcalc]')) { calcularAntigas(); return; }
       const xl = t.closest('[data-mgxls]'); if (xl) { const F = fech.find((f) => f.id === xl.dataset.mgxls); if (F) excel(F).catch((er) => toast(er.message || 'Não consegui gerar o Excel')); return; }
       const ro = t.closest('[data-mgreopen]'); if (ro) { if (!ro.dataset.sure) { ro.dataset.sure = 1; ro.textContent = 'Confirmar: desfazer a baixa'; ro.classList.add('pri'); return; }
-        const F = fech.find((f) => f.id === ro.dataset.mgreopen); apagar(ro.dataset.mgreopen).then(async () => { ctx.log && ctx.log({ tipo: 'Baixa desfeita', ref: ro.dataset.mgreopen, desc: F ? (F.numero || F.nome || '') : '', mudancas: [] }); const p = (REG.listPropostas() || []).find((x) => x.id === (F && F.propId)); if (p) { const rec = Object.assign({}, p, { status: 'negociacao' }); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec).catch(() => {}); } ui.mgId = null; ctx.render(); toast('Baixa desfeita'); }).catch((er) => toast(er.message || 'Não consegui desfazer')); return; }
+        const F = fech.find((f) => f.id === ro.dataset.mgreopen); apagar(ro.dataset.mgreopen).then(async () => { ctx.log && ctx.log({ tipo: 'Baixa desfeita', ref: ro.dataset.mgreopen, desc: F ? (F.numero || F.nome || '') : '', mudancas: [] }); const p = (REG.listPropostas() || []).find((x) => x.id === (F && F.propId)); if (p) await REG.patchProposta(p.id, { status: 'negociacao' }).catch(() => {}); ui.mgId = null; ctx.render(); toast('Baixa desfeita'); }).catch((er) => toast(er.message || 'Não consegui desfazer')); return; }
       const ad = t.closest('[data-rexadd]'); if (ad) { const n = ad.dataset.rexadd;
         modal(`<h2>Custo não previsto</h2><div class="fields"><div class="f span2"><label for="rxD">Descrição</label><input id="rxD" placeholder="retrabalho, frete extra, peça trocada…"></div><div class="f"><label for="rxV">Valor (R$)</label><input id="rxV" inputmode="decimal"></div></div><div style="display:flex;gap:8px"><button class="btn pri" id="rxOk">Lançar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
           $('#rxOk', o).onclick = () => { const d = $('#rxD', o).value.trim(); const v = parseInput($('#rxV', o).value, 'num'); if (!d || typeof v !== 'number') { toast('Preencha descrição e valor'); return; } close(); setReal(ui.mgId, (real) => { real[n] = real[n] || {}; real[n].extras = (real[n].extras || []).concat([{ desc: d, v }]); }); };
@@ -3968,8 +4003,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
         <span class="etc">${x.s === 'ok' ? '✓' : x.s === 'parcial' ? '◐' : ''}</span><span class="etl">${esc(x.lb)}</span>${x.info ? `<small>${esc(x.info)}</small>` : ''}</button>`).join('')}</div>`;
     }
     async function salvarEtapa(p, k, val, desc) {
-      const rec = Object.assign({}, p); delete rec.id; delete rec.local; rec.etapas = Object.assign({}, p.etapas || {}); if (val) rec.etapas[k] = val; else delete rec.etapas[k];
-      await REG.saveProposta(p.id, rec);
+      await REG.patchProposta(p.id, (r) => { r.etapas = Object.assign({}, r.etapas || {}); if (val) r.etapas[k] = val; else delete r.etapas[k]; });
       ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + ' — ' + desc, mudancas: [{ campo: (ETAPAS.find((x) => x[0] === k) || [0, k])[1], de: val ? null : 'feito', para: val ? 'feito' + (val.obs ? ' · ' + val.obs : '') : null }] });
       ctx.render();
     }
@@ -3981,8 +4015,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       if (x.act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
       if (x.act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
-      if (x.act === 'cliente') { const rec = Object.assign({}, p, { status: 'enviada', etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }); delete rec.id; delete rec.local;
-        REG.saveProposta(p.id, rec).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
+      if (x.act === 'cliente') { ctx.aoEnviar && ctx.aoEnviar(p);
+        REG.patchProposta(p.id, (r) => { r.status = 'enviada'; r.etapas = Object.assign({}, r.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }); }).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
       if (x.act === 'avisar' && x.s !== 'ok') { avisarModal(p, [k]); return; }
       if (x.act !== 'marcar' && x.act !== 'avisar') return;
       if (x.s === 'ok') { if (!window.confirm('Desmarcar "' + x.lb + '"?')) return; salvarEtapa(p, k, null, x.lb + ' desmarcada').catch((e) => toast(e.message || 'Não consegui salvar')); return; }
@@ -4012,9 +4046,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       return { assunto: `Proposta ${n} fechada — formação disponível${F.cliente ? ' · ' + F.cliente : ''}`, corpo: linhas.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim() };
     }
     async function marcarAvisadas(p, areas, obs) {
-      const rec = Object.assign({}, p); delete rec.id; delete rec.local; rec.etapas = Object.assign({}, p.etapas || {});
-      for (const a of areas) rec.etapas[a] = { at: new Date().toISOString(), by: REG.me || null, obs };
-      await REG.saveProposta(p.id, rec);
+      await REG.patchProposta(p.id, (r) => { r.etapas = Object.assign({}, r.etapas || {}); for (const a of areas) r.etapas[a] = { at: new Date().toISOString(), by: REG.me || null, obs }; });
       ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' — ' + areas.map((a) => (ETAPAS.find((x) => x[0] === a) || [0, a])[1]).join(' e ') + (obs ? ': ' + obs : ''), mudancas: areas.map((a) => ({ campo: (ETAPAS.find((x) => x[0] === a) || [0, a])[1], de: null, para: 'feito' })) });
       ctx.render();
     }
@@ -4083,7 +4115,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     async function gravarA(id, rec) {
       const body = JSON.parse(JSON.stringify(rec)); delete body.id;
       if (shared()) await REG.db.doc('aprovacoes/' + id).set(body);
-      else { let all = {}; try { all = JSON.parse(localStorage.getItem('lspricer.aprovacoes.v1') || '{}'); } catch (e) { all = {}; } all[id] = body; try { localStorage.setItem('lspricer.aprovacoes.v1', JSON.stringify(all)); } catch (e) { /* sem espaço */ } aprov = Object.entries(all).map(([k, x]) => Object.assign({ id: k }, x)); ctx.render(); }
+      else { let all = {}; try { all = JSON.parse(localStorage.getItem('lspricer.aprovacoes.v1') || '{}'); } catch (e) { all = {}; } all[id] = body; try { localStorage.setItem('lspricer.aprovacoes.v1', JSON.stringify(all)); } catch (e) { throw new Error('O navegador não deixou gravar a aprovação (sem espaço). Baixe um backup e libere espaço.'); } aprov = Object.entries(all).map(([k, x]) => Object.assign({ id: k }, x)); ctx.render(); }
     }
     const PAPEIS = [['diretoria', 'Diretoria'], ['financeiro', 'Financeiro']];
     const aprovDe = (propId) => { ensureA(); return aprov.find((a) => a.id === propId) || null; };
@@ -4246,8 +4278,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     document.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-hnext]'); const pd = ev.target.closest('[data-hperdida]'); if (!b && !pd) return;
       const [pid, act] = (b ? b.dataset.hnext : pd.dataset.hperdida + '|perdida').split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
-      const salvaStatus = async (status, extra, desc) => { const rec = Object.assign({}, p, { status }, extra || {}); delete rec.id; delete rec.local; await REG.saveProposta(p.id, rec); ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + (desc ? ' — ' + desc : ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: status }] }); ctx.render(); };
-      if (act === 'cliente') { salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
+      const salvaStatus = async (status, extra, desc) => { await REG.patchProposta(p.id, (r) => { r.status = status; for (const [k, v] of Object.entries(extra || {})) { if (k === 'etapas') r.etapas = Object.assign({}, r.etapas || {}, v); else r[k] = v; } }); ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + (desc ? ' — ' + desc : ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: status }] }); ctx.render(); };
+      if (act === 'cliente') { ctx.aoEnviar && ctx.aoEnviar(p); salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
       if (act === 'baixa') { fecharModal(p); return; }
       if (act === 'aplicar') { ctx.abrirProposta && ctx.abrirProposta(p, 3); return; }
       if (act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
@@ -4360,8 +4392,11 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
   // ---------- armazenamento ----------
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { falhaArmaz(e); return false; } },
   };
+  // o navegador recusou gravar (sem espaço, modo privado, bloqueado): avisa em vez de perder calado
+  var armazFalhou = null; // var: pode ser lido antes do resto iniciar
+  function falhaArmaz(e) { const pri = !armazFalhou; armazFalhou = { at: new Date().toISOString(), msg: e && e.name === 'QuotaExceededError' ? 'o navegador está sem espaço' : 'o navegador bloqueou a gravação' }; if (pri) setTimeout(() => { try { render(); } catch (er) { /* ainda iniciando */ } }, 0); }
   const newUid = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   let state = store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
   if (!state.uid) state.uid = newUid();
@@ -4476,7 +4511,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     }
     listCache = new Map(); dirty = true; persist(); render();
   }
-  let dirty = false;
+  let dirty = !!(state && state._sujo); if (dirty) ui.recuperado = state._editEm || true;
   function mirror(sheet, a, value, restore) {
     const tg = target(sheet); tg[sheet] = tg[sheet] || {};
     if (restore) { delete tg[sheet][a]; const b = baseRaw(sheet, a); const s = wb.sheet(sheet); if (b === undefined) s.cells.delete(a); else s.cells.set(a, b); }
@@ -4557,6 +4592,11 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = cabOk() ? 2 : 1; if (!cabOk()) ui.reqShow = true; ui.propFull = false; setView('proposta'); return; } setView(nv.dataset.view); return; }
   });
 
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-recsalva]')) { ui.recuperado = null; await $('#bSave').onclick(e); return; }
+    if (e.target.closest('[data-recdesc]') || e.target.closest('[data-recnova]')) { const q = (REG.listPropostas() || []).find((x) => x.id === state.id); if (!q) return; if (e.target.closest('[data-recdesc]') && !window.confirm('Descartar as alterações não salvas?')) return; dirty = false; ui.recuperado = null; openProposta(q, false); }
+  });
+
   // ---------- visões ----------
   function setView(v) { if ((v === 'item' || v === 'memorial') && !cabOk()) { ui.step = 1; ui.reqShow = true; v = 'proposta'; toast('Preencha o cabeçalho antes do equipamento'); } ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
@@ -4578,8 +4618,13 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
-    $('#app').innerHTML = avRev + aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
+    const salvaB = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    const avInteg = !['proposta', 'item', 'memorial'].includes(ui.view) ? '' : (armazFalhou ? `<div class="banner bad" style="margin:0 0 12px"><b>O navegador não está gravando</b> (${esc(armazFalhou.msg)}). O que você fizer agora pode se perder ao fechar. Baixe um backup em Cadastro → Sistema → Backup e libere espaço.</div>` : '')
+      + (ui.recuperado && dirty ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Recuperamos alterações não salvas</b>${typeof ui.recuperado === 'string' ? ' (última edição ' + esc(fmtAt(ui.recuperado)) + ')' : ''}. Elas estão na tela; ainda não foram gravadas.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-recsalva>Salvar agora</button>${salvaB ? '<button class="btn sm" data-recdesc>Descartar e abrir a versão salva</button>' : ''}</span></div>` : '')
+      + (salvaB && state.verBase !== undefined && (salvaB.verDoc || 0) > state.verBase && !state.verRev ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${REG.mode === 'shared' ? who(salvaB.by) : 'Outra janela deste navegador'} salvou uma versão mais nova</b> desta proposta às ${esc(fmtAt(salvaB.at))}.${dirty ? ' Ao salvar, o app pede para você escolher o que fazer, sem sobrescrever.' : ''}</span>${dirty ? '' : '<span style="margin-left:auto"><button class="btn sm pri" data-recnova>Abrir a versão nova</button></span>'}</div>` : '');
+    $('#app').innerHTML = avInteg + avRev + aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
     const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
+    atualizaSaveSt();
     if (ui.view === 'cadastro') bindCadastro();
     window.scrollTo(0, scroll);
     if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') { f.focus(); if (f.type === 'search') f.setSelectionRange(f.value.length, f.value.length); } }
@@ -5116,8 +5161,8 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     else { try { L = Object.entries(JSON.parse(localStorage.getItem(RVK) || '{}')).filter(([, x]) => x.propId === propId).map(([id, x]) => Object.assign({ id }, x)); } catch (e) { L = []; } }
     L.sort((a, b) => b.rev - a.rev); revCache = { id: propId, list: L }; return L;
   }
-  async function revGravar(rec) {
-    const id = rec.propId + '_r' + rec.rev; const body = JSON.parse(JSON.stringify(rec));
+  async function revGravar(rec, sufixo) {
+    const id = rec.propId + '_r' + rec.rev + (sufixo || ''); const body = JSON.parse(JSON.stringify(rec));
     if (REG.mode === 'shared' && REG.db) await REG.db.doc('revisoes/' + id).set(body);
     else { let all = {}; try { all = JSON.parse(localStorage.getItem(RVK) || '{}'); } catch (e) { all = {}; } all[id] = body; localStorage.setItem(RVK, JSON.stringify(all)); }
   }
@@ -5169,7 +5214,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id) || {};
     const totAtual = salva.total; const mAtual = salva.resumo ? salva.resumo.margemPct : null;
     const dif = (v) => (typeof v === 'number' && typeof totAtual === 'number' ? (v - totAtual >= 0 ? '+' : '−') + brl(Math.abs(v - totAtual)).replace('R$ ', '') : '');
-    const linha = (x) => `<tr><td><b>Rev. ${x.rev}</b></td><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.total === 'number' ? brl(x.total) : '—'}<br><small class="sub">${dif(x.total)}</small></td><td class="n">${x.margemPct != null ? pct(x.margemPct) : '—'}</td><td>${esc(x.statusEra === 'enviada' || x.statusEra === 'negociacao' ? 'enviada ao cliente' : x.statusEra || '')}${x.motivoProxima ? `<br><small class="sub">na rev. ${x.rev + 1}: ${esc(x.motivoProxima)}</small>` : ''}</td><td style="white-space:nowrap"><button class="btn sm" data-revver="${esc(x.id)}">Ver</button> <button class="btn sm" data-revrest="${esc(x.id)}">Restaurar</button></td></tr>`;
+    const linha = (x) => `<tr><td><b>Rev. ${x.rev}</b></td><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.total === 'number' ? brl(x.total) : '—'}<br><small class="sub">${dif(x.total)}</small></td><td class="n">${x.margemPct != null ? pct(x.margemPct) : '—'}</td><td>${esc(x.statusEra === 'enviada' || x.statusEra === 'negociacao' ? 'enviada ao cliente' : x.statusEra || '')}${/_c\d+$/.test(x.id) ? '<br><small class="sub">cópia guardada num conflito de edição simultânea</small>' : x.motivoProxima ? `<br><small class="sub">na rev. ${x.rev + 1}: ${esc(x.motivoProxima)}</small>` : ''}</td><td style="white-space:nowrap"><button class="btn sm" data-revver="${esc(x.id)}">Ver</button> <button class="btn sm" data-revrest="${esc(x.id)}">Restaurar</button></td></tr>`;
     modal(`<h2>Revisões · ${esc(docTitle())}</h2>
       <div class="tw"><table class="t"><thead><tr><th>Revisão</th><th>Guardada em</th><th>Total</th><th>Margem</th><th>Situação</th><th></th></tr></thead><tbody>
         <tr class="tot"><td><b>Rev. ${revDe(salva)}</b> <span class="pill ok">atual</span></td><td>${esc(fmtAt(salva.at || ''))}</td><td class="n">${typeof totAtual === 'number' ? brl(totAtual) : '—'}</td><td class="n">${mAtual != null ? pct(mAtual) : '—'}</td><td>${esc(salva.status || 'rascunho')}</td><td>${state.verRev ? '<button class="btn sm pri" data-revatual>Voltar à atual</button>' : ''}</td></tr>
@@ -5178,7 +5223,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       <div style="display:flex;gap:8px;flex-wrap:wrap">${state.verRev ? '' : `<button class="btn pri" data-revisar>Revisar (criar revisão ${n + 1})</button>`}<button class="btn" data-close>Fechar</button></div>`, (o) => fillNames(o));
   }
   function carregarCorpo(q, extra) {
-    const ex = Object.assign({ uid: q.uid || newUid(), status: q.status || 'rascunho', ack: q.ack || {} }, extra || {});
+    const ex = Object.assign({ uid: q.uid || newUid(), status: q.status || 'rascunho', ack: q.ack || {}, verBase: (((REG.listPropostas() || []).find((y) => y.id === state.id)) || {}).verDoc }, extra || {});
     if (q.div === 'SPV' && q.spv) loadDoc({}, q.name, state.id, Object.assign(ex, { div: 'SPV', spv: JSON.parse(JSON.stringify(q.spv)) }));
     else if (q.facts) loadDoc({}, q.name, state.id, Object.assign(ex, { div: 'SEQ', sol: 'FACTS', facts: JSON.parse(JSON.stringify(q.facts)) }));
     else loadDoc(q.doc, q.name, state.id, ex);
@@ -5566,7 +5611,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
     ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições']]],
-    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['tabelas', 'Planilha (avançado)']]],
+    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
@@ -5598,7 +5643,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -6037,6 +6082,66 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       q.oninput = () => { clearTimeout(t); t = setTimeout(go, 250); }; q.onfocus = () => { if (!q.value) go(); }; q.focus();
     });
   });
+
+  // ---------- backup e restauração ----------
+  const COLECOES = [['propostas', 'Propostas', 'lspricer.saved'], ['revisoes', 'Revisões', 'lspricer.revisoes.v1'], ['aprovacoes', 'Aprovações', 'lspricer.aprovacoes.v1'], ['fechamentos', 'Baixas e custo real', 'lspricer.fechamentos.v1'],
+    ['pedidos', 'Pedidos de cadastro', 'lspricer.pedidos.v1'], ['documentos', 'Documentos (só os dados; os arquivos não vão no backup)', 'lspricer.docs.v1'], ['pendencias', 'Acompanhamento de pendências', 'lspricer.pendencias.v1'], ['modelos', 'Modelos de item', 'lspricer.modelos.v1']];
+  async function lerColecao(nome, lsk) {
+    if (REG.mode === 'shared' && REG.db) { try { const q = await REG.db.collection(nome).get(); return Object.fromEntries(q.docs.map((d) => [d.id, d.data()])); } catch (e) { return {}; } }
+    const v = store.get(lsk, null); if (!v) return {}; if (Array.isArray(v)) return Object.fromEntries(v.map((x) => { const c = Object.assign({}, x); const id = c.id; delete c.id; return [id, c]; })); return v;
+  }
+  async function montarBackup() {
+    const b = { app: 'ls-pricer', rev: 'REV22', criadoEm: new Date().toISOString(), modo: REG.mode, colecoes: {}, cadastro: { insumos: REG.insumos, kitMotor: REG.kitMotor, kitBomba: REG.kitBomba, tabelas: REG.tabelas, acessos: REG.acessos || {} }, historico: REG.historico || [] };
+    for (const [k, , lsk] of COLECOES) b.colecoes[k] = await lerColecao(k, lsk);
+    return b;
+  }
+  function vBackup() {
+    const pre = store.get('lspricer.backup.antes-rev22', null);
+    return `<div class="stack"><section class="card"><h2>Backup <span class="sub">tudo o que o app guarda, num arquivo .json</span></h2>
+      <p class="sub" style="margin:0 0 8px">Propostas, revisões, aprovações, baixas e custo real, pedidos, dados dos documentos, cadastro (insumos, kits, tabelas e parâmetros) e histórico${REG.mode === 'shared' ? ', do banco da equipe' : ', deste navegador'}. Os arquivos anexados (PDFs) não entram: baixe-os pela tela Documentos.</p>
+      <div class="docbar"><button class="btn pri" data-bkbaixa>Baixar backup completo</button>${pre ? `<button class="btn" data-bkpre>Baixar a cópia automática de antes da REV22 (${esc(fmtAt(pre.criadoEm))})</button>` : ''}</div></section>
+      <section class="card"><h2>Restaurar <span class="sub">a partir de um backup</span></h2>
+      <p class="sub" style="margin:0 0 8px">O app mostra o que tem no arquivo e o que vai mudar antes de gravar. Por padrão só acrescenta o que não existe; quando o registro já existe, a versão atual vai para as revisões antes de ser substituída.</p>
+      <label class="btn" for="bkArq">Escolher arquivo de backup (.json)</label><input type="file" id="bkArq" accept=".json,application/json" hidden></section></div>`;
+  }
+  async function baixarJson(nome, obj) { const ok = await REG.save(nome, JSON.stringify(obj, null, 1), 'application/json'); if (!ok) toast('Download cancelado'); }
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-bkbaixa]')) { toast('Montando o backup…'); const b = await montarBackup(); await baixarJson('ls-pricer-backup-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json', b); logEv({ tipo: 'Backup baixado', ref: 'backup', desc: Object.entries(b.colecoes).map(([k, v]) => k + ': ' + Object.keys(v).length).join(' · '), mudancas: [] }); return; }
+    if (e.target.closest('[data-bkpre]')) { await baixarJson('ls-pricer-antes-rev22.json', store.get('lspricer.backup.antes-rev22', {})); }
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.id !== 'bkArq') return; const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    const rd = new FileReader(); rd.onload = () => { let b; try { b = JSON.parse(rd.result); } catch (er) { toast('Arquivo inválido'); return; } if (!b || b.app !== 'ls-pricer' || !b.colecoes) { toast('Esse arquivo não é um backup do LS Pricer'); return; } restaurarModal(b); }; rd.readAsText(f);
+  });
+  async function restaurarModal(b) {
+    const atual = {}; for (const [k, , lsk] of COLECOES) atual[k] = await lerColecao(k, lsk);
+    const linhas = COLECOES.map(([k, lb]) => { const B = b.colecoes[k] || {}; const ids = Object.keys(B); const novos = ids.filter((id) => !atual[k][id]); const iguais = ids.filter((id) => atual[k][id] && JSON.stringify(atual[k][id]) === JSON.stringify(B[id])); const dif = ids.length - novos.length - iguais.length;
+      return { k, lb, total: ids.length, novos: novos.length, dif, iguais: iguais.length }; });
+    const podeCad = REG.mode === 'local';
+    modal(`<h2>Restaurar backup de ${esc(fmtAt(b.criadoEm))}</h2><p class="sub" style="margin:0">Gerado ${esc(b.rev || '')} · ${b.modo === 'shared' ? 'banco da equipe' : 'navegador'}.</p>
+      <div class="tw"><table class="t"><thead><tr><th></th><th>O que</th><th>No arquivo</th><th>Novos</th><th>Diferentes do atual</th><th>Iguais</th></tr></thead><tbody>${linhas.map((x) => `<tr><td><input type="checkbox" data-bkcol="${x.k}"${x.total ? ' checked' : ' disabled'}></td><td>${esc(x.lb)}</td><td class="n">${x.total}</td><td class="n">${x.novos}</td><td class="n">${x.dif}</td><td class="n">${x.iguais}</td></tr>`).join('')}
+        <tr><td><input type="checkbox" data-bkcad${podeCad ? '' : ' disabled'}></td><td>Cadastro (insumos, kits, tabelas)</td><td class="n" colspan="4">${podeCad ? 'substitui o cadastro deste navegador inteiro' : 'no banco da equipe, o cadastro se restaura pelo Cadastro → Importar preços e pelas tabelas; aqui só as coleções acima'}</td></tr></tbody></table></div>
+      <label class="chk"><input type="checkbox" id="bkSubst"> Substituir também os registros diferentes (a versão atual de cada proposta vai antes para as revisões)</label>
+      <div style="display:flex;gap:8px"><button class="btn pri" id="bkOk">Restaurar o que está marcado</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+      $('#bkOk', o).onclick = async () => {
+        const cols = [...o.querySelectorAll('[data-bkcol]:checked')].map((x) => x.dataset.bkcol); const subst = $('#bkSubst', o).checked; const cad = podeCad && o.querySelector('[data-bkcad]').checked;
+        if (!window.confirm('Confirmar a restauração?')) return; close(); let n = 0, pul = 0;
+        for (const k of cols) { const lsk = COLECOES.find((c) => c[0] === k)[2]; const B = b.colecoes[k] || {};
+          for (const [id, body] of Object.entries(B)) { const cur = atual[k][id]; if (cur && JSON.stringify(cur) === JSON.stringify(body)) continue; if (cur && !subst) { pul++; continue; }
+            if (cur && k === 'propostas') await revGravar({ propId: id, rev: revDe(cur), at: cur.at, by: cur.by || null, statusEra: cur.status || 'rascunho', motivoProxima: 'substituída por restauração de backup', total: cur.total ?? null, margemPct: cur.resumo ? cur.resumo.margemPct : null, numero: cur.numero || '', cliente: cur.cliente || '', body: cur }, '_bk' + Date.now().toString(36)).catch(() => {});
+            if (REG.mode === 'shared' && REG.db) await REG.db.doc(k + '/' + id).set(body);
+            else { const v = store.get(lsk, null); if (Array.isArray(v) || k === 'documentos') { const arr = (v || []).filter((x) => x.id !== id); arr.unshift(Object.assign({ id }, body)); store.set(lsk, arr); } else { const all = v || {}; all[id] = body; store.set(lsk, all); } }
+            n++; } }
+        if (cad) { localStorage.setItem('lspricer.registry.v1', JSON.stringify({ insumos: b.cadastro.insumos, kitMotor: b.cadastro.kitMotor, kitBomba: b.cadastro.kitBomba, tabelas: b.cadastro.tabelas || {} })); }
+        logEv({ tipo: 'Backup restaurado', ref: 'backup', desc: n + ' registro(s) restaurado(s)' + (pul ? ', ' + pul + ' mantido(s) como estavam' : '') + (cad ? ' · cadastro substituído' : '') + ' · backup de ' + fmtAt(b.criadoEm), mudancas: [] });
+        toast(n + ' registro(s) restaurado(s). Recarregando…'); setTimeout(() => location.reload(), 900);
+      };
+    });
+  }
+  // cópia automática do que está no navegador antes da primeira abertura da REV22 (para voltar à REV21)
+  (function () { try { if (localStorage.getItem('lspricer.backup.antes-rev22')) return; const o = { app: 'ls-pricer', rev: 'REV21', criadoEm: new Date().toISOString(), chaves: {} }; let tam = 0; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^lspricer\./.test(k)) { o.chaves[k] = localStorage.getItem(k); tam += o.chaves[k].length; } }
+      // só guarda se couber com folga (o limite do navegador costuma ser ~5 MB); senão, o backup manual cobre
+      if (tam > 0 && tam < 1500000) localStorage.setItem('lspricer.backup.antes-rev22', JSON.stringify(o)); } catch (e) { /* sem espaço: segue */ } })();
 
   function vHistorico() {
     const q = (ui.histQ || '').trim().toLowerCase(); const T = ui.histT || '';
@@ -6736,7 +6841,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
   function openProposta(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
-    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}) };
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []) };
     if (p.div === 'SPV' && p.spv) {
       const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
@@ -6745,7 +6850,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SEQ', sol: 'FACTS', facts }));
     } else loadDoc(p.doc, p.name, keepId, extra);
     if (dup && !isSpv() && !isFacts()) { if (state.doc.PROPOSTA) delete state.doc.PROPOSTA.C5; build(); persist(); }
-    dirty = !!dup; ui.step = 1; ui.propFull = false; setView('proposta');
+    dirty = !!dup; ui.recuperado = null; ui.erroSalvar = null; ui.salvoEm = dup ? null : p.at; ui.step = 1; ui.propFull = false; setView('proposta');
     toast(dup ? 'Cópia criada: dê um número novo e salve' : 'Aberto: ' + (p.name || docTitle()));
   }
   const logEv = (e) => REG.log(e);
@@ -6792,24 +6897,70 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     // proposta já enviada ao cliente: alterar cria revisão nova (a enviada fica guardada), salvo se for só correção
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id);
     if (ev && salva && dirty && ['enviada', 'negociacao'].includes(salva.status)) { revSalvarEnviada(salva); return; }
-    const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
-    // status, etapas e motivo de perda são mantidos pela tela inicial: preserva o que está no banco
-    const prev = (REG.listPropostas() || []).find((x) => x.id === state.id);
-    const keep = prev ? JSON.parse(JSON.stringify({ etapas: prev.etapas, motivoPerda: prev.motivoPerda, conferencia: prev.conferencia })) : {};
-    let status = prev ? (prev.status || 'rascunho') : (state.status || 'rascunho');
-    if (state._novaRev) { if (status !== 'ganha') { status = 'rascunho'; if (keep.etapas) delete keep.etapas.cliente; } delete state._novaRev; }
-    state.status = status;
-    const base = Object.assign({ name: docTitle(), at: new Date().toISOString(), uid: state.uid, status }, Object.fromEntries(Object.entries(keep).filter(([, v]) => v !== undefined)));
-    const p = isSpv() ? Object.assign(base, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv })
-      : isFacts() ? Object.assign(base, { div: 'SEQ', tipo: 'FAC', sol: 'FACTS', numero: state.facts.numero, cliente: state.facts.cliente, total: FX.total(), facts: state.facts })
-      : Object.assign(base, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
+    const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)); const novaRev = !!state._novaRev;
+    const p = { name: docTitle(), at: new Date().toISOString(), uid: state.uid };
+    if (isSpv()) Object.assign(p, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv });
+    else if (isFacts()) Object.assign(p, { div: 'SEQ', tipo: 'FAC', sol: 'FACTS', numero: state.facts.numero, cliente: state.facts.cliente, total: FX.total(), facts: state.facts });
+    else Object.assign(p, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
     if (typeof p.total !== 'number') delete p.total;
     if (state.ack && Object.keys(state.ack).length) p.ack = state.ack;
+    if (state.cenSim && state.cenSim.length) p.cenSim = state.cenSim;
     try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
-    try { const novo = !state.id; const where = await REG.saveProposta(id, p); state.id = id; persist(); dirty = false; toast((where === 'shared' ? 'Salvo para a equipe: ' : 'Salvo neste navegador: ') + docTitle());
-      logEv({ tipo: novo ? 'Proposta criada' : 'Proposta salva', ref: id, desc: docTitle() + ' · ' + (p.div || 'SEQ') + (p.tipo ? ' ' + p.tipo : ''), mudancas: [{ campo: 'Total', de: null, para: typeof p.total === 'number' ? p.total : null }, { campo: 'Margem', de: null, para: p.resumo ? p.resumo.margemPct : null }] }); }
-    catch (err) { toast(errMsg(err)); }
+    // status, etapas, conferência e motivo de perda são da tela inicial: vêm do registro atual do banco
+    const ajustar = (body, cur) => {
+      for (const k of ['etapas', 'motivoPerda', 'conferencia', 'criadaEm']) if (cur && cur[k] !== undefined) body[k] = JSON.parse(JSON.stringify(cur[k]));
+      let status = cur ? (cur.status || 'rascunho') : (state.status || 'rascunho');
+      if (novaRev && status !== 'ganha') { status = 'rascunho'; if (body.etapas) delete body.etapas.cliente; }
+      body.status = status; if (!cur) body.criadaEm = body.at;
+    };
+    const base = state.id && state.verBase !== undefined ? state.verBase : undefined;
+    try {
+      const novo = !state.id; const where = await REG.saveProposta(id, p, { editor: true, base, ajustar });
+      delete state._novaRev; state.id = id; state.verBase = (REG.ultimaVersao[id] || {}).verDoc; state.status = (REG.listPropostas() || []).find((x) => x.id === id)?.status || state.status;
+      dirty = false; ui.salvoEm = new Date().toISOString(); ui.erroSalvar = null; persist(); atualizaSaveSt();
+      if (!(ev && ev.auto)) toast((where === 'shared' ? 'Salvo e confirmado no banco da equipe: ' : 'Salvo e confirmado neste navegador: ') + docTitle());
+      logEv({ tipo: novo ? 'Proposta criada' : ev && ev.auto ? 'Proposta salva (automático)' : 'Proposta salva', ref: id, desc: docTitle() + ' · ' + (p.div || 'SEQ') + (p.tipo ? ' ' + p.tipo : ''), mudancas: [{ campo: 'Total', de: null, para: typeof p.total === 'number' ? p.total : null }, { campo: 'Margem', de: null, para: p.resumo ? p.resumo.margemPct : null }] });
+    } catch (err) {
+      if (err.code === 'conflito') { conflitoModal(err.remoto, id); return; }
+      ui.erroSalvar = { at: new Date().toISOString(), msg: errMsg(err) }; atualizaSaveSt(); toast('Não salvou: ' + errMsg(err));
+    }
   };
+  // conflito: alguém salvou o conteúdo desta proposta enquanto você editava — nada é sobrescrito sem escolha
+  function conflitoModal(remoto, id) {
+    modal(`<h2>Outra pessoa salvou esta proposta</h2><p class="sub" style="margin:0"><b>${who(remoto.by)}</b> salvou às ${esc(fmtAt(remoto.at))}, enquanto você editava. As suas alterações continuam aqui; escolha o que fazer.</p>
+      <div class="stack" style="gap:8px"><button class="btn pri" id="cfGuarda">Guardar a versão dela como revisão e salvar a minha</button><button class="btn" id="cfCopia">Salvar a minha como uma proposta nova (cópia)</button><button class="btn" id="cfAbre">Descartar as minhas e abrir a versão salva</button><button class="btn" data-close>Decidir depois (nada é salvo agora)</button></div>`, (o, close) => { fillNames(o);
+      $('#cfGuarda', o).onclick = async () => { close(); try { await revGravar({ propId: id, rev: revDe(remoto), at: remoto.at, by: remoto.by || null, statusEra: remoto.status || 'rascunho', motivoProxima: 'versão salva por outra pessoa durante edição simultânea', total: remoto.total ?? null, margemPct: remoto.resumo ? remoto.resumo.margemPct : null, numero: remoto.numero || '', cliente: remoto.cliente || '', body: remoto }, '_c' + (remoto.ver || 0));
+        state.verBase = remoto.verDoc || 0; logEv({ tipo: 'Proposta — conflito resolvido', ref: id, desc: docTitle() + ': versão de outra pessoa guardada nas revisões; a sua foi salva', mudancas: [] }); await $('#bSave').onclick(); } catch (e) { toast(errMsg(e)); } };
+      $('#cfCopia', o).onclick = async () => { close(); state.id = null; state.uid = newUid(); delete state.verBase; await $('#bSave').onclick(); toast('Salva como proposta nova; a outra ficou como estava'); };
+      $('#cfAbre', o).onclick = () => { if (!window.confirm('Descartar as suas alterações?')) return; close(); openProposta(Object.assign({ id }, remoto), false); };
+    });
+  }
+  // indicador de gravação no topo
+  function atualizaSaveSt() {
+    const el = $('#saveSt'); if (!el) return; const hm = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    let cls = 'ok', t = '';
+    if (armazFalhou) { cls = 'bad'; t = 'Falha ao gravar: ' + armazFalhou.msg; }
+    else if (ui.erroSalvar) { cls = 'bad'; t = 'Não salvou · ' + hm(ui.erroSalvar.at); }
+    else if (state.verRev) { cls = 'mute'; t = 'Consultando revisão ' + state.verRev.rev; }
+    else if (dirty) { cls = 'warn'; t = state.id ? '● Alterações não salvas' : '● Proposta ainda não salva'; }
+    else if (state.id) t = '✓ Salvo' + (ui.salvoEm ? ' às ' + hm(ui.salvoEm) : '');
+    el.className = 'savest ' + cls; el.textContent = t; el.hidden = !t || ['inicio', 'cadastro', 'pendencias', 'guia'].includes(ui.view) && !armazFalhou;
+    el.title = cls === 'warn' ? 'Clique em Salvar para gravar. O rascunho fica guardado neste navegador.' : '';
+  }
+  // rascunho: o estado em edição já fica no navegador; marca se há alteração pendente para recuperar depois
+  setInterval(() => {
+    const sujo = !!dirty && !state.verRev;
+    if (sujo !== !!state._sujo) { state._sujo = sujo; state._editEm = sujo ? new Date().toISOString() : null; store.set(SK.cur, state); }
+    atualizaSaveSt();
+  }, 1500);
+  window.addEventListener('beforeunload', (e) => { if (dirty && !state.verRev) { e.preventDefault(); e.returnValue = ''; } });
+  // salvamento automático controlado: só rascunho já salvo uma vez, sem conflito, parado há 1 minuto
+  let ultimaEdicao = Date.now(); document.addEventListener('input', () => { ultimaEdicao = Date.now(); }, true); document.addEventListener('change', () => { ultimaEdicao = Date.now(); }, true);
+  setInterval(async () => {
+    if (!dirty || !state.id || state.verRev || ui.autoSalvar === false || Date.now() - ultimaEdicao < 60000 || document.querySelector('#overlay .modal')) return;
+    const s = (REG.listPropostas() || []).find((x) => x.id === state.id); if (!s || (s.status || 'rascunho') !== 'rascunho') return;
+    await $('#bSave').onclick({ auto: true });
+  }, 20000);
 
   $('#bOpen').onclick = () => {
     const list = REG.listPropostas();

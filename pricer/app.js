@@ -49,8 +49,11 @@
   // ---------- armazenamento ----------
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { falhaArmaz(e); return false; } },
   };
+  // o navegador recusou gravar (sem espaço, modo privado, bloqueado): avisa em vez de perder calado
+  var armazFalhou = null; // var: pode ser lido antes do resto iniciar
+  function falhaArmaz(e) { const pri = !armazFalhou; armazFalhou = { at: new Date().toISOString(), msg: e && e.name === 'QuotaExceededError' ? 'o navegador está sem espaço' : 'o navegador bloqueou a gravação' }; if (pri) setTimeout(() => { try { render(); } catch (er) { /* ainda iniciando */ } }, 0); }
   const newUid = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   let state = store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
   if (!state.uid) state.uid = newUid();
@@ -165,7 +168,7 @@
     }
     listCache = new Map(); dirty = true; persist(); render();
   }
-  let dirty = false;
+  let dirty = !!(state && state._sujo); if (dirty) ui.recuperado = state._editEm || true;
   function mirror(sheet, a, value, restore) {
     const tg = target(sheet); tg[sheet] = tg[sheet] || {};
     if (restore) { delete tg[sheet][a]; const b = baseRaw(sheet, a); const s = wb.sheet(sheet); if (b === undefined) s.cells.delete(a); else s.cells.set(a, b); }
@@ -246,6 +249,11 @@
     if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = cabOk() ? 2 : 1; if (!cabOk()) ui.reqShow = true; ui.propFull = false; setView('proposta'); return; } setView(nv.dataset.view); return; }
   });
 
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-recsalva]')) { ui.recuperado = null; await $('#bSave').onclick(e); return; }
+    if (e.target.closest('[data-recdesc]') || e.target.closest('[data-recnova]')) { const q = (REG.listPropostas() || []).find((x) => x.id === state.id); if (!q) return; if (e.target.closest('[data-recdesc]') && !window.confirm('Descartar as alterações não salvas?')) return; dirty = false; ui.recuperado = null; openProposta(q, false); }
+  });
+
   // ---------- visões ----------
   function setView(v) { if ((v === 'item' || v === 'memorial') && !cabOk()) { ui.step = 1; ui.reqShow = true; v = 'proposta'; toast('Preencha o cabeçalho antes do equipamento'); } ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
@@ -267,8 +275,13 @@
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
-    $('#app').innerHTML = avRev + aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
+    const salvaB = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    const avInteg = !['proposta', 'item', 'memorial'].includes(ui.view) ? '' : (armazFalhou ? `<div class="banner bad" style="margin:0 0 12px"><b>O navegador não está gravando</b> (${esc(armazFalhou.msg)}). O que você fizer agora pode se perder ao fechar. Baixe um backup em Cadastro → Sistema → Backup e libere espaço.</div>` : '')
+      + (ui.recuperado && dirty ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Recuperamos alterações não salvas</b>${typeof ui.recuperado === 'string' ? ' (última edição ' + esc(fmtAt(ui.recuperado)) + ')' : ''}. Elas estão na tela; ainda não foram gravadas.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-recsalva>Salvar agora</button>${salvaB ? '<button class="btn sm" data-recdesc>Descartar e abrir a versão salva</button>' : ''}</span></div>` : '')
+      + (salvaB && state.verBase !== undefined && (salvaB.verDoc || 0) > state.verBase && !state.verRev ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>${REG.mode === 'shared' ? who(salvaB.by) : 'Outra janela deste navegador'} salvou uma versão mais nova</b> desta proposta às ${esc(fmtAt(salvaB.at))}.${dirty ? ' Ao salvar, o app pede para você escolher o que fazer, sem sobrescrever.' : ''}</span>${dirty ? '' : '<span style="margin-left:auto"><button class="btn sm pri" data-recnova>Abrir a versão nova</button></span>'}</div>` : '');
+    $('#app').innerHTML = avInteg + avRev + aviso + (full ? '<div class="backbar"><button class="btn sm" data-simpleback>← Voltar à versão simples</button></div>' : '') + html;
     const bm = $('#bMode'); if (bm) bm.textContent = ui.simple ? 'Modo detalhado' : 'Modo simples';
+    atualizaSaveSt();
     if (ui.view === 'cadastro') bindCadastro();
     window.scrollTo(0, scroll);
     if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') { f.focus(); if (f.type === 'search') f.setSelectionRange(f.value.length, f.value.length); } }
@@ -805,8 +818,8 @@
     else { try { L = Object.entries(JSON.parse(localStorage.getItem(RVK) || '{}')).filter(([, x]) => x.propId === propId).map(([id, x]) => Object.assign({ id }, x)); } catch (e) { L = []; } }
     L.sort((a, b) => b.rev - a.rev); revCache = { id: propId, list: L }; return L;
   }
-  async function revGravar(rec) {
-    const id = rec.propId + '_r' + rec.rev; const body = JSON.parse(JSON.stringify(rec));
+  async function revGravar(rec, sufixo) {
+    const id = rec.propId + '_r' + rec.rev + (sufixo || ''); const body = JSON.parse(JSON.stringify(rec));
     if (REG.mode === 'shared' && REG.db) await REG.db.doc('revisoes/' + id).set(body);
     else { let all = {}; try { all = JSON.parse(localStorage.getItem(RVK) || '{}'); } catch (e) { all = {}; } all[id] = body; localStorage.setItem(RVK, JSON.stringify(all)); }
   }
@@ -858,7 +871,7 @@
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id) || {};
     const totAtual = salva.total; const mAtual = salva.resumo ? salva.resumo.margemPct : null;
     const dif = (v) => (typeof v === 'number' && typeof totAtual === 'number' ? (v - totAtual >= 0 ? '+' : '−') + brl(Math.abs(v - totAtual)).replace('R$ ', '') : '');
-    const linha = (x) => `<tr><td><b>Rev. ${x.rev}</b></td><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.total === 'number' ? brl(x.total) : '—'}<br><small class="sub">${dif(x.total)}</small></td><td class="n">${x.margemPct != null ? pct(x.margemPct) : '—'}</td><td>${esc(x.statusEra === 'enviada' || x.statusEra === 'negociacao' ? 'enviada ao cliente' : x.statusEra || '')}${x.motivoProxima ? `<br><small class="sub">na rev. ${x.rev + 1}: ${esc(x.motivoProxima)}</small>` : ''}</td><td style="white-space:nowrap"><button class="btn sm" data-revver="${esc(x.id)}">Ver</button> <button class="btn sm" data-revrest="${esc(x.id)}">Restaurar</button></td></tr>`;
+    const linha = (x) => `<tr><td><b>Rev. ${x.rev}</b></td><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.total === 'number' ? brl(x.total) : '—'}<br><small class="sub">${dif(x.total)}</small></td><td class="n">${x.margemPct != null ? pct(x.margemPct) : '—'}</td><td>${esc(x.statusEra === 'enviada' || x.statusEra === 'negociacao' ? 'enviada ao cliente' : x.statusEra || '')}${/_c\d+$/.test(x.id) ? '<br><small class="sub">cópia guardada num conflito de edição simultânea</small>' : x.motivoProxima ? `<br><small class="sub">na rev. ${x.rev + 1}: ${esc(x.motivoProxima)}</small>` : ''}</td><td style="white-space:nowrap"><button class="btn sm" data-revver="${esc(x.id)}">Ver</button> <button class="btn sm" data-revrest="${esc(x.id)}">Restaurar</button></td></tr>`;
     modal(`<h2>Revisões · ${esc(docTitle())}</h2>
       <div class="tw"><table class="t"><thead><tr><th>Revisão</th><th>Guardada em</th><th>Total</th><th>Margem</th><th>Situação</th><th></th></tr></thead><tbody>
         <tr class="tot"><td><b>Rev. ${revDe(salva)}</b> <span class="pill ok">atual</span></td><td>${esc(fmtAt(salva.at || ''))}</td><td class="n">${typeof totAtual === 'number' ? brl(totAtual) : '—'}</td><td class="n">${mAtual != null ? pct(mAtual) : '—'}</td><td>${esc(salva.status || 'rascunho')}</td><td>${state.verRev ? '<button class="btn sm pri" data-revatual>Voltar à atual</button>' : ''}</td></tr>
@@ -867,7 +880,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap">${state.verRev ? '' : `<button class="btn pri" data-revisar>Revisar (criar revisão ${n + 1})</button>`}<button class="btn" data-close>Fechar</button></div>`, (o) => fillNames(o));
   }
   function carregarCorpo(q, extra) {
-    const ex = Object.assign({ uid: q.uid || newUid(), status: q.status || 'rascunho', ack: q.ack || {} }, extra || {});
+    const ex = Object.assign({ uid: q.uid || newUid(), status: q.status || 'rascunho', ack: q.ack || {}, verBase: (((REG.listPropostas() || []).find((y) => y.id === state.id)) || {}).verDoc }, extra || {});
     if (q.div === 'SPV' && q.spv) loadDoc({}, q.name, state.id, Object.assign(ex, { div: 'SPV', spv: JSON.parse(JSON.stringify(q.spv)) }));
     else if (q.facts) loadDoc({}, q.name, state.id, Object.assign(ex, { div: 'SEQ', sol: 'FACTS', facts: JSON.parse(JSON.stringify(q.facts)) }));
     else loadDoc(q.doc, q.name, state.id, ex);
@@ -1255,7 +1268,7 @@
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
     ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições']]],
-    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['tabelas', 'Planilha (avançado)']]],
+    ['sistema', 'Sistema', 'Histórico, responsáveis por área e planilha', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
@@ -1287,7 +1300,7 @@
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -1726,6 +1739,66 @@
       q.oninput = () => { clearTimeout(t); t = setTimeout(go, 250); }; q.onfocus = () => { if (!q.value) go(); }; q.focus();
     });
   });
+
+  // ---------- backup e restauração ----------
+  const COLECOES = [['propostas', 'Propostas', 'lspricer.saved'], ['revisoes', 'Revisões', 'lspricer.revisoes.v1'], ['aprovacoes', 'Aprovações', 'lspricer.aprovacoes.v1'], ['fechamentos', 'Baixas e custo real', 'lspricer.fechamentos.v1'],
+    ['pedidos', 'Pedidos de cadastro', 'lspricer.pedidos.v1'], ['documentos', 'Documentos (só os dados; os arquivos não vão no backup)', 'lspricer.docs.v1'], ['pendencias', 'Acompanhamento de pendências', 'lspricer.pendencias.v1'], ['modelos', 'Modelos de item', 'lspricer.modelos.v1']];
+  async function lerColecao(nome, lsk) {
+    if (REG.mode === 'shared' && REG.db) { try { const q = await REG.db.collection(nome).get(); return Object.fromEntries(q.docs.map((d) => [d.id, d.data()])); } catch (e) { return {}; } }
+    const v = store.get(lsk, null); if (!v) return {}; if (Array.isArray(v)) return Object.fromEntries(v.map((x) => { const c = Object.assign({}, x); const id = c.id; delete c.id; return [id, c]; })); return v;
+  }
+  async function montarBackup() {
+    const b = { app: 'ls-pricer', rev: 'REV22', criadoEm: new Date().toISOString(), modo: REG.mode, colecoes: {}, cadastro: { insumos: REG.insumos, kitMotor: REG.kitMotor, kitBomba: REG.kitBomba, tabelas: REG.tabelas, acessos: REG.acessos || {} }, historico: REG.historico || [] };
+    for (const [k, , lsk] of COLECOES) b.colecoes[k] = await lerColecao(k, lsk);
+    return b;
+  }
+  function vBackup() {
+    const pre = store.get('lspricer.backup.antes-rev22', null);
+    return `<div class="stack"><section class="card"><h2>Backup <span class="sub">tudo o que o app guarda, num arquivo .json</span></h2>
+      <p class="sub" style="margin:0 0 8px">Propostas, revisões, aprovações, baixas e custo real, pedidos, dados dos documentos, cadastro (insumos, kits, tabelas e parâmetros) e histórico${REG.mode === 'shared' ? ', do banco da equipe' : ', deste navegador'}. Os arquivos anexados (PDFs) não entram: baixe-os pela tela Documentos.</p>
+      <div class="docbar"><button class="btn pri" data-bkbaixa>Baixar backup completo</button>${pre ? `<button class="btn" data-bkpre>Baixar a cópia automática de antes da REV22 (${esc(fmtAt(pre.criadoEm))})</button>` : ''}</div></section>
+      <section class="card"><h2>Restaurar <span class="sub">a partir de um backup</span></h2>
+      <p class="sub" style="margin:0 0 8px">O app mostra o que tem no arquivo e o que vai mudar antes de gravar. Por padrão só acrescenta o que não existe; quando o registro já existe, a versão atual vai para as revisões antes de ser substituída.</p>
+      <label class="btn" for="bkArq">Escolher arquivo de backup (.json)</label><input type="file" id="bkArq" accept=".json,application/json" hidden></section></div>`;
+  }
+  async function baixarJson(nome, obj) { const ok = await REG.save(nome, JSON.stringify(obj, null, 1), 'application/json'); if (!ok) toast('Download cancelado'); }
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-bkbaixa]')) { toast('Montando o backup…'); const b = await montarBackup(); await baixarJson('ls-pricer-backup-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json', b); logEv({ tipo: 'Backup baixado', ref: 'backup', desc: Object.entries(b.colecoes).map(([k, v]) => k + ': ' + Object.keys(v).length).join(' · '), mudancas: [] }); return; }
+    if (e.target.closest('[data-bkpre]')) { await baixarJson('ls-pricer-antes-rev22.json', store.get('lspricer.backup.antes-rev22', {})); }
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.id !== 'bkArq') return; const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    const rd = new FileReader(); rd.onload = () => { let b; try { b = JSON.parse(rd.result); } catch (er) { toast('Arquivo inválido'); return; } if (!b || b.app !== 'ls-pricer' || !b.colecoes) { toast('Esse arquivo não é um backup do LS Pricer'); return; } restaurarModal(b); }; rd.readAsText(f);
+  });
+  async function restaurarModal(b) {
+    const atual = {}; for (const [k, , lsk] of COLECOES) atual[k] = await lerColecao(k, lsk);
+    const linhas = COLECOES.map(([k, lb]) => { const B = b.colecoes[k] || {}; const ids = Object.keys(B); const novos = ids.filter((id) => !atual[k][id]); const iguais = ids.filter((id) => atual[k][id] && JSON.stringify(atual[k][id]) === JSON.stringify(B[id])); const dif = ids.length - novos.length - iguais.length;
+      return { k, lb, total: ids.length, novos: novos.length, dif, iguais: iguais.length }; });
+    const podeCad = REG.mode === 'local';
+    modal(`<h2>Restaurar backup de ${esc(fmtAt(b.criadoEm))}</h2><p class="sub" style="margin:0">Gerado ${esc(b.rev || '')} · ${b.modo === 'shared' ? 'banco da equipe' : 'navegador'}.</p>
+      <div class="tw"><table class="t"><thead><tr><th></th><th>O que</th><th>No arquivo</th><th>Novos</th><th>Diferentes do atual</th><th>Iguais</th></tr></thead><tbody>${linhas.map((x) => `<tr><td><input type="checkbox" data-bkcol="${x.k}"${x.total ? ' checked' : ' disabled'}></td><td>${esc(x.lb)}</td><td class="n">${x.total}</td><td class="n">${x.novos}</td><td class="n">${x.dif}</td><td class="n">${x.iguais}</td></tr>`).join('')}
+        <tr><td><input type="checkbox" data-bkcad${podeCad ? '' : ' disabled'}></td><td>Cadastro (insumos, kits, tabelas)</td><td class="n" colspan="4">${podeCad ? 'substitui o cadastro deste navegador inteiro' : 'no banco da equipe, o cadastro se restaura pelo Cadastro → Importar preços e pelas tabelas; aqui só as coleções acima'}</td></tr></tbody></table></div>
+      <label class="chk"><input type="checkbox" id="bkSubst"> Substituir também os registros diferentes (a versão atual de cada proposta vai antes para as revisões)</label>
+      <div style="display:flex;gap:8px"><button class="btn pri" id="bkOk">Restaurar o que está marcado</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+      $('#bkOk', o).onclick = async () => {
+        const cols = [...o.querySelectorAll('[data-bkcol]:checked')].map((x) => x.dataset.bkcol); const subst = $('#bkSubst', o).checked; const cad = podeCad && o.querySelector('[data-bkcad]').checked;
+        if (!window.confirm('Confirmar a restauração?')) return; close(); let n = 0, pul = 0;
+        for (const k of cols) { const lsk = COLECOES.find((c) => c[0] === k)[2]; const B = b.colecoes[k] || {};
+          for (const [id, body] of Object.entries(B)) { const cur = atual[k][id]; if (cur && JSON.stringify(cur) === JSON.stringify(body)) continue; if (cur && !subst) { pul++; continue; }
+            if (cur && k === 'propostas') await revGravar({ propId: id, rev: revDe(cur), at: cur.at, by: cur.by || null, statusEra: cur.status || 'rascunho', motivoProxima: 'substituída por restauração de backup', total: cur.total ?? null, margemPct: cur.resumo ? cur.resumo.margemPct : null, numero: cur.numero || '', cliente: cur.cliente || '', body: cur }, '_bk' + Date.now().toString(36)).catch(() => {});
+            if (REG.mode === 'shared' && REG.db) await REG.db.doc(k + '/' + id).set(body);
+            else { const v = store.get(lsk, null); if (Array.isArray(v) || k === 'documentos') { const arr = (v || []).filter((x) => x.id !== id); arr.unshift(Object.assign({ id }, body)); store.set(lsk, arr); } else { const all = v || {}; all[id] = body; store.set(lsk, all); } }
+            n++; } }
+        if (cad) { localStorage.setItem('lspricer.registry.v1', JSON.stringify({ insumos: b.cadastro.insumos, kitMotor: b.cadastro.kitMotor, kitBomba: b.cadastro.kitBomba, tabelas: b.cadastro.tabelas || {} })); }
+        logEv({ tipo: 'Backup restaurado', ref: 'backup', desc: n + ' registro(s) restaurado(s)' + (pul ? ', ' + pul + ' mantido(s) como estavam' : '') + (cad ? ' · cadastro substituído' : '') + ' · backup de ' + fmtAt(b.criadoEm), mudancas: [] });
+        toast(n + ' registro(s) restaurado(s). Recarregando…'); setTimeout(() => location.reload(), 900);
+      };
+    });
+  }
+  // cópia automática do que está no navegador antes da primeira abertura da REV22 (para voltar à REV21)
+  (function () { try { if (localStorage.getItem('lspricer.backup.antes-rev22')) return; const o = { app: 'ls-pricer', rev: 'REV21', criadoEm: new Date().toISOString(), chaves: {} }; let tam = 0; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^lspricer\./.test(k)) { o.chaves[k] = localStorage.getItem(k); tam += o.chaves[k].length; } }
+      // só guarda se couber com folga (o limite do navegador costuma ser ~5 MB); senão, o backup manual cobre
+      if (tam > 0 && tam < 1500000) localStorage.setItem('lspricer.backup.antes-rev22', JSON.stringify(o)); } catch (e) { /* sem espaço: segue */ } })();
 
   function vHistorico() {
     const q = (ui.histQ || '').trim().toLowerCase(); const T = ui.histT || '';
@@ -2425,7 +2498,7 @@
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
   function openProposta(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
-    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}) };
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []) };
     if (p.div === 'SPV' && p.spv) {
       const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
@@ -2434,7 +2507,7 @@
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SEQ', sol: 'FACTS', facts }));
     } else loadDoc(p.doc, p.name, keepId, extra);
     if (dup && !isSpv() && !isFacts()) { if (state.doc.PROPOSTA) delete state.doc.PROPOSTA.C5; build(); persist(); }
-    dirty = !!dup; ui.step = 1; ui.propFull = false; setView('proposta');
+    dirty = !!dup; ui.recuperado = null; ui.erroSalvar = null; ui.salvoEm = dup ? null : p.at; ui.step = 1; ui.propFull = false; setView('proposta');
     toast(dup ? 'Cópia criada: dê um número novo e salve' : 'Aberto: ' + (p.name || docTitle()));
   }
   const logEv = (e) => REG.log(e);
@@ -2481,24 +2554,70 @@
     // proposta já enviada ao cliente: alterar cria revisão nova (a enviada fica guardada), salvo se for só correção
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id);
     if (ev && salva && dirty && ['enviada', 'negociacao'].includes(salva.status)) { revSalvarEnviada(salva); return; }
-    const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
-    // status, etapas e motivo de perda são mantidos pela tela inicial: preserva o que está no banco
-    const prev = (REG.listPropostas() || []).find((x) => x.id === state.id);
-    const keep = prev ? JSON.parse(JSON.stringify({ etapas: prev.etapas, motivoPerda: prev.motivoPerda, conferencia: prev.conferencia })) : {};
-    let status = prev ? (prev.status || 'rascunho') : (state.status || 'rascunho');
-    if (state._novaRev) { if (status !== 'ganha') { status = 'rascunho'; if (keep.etapas) delete keep.etapas.cliente; } delete state._novaRev; }
-    state.status = status;
-    const base = Object.assign({ name: docTitle(), at: new Date().toISOString(), uid: state.uid, status }, Object.fromEntries(Object.entries(keep).filter(([, v]) => v !== undefined)));
-    const p = isSpv() ? Object.assign(base, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv })
-      : isFacts() ? Object.assign(base, { div: 'SEQ', tipo: 'FAC', sol: 'FACTS', numero: state.facts.numero, cliente: state.facts.cliente, total: FX.total(), facts: state.facts })
-      : Object.assign(base, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
+    const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)); const novaRev = !!state._novaRev;
+    const p = { name: docTitle(), at: new Date().toISOString(), uid: state.uid };
+    if (isSpv()) Object.assign(p, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv });
+    else if (isFacts()) Object.assign(p, { div: 'SEQ', tipo: 'FAC', sol: 'FACTS', numero: state.facts.numero, cliente: state.facts.cliente, total: FX.total(), facts: state.facts });
+    else Object.assign(p, { div: 'SEQ', numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5'), total: val('PROPOSTA', 'P43'), doc: state.doc || {} });
     if (typeof p.total !== 'number') delete p.total;
     if (state.ack && Object.keys(state.ack).length) p.ack = state.ack;
+    if (state.cenSim && state.cenSim.length) p.cenSim = state.cenSim;
     try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
-    try { const novo = !state.id; const where = await REG.saveProposta(id, p); state.id = id; persist(); dirty = false; toast((where === 'shared' ? 'Salvo para a equipe: ' : 'Salvo neste navegador: ') + docTitle());
-      logEv({ tipo: novo ? 'Proposta criada' : 'Proposta salva', ref: id, desc: docTitle() + ' · ' + (p.div || 'SEQ') + (p.tipo ? ' ' + p.tipo : ''), mudancas: [{ campo: 'Total', de: null, para: typeof p.total === 'number' ? p.total : null }, { campo: 'Margem', de: null, para: p.resumo ? p.resumo.margemPct : null }] }); }
-    catch (err) { toast(errMsg(err)); }
+    // status, etapas, conferência e motivo de perda são da tela inicial: vêm do registro atual do banco
+    const ajustar = (body, cur) => {
+      for (const k of ['etapas', 'motivoPerda', 'conferencia', 'criadaEm']) if (cur && cur[k] !== undefined) body[k] = JSON.parse(JSON.stringify(cur[k]));
+      let status = cur ? (cur.status || 'rascunho') : (state.status || 'rascunho');
+      if (novaRev && status !== 'ganha') { status = 'rascunho'; if (body.etapas) delete body.etapas.cliente; }
+      body.status = status; if (!cur) body.criadaEm = body.at;
+    };
+    const base = state.id && state.verBase !== undefined ? state.verBase : undefined;
+    try {
+      const novo = !state.id; const where = await REG.saveProposta(id, p, { editor: true, base, ajustar });
+      delete state._novaRev; state.id = id; state.verBase = (REG.ultimaVersao[id] || {}).verDoc; state.status = (REG.listPropostas() || []).find((x) => x.id === id)?.status || state.status;
+      dirty = false; ui.salvoEm = new Date().toISOString(); ui.erroSalvar = null; persist(); atualizaSaveSt();
+      if (!(ev && ev.auto)) toast((where === 'shared' ? 'Salvo e confirmado no banco da equipe: ' : 'Salvo e confirmado neste navegador: ') + docTitle());
+      logEv({ tipo: novo ? 'Proposta criada' : ev && ev.auto ? 'Proposta salva (automático)' : 'Proposta salva', ref: id, desc: docTitle() + ' · ' + (p.div || 'SEQ') + (p.tipo ? ' ' + p.tipo : ''), mudancas: [{ campo: 'Total', de: null, para: typeof p.total === 'number' ? p.total : null }, { campo: 'Margem', de: null, para: p.resumo ? p.resumo.margemPct : null }] });
+    } catch (err) {
+      if (err.code === 'conflito') { conflitoModal(err.remoto, id); return; }
+      ui.erroSalvar = { at: new Date().toISOString(), msg: errMsg(err) }; atualizaSaveSt(); toast('Não salvou: ' + errMsg(err));
+    }
   };
+  // conflito: alguém salvou o conteúdo desta proposta enquanto você editava — nada é sobrescrito sem escolha
+  function conflitoModal(remoto, id) {
+    modal(`<h2>Outra pessoa salvou esta proposta</h2><p class="sub" style="margin:0"><b>${who(remoto.by)}</b> salvou às ${esc(fmtAt(remoto.at))}, enquanto você editava. As suas alterações continuam aqui; escolha o que fazer.</p>
+      <div class="stack" style="gap:8px"><button class="btn pri" id="cfGuarda">Guardar a versão dela como revisão e salvar a minha</button><button class="btn" id="cfCopia">Salvar a minha como uma proposta nova (cópia)</button><button class="btn" id="cfAbre">Descartar as minhas e abrir a versão salva</button><button class="btn" data-close>Decidir depois (nada é salvo agora)</button></div>`, (o, close) => { fillNames(o);
+      $('#cfGuarda', o).onclick = async () => { close(); try { await revGravar({ propId: id, rev: revDe(remoto), at: remoto.at, by: remoto.by || null, statusEra: remoto.status || 'rascunho', motivoProxima: 'versão salva por outra pessoa durante edição simultânea', total: remoto.total ?? null, margemPct: remoto.resumo ? remoto.resumo.margemPct : null, numero: remoto.numero || '', cliente: remoto.cliente || '', body: remoto }, '_c' + (remoto.ver || 0));
+        state.verBase = remoto.verDoc || 0; logEv({ tipo: 'Proposta — conflito resolvido', ref: id, desc: docTitle() + ': versão de outra pessoa guardada nas revisões; a sua foi salva', mudancas: [] }); await $('#bSave').onclick(); } catch (e) { toast(errMsg(e)); } };
+      $('#cfCopia', o).onclick = async () => { close(); state.id = null; state.uid = newUid(); delete state.verBase; await $('#bSave').onclick(); toast('Salva como proposta nova; a outra ficou como estava'); };
+      $('#cfAbre', o).onclick = () => { if (!window.confirm('Descartar as suas alterações?')) return; close(); openProposta(Object.assign({ id }, remoto), false); };
+    });
+  }
+  // indicador de gravação no topo
+  function atualizaSaveSt() {
+    const el = $('#saveSt'); if (!el) return; const hm = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    let cls = 'ok', t = '';
+    if (armazFalhou) { cls = 'bad'; t = 'Falha ao gravar: ' + armazFalhou.msg; }
+    else if (ui.erroSalvar) { cls = 'bad'; t = 'Não salvou · ' + hm(ui.erroSalvar.at); }
+    else if (state.verRev) { cls = 'mute'; t = 'Consultando revisão ' + state.verRev.rev; }
+    else if (dirty) { cls = 'warn'; t = state.id ? '● Alterações não salvas' : '● Proposta ainda não salva'; }
+    else if (state.id) t = '✓ Salvo' + (ui.salvoEm ? ' às ' + hm(ui.salvoEm) : '');
+    el.className = 'savest ' + cls; el.textContent = t; el.hidden = !t || ['inicio', 'cadastro', 'pendencias', 'guia'].includes(ui.view) && !armazFalhou;
+    el.title = cls === 'warn' ? 'Clique em Salvar para gravar. O rascunho fica guardado neste navegador.' : '';
+  }
+  // rascunho: o estado em edição já fica no navegador; marca se há alteração pendente para recuperar depois
+  setInterval(() => {
+    const sujo = !!dirty && !state.verRev;
+    if (sujo !== !!state._sujo) { state._sujo = sujo; state._editEm = sujo ? new Date().toISOString() : null; store.set(SK.cur, state); }
+    atualizaSaveSt();
+  }, 1500);
+  window.addEventListener('beforeunload', (e) => { if (dirty && !state.verRev) { e.preventDefault(); e.returnValue = ''; } });
+  // salvamento automático controlado: só rascunho já salvo uma vez, sem conflito, parado há 1 minuto
+  let ultimaEdicao = Date.now(); document.addEventListener('input', () => { ultimaEdicao = Date.now(); }, true); document.addEventListener('change', () => { ultimaEdicao = Date.now(); }, true);
+  setInterval(async () => {
+    if (!dirty || !state.id || state.verRev || ui.autoSalvar === false || Date.now() - ultimaEdicao < 60000 || document.querySelector('#overlay .modal')) return;
+    const s = (REG.listPropostas() || []).find((x) => x.id === state.id); if (!s || (s.status || 'rascunho') !== 'rascunho') return;
+    await $('#bSave').onclick({ auto: true });
+  }, 20000);
 
   $('#bOpen').onclick = () => {
     const list = REG.listPropostas();
