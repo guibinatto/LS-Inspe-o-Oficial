@@ -168,8 +168,43 @@
     const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const out = [];
     for (let i = 1; i <= Math.min(pdf.numPages, maxPag || 30); i++) {
       const pg = await pdf.getPage(i); const vp = pg.getViewport({ scale: 1 }); const tc = await pg.getTextContent();
-      const itens = tc.items.filter((it) => it.str && it.str.trim()).map((it) => ({ x: it.transform[4], y: vp.height - it.transform[5], w: it.width, h: Math.abs(it.transform[3]) || it.height || 8, s: it.str.replace(/\s+/g, ' ').trim() }));
-      out.push({ n: i, w: vp.width, h: vp.height, itens });
+      // texto girado (ex.: título na margem da Sempa) é marcado: não tem altura de linha
+      const itens = tc.items.filter((it) => it.str && it.str.trim()).map((it) => Object.assign({ x: it.transform[4], y: vp.height - it.transform[5], w: it.width, h: Math.abs(it.transform[3]) || it.height || 8, s: it.str.replace(/\s+/g, ' ').trim() }, Math.abs(it.transform[1]) > 0.01 ? { rot: true } : {}));
+      const P = { n: i, w: vp.width, h: vp.height, itens };
+      try { P.vet = await vetoresPg(lib, pg, vp); } catch (e) { /* sem desenho vetorial: a curva sai dos pontos informados */ }
+      out.push(P);
+    }
+    return out;
+  }
+  // traços vetoriais da página (linhas e curvas desenhadas, em pontos a partir do topo), com cor, espessura e
+  // tracejado: é deles que o app tira a curva da bomba para desenhá-la de novo no padrão LS Fire
+  async function vetoresPg(lib, pg, vp) {
+    const ol = await pg.getOperatorList(); const O = lib.OPS; const out = [];
+    const mul = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
+    let st = { m: [1, 0, 0, 1, 0, 0], c: [0, 0, 0], w: 1, d: false }; const pilha = []; let pend = [];
+    const pt = (x, y) => { const m = st.m; const u = m[0] * x + m[2] * y + m[4], v = m[1] * x + m[3] * y + m[5]; const q = vp.convertToViewportPoint(u, v); return [Math.round(q[0] * 10) / 10, Math.round(q[1] * 10) / 10]; };
+    for (let i = 0; i < ol.fnArray.length; i++) {
+      const f = ol.fnArray[i], a = ol.argsArray[i];
+      if (f === O.save) pilha.push(Object.assign({}, st)); else if (f === O.restore) st = pilha.pop() || st;
+      else if (f === O.transform) st.m = mul(st.m, a);
+      else if (f === O.setStrokeRGBColor) st.c = [a[0], a[1], a[2]];
+      else if (f === O.setLineWidth) st.w = a[0];
+      else if (f === O.setDash) st.d = !!(a[0] && a[0].length);
+      else if (f === O.constructPath) {
+        const ops = a[0], cs = a[1]; let k = 0, cur = null;
+        for (const op of ops) {
+          if (op === O.moveTo) { cur = [pt(cs[k], cs[k + 1])]; pend.push(cur); k += 2; }
+          else if (op === O.lineTo) { (cur || (cur = [], pend.push(cur), cur)).push(pt(cs[k], cs[k + 1])); k += 2; }
+          else if (op === O.curveTo) { cur && cur.push(pt(cs[k + 4], cs[k + 5])); k += 6; }
+          else if (op === O.curveTo2 || op === O.curveTo3) { cur && cur.push(pt(cs[k + 2], cs[k + 3])); k += 4; }
+          else if (op === O.rectangle) { k += 4; cur = null; }
+          else if (op === O.closePath) cur = null;
+        }
+      } else if (f === O.stroke || f === O.closeStroke || f === O.fillStroke || f === O.eoFillStroke || f === O.closeFillStroke || f === O.closeEOFillStroke) {
+        for (const p of pend) if (p.length >= 2) out.push({ c: st.c, w: Math.round(st.w * Math.abs(st.m[0] || 1) * 100) / 100, d: st.d, p });
+        pend = [];
+      } else if (f === O.fill || f === O.eoFill || f === O.endPath) pend = [];
+      if (out.length > 4000) break;
     }
     return out;
   }

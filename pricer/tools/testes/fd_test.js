@@ -20,7 +20,7 @@ const PDF = process.env.FD_PDF; if (!PDF || !fs.existsSync(PDF)) { console.log('
   await p.evaluate(() => { const d = document.querySelector('details[data-keep="fdprop"]'); if (d) d.open = true; });
   console.log('1 leitura:', await p.$eval('[data-fabler="ITEM 01"]', (x) => x.closest('.fdslot').querySelector('.kv').innerText.replace(/\s+/g, ' ')).catch(() => 'SEM LEITURA'));
   console.log('2 alerta de conferência:', await p.$eval('[data-fabler="ITEM 01"]', (x) => (x.closest('.fdslot').querySelector('.banner') || {}).innerText || 'nenhum').catch(() => '?'));
-  console.log('3 curva:', await p.$eval('[data-fabcurva="ITEM 01"]', (x) => x.options[x.selectedIndex].text), '| páginas marcadas:', await p.$$eval('[data-fabpag^="ITEM 01|"]', (x) => x.filter((e) => e.checked).map((e) => e.closest('label').innerText.trim()).join(' / ')));
+  console.log('3 curva:', await p.$eval('[data-fabler="ITEM 01"]', (x) => (x.closest('.fdslot').innerText.match(/Redesenhada no padrão LS Fire[^\n]*|Não consegui ler a curva[^\n]*/) || ['—'])[0].slice(0, 150)), '| páginas marcadas:', await p.$$eval('[data-fabpag^="ITEM 01|"]', (x) => x.filter((e) => e.checked).map((e) => e.closest('label').innerText.trim()).join(' / ')));
   await p.click('#bSave'); await p.waitForTimeout(600);
   await p.click('[data-view="proposta"]'); await p.click('[data-step="6"]'); await p.waitForTimeout(500);
   const gera = async (nome) => { const dl = p.waitForEvent('download', { timeout: 60000 }); await p.click('[data-pcgerar]'); const d = await dl; await d.saveAs(__dirname + '/' + nome); await p.waitForTimeout(3000); return d.suggestedFilename(); };

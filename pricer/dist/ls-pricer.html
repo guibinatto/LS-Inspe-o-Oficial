@@ -1391,7 +1391,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
     const INS_FIELDS = [['fam', 'Família'], ['produto', 'Produto'], ['fab', 'Fabricante'], ['tipo', 'Tipo/config.'], ['valor', 'Valor'], ['origem', 'Origem'], ['obs', 'Observações'],
       // REV22: ficha técnica e governança (campos opcionais; registros da REV21 continuam válidos sem eles)
       ['situacao', 'Situação'], ['codFab', 'Código do fabricante'], ['caract', 'Características'], ['descCom', 'Descrição comercial'], ['descFab', 'Descrição do fabricante'],
-      ['excecao', 'Exceção ao padrão'], ['substituto', 'Substituto'], ['fonte', 'Origem do preço'], ['dataCot', 'Data da cotação'], ['forn', 'Fornecedores'], ['equiv', 'Equivalentes']];
+      ['excecao', 'Exceção ao padrão'], ['substituto', 'Substituto'], ['fonte', 'Origem do preço'], ['dataCot', 'Data da cotação'], ['forn', 'Fornecedores'], ['equiv', 'Equivalentes'], ['cert', 'Certificação (UL/FM)']];
     R.INS_FIELDS = INS_FIELDS;
     const guard = () => { if (!R.canEditCadastro) throw new Error('Sem permissão para editar o cadastro. Peça acesso de Editor a quem publicou o app.'); if (R.mode === 'shared' && !R.seeded) throw new Error('O cadastro compartilhado ainda não foi carregado.'); };
 
@@ -1496,7 +1496,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
       if (isNew && list.length >= lim) throw new Error('Não há linha livre na aba KIT ' + (kind === 'motor' ? 'MOTORES DIESEL' : 'BOMBA') + ' (limite de ' + lim + ').');
       const before = list.find((x) => x.id === rec.id) || null;
       const labels = kind === 'motor' ? KMD_LABELS : KB_LABELS;
-      const mud = diff(before, rec, [['desc', 'Descrição'], ['tipo', 'Origem'], ['marca', 'Marca']]);
+      const mud = diff(before, rec, [['desc', 'Descrição'], ['tipo', 'Origem'], ['marca', 'Marca'], ['cert', 'Certificação (UL/FM)']]);
       for (const [c, lb] of Object.entries(labels)) { const a = before && before.p ? before.p[c] : undefined, b = rec.p ? rec.p[c] : undefined; if ((a ?? null) !== (b ?? null)) mud.push({ campo: lb, de: a ?? null, para: b ?? null }); }
       if (!isNew && !mud.length) return false;
       const body = clean(Object.assign({}, rec)); delete body.id; body.upd = new Date().toISOString(); if (R.me) body.updBy = R.me;
@@ -2221,8 +2221,43 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const out = [];
     for (let i = 1; i <= Math.min(pdf.numPages, maxPag || 30); i++) {
       const pg = await pdf.getPage(i); const vp = pg.getViewport({ scale: 1 }); const tc = await pg.getTextContent();
-      const itens = tc.items.filter((it) => it.str && it.str.trim()).map((it) => ({ x: it.transform[4], y: vp.height - it.transform[5], w: it.width, h: Math.abs(it.transform[3]) || it.height || 8, s: it.str.replace(/\s+/g, ' ').trim() }));
-      out.push({ n: i, w: vp.width, h: vp.height, itens });
+      // texto girado (ex.: título na margem da Sempa) é marcado: não tem altura de linha
+      const itens = tc.items.filter((it) => it.str && it.str.trim()).map((it) => Object.assign({ x: it.transform[4], y: vp.height - it.transform[5], w: it.width, h: Math.abs(it.transform[3]) || it.height || 8, s: it.str.replace(/\s+/g, ' ').trim() }, Math.abs(it.transform[1]) > 0.01 ? { rot: true } : {}));
+      const P = { n: i, w: vp.width, h: vp.height, itens };
+      try { P.vet = await vetoresPg(lib, pg, vp); } catch (e) { /* sem desenho vetorial: a curva sai dos pontos informados */ }
+      out.push(P);
+    }
+    return out;
+  }
+  // traços vetoriais da página (linhas e curvas desenhadas, em pontos a partir do topo), com cor, espessura e
+  // tracejado: é deles que o app tira a curva da bomba para desenhá-la de novo no padrão LS Fire
+  async function vetoresPg(lib, pg, vp) {
+    const ol = await pg.getOperatorList(); const O = lib.OPS; const out = [];
+    const mul = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
+    let st = { m: [1, 0, 0, 1, 0, 0], c: [0, 0, 0], w: 1, d: false }; const pilha = []; let pend = [];
+    const pt = (x, y) => { const m = st.m; const u = m[0] * x + m[2] * y + m[4], v = m[1] * x + m[3] * y + m[5]; const q = vp.convertToViewportPoint(u, v); return [Math.round(q[0] * 10) / 10, Math.round(q[1] * 10) / 10]; };
+    for (let i = 0; i < ol.fnArray.length; i++) {
+      const f = ol.fnArray[i], a = ol.argsArray[i];
+      if (f === O.save) pilha.push(Object.assign({}, st)); else if (f === O.restore) st = pilha.pop() || st;
+      else if (f === O.transform) st.m = mul(st.m, a);
+      else if (f === O.setStrokeRGBColor) st.c = [a[0], a[1], a[2]];
+      else if (f === O.setLineWidth) st.w = a[0];
+      else if (f === O.setDash) st.d = !!(a[0] && a[0].length);
+      else if (f === O.constructPath) {
+        const ops = a[0], cs = a[1]; let k = 0, cur = null;
+        for (const op of ops) {
+          if (op === O.moveTo) { cur = [pt(cs[k], cs[k + 1])]; pend.push(cur); k += 2; }
+          else if (op === O.lineTo) { (cur || (cur = [], pend.push(cur), cur)).push(pt(cs[k], cs[k + 1])); k += 2; }
+          else if (op === O.curveTo) { cur && cur.push(pt(cs[k + 4], cs[k + 5])); k += 6; }
+          else if (op === O.curveTo2 || op === O.curveTo3) { cur && cur.push(pt(cs[k + 2], cs[k + 3])); k += 4; }
+          else if (op === O.rectangle) { k += 4; cur = null; }
+          else if (op === O.closePath) cur = null;
+        }
+      } else if (f === O.stroke || f === O.closeStroke || f === O.fillStroke || f === O.eoFillStroke || f === O.closeFillStroke || f === O.closeEOFillStroke) {
+        for (const p of pend) if (p.length >= 2) out.push({ c: st.c, w: Math.round(st.w * Math.abs(st.m[0] || 1) * 100) / 100, d: st.d, p });
+        pend = [];
+      } else if (f === O.fill || f === O.eoFill || f === O.endPath) pend = [];
+      if (out.length > 4000) break;
     }
     return out;
   }
@@ -4399,20 +4434,35 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   function junta(ts) { let out = '', fim = null; for (const t of ts) { out += fim !== null && t.x - fim > 1.2 ? ' ' + t.s : t.s; fim = t.x + t.w; } return out.replace(/\s+/g, ' ').trim(); }
   function linhas(pg) {
     const rows = [];
-    for (const it of pg.itens.slice().sort((a, b) => a.y - b.y || a.x - b.x)) { let r = rows.find((z) => Math.abs(z.y - it.y) < 2.6); if (!r) { r = { y: it.y, ts: [] }; rows.push(r); } r.ts.push(it); }
+    for (const it of pg.itens.filter((i) => !i.rot).sort((a, b) => a.y - b.y || a.x - b.x)) { let r = rows.find((z) => Math.abs(z.y - it.y) < 2.6); if (!r) { r = { y: it.y, ts: [] }; rows.push(r); } r.ts.push(it); }
     rows.forEach((r) => r.ts.sort((a, b) => a.x - b.x)); return rows.sort((a, b) => a.y - b.y);
   }
   const RODAPE = /^(Peerless Express|LS Fire Sistemas)|Santa Catarina|Rua Guilherme/i;
   function tituloDe(pg) {
     const cands = pg.itens.filter((i) => i.y < pg.h * 0.16 && i.h >= 11 && !RODAPE.test(i.s)).sort((a, b) => a.y - b.y);
-    if (!cands.length) return { t: '', y: -99 };
+    // título girado na margem (ex.: Sempa: "Technical Data", "Tender Hydraulic", "Dimensional Data")
+    if (!cands.length) { const g = pg.itens.filter((i) => i.rot && i.s.length > 3 && !RODAPE.test(i.s)).sort((a, b) => b.s.length - a.s.length)[0]; return g ? { t: g.s, y: -99 } : { t: '', y: -99 }; }
     const y0 = cands[0].y; return { t: junta(cands.filter((i) => Math.abs(i.y - y0) < 3)).replace(/^(.+)\1$/, '$1'), y: y0 };
+  }
+  // vários "rótulo : valor" lado a lado no mesmo pedaço de coluna (ex.: "Customer :" e "Date : 27/10/2026")
+  function pares(ts) {
+    const ix = ts.map((t, i) => (/^:/.test(t.s) ? i : -1)).filter((i) => i > 0); if (ix.length < 2) return null;
+    const out = []; let ini = 0;
+    ix.forEach((i, k) => {
+      const prox = ix[k + 1]; let fim = ts.length;
+      if (prox !== undefined) { fim = prox - 1; for (let j = i + 1; j < prox; j++) if (ts[j].x - (ts[j - 1].x + ts[j - 1].w) > 30) { fim = j; break; } }
+      const v = [Object.assign({}, ts[i], { s: ts[i].s.replace(/^:\s*/, '') })].concat(ts.slice(i + 1, fim)).filter((t) => t.s);
+      out.push([junta(ts.slice(ini, i)), junta(v)]); ini = fim;
+    });
+    return out;
   }
   // rótulo e valor de um pedaço de coluna: pelo ":" ou pelo maior espaço entre pedaços
   function par(ts) {
     // "Rótulo : valor" num pedaço só
     if (ts.length === 1) { const m = ts[0].s.match(/^([^:]{2,60}?)\s+:\s*(.*)$/); if (m) return [m[1].trim(), m[2].trim()]; }
     const i = ts.findIndex((t) => /^:/.test(t.s));
+    // ":" sozinho e nada logo depois: campo vazio (o que vem longe já é de outra coluna, ex.: "Customer :      Date")
+    if (i > 0 && ts[i].s === ':' && (!ts[i + 1] || ts[i + 1].x - (ts[i].x + ts[i].w) > 40)) return [junta(ts.slice(0, i)), ''];
     if (i > 0) { const v = [Object.assign({}, ts[i], { s: ts[i].s.replace(/^:\s*/, '') })].concat(ts.slice(i + 1)).filter((t) => t.s); return [junta(ts.slice(0, i)), junta(v)]; }
     if (ts.length < 2) return null;
     let g = -1, gi = -1; for (let k = 1; k < ts.length; k++) { const d = ts[k].x - (ts[k - 1].x + ts[k - 1].w); if (d > g) { g = d; gi = k; } }
@@ -4458,6 +4508,70 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const L = pts.sort((a, b) => a.q - b.q).filter((p, i, A) => !i || p.q > A[i - 1].q);
     return L.length >= 4 ? { pag: null, chave: true, unid: { q: (unQ || '').replace(/m3/i, 'm³'), h: unH || 'm' }, pts: L } : null;
   }
+  // curva desenhada em vetor (ex.: Sempa): os números dos eixos dão a escala de cada painel (altura, rendimento,
+  // potência, NPSH) e do eixo de vazão; a curva do rotor escolhido é o traço contínuo colorido de cada painel.
+  // As curvas tracejadas do painel de altura (outros diâmetros) vêm junto, com o diâmetro escrito na ponta.
+  // Só sai resultado quando a escala fecha (3 números ou mais em cada eixo, alinhados com a grade).
+  function curvasVetor(pg) {
+    const V = pg.vet || []; if (V.length < 8) return null;
+    const nr = (s) => (/^-?\d+([.,]\d+)?$/.test(s) ? Number(s.replace(',', '.')) : null);
+    // grade: as linhas retas do traço mais comum (as linhas de referência do ponto de trabalho ficam de fora)
+    const retas = []; for (const v of V) if (v.p.length === 2) { const [a, b] = v.p; const ch = v.c.join(',') + '|' + v.w + '|' + v.d; if (Math.abs(a[1] - b[1]) < 0.4 && Math.abs(a[0] - b[0]) > 60) retas.push({ o: 'h', z: a[1], ch }); else if (Math.abs(a[0] - b[0]) < 0.4 && Math.abs(a[1] - b[1]) > 40) retas.push({ o: 'v', z: a[0], ch }); }
+    const cont = {}; for (const r of retas) cont[r.ch] = (cont[r.ch] || 0) + 1; const chG = Object.keys(cont).sort((a, b) => cont[b] - cont[a])[0];
+    const hz = retas.filter((r) => r.o === 'h' && r.ch === chG).map((r) => r.z), vt = retas.filter((r) => r.o === 'v' && r.ch === chG).map((r) => r.z);
+    const snap = (val, L, tol) => { let m = null; for (const z of L) if (Math.abs(z - val) <= tol && (m === null || Math.abs(z - val) < Math.abs(m - val))) m = z; return m === null ? val : m; };
+    const its = pg.itens.filter((i) => !i.rot);
+    // eixo y: números alinhados à direita numa coluna à esquerda do gráfico
+    const nums = its.filter((i) => nr(i.s) !== null); const porBorda = {};
+    for (const i of nums) { const k = Math.round((i.x + i.w) / 2); (porBorda[k] = porBorda[k] || []).push(i); }
+    const col = Object.values(porBorda).sort((a, b) => b.length - a.length)[0]; if (!col || col.length < 6) return null;
+    const xEixo = Math.max(...col.map((i) => i.x + i.w));
+    const ticks = col.slice().sort((a, b) => a.y - b.y).map((i) => ({ v: nr(i.s), y: snap(i.y - i.h * 0.35, hz, 3.5) }));
+    const grupos = []; for (const t of ticks) { const g = grupos[grupos.length - 1]; if (g && t.v < g[g.length - 1].v) g.push(t); else grupos.push([t]); }
+    // eixo x: a linha de números crescentes logo abaixo dos painéis
+    const linhasX = {}; for (const i of nums) if (i.x > xEixo) { const k = Math.round(i.y); (linhasX[k] = linhasX[k] || []).push(i); }
+    const rx = Object.values(linhasX).filter((L) => L.length >= 4).map((L) => L.sort((a, b) => a.x - b.x)).filter((L) => L.every((i, k) => !k || nr(i.s) > nr(L[k - 1].s))).sort((a, b) => b.length - a.length)[0];
+    if (!rx) return null;
+    // reta pelos números do eixo, tirando no máximo um número fora da linha
+    const ajusta = (P) => { const r = ajusta0(P); if (r.err === 0 || P.length < 4) return r; let pior = -1, e = -1; P.forEach(([x, y], i) => { const d = Math.abs(r.a * x + r.b - y); if (d > e) { e = d; pior = i; } }); const r2 = ajusta0(P.filter((_, i) => i !== pior)); return r2.err < r.err / 3 ? r2 : r; };
+    const ajusta0 = (P) => { const n = P.length, mx = P.reduce((s, p) => s + p[0], 0) / n, my = P.reduce((s, p) => s + p[1], 0) / n; let sxx = 0, sxy = 0; for (const [x, y] of P) { sxx += (x - mx) * (x - mx); sxy += (x - mx) * (y - my); } const a = sxy / sxx; const b = my - a * mx; const err = Math.max(...P.map(([x, y]) => Math.abs(a * x + b - y))); return { a, b, err }; };
+    const fx = ajusta(rx.map((i) => [snap(i.x + i.w / 2, vt, 3.5), nr(i.s)])); const passoX = Math.abs(nr(rx[1].s) - nr(rx[0].s)); if (!(fx.a > 0) || fx.err > passoX * 0.06) return null;
+    const textoLinha = (y0, y1) => its.filter((i) => i.y >= y0 && i.y <= y1 && i.x >= xEixo - 2 && i.x < xEixo + 160 && /[A-Za-z%η]/.test(i.s)).sort((a, b) => a.y - b.y || a.x - b.x);
+    const paineis = [];
+    for (const g of grupos) {
+      if (g.length < 3) continue; const f = ajusta(g.map((t) => [t.y, t.v])); const passo = Math.abs(g[0].v - g[1].v); if (!(f.a < 0) || f.err > passo * 0.08) continue;
+      const yTop = g[0].y, yBot = g[g.length - 1].y; const tt = textoLinha(yTop - 16, yTop + 14); const rot = tt.length ? tt.filter((i) => Math.abs(i.y - tt[0].y) < 3).map((i) => i.s).join(' ') : '';
+      const k = /npsh/i.test(rot) ? 'npsh' : /%|eff|rend|η/i.test(rot) || /^h\b/.test(rot) ? 'eff' : /^H\b|head|altura|tdh|förder/i.test(rot) ? 'h' : /^P\b|power|pot|kw|hp\b/i.test(rot) ? 'p' : null;
+      paineis.push({ k, rot, u: (rot.match(/[\[(]\s*([^\])]+?)\s*[\])]/) || [])[1] || '', yTop, yBot, f });
+    }
+    if (!paineis.length) return null;
+    paineis.forEach((p, i) => { if (!p.k) p.k = ['h', 'eff', 'p', 'npsh'][i] || null; });
+    const ph = paineis.find((p) => p.k === 'h'); if (!ph) return null;
+    const q = (x) => fx.a * x + fx.b; const arr = (v) => Math.round(Math.max(0, v) * 100) / 100;
+    const painelDe = (pts) => { const ys = pts.map((p) => p[1]).sort((a, b) => a - b); const ym = ys[Math.floor(ys.length / 2)]; return paineis.find((p) => ym >= p.yTop - 3 && ym <= p.yBot + 3); };
+    const colorido = (c) => Math.max(...c) - Math.min(...c) > 40;
+    const series = {}, outros = [];
+    const cands = V.filter((v) => v.p.length >= 3 && v.p[0][0] >= xEixo - 1 && v.p.every((p, i) => !i || p[0] >= v.p[i - 1][0] - 0.2));
+    for (const pn of paineis) {
+      const meus = cands.filter((v) => painelDe(v.p) === pn);
+      let sol = meus.filter((v) => !v.d && colorido(v.c)); if (!sol.length) { const wmax = Math.max(0, ...meus.filter((v) => !v.d).map((v) => v.w)); sol = meus.filter((v) => !v.d && v.w === wmax && wmax > 0.6); }
+      sol.sort((a, b) => a.p[0][0] - b.p[0][0]); const cad = [];
+      for (const v of sol) { const fim = cad[cad.length - 1]; if (fim && v.p[0][0] < fim[0] - 1) continue; if (fim && Math.abs(v.p[0][1] - fim[1]) > (pn.yBot - pn.yTop) * 0.06) continue; for (const p of v.p) if (!cad.length || p[0] > cad[cad.length - 1][0] + 0.05) cad.push(p); }
+      if (cad.length >= 4) series[pn.k] = cad.map((p) => [q(p[0]), pn.f.a * p[1] + pn.f.b]);
+      if (pn.k === 'h') {
+        // cada tracejado fica com o diâmetro escrito mais perto da sua ponta (um para um)
+        const tr = meus.filter((x) => x.d); const lbs = its.filter((i) => /^\d{2,4}[.,]\d+$/.test(i.s) && i.y > pn.yTop - 8 && i.y < pn.yBot + 8); const pares = [];
+        tr.forEach((v, a) => { const fim = v.p[v.p.length - 1]; lbs.forEach((i, b) => { const dy = Math.abs(i.y - i.h * 0.35 - fim[1]), dx = i.x - fim[0]; if (dy < 12 && dx > -8 && dx < 40) pares.push([dy + Math.abs(dx) * 0.2, a, b]); }); });
+        const usA = new Set(), usB = new Set(); for (const [, a, b] of pares.sort((x, y) => x[0] - y[0])) { if (usA.has(a) || usB.has(b)) continue; usA.add(a); usB.add(b); outros.push({ rot: lbs[b].s, pts: tr[a].p.map((p) => ({ q: arr(q(p[0])), h: arr(pn.f.a * p[1] + pn.f.b) })) }); }
+      }
+    }
+    if (!series.h) return null;
+    const interp = (S, x) => { if (!S || x < S[0][0] - 1e-6 || x > S[S.length - 1][0] + 1e-6) return undefined; let i = 0; while (i < S.length - 2 && x > S[i + 1][0]) i++; const [x0, y0] = S[i], [x1, y1] = S[i + 1]; return x1 === x0 ? y0 : y0 + (y1 - y0) * (x - x0) / (x1 - x0); };
+    const pts = series.h.map(([qq, h]) => { const o = { q: arr(Math.max(0, qq)), h: arr(h) }; for (const k of ['eff', 'p', 'npsh']) { const v = interp(series[k], qq); if (v !== undefined) o[k] = arr(v); } return o; }).filter((p, i, A) => !i || p.q > A[i - 1].q);
+    const tq = its.find((i) => /^Q\s*[\[(]/.test(i.s) || /^(Flow|Vazão|Caudal)\s*[\[(]/i.test(i.s)); const uq = tq ? (tq.s.match(/[\[(]\s*([^\])]+?)\s*[\])]/) || [])[1] : '';
+    const unid = { q: (uq || '').replace(/m3/i, 'm³') }; for (const pn of paineis) if (pn.u) unid[pn.k] = pn.u;
+    return { pag: pg.n, vetor: true, unid, pts, outros: outros.sort((a, b) => parseFloat(b.rot) - parseFloat(a.rot)) };
+  }
   function ler(paginas) {
     const out = { fabricante: '', paginas: [], secoes: [], tabelas: [], escopo: [] };
     const todo = paginas.map((p) => p.itens.map((i) => i.s).join(' ')).join(' ');
@@ -4477,24 +4591,28 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       const escopo = ehEscopo;
       const txtPg = pg.itens.map((i) => i.s).join(' ');
       const nPares = rows.filter((r) => r.ts.some((t) => /^:/.test(t.s))).length;
-      const eixos = /\bQ\s*\[|\bH\s*\[\s*m|\[\s*m[³3]\s*\/\s*h\s*\]|Flow\s*-\s*US|NPSH\s*\[|\bP\s*\[\s*kW/i.test(txtPg);
-      const curva = /Curve|Curva|Kennlinie|Characteristic/i.test(tit) || (eixos && nPares < 8 && pg.itens.length < 220);
+      const eixos = /\bQ\s*\[|\bH\s*\[\s*m|\[\s*m[³3]\s*\/\s*h\s*\]|Flow\s*-\s*US|NPSH\s*\[|\bP\s*\[\s*kW|\bQ\s*\(\s*(m[³3]|l\/s|gpm|US)|\bH\s*\(\s*(m|ft)\s*\)|NPSH\s*\(\s*(m|ft)\s*\)/i.test(txtPg);
+      const curva = /Curve|Curva|Kennlinie|Characteristic|Hydraulic/i.test(tit) || (eixos && nPares < 10 && pg.itens.length < 220);
       const desenho = /Arrangement|Dimension|Drawing/i.test(tit) || (!tit && pg.itens.length < 120 && !/:/.test(txt));
       const tipo = escopo ? 'escopo' : curva ? 'curva' : desenho ? 'desenho' : 'dados';
       if (!out.pontos) out.pontos = acharPontos(rows, pg.n);
+      // curva em vetor: lida em toda página de curva (a pessoa escolhe a página; a primeira lida é a padrão)
+      if (curva && pg.vet) { const cv = curvasVetor(pg); if (cv) { (out.pontosPag = out.pontosPag || {})[pg.n] = cv; if (!out.pontos) out.pontos = cv; } }
       const P = { n: pg.n, titulo: tit || (desenho ? 'Desenho' : 'Página ' + pg.n), tipo, w: pg.w, h: pg.h };
       if (curva) {
         // área do gráfico: abaixo do aviso do fabricante até o eixo de vazão
-        const ax = pg.itens.filter((i) => ((i.s === 'Flow' || /^Flow\s*-/.test(i.s)) && i.h >= 8.5) || /^Q\s*\[/.test(i.s)).sort((a, b) => b.y - a.y)[0];
+        const ax = pg.itens.filter((i) => ((i.s === 'Flow' || /^Flow\s*-/.test(i.s)) && i.h >= 8.5) || /^Q\s*[\[(]/.test(i.s)).sort((a, b) => b.y - a.y)[0];
+        const yH = pg.itens.filter((i) => /^H\s*[\[(]/.test(i.s)).sort((a, b) => a.y - b.y)[0];
+        const yNx = ax ? Math.max(ax.y, ...pg.itens.filter((i) => i.y > ax.y && i.y < ax.y + 22 && /^\d+$/.test(i.s)).map((i) => i.y)) : 0;
         const tabY = ax ? (pg.itens.filter((i) => i.y > ax.y + 2 && /^(Customer|Project name|Tag Number)$/.test(i.s)).sort((a, b) => a.y - b.y)[0] || {}).y : null;
         const aviso = pg.itens.filter((i) => /buyer\.?$|tolerance\.?$|Hyd Inst/i.test(i.s) && (!ax || i.y < ax.y)).sort((a, b) => b.y - a.y)[0];
-        const y0 = aviso ? aviso.y + 4 : (pg.itens.find((i) => i.s === tit) || { y: 60 }).y + 10; const y1 = ax ? Math.min(ax.y + 7, tabY ? tabY - 9 : 1e9) : pg.h * 0.62;
+        const y0 = aviso ? aviso.y + 4 : yH ? yH.y - 16 : (pg.itens.find((i) => i.s === tit) || { y: 60 }).y + 10; const y1 = ax ? Math.min(yNx + 7, tabY ? tabY - 9 : 1e9) : pg.h * 0.62;
         P.caixa = { x: 14, y: y0, w: pg.w - 28, h: Math.max(80, y1 - y0) };
       }
       out.paginas.push(P); const dadosAte = tipo === 'dados' ? corte : 1e9;
       // página de curva: os quadros de dados embaixo do gráfico (ex.: Sempa, 3 colunas com título) entram como seções
       if (tipo === 'curva' && P.caixa) {
-        const baixo = rows.filter((r) => r.y > P.caixa.y + P.caixa.h - 4); let cols = null, nomes = null;
+        const baixo = rows.filter((r) => r.y > P.caixa.y + P.caixa.h - 4 || r.y < P.caixa.y - 2); let cols = null, nomes = null;
         for (const r of baixo) {
           const semDois = !r.ts.some((t) => /:/.test(t.s));
           if (semDois && r.ts.length >= 2 && r.ts.every((t) => /^[A-Z][A-Za-z ()/.-]{2,40}$/.test(t.s))) { cols = r.ts.map((t) => t.x - 2); nomes = r.ts.map((t) => t.s); continue; }
@@ -4522,6 +4640,23 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       if (tipo !== 'dados') continue;
       // tabelas numéricas (desempenho por vazão, dados de desempenho): linhas com 4 ou mais pedaços espalhados
       const meio = pg.w / 2; const secAtual = { e: null, d: null }; let tab = null; let ultimo = { e: null, d: null }; let ident = true;
+      // tamanho da letra do corpo (dos valores ": …"): título de seção maior que ele vale mesmo com outro título ao lado
+      const hs = {}; for (const r of rows) for (const t of r.ts) if (/^:/.test(t.s)) hs[t.h.toFixed(1)] = (hs[t.h.toFixed(1)] || 0) + 1;
+      const corpo = Number(Object.keys(hs).sort((a, b) => hs[b] - hs[a])[0] || 0);
+      const ladoDe = (r, lado) => r.ts.filter((t) => (lado === 'e' ? t.x < meio - 4 : t.x >= meio - 4));
+      const colX = { e: 1e9, d: 1e9 }; for (const r of rows) for (const lado of ['e', 'd']) { const ts = ladoDe(r, lado); if (ts.length >= 2 && ts.some((t) => /^:/.test(t.s))) colX[lado] = Math.min(colX[lado], ts[0].x); }
+      // rótulos de grupo (ex.: Sempa: "Flow" com "Nominal / Max. / Min." e "Impeller D" com "Max. / Designed / Min."): o nome do
+      // grupo fica numa linha só e vale para as linhas vizinhas recuadas na mesma posição
+      const rotulos = (r, lado) => { const ts = ladoDe(r, lado); const i = ts.findIndex((t) => /^:/.test(t.s)); return i > 0 ? ts.slice(0, i) : []; };
+      const grupoDe = (ri, lado) => {
+        const L = rotulos(rows[ri], lado); if (L.length !== 1 || L[0].x - colX[lado] < 25) return '';
+        const xs = L[0].x; let best = null;
+        for (const dir of [-1, 1]) for (let k = ri + dir, n = 1; k >= 0 && k < rows.length && n <= 3; k += dir, n++) {
+          const M = rotulos(rows[k], lado); if (M.length >= 2 && Math.abs(M[M.length - 1].x - xs) < 3 && Math.abs(M[0].x - colX[lado]) < 3) { if (!best || n < best.n) best = { n, g: junta(M.slice(0, -1)) }; break; }
+          if (!(M.length === 1 && Math.abs(M[0].x - xs) < 3)) break;
+        }
+        return best ? best.g : '';
+      };
       const temParAbaixo = (ri, lado) => { for (let k = ri + 1; k < Math.min(rows.length, ri + 3); k++) { const ts = rows[k].ts.filter((t) => (lado === 'e' ? t.x < meio - 4 : t.x >= meio - 4)); if (ts.some((t) => /^:/.test(t.s) || /\S\s+:\s/.test(t.s))) return true; if (ts.length) return false; } return false; };
       for (let ri = 0; ri < rows.length; ri++) { const r = rows[ri];
         if (r.y >= dadosAte - 2) break;
@@ -4535,14 +4670,24 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         // cabeçalho de tabela (Flow (USgpm) Head (m) ...) ou título dela
         if (r.ts.length >= 4 && (junta(r.ts).match(/\((USgpm|m3\/h|m³\/h|m|%|ft|hp|kW|psi[.ag]*|bar)\)/g) || []).length >= 2) { tab = { t: '', pag: pg.n, cab: r.ts.map((t) => t.s), linhas: [] }; out.tabelas.push(tab); continue; }
         if (tab && r.ts.length >= 3 && !r.ts.some((t) => /^:/.test(t.s)) && tab.linhas.length) tab = null;
+        // linha do modelo selecionado (ex.: Sempa "SCE 200-500 1800 rpm / 568 m³/h / 106 m / …"): vira o modelo da identificação
+        if (r.ts.length === 1 && /\d\s*rpm\b/i.test(r.ts[0].s) && (r.ts[0].s.match(/\//g) || []).length >= 2) {
+          if (!out.selecao) { out.selecao = r.ts[0].s; const m = r.ts[0].s.split(/\s+\d+\s*rpm/i)[0].trim(); if (m) sec('Project', pg.n).campos.push({ k: 'Model', v: m, on: false }); }
+          continue;
+        }
         for (const lado of ['e', 'd']) {
           const ts = r.ts.filter((t) => (lado === 'e' ? t.x < meio - 4 : t.x >= meio - 4)); if (!ts.length) continue;
-          const x0 = lado === 'e' ? 30 : meio; const x1 = lado === 'e' ? meio : pg.w - 30; const p = par(ts);
+          const x0 = lado === 'e' ? 30 : meio; const x1 = lado === 'e' ? meio : pg.w - 30; let p = par(ts);
+          const vp = pares(ts);
+          if (vp) { const s0 = secAtual[lado] || (ident ? 'Project' : ''); if (!s0 || (s0 === 'Project' && identOk && pg.n !== out.secoes.find((x) => x.t === 'Project')?.pag)) continue;
+            for (const [k, v] of vp) { if (!k || !v || vistos.has(s0 + '|' + k + '|' + v)) continue; vistos.add(s0 + '|' + k + '|' + v); sec(s0, pg.n).campos.push({ k, v, on: s0 !== 'Project' }); } ultimo[lado] = null; continue; }
+          if (p) { const g = grupoDe(ri, lado); if (g) p = [g + ' ' + p[0], p[1]]; }
+          const grande = !p && corpo && ts.length === 1 && ts[0].h >= corpo + 0.6 && /^[A-Z][A-Za-z][A-Za-z /&()-]{1,40}$/.test(ts[0].s) && ts[0].x - x0 < 40 && temParAbaixo(ri, lado);
           const centro = ts.length === 1 ? Math.abs(ts[0].x + ts[0].w / 2 - (x0 + x1) / 2) : 99;
           const cont = ultimo[lado] && /\s(a|de|do|da|e|and|of|the|with|for)$|[-,/]$/.test(ultimo[lado].v || ultimo[lado].k);
           const esq = !p && ts.length === 1 && /^[A-Z][A-Za-z][A-Za-z /&()-]{1,40}$/.test(ts[0].s) && ts[0].x - x0 < 40 && (r.ts.length === 1 || lado === 'd' || r.ts.filter((t) => t.x >= meio - 4).length === 0) && temParAbaixo(ri, lado);
-          if ((!p && !cont && ts.length === 1 && centro < 16 && ts[0].x - x0 > 40 && !/^:/.test(ts[0].s) && !num(ts[0].s)) || esq) {
-            const nome = ts[0].s; if (tab && !tab.linhas.length) tab.t = nome; else { secAtual[lado] = nome; if (esq && r.ts.length === 1) { secAtual.e = nome; secAtual.d = nome; ultimo.e = null; ultimo.d = null; } ident = false; } ultimo[lado] = null; continue; }
+          if ((!p && !cont && ts.length === 1 && centro < 16 && ts[0].x - x0 > 40 && !/^:/.test(ts[0].s) && !num(ts[0].s)) || esq || grande) {
+            const nome = ts[0].s; if (tab && !tab.linhas.length) tab.t = nome; else { secAtual[lado] = nome; if ((esq || grande) && r.ts.length === 1) { secAtual.e = nome; secAtual.d = nome; ultimo.e = null; ultimo.d = null; } ident = false; } ultimo[lado] = null; continue; }
           const s = secAtual[lado] || (ident ? 'Project' : '');
           if (!p) {
             if (ts.length !== 1 || /^:/.test(ts[0].s)) continue; const naColunaRot = ts[0].x - x0 < 40; const c = ultimo[lado];
@@ -4561,7 +4706,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       }
       if (out.secoes.some((x) => x.t === 'Project')) identOk = true;
     }
-    for (const s of out.secoes) s.campos = s.campos.filter((c) => c.k).map((c) => { delete c.pend; return c; });
+    for (const s of out.secoes) s.campos = s.campos.filter((c) => c.k && (s.t !== 'Project' || String(c.v || '').trim())).map((c) => { delete c.pend; return c; });
     if (!out.pontos) out.pontos = pontosChave(out);
     out.secoes = out.secoes.filter((s) => s.campos.length);
     for (const P of out.paginas) if (P.tipo === 'dados' && !out.secoes.some((s) => s.pag === P.n)) P.tipo = 'anexo';
@@ -4578,6 +4723,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     'Stage, Speed and Solids Limits': ['Limites de estágios, rotação e sólidos', 'Límites de etapas, velocidad y sólidos'], 'Mechanical Limits': ['Limites mecânicos', 'Límites mecánicos'],
     'Typical Driver Data': ['Dados típicos do acionador', 'Datos típicos del accionador'], 'Various Performance Data': ['Dados de desempenho', 'Datos de desempeño'], Project: ['Identificação', 'Identificación'],
     'Operation Data': ['Dados de operação', 'Datos de operación'], 'Operating Data Specification': ['Especificação de operação', 'Especificación de operación'], 'Hydraulic Data (Duty Point)': ['Dados hidráulicos (ponto de trabalho)', 'Datos hidráulicos (punto de trabajo)'], 'Impeller Design': ['Rotor', 'Impulsor'], Performance: ['Desempenho', 'Desempeño'], 'Pump Data': ['Dados da bomba', 'Datos de la bomba'], 'Pump Material': ['Materiais da bomba', 'Materiales de la bomba'], 'Shaft Seal': ['Vedação do eixo', 'Sello del eje'], 'Technical Data': ['Dados técnicos', 'Datos técnicos'],
+    'Motor Data': ['Dados do motor', 'Datos del motor'], Coupling: ['Acoplamento', 'Acoplamiento'], 'Hydraulic Data': ['Dados hidráulicos', 'Datos hidráulicos'], 'Dimensional Data': ['Dimensões', 'Dimensiones'],
     Pump: ['Bomba', 'Bomba'], Driver: ['Acionador', 'Accionador'], Controller: ['Painel de comando', 'Tablero de control'], Accessories: ['Acessórios', 'Accesorios'],
   };
   const ROT = {
@@ -4614,6 +4760,11 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     'Max. Operation Pressure': ['Pressão máx. de operação', 'Presión máx. de operación'], 'Head (Q=0)': ['Altura em shutoff (Q=0)', 'Altura a válvula cerrada (Q=0)'], 'Shaft Power': ['Potência no eixo', 'Potencia en el eje'], 'Maximum Shaft Power': ['Potência máx. no eixo', 'Potencia máx. en el eje'],
     NPSHr: ['NPSH requerido', 'NPSH requerido'], 'Volute Casing': ['Carcaça (voluta)', 'Carcasa (voluta)'], 'Seal Box': ['Caixa de selagem', 'Caja de sellado'], Shaft: ['Eixo', 'Eje'], 'Bearing Housing': ['Caixa de rolamentos', 'Caja de rodamientos'], 'Wear Ring': ['Anel de desgaste', 'Anillo de desgaste'],
     'Sleeve Set': ['Luva do eixo', 'Camisa del eje'], 'Seal Type': ['Tipo de vedação', 'Tipo de sello'], Type: ['Tipo', 'Tipo'], 'Impeller D Designed': ['Diâmetro do rotor (projeto)', 'Diámetro del impulsor (diseño)'],
+    'Flow Nominal': ['Vazão nominal', 'Caudal nominal'], 'Flow Max.': ['Vazão máxima', 'Caudal máximo'], 'Flow Min.': ['Vazão mínima', 'Caudal mínimo'], 'Head Nominal': ['Altura nominal', 'Altura nominal'],
+    'Head at Qmax': ['Altura na vazão máxima', 'Altura al caudal máximo'], 'Head at Qmin': ['Altura na vazão mínima', 'Altura al caudal mínimo'], 'Impeller D Max.': ['Diâmetro do rotor máximo', 'Diámetro del impulsor máximo'],
+    'Impeller D Min.': ['Diâmetro do rotor mínimo', 'Diámetro del impulsor mínimo'], 'Suction Nozzle': ['Bocal de sucção', 'Boquilla de succión'], 'Discharge Nozzle': ['Bocal de recalque', 'Boquilla de descarga'], 'Body Type': ['Carcaça (modelo)', 'Carcasa (modelo)'],
+    'Rated Power': ['Potência nominal', 'Potencia nominal'], 'Shaft Diameter': ['Diâmetro do eixo', 'Diámetro del eje'], 'Insulation Class': ['Classe de isolamento', 'Clase de aislamiento'], 'Protection Class': ['Grau de proteção', 'Grado de protección'],
+    Voltage: ['Tensão', 'Tensión'], 'Efficiency Class': ['Classe de rendimento', 'Clase de eficiencia'], 'Phase Number': ['Número de fases', 'Número de fases'], 'Direction of Rotation': ['Sentido de rotação', 'Sentido de giro'],
     'Rated power (based on duty point)': ['Potência no ponto de trabalho', 'Potencia en el punto de trabajo'], 'Max power (non-overloading)': ['Potência máxima (sem sobrecarga)', 'Potencia máxima (sin sobrecarga)'], 'NPSH required': ['NPSH requerido', 'NPSH requerido'],
   };
   const VAL = {
@@ -4622,13 +4773,16 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     'Single Row': ['Uma carreira', 'Una hilera'], 'Silicon Brass': ['Latão ao silício', 'Latón al silicio'], 'Carbon steel': ['Aço carbono', 'Acero al carbono'], 'Bismuth tin bronze': ['Bronze estanho-bismuto', 'Bronce estaño-bismuto'], Integral: ['Integral', 'Integral'],
     'Heat exchanger cooled': ['Trocador de calor', 'Intercambiador de calor'], 'Radiator cooled': ['Radiador', 'Radiador'], 'Mounted on base with driver': ['Montada na base com o acionador', 'Montada en la base con el accionador'], 'Standard ventilation': ['Ventilação padrão', 'Ventilación estándar'],
     Steel: ['Aço', 'Acero'], Standard: ['Padrão', 'Estándar'], 'Peerless Fire Red': ['Vermelho Peerless', 'Rojo Peerless'], 'Non-witnessed': ['Não testemunhado', 'No presenciada'], 'Non-witnessed per HI 14.6 1U': ['Não testemunhado (HI 14.6 1U)', 'No presenciada (HI 14.6 1U)'],
+    Elastic: ['Elástico', 'Elástico'], Surface: ['Superfície', 'Superficie'], 'Clockwise from the Drive End': ['Horário, visto do acionamento', 'Horario, visto desde el accionamiento'], 'Chromium Steel': ['Aço cromo', 'Acero al cromo'],
+    'Chrome Nickel Steel': ['Aço cromo-níquel', 'Acero cromo-níquel'], 'Bronze Casting (Tinned)': ['Bronze fundido (estanhado)', 'Bronce fundido (estañado)'], 'Ductile Cast Iron': ['Ferro fundido nodular', 'Hierro dúctil'],
     'Double Suction Pump': ['Bipartida (dupla sucção)', 'Bipartida (doble succión)'], Water: ['Água', 'Agua'], 'Soft Packing': ['Gaxeta', 'Empaquetadura'],
     'Diesel engine': ['Motor diesel', 'Motor diésel'], 'Electric motor': ['Motor elétrico', 'Motor eléctrico'], 'Fire Pump System': ['Sistema de bomba de incêndio', 'Sistema de bomba contra incendio'], UL: ['UL', 'UL'],
   };
   const idx = (lang) => (lang === 'pt' ? 0 : lang === 'es' ? 1 : -1);
   const secT = (s, lang) => (idx(lang) < 0 ? s : (SEC[s] || [])[idx(lang)] || null);
   const rotT = (s, lang) => (idx(lang) < 0 ? s : (ROT[s] || [])[idx(lang)] || null);
-  const valT = (s, lang) => (idx(lang) < 0 ? s : (VAL[s] || [])[idx(lang)] || null);
+  // valor com código depois da barra ("Cast Iron / 06025"): traduz o material e mantém o código
+  const valT = (s, lang) => { if (idx(lang) < 0) return s; const d = (VAL[s] || [])[idx(lang)]; if (d) return d; const m = String(s).match(/^(.+?) \/ (.+)$/); if (m && VAL[m[1]]) return VAL[m[1]][idx(lang)] + ' / ' + (VAL[m[2]] ? VAL[m[2]][idx(lang)] : m[2]); return null; };
   // linha do escopo "Chave: valor": traduz cada parte pelo dicionário
   const linhaT = (s, lang) => { if (idx(lang) < 0) return s; if (VAL[s]) return valT(s, lang); const m = String(s).match(/^([^:]{2,60}):\s*(.*)$/); if (!m) return null; const k = rotT(m[1], lang) || ESC_ROT[m[1]]?.[idx(lang)]; const v = m[2] === '' ? '' : valT(m[2], lang); return k && v !== null ? (v ? k + ': ' + v : k + ':') : null; };
   const ESC_ROT = { 'Pump model': ['Modelo da bomba', 'Modelo de la bomba'], 'Selected pump listing': ['Listagem', 'Listado'], 'Casing material': ['Material da carcaça', 'Material de la carcasa'], 'Suction flange': ['Flange de sucção', 'Brida de succión'],
@@ -4651,9 +4805,9 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   'use strict';
   const LAR = '#E4650E', ESC = '#2F2F2F', TXT = '#3A3A3A', MUTED = '#7A7A7A', GRID = '#E6E6E6', EIXO = '#BDBDBD';
   const L = {
-    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)' },
-    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)' },
-    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)' },
+    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)', vetor: 'Curvas traçadas pela LS Fire a partir do gráfico da folha de dados do fabricante', npsh: 'NPSH requerido', diam: 'Ø' },
+    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)', vetor: 'Curves plotted by LS Fire from the manufacturer datasheet chart', npsh: 'NPSH required', diam: 'Ø' },
+    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)', vetor: 'Curvas trazadas por LS Fire a partir del gráfico de la hoja de datos del fabricante', npsh: 'NPSH requerido', diam: 'Ø' },
   };
   const LOC = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' };
   let fonteOk = null;
@@ -4682,15 +4836,15 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     if (!temPontos(dados)) return null;
     const lang = L[o.lang] ? o.lang : 'pt'; const t = L[lang]; await fontes();
     const nf = (d) => new Intl.NumberFormat(LOC[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
-    const P = dados.pontos; const pts = P.pts; const U = Object.assign({ q: 'USgpm', h: 'm', eff: '%', p: 'hp' }, P.unid || {});
+    const P = dados.pontos; const pts = P.pts; const U = Object.assign({ q: 'USgpm', h: 'm', eff: '%', p: 'hp', npsh: 'm' }, P.unid || {}); const outros = P.outros || [];
     const W = 2400, H = 1760; const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     const FT = (w, sz) => `${w} ${sz}px MontLS, Montserrat, Arial, sans-serif`;
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
-    const qMax = Math.max(...pts.map((p) => p.q)); const xStep = passo(qMax * 1.06, 10); const xMax = Math.ceil((qMax * 1.04) / xStep) * xStep;
+    const qMax = Math.max(...pts.map((p) => p.q), ...outros.map((o) => Math.max(...o.pts.map((p) => p.q)))); const xStep = passo(qMax * 1.06, 10); const xMax = Math.ceil((qMax * 1.04) / xStep) * xStep;
     const X0 = 190, X1 = W - 70; const sx = (q) => X0 + (q / xMax) * (X1 - X0);
     // painéis: altura (grande), rendimento e potência; cada um com o seu eixo
-    const series = [['h', t.h, 0.52], ['eff', t.eff, 0.19], ['p', t.p, 0.19]].filter(([k]) => pts.some((p) => typeof p[k] === 'number'));
-    const topo = 190, base = H - 190, gap = 64; const alt = base - topo - gap * (series.length - 1); const soma = series.reduce((a, s) => a + s[2], 0);
+    const series = [['h', t.h, 0.52], ['eff', t.eff, 0.19], ['p', t.p, 0.19], ['npsh', t.npsh, 0.17]].filter(([k]) => pts.filter((p) => typeof p[k] === 'number').length >= 2);
+    const topo = 190, base = H - 190, gap = series.length > 3 ? 58 : 64; const alt = base - topo - gap * (series.length - 1); const soma = series.reduce((a, s) => a + s[2], 0);
     let y = topo; const paineis = series.map(([k, nome, f]) => { const h = alt * f / soma; const p = { k, nome, y0: y, y1: y + h }; y += h + gap; return p; });
     // dados do ponto de trabalho e da NFPA 20 (só o que estiver na folha)
     const qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0] || nums(campo(dados, /Operat/i, /^Flow$/))[0]; const hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0] || nums(campo(dados, /Operat/i, /^Head$/))[0];
@@ -4698,13 +4852,17 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const sh = nums(campo(dados, /NFPA/i, /^Head at shutoff/)), h150 = nums(campo(dados, /NFPA/i, /^Head at 150%/)), q150 = nums(campo(dados, /NFPA/i, /^Flow at 150%/))[0];
     for (const pn of paineis) {
       const vals = pts.map((p) => p[pn.k]).filter((v) => typeof v === 'number'); let vmax = Math.max(...vals);
-      if (pn.k === 'h') vmax = Math.max(vmax, hT || 0, hN || 0, sh[1] || 0);
+      if (pn.k === 'h') vmax = Math.max(vmax, hT || 0, hN || 0, sh[1] || 0, ...outros.map((o) => Math.max(...o.pts.map((p) => p.h))));
       const ys = passo(vmax * 1.08, pn.k === 'h' ? 8 : 3); const ymax = Math.ceil((vmax * 1.06) / ys) * ys; const syy = (v) => pn.y1 - (v / ymax) * (pn.y1 - pn.y0); pn.sy = syy;
       // grade e eixo y (recessivos)
       g.lineWidth = 2; g.font = FT(400, 30); g.textAlign = 'right'; g.textBaseline = 'middle';
       for (let v = 0; v <= ymax + 1e-9; v += ys) { const yy = syy(v); g.strokeStyle = v === 0 ? EIXO : GRID; g.beginPath(); g.moveTo(X0, yy); g.lineTo(X1, yy); g.stroke(); g.fillStyle = MUTED; g.fillText(nf(ys < 1 ? 1 : 0).format(v), X0 - 18, yy); }
       for (let q = 0; q <= xMax + 1e-9; q += xStep) { const xx = sx(q); g.strokeStyle = GRID; g.beginPath(); g.moveTo(xx, pn.y0); g.lineTo(xx, pn.y1); g.stroke(); }
       g.fillStyle = TXT; g.font = FT(600, 34); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(pn.nome + ' (' + U[pn.k] + ')', X0, pn.y0 - 18);
+      // outros diâmetros de rotor (tracejados, recessivos), com o diâmetro na ponta
+      if (pn.k === 'h') for (const o of outros) { const op = o.pts.filter((p, i, A) => !i || p.q > A[i - 1].q); if (op.length < 2) continue; const fo = monotona(op.map((p) => p.q), op.map((p) => p.h));
+        g.setLineDash([16, 12]); g.strokeStyle = '#A8A8A8'; g.lineWidth = 3; g.beginPath(); for (let i = 0; i <= 120; i++) { const q = op[0].q + (op[op.length - 1].q - op[0].q) * i / 120; const xx = sx(q), yy = syy(fo(q)); if (i) g.lineTo(xx, yy); else g.moveTo(xx, yy); } g.stroke(); g.setLineDash([]);
+        const fim = op[op.length - 1]; g.fillStyle = MUTED; g.font = FT(400, 24); g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t.diam + ' ' + (lang === 'en' ? o.rot : String(o.rot).replace('.', ',')), Math.min(sx(fim.q) + 10, X1 - 110), syy(fim.h)); }
       // curva: só entre os pontos do fabricante
       const ps = pts.filter((p) => typeof p[pn.k] === 'number'); const f = monotona(ps.map((p) => p.q), ps.map((p) => p[pn.k]));
       g.strokeStyle = LAR; g.lineWidth = pn.k === 'h' ? 7 : 5; g.lineJoin = 'round'; g.lineCap = 'round'; g.beginPath();
@@ -4728,6 +4886,12 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       if (P.chave) for (const p of pts) { g.fillStyle = LAR; g.beginPath(); g.arc(sx(p.q), ph.sy(p.h), 9, 0, Math.PI * 2); g.fill(); }
       if (qT && hT) { const xx = sx(qT), yy = ph.sy(hT); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, ph.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true); rotulo(t.trab + ': ' + fq(qT) + ' · ' + fh(hT), xx, yy + 54, P.chave ? 'e' : 'd'); }
     }
+    // ponto de trabalho também nos outros painéis (valor lido na curva do fabricante)
+    if (qT) for (const pn of paineis) { if (pn.k === 'h' || !pn.f) continue; const ps = pts.filter((p) => typeof p[pn.k] === 'number'); if (!ps.length || qT < ps[0].q || qT > ps[ps.length - 1].q) continue;
+      // valor escrito na folha quando houver; senão, o lido na curva
+      const fol = { eff: nums(campo(dados, null, /^Efficiency(, rated)?$/))[0], p: nums(campo(dados, null, /^(Shaft Power|Power, rated)$/))[0], npsh: nums(campo(dados, null, /^NPSH\s?r(equired)?$/i))[0] }[pn.k];
+      const v0 = pn.f(qT); const v = fol && Math.abs(fol - v0) <= Math.max(0.08 * Math.abs(v0), 0.5) ? fol : v0; const xx = sx(qT), yy = pn.sy(v0); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, pn.y0); g.lineTo(xx, pn.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true);
+      rotulo(nf(pn.k === 'p' ? 1 : pn.k === 'eff' ? 1 : 2).format(v) + ' ' + U[pn.k], xx, yy - 40, 'd'); }
     // eixo x (vazão) com equivalente em m³/h quando a vazão vem em galões
     const yb = paineis[paineis.length - 1].y1; g.textAlign = 'center'; g.textBaseline = 'top';
     for (let q = 0; q <= xMax + 1e-9; q += xStep) { const xx = sx(q); g.fillStyle = MUTED; g.font = FT(400, 30); g.fillText(nf(0).format(q), xx, yb + 16); if (/gpm/i.test(U.q)) { g.font = FT(400, 24); g.fillText(nf(0).format(q * 0.2271247), xx, yb + 54); } }
@@ -4740,7 +4904,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     g.fillText([dados.fabricante, mod].filter(Boolean).join(' ') + (rot ? ' · ' + t.rotor + ' ' + dec(rot) : '') + (rpm ? ' · ' + rpm : ''), X0, 58);
     if (o.logo) { try { const im = new Image(); im.src = o.logo; await im.decode(); const w = 230, h = w * im.height / im.width; g.drawImage(im, W - 70 - w, 18, w, h); } catch (e) { /* sem logo */ } }
     g.fillStyle = LAR; g.fillRect(X0, 80, 120, 6);
-    g.fillStyle = MUTED; g.font = FT(400, 26); g.textAlign = 'right'; g.fillText((P.chave ? t.chave : t.fonte) + (dados.pontos.pag ? ' (p. ' + dados.pontos.pag + ')' : '') + '.', X1, H - 22);
+    g.fillStyle = MUTED; g.font = FT(400, 26); g.textAlign = 'right'; g.fillText((P.chave ? t.chave : P.vetor ? t.vetor : t.fonte) + (dados.pontos.pag ? ' (p. ' + dados.pontos.pag + ')' : '') + '.', X1, H - 22);
     return cv.toDataURL('image/png');
   }
   window.PricerCurva = { desenhar, temPontos };
@@ -5074,6 +5238,79 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   }
   window.PricerPropostaFD = { montar, textosFab };
 })();
+
+</script>
+<script>/* escopo-padrao.js */
+/* LS Pricer — texto padrão do escopo da proposta por família de insumo e por tipo (no estilo do escopo da Peerless:
+   título do componente e uma ou duas linhas curtas). Vale quando o item e a família não têm texto cadastrado em
+   Cadastro → Na proposta. {marca}, {modelo} e {qtd} são trocados pelo item. Nada aqui afirma especificação que varie
+   dentro da família (potência, tensão, material, UL/FM): isso vem do próprio item e do cadastro. */
+window.PRICER_ESCOPO_PADRAO = {
+  grupos: {
+    "Bomba": {"pt":"Bomba","en":"Pump","es":"Bomba"},
+    "Acionador": {"pt":"Acionador","en":"Driver","es":"Accionamiento"},
+    "Painel de comando": {"pt":"Painel de comando","en":"Controller","es":"Tablero de control"},
+    "Bomba jockey": {"pt":"Bomba jockey","en":"Jockey pump","es":"Bomba jockey"},
+    "Acessórios": {"pt":"Acessórios","en":"Accessories","es":"Accesorios"},
+    "Testes e ensaios": {"pt":"Testes e ensaios","en":"Testing","es":"Pruebas y ensayos"},
+    "Documentos e desenhos": {"pt":"Documentos e desenhos","en":"Documents and drawings","es":"Documentos y planos"},
+    "Serviços": {"pt":"Serviços","en":"Services","es":"Servicios"},
+    "Comercial": {"pt":"Comercial","en":"Commercial","es":"Comercial"},
+  },
+  fams: {
+    1: {"grupo":"Acionador","titulo":{"pt":"Motor diesel","en":"Diesel engine","es":"Motor diésel"},"t":{"pt":"{marca} {modelo}\nAcionamento da bomba principal","en":"{marca} {modelo}\nMain pump driver","es":"{marca} {modelo}\nAccionamiento de la bomba principal"}},
+    10: {"grupo":"Acionador","titulo":{"pt":"Motor elétrico","en":"Electric motor","es":"Motor eléctrico"},"t":{"pt":"{marca} {modelo}","en":"{marca} {modelo}","es":"{marca} {modelo}"}},
+    11: {"grupo":"Bomba","titulo":{"pt":"Bomba centrífuga","en":"Centrifugal pump","es":"Bomba centrífuga"},"t":{"pt":"{marca} {modelo}\nExecução: eixo livre (mancal)","en":"{marca} {modelo}\nConstruction: bare shaft (bearing frame)","es":"{marca} {modelo}\nEjecución: eje libre (soporte de cojinetes)"}},
+    12: {"grupo":"Bomba","titulo":{"pt":"Motobomba","en":"Pump unit","es":"Motobomba"},"t":{"pt":"{marca} {modelo}\nBomba e acionador fornecidos em conjunto","en":"{marca} {modelo}\nPump and driver supplied as one unit","es":"{marca} {modelo}\nBomba y accionamiento suministrados en conjunto"}},
+    13: {"grupo":"Bomba jockey","titulo":{"pt":"Bomba jockey","en":"Jockey pump","es":"Bomba jockey"},"t":{"pt":"{marca} {modelo}\nManutenção da pressão do sistema","en":"{marca} {modelo}\nSystem pressure maintenance","es":"{marca} {modelo}\nMantenimiento de la presión del sistema"}},
+    14: {"grupo":"Bomba","titulo":{"pt":"Base metálica","en":"Baseplate","es":"Base metálica"},"t":{"pt":"{marca} {modelo}\nBase comum para montagem do conjunto","en":"{marca} {modelo}\nCommon base for unit mounting","es":"{marca} {modelo}\nBase común para montaje del conjunto"}},
+    15: {"grupo":"Acessórios","titulo":{"pt":"Tanque de combustível","en":"Fuel tank","es":"Tanque de combustible"},"t":{"pt":"{marca} {modelo}\nAlimentação de combustível do motor diesel","en":"{marca} {modelo}\nDiesel engine fuel supply","es":"{marca} {modelo}\nSuministro de combustible del motor diésel"}},
+    16: {"grupo":"Acionador","titulo":{"pt":"Escapamento","en":"Exhaust system","es":"Sistema de escape"},"t":{"pt":"{marca} {modelo}\nSaída de gases do motor diesel","en":"{marca} {modelo}\nDiesel engine exhaust","es":"{marca} {modelo}\nEscape de gases del motor diésel"}},
+    17: {"grupo":"Acionador","titulo":{"pt":"Baterias de partida","en":"Starting batteries","es":"Baterías de arranque"},"t":{"pt":"{marca} {modelo}\nPartida do motor diesel","en":"{marca} {modelo}\nDiesel engine starting","es":"{marca} {modelo}\nArranque del motor diésel"}},
+    18: {"grupo":"Acionador","titulo":{"pt":"Acoplamento","en":"Coupling","es":"Acoplamiento"},"t":{"pt":"{marca} {modelo}\nTransmissão entre acionador e bomba","en":"{marca} {modelo}\nDriver to pump power transmission","es":"{marca} {modelo}\nTransmisión entre accionamiento y bomba"}},
+    19: {"grupo":"Acionador","titulo":{"pt":"Chaves de partida de emergência","en":"Emergency start contactors","es":"Llaves de arranque de emergencia"},"t":{"pt":"{marca} {modelo}\nPartida manual de emergência do motor diesel","en":"{marca} {modelo}\nDiesel engine emergency manual start","es":"{marca} {modelo}\nArranque manual de emergencia del motor diésel"}},
+    20: {"grupo":"Painel de comando","titulo":{"pt":"Painel de comando (controlador)","en":"Pump controller","es":"Tablero de control (controlador)"},"t":{"pt":"{marca} {modelo}\nPartida automática por pressão e partida manual","en":"{marca} {modelo}\nAutomatic (pressure) and manual start","es":"{marca} {modelo}\nArranque automático por presión y arranque manual"}},
+    21: {"grupo":"Painel de comando","titulo":{"pt":"Painel de comando elétrico","en":"Electric motor controller","es":"Tablero de control eléctrico"},"t":{"pt":"{marca} {modelo}\nComando da(s) bomba(s) com motor elétrico","en":"{marca} {modelo}\nControl of electric motor driven pump(s)","es":"{marca} {modelo}\nControl de la(s) bomba(s) con motor eléctrico"}},
+    22: {"grupo":"Acionador","titulo":{"pt":"Sensores do motor","en":"Engine sensors","es":"Sensores del motor"},"t":{"pt":"{marca} {modelo}\nSinais do motor diesel para o painel de comando","en":"{marca} {modelo}\nDiesel engine signals to the controller","es":"{marca} {modelo}\nSeñales del motor diésel al tablero de control"}},
+    23: {"grupo":"Acessórios","titulo":{"pt":"Válvula de alívio principal","en":"Main relief valve","es":"Válvula de alivio principal"},"t":{"pt":"{marca} {modelo}\nAlívio de pressão na descarga da bomba","en":"{marca} {modelo}\nPump discharge pressure relief","es":"{marca} {modelo}\nAlivio de presión en la descarga de la bomba"}},
+    24: {"grupo":"Acessórios","titulo":{"pt":"Cone de descarga","en":"Discharge (waste) cone","es":"Cono de descarga"},"t":{"pt":"{marca} {modelo}\nDescarga da válvula de alívio principal","en":"{marca} {modelo}\nMain relief valve discharge","es":"{marca} {modelo}\nDescarga de la válvula de alivio principal"}},
+    25: {"grupo":"Acessórios","titulo":{"pt":"Medidor de vazão","en":"Flow meter","es":"Caudalímetro"},"t":{"pt":"{marca} {modelo}\nMedição de vazão para teste da bomba","en":"{marca} {modelo}\nFlow measurement for pump testing","es":"{marca} {modelo}\nMedición de caudal para prueba de la bomba"}},
+    26: {"grupo":"Acionador","titulo":{"pt":"Pré-aquecimento do motor","en":"Engine pre-heating kit","es":"Precalentamiento del motor"},"t":{"pt":"{marca} {modelo}\nAquecimento do líquido de arrefecimento","en":"{marca} {modelo}\nEngine coolant heating","es":"{marca} {modelo}\nCalentamiento del refrigerante del motor"}},
+    27: {"grupo":"Acessórios","titulo":{"pt":"Barrilete de sucção","en":"Suction piping assembly","es":"Colector de succión"},"t":{"pt":"{marca} {modelo}\nTubulação e conexões de sucção","en":"{marca} {modelo}\nSuction piping and fittings","es":"{marca} {modelo}\nTubería y conexiones de succión"}},
+    28: {"grupo":"Acessórios","titulo":{"pt":"Barrilete de recalque","en":"Discharge piping assembly","es":"Colector de descarga"},"t":{"pt":"{marca} {modelo}\nTubulação e conexões de recalque","en":"{marca} {modelo}\nDischarge piping and fittings","es":"{marca} {modelo}\nTubería y conexiones de descarga"}},
+    29: {"grupo":"Acessórios","titulo":{"pt":"Pressostato / manômetro","en":"Pressure switch / gauge","es":"Presostato / manómetro"},"t":{"pt":"{marca} {modelo}","en":"{marca} {modelo}","es":"{marca} {modelo}"}},
+    30: {"grupo":"Acessórios","titulo":{"pt":"Manovacuômetro","en":"Compound gauge","es":"Manovacuómetro"},"t":{"pt":"{marca} {modelo}\nIndicação de pressão na sucção da bomba","en":"{marca} {modelo}\nPump suction pressure indication","es":"{marca} {modelo}\nIndicación de presión en la succión de la bomba"}},
+    31: {"grupo":"Acionador","titulo":{"pt":"Interligação das baterias","en":"Battery interconnection","es":"Interconexión de baterías"},"t":{"pt":"{marca} {modelo}\nPara baterias de partida do motor diesel","en":"{marca} {modelo}\nFor diesel engine starting batteries","es":"{marca} {modelo}\nPara baterías de arranque del motor diésel"}},
+    32: {"grupo":"Acessórios","titulo":{"pt":"Miscelâneas","en":"Miscellaneous","es":"Misceláneos"},"t":{"pt":"","en":"","es":""}},
+    33: {"grupo":"Acessórios","titulo":{"pt":"Kit de instalações","en":"Installation kit","es":"Kit de instalación"},"t":{"pt":"","en":"","es":""}},
+    34: {"grupo":"Serviços","titulo":{"pt":"Mão de obra","en":"Labour","es":"Mano de obra"},"t":{"pt":"","en":"","es":""}},
+    35: {"grupo":"Bomba","titulo":{"pt":"Pintura especial","en":"Special coating","es":"Pintura especial"},"t":{"pt":"{marca} {modelo}","en":"{marca} {modelo}","es":"{marca} {modelo}"}},
+    36: {"grupo":"Acionador","titulo":{"pt":"Capa do acoplamento","en":"Coupling housing","es":"Carcasa del acoplamiento"},"t":{"pt":"{marca} {modelo}","en":"{marca} {modelo}","es":"{marca} {modelo}"}},
+    37: {"grupo":"Comercial","titulo":{"pt":"Embalagem","en":"Packing","es":"Embalaje"},"t":{"pt":"","en":"","es":""}},
+    38: {"grupo":"Acessórios","titulo":{"pt":"Tomada de pressão","en":"Pressure sensing line","es":"Toma de presión"},"t":{"pt":"{marca} {modelo}\nLinha de pressão para o painel de comando","en":"{marca} {modelo}\nPressure line to the controller","es":"{marca} {modelo}\nLínea de presión al tablero de control"}},
+    39: {"grupo":"Acionador","titulo":{"pt":"ECM reserva","en":"Spare ECM","es":"ECM de repuesto"},"t":{"pt":"{marca} {modelo}\nMódulo eletrônico de controle do motor","en":"{marca} {modelo}\nEngine electronic control module","es":"{marca} {modelo}\nMódulo electrónico de control del motor"}},
+    40: {"grupo":"Acessórios","titulo":{"pt":"Cabeçote","en":"Header","es":"Cabezal"},"t":{"pt":"{marca} {modelo}","en":"{marca} {modelo}","es":"{marca} {modelo}"}},
+    41: {"grupo":"Acessórios","titulo":{"pt":"Acessório adicional","en":"Additional accessory","es":"Accesorio adicional"},"t":{"pt":"{marca} {modelo}","en":"{marca} {modelo}","es":"{marca} {modelo}"}},
+    42: {"grupo":"Acessórios","titulo":{"pt":"Manômetro","en":"Pressure gauge","es":"Manómetro"},"t":{"pt":"{marca} {modelo}","en":"{marca} {modelo}","es":"{marca} {modelo}"}},
+    43: {"grupo":"Acessórios","titulo":{"pt":"Kit de recirculação da carcaça","en":"Casing relief (recirculation) kit","es":"Kit de recirculación de la carcasa"},"t":{"pt":"{marca} {modelo}\nEvita superaquecimento da bomba sem vazão","en":"{marca} {modelo}\nPrevents pump overheating at no flow","es":"{marca} {modelo}\nEvita el sobrecalentamiento de la bomba sin caudal"}},
+    44: {"grupo":"Acessórios","titulo":{"pt":"Válvula de liberação de ar","en":"Air release valve","es":"Válvula de liberación de aire"},"t":{"pt":"{marca} {modelo}\nLiberação de ar da carcaça da bomba","en":"{marca} {modelo}\nPump casing air release","es":"{marca} {modelo}\nLiberación de aire de la carcasa de la bomba"}},
+    45: {"grupo":"Acessórios","titulo":{"pt":"Acessório do tanque de combustível","en":"Fuel tank accessory","es":"Accesorio del tanque de combustible"},"t":{"pt":"{marca} {modelo}","en":"{marca} {modelo}","es":"{marca} {modelo}"}},
+    46: {"grupo":"Testes e ensaios","titulo":{"pt":"Ensaio","en":"Test","es":"Ensayo"},"t":{"pt":"{modelo}","en":"{modelo}","es":"{modelo}"}},
+    47: {"grupo":"Documentos e desenhos","titulo":{"pt":"Documento técnico","en":"Technical document","es":"Documento técnico"},"t":{"pt":"{modelo}","en":"{modelo}","es":"{modelo}"}},
+  },
+  tipos: {
+    "10|B3D": {"titulo":{"pt":"Motor elétrico","en":"Electric motor","es":"Motor eléctrico"},"t":{"pt":"{marca} {modelo}\nForma construtiva: B3D (montagem por pés)","en":"{marca} {modelo}\nMounting: B3D (foot mounted)","es":"{marca} {modelo}\nForma constructiva: B3D (montaje con patas)"}},
+    "10|B34D": {"titulo":{"pt":"Motor elétrico","en":"Electric motor","es":"Motor eléctrico"},"t":{"pt":"{marca} {modelo}\nForma construtiva: B34D (pés e flange C)","en":"{marca} {modelo}\nMounting: B34D (foot and C-face flange)","es":"{marca} {modelo}\nForma constructiva: B34D (patas y brida C)"}},
+    "11|END SUCTION": {"titulo":{"pt":"Bomba centrífuga de sucção axial (end suction)","en":"End suction centrifugal pump","es":"Bomba centrífuga de succión axial (end suction)"},"t":{"pt":"{marca} {modelo}\nExecução: eixo livre (mancal)","en":"{marca} {modelo}\nConstruction: bare shaft (bearing frame)","es":"{marca} {modelo}\nEjecución: eje libre (soporte de cojinetes)"}},
+    "11|SPLIT CASE": {"titulo":{"pt":"Bomba centrífuga bipartida (split case)","en":"Split case centrifugal pump","es":"Bomba centrífuga de carcasa partida (split case)"},"t":{"pt":"{marca} {modelo}\nExecução: eixo livre (mancal)","en":"{marca} {modelo}\nConstruction: bare shaft (bearing frame)","es":"{marca} {modelo}\nEjecución: eje libre (soporte de cojinetes)"}},
+    "11|MULTIESTÁGIO": {"titulo":{"pt":"Bomba centrífuga multiestágio","en":"Multistage centrifugal pump","es":"Bomba centrífuga multietapa"},"t":{"pt":"{marca} {modelo}\nExecução: eixo livre (mancal)","en":"{marca} {modelo}\nConstruction: bare shaft (bearing frame)","es":"{marca} {modelo}\nEjecución: eje libre (soporte de cojinetes)"}},
+    "12|MONOBLOCO": {"titulo":{"pt":"Motobomba monobloco","en":"Close-coupled pump unit","es":"Motobomba monobloque"},"t":{"pt":"{marca} {modelo}\nExecução monobloco (bomba acoplada ao acionador)","en":"{marca} {modelo}\nClose-coupled construction (pump on driver)","es":"{marca} {modelo}\nEjecución monobloque (bomba acoplada al accionamiento)"}},
+    "12|SPLIT CASE": {"titulo":{"pt":"Motobomba bipartida (split case)","en":"Split case pump unit","es":"Motobomba de carcasa partida (split case)"},"t":{"pt":"{marca} {modelo}\nBomba bipartida e acionador fornecidos em conjunto","en":"{marca} {modelo}\nSplit case pump and driver supplied as one unit","es":"{marca} {modelo}\nBomba partida y accionamiento suministrados en conjunto"}},
+    "12|END SUCTION": {"titulo":{"pt":"Motobomba de sucção axial (end suction)","en":"End suction pump unit","es":"Motobomba de succión axial (end suction)"},"t":{"pt":"{marca} {modelo}\nBomba e acionador fornecidos em conjunto","en":"{marca} {modelo}\nPump and driver supplied as one unit","es":"{marca} {modelo}\nBomba y accionamiento suministrados en conjunto"}},
+    "12|VERTICAL TURBINA": {"titulo":{"pt":"Motobomba vertical tipo turbina","en":"Vertical turbine pump unit","es":"Motobomba vertical tipo turbina"},"t":{"pt":"{marca} {modelo}\nBomba e acionador fornecidos em conjunto","en":"{marca} {modelo}\nPump and driver supplied as one unit","es":"{marca} {modelo}\nBomba y accionamiento suministrados en conjunto"}},
+    "13|MONOBLOCO": {"titulo":{"pt":"Bomba jockey monobloco","en":"Close-coupled jockey pump","es":"Bomba jockey monobloque"},"t":{"pt":"{marca} {modelo}\nManutenção da pressão do sistema","en":"{marca} {modelo}\nSystem pressure maintenance","es":"{marca} {modelo}\nMantenimiento de la presión del sistema"}},
+  },
+};
 
 </script>
 <script>/* icones.js */
@@ -8000,10 +8237,10 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const pc = pcGet(); const f = (pc.fd || {})[S] || {}; const ro = state.verRev ? ' disabled' : '';
     const st = (f.fab ? ['folha do fabricante ✓'] : []).concat(FD_KIND.map(([k, lb]) => (f[k] ? lb.replace(/^Folha de dados d[ao] /, 'FD ').replace('Curva da bomba', 'curva') + ' ✓' : ''))).filter(Boolean).join(' · ');
     const slot = ([k, lb]) => { const x = f[k];
-      if (!x) return `<div class="fdslot"><div class="lbl">${esc(lb)}</div><label class="drop" for="fdup_${k}"><b>Solte aqui o PDF ou a imagem</b><span class="sub">${k === 'curva' ? 'a página escolhida entra na folha de dados da proposta' : 'o app lê os dados (vazão, rotação, rotor, sucção, recalque…) para você conferir'}</span><input id="fdup_${k}" type="file" accept=".pdf,image/*" data-fdup="${esc(S)}|${k}"${ro} hidden></label></div>`;
+      if (!x) return `<div class="fdslot"><div class="lbl">${esc(lb)}</div><label class="drop" for="fdup_${k}"><b>Solte aqui o PDF${k === 'curva' ? ' do fabricante' : ' ou a imagem'}</b><span class="sub">${k === 'curva' ? 'o app lê a curva e a redesenha no padrão LS Fire' : 'o app lê os dados (vazão, rotação, rotor, sucção, recalque…) para você conferir'}</span><input id="fdup_${k}" type="file" accept="${k === 'curva' ? '.pdf' : '.pdf,image/*'}" data-fdup="${esc(S)}|${k}"${ro} hidden></label></div>`;
       const campos = x.campos || [];
       return `<div class="fdslot"><div class="lbl">${esc(lb)}: <b>${esc(x.nome || '')}</b> <button class="linkbtn" data-fdopen="${esc(x.docId)}">abrir</button>${ro ? '' : ` · <button class="linkbtn" data-fdtira="${esc(S)}|${k}">tirar</button>`}</div>
-        ${k === 'curva' ? `<div class="fields"><div class="f"><label for="fdpg_${k}">Página do PDF</label><input id="fdpg_${k}" data-fdpag="${esc(S)}" inputmode="numeric" value="${esc(x.pag || 1)}"${ro}>${x.paginas ? `<small class="sub">de ${x.paginas}</small>` : ''}</div></div>${(x.paginas || 1) > 1 ? `<small class="sub">Clique na página da curva:</small>${thumbsHtml(S, 'curva', x.pag || 1)}` : ''}`
+        ${k === 'curva' ? `<div class="fields"><div class="f"><label for="fdpg_${k}">Página do PDF</label><input id="fdpg_${k}" data-fdpag="${esc(S)}" inputmode="numeric" value="${esc(x.pag || 1)}"${ro}>${x.paginas ? `<small class="sub">de ${x.paginas}</small>` : ''}</div></div>${(x.paginas || 1) > 1 ? `<small class="sub">Clique na página da curva:</small>${thumbsHtml(S, 'curva', x.pag || 1)}` : ''}${curvaSlotHtml(S, x)}`
         : `${campos.length ? `<div class="tw"><table class="t"><thead><tr><th>Vai na proposta</th><th>Campo</th><th>Valor</th><th></th></tr></thead><tbody>${campos.map((c, i) => `<tr><td><input type="checkbox" data-fdon="${esc(S)}|${k}|${i}"${c.on !== false ? ' checked' : ''}${ro} aria-label="Incluir ${esc(c.k)}"></td><td class="in"><input data-fdk="${esc(S)}|${k}|${i}" value="${esc(c.k)}"${ro} aria-label="Campo"></td><td class="in"><input data-fdv="${esc(S)}|${k}|${i}" value="${esc(c.v)}"${ro} aria-label="Valor"></td><td>${ro ? '' : `<button class="btn sm" data-fddel="${esc(S)}|${k}|${i}" aria-label="Tirar a linha">×</button>`}</td></tr>`).join('')}</tbody></table></div>` : `<p class="sub" style="margin:4px 0">${x.lido === false ? 'Não consegui ler dados deste arquivo.' : 'Nenhum campo reconhecido.'} Inclua os campos à mão${claudeOk() ? ' ou leia com Claude' : ''}.</p>`}
           ${ro ? '' : `<div class="docbar" style="margin-top:6px"><button class="btn sm" data-fdadd="${esc(S)}|${k}" data-ico="plus">Incluir campo</button><button class="btn sm" data-fdler="${esc(S)}|${k}">Ler de novo</button>${claudeOk() ? `<button class="btn sm" data-fdclaude="${esc(S)}|${k}">Ler com Claude</button>` : ''}</div>`}`}</div>`; };
     return `<details class="card"${keep('fdprop')}><summary>Proposta: código do produto e folha de dados <span class="sub">${esc([(pc.codigos || {})[S] ? 'código ' + pc.codigos[S] : 'sem código', st].filter(Boolean).join(' · '))}</span></summary>
@@ -8016,6 +8253,36 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
           ${c.desenhos.length ? `<div>✓ <b>Desenho</b> ${c.desenhos.map((d) => esc(d.nome)).join(', ')}</div>` : '<div>— <b>Desenho</b> <span class="sub">sem desenho do modelo ou da família (Engenharia → Famílias)</span></div>'}</div>`; })()}
       ${fabCard(S)}
       <div class="fdgrid">${FD_KIND.map(slot).join('')}</div></details>`;
+  }
+  // curva da bomba: sempre redesenhada pelo app no padrão LS Fire, com os pontos lidos da página escolhida
+  // (tabela de pontos ou o gráfico em vetor do PDF). Sem pontos legíveis, a curva não entra e o item avisa.
+  function curvaDados(d, pag) {
+    if (!d) return null; const pp = (d.pontosPag || {})[pag] || (d.pontos && (!pag || !d.pontos.pag || d.pontos.pag === pag) ? d.pontos : null);
+    return pp ? Object.assign({}, d, { pontos: pp }) : null;
+  }
+  const curvaOk = (d) => !!(d && window.PricerCurva && window.PricerCurva.temPontos(d));
+  const logoCurva = () => (window.PRICER_PROPOSTA_ASSETS || { img: {} }).img['logo-cab'];
+  const fonteCurva = (d) => (d.pontos.vetor ? 'lida do gráfico da página ' + d.pontos.pag + ' (' + d.pontos.pts.length + ' pontos, com ' + ['eff', 'p', 'npsh'].filter((k) => d.pontos.pts.some((p) => typeof p[k] === 'number')).map((k) => ({ eff: 'rendimento', p: 'potência', npsh: 'NPSH' })[k]).concat(d.pontos.outros && d.pontos.outros.length ? [d.pontos.outros.length + ' outros diâmetros de rotor'] : []).join(', ') + ')'
+    : d.pontos.chave ? 'pelos pontos informados na folha (shutoff, mínima, trabalho, nominal e máxima): só a curva de altura' : 'com os ' + d.pontos.pts.length + ' pontos da tabela da página ' + d.pontos.pag);
+  const SEM_CURVA = 'Não consegui ler a curva deste arquivo (o PDF não traz o gráfico em vetor nem a tabela de pontos, ou é uma imagem/escaneado). A curva não entra na proposta: peça ao fabricante o PDF original da seleção.';
+  function curvaSlotHtml(S, x) {
+    if (!x.dados) { if (/\.pdf$/i.test(x.nome || '')) queueMicrotask(() => curvaSlotLer(S)); return /\.pdf$/i.test(x.nome || '') ? '<p class="sub" style="margin:8px 0 0">Lendo a curva…</p>' : `<div class="banner warn" style="margin:8px 0 0">${esc(SEM_CURVA)}</div>`; }
+    const d = curvaDados(x.dados, x.pag || 1); if (!curvaOk(d)) return `<div class="banner warn" style="margin:8px 0 0">${esc(SEM_CURVA)}${Object.keys(x.dados.pontosPag || {}).length ? ' Páginas com curva legível: ' + Object.keys(x.dados.pontosPag).join(', ') + '.' : ''}</div>`;
+    queueMicrotask(() => curvaPrevia(S, 'curva', d));
+    return `<small class="sub" style="display:block;margin-top:8px">Curva redesenhada no padrão LS Fire, ${esc(fonteCurva(d))}.</small><img data-cvprev="${esc(S)}|curva" alt="Prévia da curva redesenhada" style="width:100%;max-width:760px;margin-top:6px;border:1px solid var(--line);border-radius:8px;background:#fff">`;
+  }
+  const lendoCurva = {};
+  async function curvaSlotLer(S) {
+    if (lendoCurva[S]) return; lendoCurva[S] = true;
+    try { const file = await fdArquivo(S, 'curva'); if (!file) return; const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20));
+      const x = Object.assign({}, (((pcGet().fd || {})[S]) || {}).curva || {}); x.dados = { fabricante: d.fabricante, secoes: d.secoes, pontos: d.pontos, pontosPag: d.pontosPag || {}, selecao: d.selecao || '' }; fdPut(S, 'curva', x); render();
+    } catch (er) { toast('Não consegui ler a curva: ' + errMsg(er)); } finally { lendoCurva[S] = false; }
+  }
+  const prevCv = {};
+  async function curvaPrevia(S, k, d) {
+    const lang = pcGet().idioma || 'pt'; const ch = lang + '|' + JSON.stringify(d.pontos) + '|' + (d.secoes || []).length; const id = S + '|' + k;
+    if (!prevCv[id] || prevCv[id].ch !== ch) prevCv[id] = { ch, url: await window.PricerCurva.desenhar(d, { lang, logo: logoCurva() }) };
+    const el = document.querySelector(`img[data-cvprev="${CSS.escape(id)}"]`); if (el) el.src = prevCv[id].url;
   }
   // folha de dados completa do fabricante (ex.: Peerless Express): lida por posição do texto; tudo fica para conferir
   const TIPO_PAG = { dados: 'dados', curva: 'curva', desenho: 'desenho', anexo: 'anexo', escopo: 'escopo' };
@@ -8030,11 +8297,13 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     return `<div class="fdslot" style="margin-bottom:10px"><div class="lbl">Folha de dados completa do fabricante: <b>${esc(F0.nome || '')}</b> <button class="linkbtn" data-fdopen="${esc(F0.docId)}">abrir</button>${ro ? '' : ` · <button class="linkbtn" data-fdtira="${esc(S)}|fab">tirar</button> · <button class="linkbtn" data-fabler="${esc(S)}">ler de novo</button>`}</div>${intro}
       <div class="kv pcro"><div>Fabricante e modelo</div><div>${esc([d.fabricante, mod].filter(Boolean).join(' · ') || '—')}</div><div>Lido</div><div>${d.paginas.length} páginas · ${d.secoes.length} seções · ${nOn} de ${nC} campos marcados · ${d.escopo.length} grupos de escopo · ${d.tabelas.length} tabela(s)</div></div>
       ${cmp.length ? `<div class="banner warn" style="margin:8px 0">${cmp.map(esc).join('<br>')}</div>` : ''}
-      ${(() => { const tem = window.PricerCurva && window.PricerCurva.temPontos(d); if (!tem) return '<p class="sub" style="margin:8px 0 0">A folha não traz a tabela de pontos da curva: a proposta usa a imagem da curva do fabricante.</p>'; const ls = F0.curvaModo !== 'fab'; if (ls) queueMicrotask(() => fabPrevia(S));
-        return `<div class="f spanall" style="margin-top:8px"><label>Curva na proposta</label><div class="seg" role="radiogroup"><label class="${ls ? 'on' : ''}"><input type="radio" name="fabcm_${esc(S)}" data-fabcm="${esc(S)}" value="ls"${ls ? ' checked' : ''}${ro}>Redesenhada no padrão LS Fire</label><label class="${ls ? '' : 'on'}"><input type="radio" name="fabcm_${esc(S)}" data-fabcm="${esc(S)}" value="fab"${ls ? '' : ' checked'}${ro}>Imagem do fabricante</label></div>
-          <small class="sub">${ls ? `Traçada com os ${d.pontos.pts.length} pontos da tabela da página ${d.pontos.pag} (vazão, altura, rendimento e potência), com o ponto de trabalho e os pontos da NFPA 20 que vieram na folha.` : 'Usa a página escolhida abaixo, recortada na área do gráfico.'}</small>
-          ${ls ? `<img data-fabprev="${esc(S)}" alt="Prévia da curva redesenhada" style="width:100%;max-width:760px;margin-top:8px;border:1px solid var(--line);border-radius:8px;background:#fff">` : ''}</div>`; })()}
-      <div class="fields" style="margin-top:8px"><div class="f span2"><label for="fabcv_${S.replace(/\W/g, '')}">Curva do fabricante (imagem)</label><select id="fabcv_${S.replace(/\W/g, '')}" data-fabcurva="${esc(S)}"${ro}><option value="">nenhuma</option>${d.paginas.map((q) => `<option value="${q.n}"${F0.curvaPag === q.n ? ' selected' : ''}>página ${q.n}: ${esc(q.titulo)}${q.tipo === 'curva' ? ' (curva)' : ''}</option>`).join('')}</select>${F0.curvaModo === 'fab' || !(window.PricerCurva && window.PricerCurva.temPontos(d)) ? `<small class="sub">ou clique na página:</small>${thumbsHtml(S, 'fab', F0.curvaPag)}` : ''}</div>
+      ${(() => { const dc = curvaDados(d, F0.curvaPag); const cps = Object.keys(d.pontosPag || {}).map(Number);
+        const sel = cps.length > 1 ? `<div class="f" style="max-width:360px;margin-top:6px"><label for="fabcv_${S.replace(/\W/g, '')}">Página da curva</label><select id="fabcv_${S.replace(/\W/g, '')}" data-fabcurva="${esc(S)}"${ro}>${cps.map((n) => `<option value="${n}"${F0.curvaPag === n ? ' selected' : ''}>página ${n}: ${esc((d.paginas.find((q) => q.n === n) || {}).titulo || '')}</option>`).join('')}</select></div>` : '';
+        if (!curvaOk(dc)) return `<div class="banner warn" style="margin:8px 0">${esc(SEM_CURVA)}</div>${sel}`;
+        queueMicrotask(() => curvaPrevia(S, 'fab', dc));
+        return `<div class="f spanall" style="margin-top:8px"><label>Curva na proposta</label><small class="sub">Redesenhada no padrão LS Fire, ${esc(fonteCurva(dc))}, com o ponto de trabalho e os pontos da NFPA 20 que vieram na folha.</small>${sel}
+          <img data-cvprev="${esc(S)}|fab" alt="Prévia da curva redesenhada" style="width:100%;max-width:760px;margin-top:8px;border:1px solid var(--line);border-radius:8px;background:#fff"></div>`; })()}
+      <div class="fields" style="margin-top:8px">
         <div class="f span2"><label>Páginas que entram como imagem</label><div class="chks" style="display:flex;flex-direction:column;gap:4px">${pags.map((q) => `<label class="chk"><input type="checkbox" data-fabpag="${esc(S)}|${q.n}"${(F0.pags || {})[q.n] ? ' checked' : ''}${ro}> página ${q.n}: ${esc(q.titulo)} <small class="sub">${TIPO_PAG[q.tipo]}</small></label>`).join('') || '<span class="sub">nenhuma</span>'}</div></div>
         <div class="f span2"><label>Escopo da proposta</label><div class="chks" style="display:flex;flex-direction:column;gap:4px"><label class="chk"><input type="checkbox" data-fabls="${esc(S)}"${F0.semLs ? '' : ' checked'}${ro}> Incluir também os itens da formação LS Fire</label></div><small class="sub">desmarque se o escopo do fabricante já cobre tudo</small></div></div>
       ${d.secoes.map((x, si) => `<details class="sub2"${keep('fab_' + S + '_' + si)}><summary>${esc(x.t === 'Project' ? 'Identificação (não vai por padrão)' : x.t)}${x.t !== 'Project' && window.PricerFabricante && window.PricerFabricante.secT(x.t, 'pt') && window.PricerFabricante.secT(x.t, 'pt') !== x.t ? ' <span class="sub">· ' + esc(window.PricerFabricante.secT(x.t, 'pt')) + '</span>' : ''} <span class="sub">${x.campos.filter((c) => c.on !== false).length}/${x.campos.length} · página ${x.pag}</span></summary>
@@ -8046,8 +8315,9 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   function fabConfere(S, d) {
     const out = []; const v = (re) => { for (const s of d.secoes) { if (s.t === 'NFPA Limits' || s.t === 'Project') continue; const c = s.campos.find((x) => re.test(x.k)); if (c) return c.v; } return ''; };
     const n = (t) => Number(String(t || '').replace(/,/g, '').match(/[\d.]+/)?.[0]);
-    const vz = n(v(/^Flow, rated$/)); const vzF = val(S, 'AR4'); if (vz && typeof vzF === 'number' && vzF > 0 && Math.abs(vz - vzF) / vzF > 0.02) out.push('Vazão nominal na folha do fabricante (' + nBR(vz) + ' USgpm) diferente da formação (' + nBR(vzF) + ' USgpm).');
-    const hd = n(v(/^Differential head.*\(actual\)|^Differential head \/ pressure, rated$/)); let hF = null; for (let b = 23; b <= 26; b++) if (/DIESEL|ELETR/.test(txt(S, 'C' + b)) && typeof val(S, 'L' + b) === 'number') { hF = val(S, 'L' + b); break; }
+    // vazão em USgpm (Peerless) ou m³/h (Sempa: "Flow" dos dados de operação), comparada em USgpm
+    const fv = v(/^Flow, rated$/) || v(/^Flow$/); const vz = /m[³3]\s*\/\s*h/i.test(fv) ? n(fv) * 4.402868 : n(fv); const vzF = val(S, 'AR4'); if (vz && typeof vzF === 'number' && vzF > 0 && Math.abs(vz - vzF) / vzF > 0.02) out.push('Vazão nominal na folha do fabricante (' + (/m[³3]/.test(fv) ? fv + ' = ' : '') + nBR(Math.round(vz)) + ' USgpm) diferente da formação (' + nBR(vzF) + ' USgpm).');
+    const hd = n(v(/^Differential head.*\(actual\)|^Differential head \/ pressure, rated$/)) || n(v(/^Head$/)); let hF = null; for (let b = 23; b <= 26; b++) if (/DIESEL|ELETR/.test(txt(S, 'C' + b)) && typeof val(S, 'L' + b) === 'number') { hF = val(S, 'L' + b); break; }
     if (hd && hF && Math.abs(hd - hF) / hF > 0.03) out.push('Altura nominal na folha do fabricante (' + nBR(hd) + ' m) diferente da formação (' + nBR(hF) + ' mca).');
     return out;
   }
@@ -8073,7 +8343,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   async function fabLerArquivo(S, file, base) {
     toast('Lendo a folha de dados do fabricante…');
     const pgs = await window.PricerLeitor.itensPdf(file, 40); const dados = window.PricerFabricante.ler(pgs);
-    const cv = dados.paginas.find((q) => q.tipo === 'curva' && !/Multi/i.test(q.titulo)) || dados.paginas.find((q) => q.tipo === 'curva');
+    const cv = (dados.pontos && dados.pontos.pag ? dados.paginas.find((q) => q.n === dados.pontos.pag) : null) || dados.paginas.find((q) => q.tipo === 'curva' && !/Multi/i.test(q.titulo)) || dados.paginas.find((q) => q.tipo === 'curva');
     const pags = {}; for (const q of dados.paginas) if (q.tipo === 'desenho' && /Arrangement/i.test(q.titulo)) pags[q.n] = true;
     for (const g of dados.escopo || []) g.on = false;
     fdPut(S, 'fab', Object.assign({}, base, { dados, curvaPag: cv ? cv.n : null, pags })); render();
@@ -8094,15 +8364,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-thumbpg]'); if (!b || state.verRev) return; const [S, k, n] = b.dataset.thumbpg.split('|');
     if (k === 'curva') { const x = Object.assign({}, (((pcGet().fd || {})[S]) || {}).curva || {}); x.pag = +n; fdPut(S, 'curva', x); } else fabMut(S, (F0) => { F0.curvaPag = +n; });
     render(); toast('Curva: página ' + n); });
-  const fabCurvaLS = (F0) => F0 && F0.curvaModo !== 'fab' && window.PricerCurva && window.PricerCurva.temPontos(F0.dados);
-  // prévia da curva redesenhada no item (gera depois que a tela é montada; guarda por item)
-  const prevCurva = {};
-  async function fabPrevia(S) {
-    const F0 = (((pcGet().fd || {})[S]) || {}).fab; const el = document.querySelector(`img[data-fabprev="${CSS.escape(S)}"]`); if (!el || !fabCurvaLS(F0)) return;
-    const lang = pcGet().idioma || 'pt'; const ch = lang + '|' + JSON.stringify(F0.dados.pontos) + '|' + F0.dados.secoes.length;
-    if (!prevCurva[S] || prevCurva[S].ch !== ch) prevCurva[S] = { ch, url: await window.PricerCurva.desenhar(F0.dados, { lang, logo: (window.PRICER_PROPOSTA_ASSETS || { img: {} }).img['logo-cab'] }) };
-    const el2 = document.querySelector(`img[data-fabprev="${CSS.escape(S)}"]`); if (el2) el2.src = prevCurva[S].url;
-  }
+  const fabCurvaDados = (F0) => (F0 ? curvaDados(F0.dados, F0.curvaPag) : null);
   const fabMut = (S, fn) => { const F0 = JSON.parse(JSON.stringify((((pcGet().fd || {})[S]) || {}).fab || null)); if (!F0) return; fn(F0); fdPut(S, 'fab', F0); };
   document.addEventListener('change', (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return; const ds = t.dataset;
@@ -8111,7 +8373,6 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     if (ds.fabpag) { const [S, n] = ds.fabpag.split('|'); fabMut(S, (F0) => { F0.pags = Object.assign({}, F0.pags, { [n]: t.checked }); if (!t.checked) delete F0.pags[n]; }); return; }
     if (ds.fabcurva !== undefined) { fabMut(ds.fabcurva, (F0) => { F0.curvaPag = t.value ? +t.value : null; }); render(); return; }
     if (ds.fabls !== undefined) { fabMut(ds.fabls, (F0) => { F0.semLs = !t.checked; }); return; }
-    if (ds.fabcm !== undefined) { fabMut(ds.fabcm, (F0) => { F0.curvaModo = t.value; }); render(); return; }
   });
   // do cartão da proposta direto para o bloco da folha do fabricante no item
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-insabre]'); if (b) { ui.cad = 'insumos'; insumoModal(b.dataset.insabre); } });
@@ -8129,9 +8390,12 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         toast('Guardando o arquivo…');
         const docId = await SPV.salvarDoc({ tipo: k === 'curva' ? 'curva da bomba' : 'folha de dados', nome: file.name, propUid: state.uid || null, propNome: docTitle(), item: S, etapa: 'Proposta', notas: (k === 'fab' ? 'Folha de dados completa do fabricante' : (FD_KIND.find((x) => x[0] === k) || [0, ''])[1]) + ' · ' + S, itens: [] }, file);
         if (k === 'fab') { await fabLerArquivo(S, file, { docId, nome: file.name }); return; }
-        if (k === 'curva') { let paginas = 1, pag = 1;
-          try { paginas = (await window.PricerLeitor.paginaImagem(file, 1, 0.3)).paginas; if (paginas > 1) { const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20)); const cv = d.paginas.find((q) => q.tipo === 'curva'); if (cv) pag = cv.n; } } catch (er) { /* a página é escolhida depois */ }
-          fdPut(S, k, { docId, nome: file.name, pag, paginas }); toast(paginas > 1 ? 'Curva guardada: página ' + pag + (pag === 1 ? ' (confira e clique na página certa, se for outra)' : '') : 'Curva guardada'); render(); return; }
+        if (k === 'curva') { let paginas = 1, pag = 1, dados = null;
+          try { paginas = (await window.PricerLeitor.paginaImagem(file, 1, 0.3)).paginas;
+            if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) { const d = window.PricerFabricante.ler(await window.PricerLeitor.itensPdf(file, 20)); dados = { fabricante: d.fabricante, secoes: d.secoes, pontos: d.pontos, pontosPag: d.pontosPag || {}, selecao: d.selecao || '' };
+              const cv = d.pontos && d.pontos.pag ? { n: d.pontos.pag } : d.paginas.find((q) => q.tipo === 'curva'); if (cv) pag = cv.n; } } catch (er) { /* a página é escolhida depois */ }
+          fdPut(S, k, { docId, nome: file.name, pag, paginas, dados: dados || { secoes: [], pontos: null, pontosPag: {} } });
+          toast(curvaOk(curvaDados(dados, pag)) ? 'Curva lida (página ' + pag + '): confira a prévia no padrão LS Fire' : 'Arquivo guardado, mas não consegui ler a curva'); render(); return; }
         let campos = [], lido = true; try { toast('Lendo a folha de dados…'); campos = await fdLer(S, k, file, false); } catch (er) { lido = false; }
         fdPut(S, k, { docId, nome: file.name, campos, lido }); render();
         toast(campos.length ? campos.length + ' campo(s) lidos: confira antes de gerar a proposta' : 'Arquivo guardado; nenhum campo reconhecido');
@@ -8206,19 +8470,23 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const M = PRP.modelo(REG, lang); toast('Montando a proposta…');
     const img = {}; for (const [k, c] of Object.entries(M.imagens || {})) if (c && c.docId) { const b = await docBlob(c.docId); if (b) img[k] = await blobURL(b); }
     const curvas = {};
-    if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; try { const file = await fdArquivo(it.key, 'curva'); if (file) curvas[it.key] = (await window.PricerLeitor.paginaImagem(file, cv.pag || 1, 2)).url; } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
+    // curva sempre no padrão LS Fire: redesenhada com os pontos lidos; sem pontos legíveis, fica de fora (o item já avisa)
+    const semCurva = [];
+    if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; const dc = curvaDados(cv.dados, cv.pag || 1);
+      try { if (curvaOk(dc)) curvas[it.key] = await window.PricerCurva.desenhar(dc, { lang, logo: logoCurva() }); else semCurva.push(it.key); } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
     let tr = (s) => s, aviso = ''; const fd = pc.estilo === 'fd';
     if (lang !== 'pt' || (fd && textosFabTodos(D, pcGet(), lang).length)) ({ tr, aviso } = await tradutor(D, pcGet(), lang));
     // padrão Folha de dados: curva recortada e páginas escolhidas da folha do fabricante, como imagem
     const fab = {};
     if (D.tipo === 'SEQ') for (const it of D.itens) { const F0 = (((pc.fd || {})[it.key]) || {}).fab; if (!F0 || !F0.dados) continue;
-      try { const file = await fdArquivo(it.key, 'fab'); if (!file) continue; const L = window.PricerLeitor; const cp = F0.dados.paginas.find((q) => q.n === F0.curvaPag);
+      try { const file = await fdArquivo(it.key, 'fab'); if (!file) continue; const L = window.PricerLeitor;
         const out = { dados: F0.dados, paginas: {}, semLs: !!F0.semLs };
-        // curva: redesenhada no padrão LS Fire com os pontos da folha (padrão) ou a imagem recortada do fabricante
-        if (!curvas[it.key]) { if (fabCurvaLS(F0)) out.curva = await window.PricerCurva.desenhar(F0.dados, { lang, logo: (window.PRICER_PROPOSTA_ASSETS || { img: {} }).img['logo-cab'] }); else if (cp) out.curva = await L.recorte(file, cp.n, cp.caixa, 2.6); }
+        // curva: sempre redesenhada no padrão LS Fire com os pontos da folha
+        if (!curvas[it.key]) { const dc = fabCurvaDados(F0); if (curvaOk(dc)) out.curva = await window.PricerCurva.desenhar(dc, { lang, logo: logoCurva() }); else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
         if (!fd) { if (out.curva) curvas[it.key] = out.curva; continue; }
         for (const q of F0.dados.paginas) if ((F0.pags || {})[q.n]) out.paginas[q.n] = { url: await L.recorte(file, q.n, null, 2.2), w: q.w, h: q.h };
         fab[it.key] = out; } catch (er) { toast('Não consegui preparar a folha do fabricante de ' + it.key + ': ' + errMsg(er)); } }
+    if (semCurva.length) aviso = (aviso ? aviso + ' ' : '') + 'Sem curva legível (não entrou): ' + semCurva.join(', ') + '.';
     const moeda = pc.moeda && pc.moeda.cod === 'USD' ? { cod: 'USD', taxa: Number(pc.moeda.taxa) || cambioPadrao(), data: pc.moeda.data || hojeISO() } : { cod: 'BRL' };
     if (moeda.cod === 'USD' && !(moeda.taxa > 0)) { toast('Informe a taxa do dólar (R$ por US$ 1,00)'); return; }
     const desenhos = {};
@@ -8660,7 +8928,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const ipiTxt = spv ? 'com impostos' : 'com IPI';
     return `<section class="ctxh${ui.ctxOpen ? ' open' : ''}" aria-label="Resumo da proposta">
       <div class="ctx-id"><span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : fx ? 'FACTS' : 'SEQ'}</span><div class="ctx-tt"><h1>${esc(num || 'Proposta sem número')}</h1><div class="sub">${esc(cli || 'Cliente não informado')}</div></div>
-        <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[2] === 'aprovacao' && MG.faseLb ? MG.faseLb('aprovacao') : sit[0])}</span>${spv || fx ? '' : apSelo()}</div></div>
+        <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[2] === 'aprovacao' && MG.faseLb ? MG.faseLb('aprovacao') : sit[0])}</span>${spv || fx ? '' : apSelo()}${podeCancelar() ? `<button class="btn sm ghost" data-cancelar data-ico="x" title="${sv ? 'Descartar o que não foi salvo' : 'Desistir da criação desta proposta'}">Cancelar</button>` : ''}</div></div>
       <div class="ctx-kpis sumbar sticky">
         <div class="k"><span>Valor total</span><b>${brl(tot)}</b><em>${ipiTxt}</em></div>
         <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}</em></div>
@@ -9324,7 +9592,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       ${F0.secoes.map((s, si) => `<details class="sub2"><summary>${esc(s.t)}${window.PricerFabricante && window.PricerFabricante.secT(s.t, 'pt') && window.PricerFabricante.secT(s.t, 'pt') !== s.t ? ' <span class="sub">· ' + esc(window.PricerFabricante.secT(s.t, 'pt')) + '</span>' : ''} <span class="sub">${s.campos.filter((c) => c.on !== false).length}/${s.campos.length}</span></summary>
         <div class="tw"><table class="t"><thead><tr><th>Vai</th><th>Campo</th><th>Valor</th></tr></thead><tbody>${s.campos.map((c, ci) => `<tr><td><input type="checkbox" data-fdton="${esc(insId)}|${si}|${ci}"${c.on !== false ? ' checked' : ''}${ro} aria-label="Incluir ${esc(c.k)}"></td><td>${esc(c.k)}</td><td class="in"><input data-fdtv="${esc(insId)}|${si}|${ci}" value="${esc(c.v)}"${ro} aria-label="Valor de ${esc(c.k)}"></td></tr>`).join('')}</tbody></table></div></details>`).join('')}`;
   }
-  const fdtRefresh = (insId) => { const el = document.getElementById('fdtBox'); if (el && el.dataset.ins === insId) el.innerHTML = fdTecHtml(insId); };
+  const fdtRefresh = (insId) => { const el = document.getElementById('fdtBox'); if (el && el.dataset.fdtins === insId) el.innerHTML = fdTecHtml(insId); };
   async function fdtGrava(d) { fdtLocal[d.id] = d; const meta = Object.assign({}, d); await SPV.salvarDoc(meta); }
   document.addEventListener('change', async (e) => {
     const t = e.target; if (!t.dataset) return; const ds = t.dataset;
@@ -9357,37 +9625,78 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       <div class="docbar" style="margin-bottom:8px"><b>Família</b> ${lista(fam) || '<span class="sub">sem desenho</span>'} ${up('equip', equip, 'Anexar desenho da família')}</div>
       ${mods.length ? `<div class="tw" style="max-height:40vh;overflow:auto"><table class="t"><thead><tr><th>Modelo pronto</th><th>Desenho</th><th></th></tr></thead><tbody>${mods.map((m) => `<tr><td>${esc(m.nome)}</td><td>${lista(desenhosDe((d) => d.modelo === m.nome)) || '<span class="sub">—</span>'}</td><td>${up('modelo', m.nome, 'Anexar')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub">Nenhum modelo pronto nesta família.</p>'}`;
   }
+  // ---------- certificação do item (UL listado / FM aprovado): marcada no cadastro, citada na proposta ----------
+  const CERTS = [['UL', 'UL Listed'], ['FM', 'FM Approved']];
+  const certHtml = (pre, cert, ro) => `<div class="chks" style="display:flex;gap:14px;flex-wrap:wrap">${CERTS.map(([c, lb]) => `<label class="chk"><input type="checkbox" id="${pre}Cert${c}" data-cert="${c}"${String(cert || '').split(/\W+/).includes(c) ? ' checked' : ''}${ro}> ${lb}</label>`).join('')}</div><small class="sub">sai na descrição do item na proposta</small>`;
+  const certLer = (g, pre = 'f') => { const v = CERTS.map(([c]) => c).filter((c) => { const el = g('#' + pre + 'Cert' + c); return el && el.checked; }); return v.length ? v.join(' / ') : undefined; };
+  const CERT_TXT = { pt: { UL: 'Listado UL', FM: 'Aprovado FM' }, en: { UL: 'UL Listed', FM: 'FM Approved' }, es: { UL: 'Listado UL', FM: 'Aprobado FM' } };
+  const certLinha = (cert, lang) => { const L = String(cert || '').split(/\W+/).filter((c) => CERT_TXT.pt[c]); return L.length ? L.map((c) => (CERT_TXT[lang] || CERT_TXT.pt)[c]).join(' · ') : ''; };
   // ---------- texto do escopo da proposta: no cadastro do item (insumo ou kit) ou, na falta, o padrão da família de insumo ----------
   const GRUPOS_ESC = ['Bomba', 'Acionador', 'Painel de comando', 'Bomba jockey', 'Acessórios', 'Testes e ensaios', 'Documentos e desenhos', 'Serviços', 'Comercial'];
-  const GRUPO_PAD = { 1: 'Acionador', 10: 'Acionador', 11: 'Bomba', 12: 'Bomba', 13: 'Bomba jockey', 14: 'Bomba', 15: 'Acessórios', 16: 'Acionador', 17: 'Acionador', 18: 'Acionador', 19: 'Painel de comando', 20: 'Painel de comando', 21: 'Painel de comando', 22: 'Painel de comando', 23: 'Acessórios', 24: 'Acessórios', 25: 'Acessórios',
-    26: 'Acionador', 27: 'Acessórios', 28: 'Acessórios', 29: 'Painel de comando', 30: 'Acessórios', 31: 'Acionador', 35: 'Bomba', 36: 'Acionador', 38: 'Acessórios', 39: 'Acionador', 40: 'Acessórios', 41: 'Acessórios', 42: 'Acessórios', 43: 'Acessórios', 44: 'Acessórios', 45: 'Acessórios', 46: 'Testes e ensaios', 47: 'Documentos e desenhos' };
+  // texto padrão (escopo-padrao.js): título e linhas por família e por tipo, em pt/en/es; grupo de cada família
+  const EP = window.PRICER_ESCOPO_PADRAO || { grupos: {}, fams: {}, tipos: {} };
+  const GRUPO_PAD = Object.fromEntries(Object.entries(EP.fams).map(([k, v]) => [k, v.grupo]));
   const FORA_ESC = new Set([32, 33, 34, 37]); // miscelâneas, kit de instalação, mão de obra, embalagem: só entram se tiverem texto cadastrado
   const escTab = () => (REG.tabelas || {}).ESCOPO_PROPOSTA || {};
   const escItem = (key) => ((escTab().itens || {})[key]) || '';
   const escFam = (code) => ((escTab().fams || {})[code]) || {};
   async function escSalvar(fn, rot) { const t = JSON.parse(JSON.stringify(escTab())); t.itens = t.itens || {}; t.fams = t.fams || {}; fn(t); await REG.setTable('ESCOPO_PROPOSTA', t, 'Escopo da proposta: ' + rot, [{ campo: rot, de: null, para: 'alterado' }]); }
-  const escCampoHtml = (key, fam) => { const ed = canEd(); const fe = escFam(H.famCode(fam)); return `<div class="f spanall"><label for="escit_${esc(key).replace(/\W/g, '')}">Descrição no escopo da proposta <span class="sub">uma linha por item da descrição; {marca}, {modelo} e {qtd} são trocados</span></label><textarea id="escit_${esc(key).replace(/\W/g, '')}" data-escit="${esc(key)}" rows="3" placeholder="${esc(fe.t || 'vazio = texto padrão da família (ou só a marca e o modelo)')}"${ed ? '' : ' disabled'}>${esc(escItem(key))}</textarea><small class="sub">Grupo no escopo: ${esc(fe.grupo || GRUPO_PAD[H.famCode(fam)] || 'Acessórios')} (definido na família de insumo)</small></div>`; };
+  const escCampoHtml = (key, fam) => { const ed = canEd(); const fe = escFam(H.famCode(fam)); return `<div class="f spanall"><label for="escit_${esc(key).replace(/\W/g, '')}">Descrição no escopo da proposta <span class="sub">uma linha por item da descrição; {marca}, {modelo} e {qtd} são trocados</span></label><textarea id="escit_${esc(key).replace(/\W/g, '')}" data-escit="${esc(key)}" rows="3" placeholder="${esc(fe.t || ((EP.fams[H.famCode(fam)] || {}).t || {}).pt || 'vazio = texto padrão da família (ou só a marca e o modelo)')}"${ed ? '' : ' disabled'}>${esc(escItem(key))}</textarea><small class="sub">Grupo no escopo: ${esc(fe.grupo || GRUPO_PAD[H.famCode(fam)] || 'Acessórios')} (definido na família de insumo)</small></div>`; };
   document.addEventListener('change', async (e) => { const t = e.target; if (!t.dataset || t.dataset.escit === undefined || !canEd()) return; const key = t.dataset.escit; const v = t.value.trim();
     try { await escSalvar((T) => { if (v) T.itens[key] = v; else delete T.itens[key]; }, nomeCad(key)); toast('Descrição do escopo salva'); } catch (er) { toast(errMsg(er)); } });
   const preencher = (tpl, o) => String(tpl).replace(/\{marca\}/g, o.marca || '').replace(/\{modelo\}/g, o.modelo || '').replace(/\{qtd\}/g, o.qtd || '').replace(/\s+/g, ' ').replace(/^[\s·:-]+|[\s·:-]+$/g, '').trim();
+  // dados técnicos do cadastro que enriquecem a linha do componente principal (como a Peerless descreve a bomba e o
+  // acionador): da folha técnica do item (materiais, bocais, vedação; potência, tensão, proteção) e do ponto de trabalho
+  // lido na folha do fabricante do item. Só entra o que está escrito nas folhas.
+  const ESC_ROT = {
+    pt: { carc: 'Carcaça', rotor: 'Rotor', eixo: 'Eixo', suc: 'Sucção', rec: 'Recalque', ved: 'Vedação', trab: 'Ponto de trabalho', rot: 'Rotação', diam: 'Rotor', pot: 'Potência', tens: 'Tensão', prot: 'Proteção', efi: 'Rendimento', comb: 'Arrefecimento' },
+    en: { carc: 'Casing', rotor: 'Impeller', eixo: 'Shaft', suc: 'Suction', rec: 'Discharge', ved: 'Seal', trab: 'Duty point', rot: 'Speed', diam: 'Impeller', pot: 'Power', tens: 'Voltage', prot: 'Protection', efi: 'Efficiency', comb: 'Cooling' },
+    es: { carc: 'Carcasa', rotor: 'Impulsor', eixo: 'Eje', suc: 'Succión', rec: 'Descarga', ved: 'Sello', trab: 'Punto de trabajo', rot: 'Velocidad', diam: 'Impulsor', pot: 'Potencia', tens: 'Tensión', prot: 'Protección', efi: 'Rendimiento', comb: 'Refrigeración' } };
+  function linhasTecnicas(S, key, code, lang) {
+    const R = ESC_ROT[lang] || ESC_ROT.pt; const FB = window.PricerFabricante; const vt = (v) => { const [a, ...r] = String(v).split(' / '); return ((FB && FB.valT(a, lang)) || a) + (r.length ? ' / ' + r.join(' / ') : ''); };
+    const doc = key ? fdTecDe(key) : null; const C = []; for (const sc of ((doc || {}).fdTec || {}).secoes || []) for (const c of sc.campos || []) if (c.on !== false && String(c.v || '').trim()) C.push({ s: sc.t, k: c.k, v: c.v });
+    const ach = (reS, reK) => (C.find((c) => (!reS || reS.test(c.s)) && reK.test(c.k)) || {}).v || '';
+    const L = []; const junta = (par) => par.filter((x) => x[1]).map(([k, v]) => k + ': ' + vt(v)).join(' · ');
+    if ([11, 12, 13].includes(code)) {
+      L.push(junta([[R.carc, ach(/material/i, /casing|carcaça|volute/i)], [R.rotor, ach(/material/i, /^impeller$|^rotor$/i)], [R.eixo, ach(/material/i, /^(pump )?shaft$|^eixo$/i)]]));
+      L.push(junta([[R.suc, ach(null, /suction (nozzle|flange diameter)|sucção/i)], [R.rec, ach(null, /discharge (nozzle|flange diameter)|recalque/i)]]));
+      L.push(junta([[R.ved, ach(null, /seal type|pump seal|vedação/i)]]));
+      if (code !== 13) { const F = (((pcGet().fd || {})[S]) || {}); const d = (F.fab || {}).dados || (F.curva || {}).dados; const cp = (re) => { for (const sc of (d || {}).secoes || []) { if (sc.t === 'Project' || /NFPA/i.test(sc.t)) continue; const c = (sc.campos || []).find((x) => x.on !== false && re.test(x.k)); if (c) return c.v; } return ''; };
+        const q = cp(/^Flow(, rated)?$/), h = cp(/^Head$|^Differential head.*\(actual\)$|^Differential head \/ pressure, rated$/), rpm = cp(/^Speed(, rated)?$/), dm = cp(/^Impeller D(iameter)?(,| ).*(Designed|rated)$|^Impeller D$/);
+        if (q && h) L.push(R.trab + ': ' + q + ' × ' + h + (rpm ? ' · ' + rpm : '') + (dm ? ' · ' + R.diam + ' Ø ' + dm : '')); }
+    } else if ([1, 10].includes(code)) {
+      L.push(junta([[R.pot, ach(null, /^rated power$|^power$|potência/i)], [R.rot, ach(null, /^rated speed$|^speed$|rotação/i)], [R.tens, ach(null, /^voltage$|engine voltage|tensão/i)], [R.prot, ach(null, /protection class|grau de proteção/i)], [R.efi, ach(null, /efficiency class/i)], [R.comb, ach(null, /cooling type/i)]]));
+    }
+    return L.filter(Boolean);
+  }
   // escopo de um item da proposta, por grupo (como o da Peerless): título do componente e as linhas cadastradas
+  // (texto do item → texto da família no banco → texto padrão do tipo → texto padrão da família), mais os dados técnicos
+  // do cadastro no componente principal e a certificação UL/FM marcada no cadastro
+  const PRINCIPAL = { 11: 0, 12: 0, 13: 0, 1: 1, 10: 1, 20: 2, 21: 2 };
   function escopoDoItem(S) {
-    const G = {}; const linhas = []; for (let k = 34; k <= 63; k++) linhas.push(k); for (let k = 68; k <= 112; k++) linhas.push(k);
+    const lang = pcGet().idioma || 'pt'; const G = {}; const linhas = []; for (let k = 34; k <= 63; k++) linhas.push(k); for (let k = 68; k <= 112; k++) linhas.push(k);
     const add = (g, ent) => { const L = (G[g] = G[g] || []); const ig = L.find((x) => x.titulo === ent.titulo && JSON.stringify(x.sub) === JSON.stringify(ent.sub)); if (ig && typeof ig.q === 'number' && typeof ent.q === 'number') ig.q += ent.q; else L.push(ent); };
     for (const k of linhas) {
       const d = txt(S, 'D' + k); const q = qtdNum(val(S, 'F' + k)); if (!d || !(q > 0)) continue;
       const fam = String(txt(S, 'U' + k) || txt(S, 'C' + k) || ''); const code = /^\d\d\./.test(fam) ? +fam.slice(0, 2) : 0;
       const key = chaveCad(d); const ti = key ? escItem(key) : ''; const fe = escFam(code);
-      if (!ti && !fe.t && (FORA_ESC.has(code) || !code)) continue;
       const ins = key && !/^k[bm]:/.test(key) ? REG.insumos.find((x) => x.id === key) : null; const kit = key && /^k[bm]:/.test(key) ? ((/^kb:/.test(key) ? REG.kitBomba : REG.kitMotor) || []).find((x) => key.endsWith(':' + x.id)) : null;
-      const o = { marca: txt(S, 'E' + k) || (ins && ins.fab) || (kit && kit.marca) || '', modelo: d, qtd: nBR(q) }; if (/^(VARIOS|0|-)$/i.test(o.marca.trim())) o.marca = '';
-      const tpl = ti || fe.t || ''; let sub = tpl ? tpl.split('\n').map((l) => preencher(l, o)).filter(Boolean) : [[o.marca, o.modelo].filter(Boolean).join(' ')];
-      const titulo = FD_TIT[String(code).padStart(2, '0')] ? '@' + FD_TIT[String(code).padStart(2, '0')] : FD_ADIC[String(code).padStart(2, '0')] ? '@' + FD_ADIC[String(code).padStart(2, '0')] : (famReg()[code] || {}).desc ? String(famReg()[code].desc).split(':')[0] : d;
+      const pf = EP.fams[code] || null; const ptp = EP.tipos[code + '|' + String((ins && ins.tipo) || '').toUpperCase()] || null;
+      const padT = (ptp && ptp.t && (ptp.t[lang] || ptp.t.pt)) || (pf && pf.t && (pf.t[lang] || pf.t.pt)) || '';
+      if (!ti && !fe.t && !padT && (FORA_ESC.has(code) || !code)) continue;
+      const o = { marca: txt(S, 'E' + k) || (ins && ins.fab) || (kit && kit.marca) || '', modelo: d, qtd: nBR(q) }; if (/^(VARIOS|VÁRIOS|0|-)$/i.test(o.marca.trim())) o.marca = '';
+      if (o.marca && d.toUpperCase().startsWith(o.marca.toUpperCase())) o.marca = '';
+      const tpl = ti || fe.t || padT; let sub = tpl ? tpl.split('\n').map((l) => preencher(l, o)).filter(Boolean) : [[o.marca, o.modelo].filter(Boolean).join(' ')];
+      const tPad = (ptp && ptp.titulo && (ptp.titulo[lang] || ptp.titulo.pt)) || (pf && pf.titulo && (pf.titulo[lang] || pf.titulo.pt)) || '';
+      const titulo = tPad || (FD_TIT[String(code).padStart(2, '0')] ? '@' + FD_TIT[String(code).padStart(2, '0')] : FD_ADIC[String(code).padStart(2, '0')] ? '@' + FD_ADIC[String(code).padStart(2, '0')] : (famReg()[code] || {}).desc ? String(famReg()[code].desc).split(':')[0] : d);
       if (sub.length === 1 && sub[0] === titulo) sub = [];
-      add(fe.grupo || GRUPO_PAD[code] || 'Acessórios', { q, titulo, sub });
+      if (PRINCIPAL[code] !== undefined) sub = sub.concat(linhasTecnicas(S, key, code, lang));
+      const ce = certLinha((ins && ins.cert) || (kit && kit.cert), lang); if (ce) sub.push(ce);
+      add(fe.grupo || GRUPO_PAD[code] || 'Acessórios', { q, titulo, sub, ord: PRINCIPAL[code] ?? 9 });
     }
-    for (const g of especDoItem(S)) add(g.titulo === '@pintura' ? 'Bomba' : g.titulo === '@testes' ? 'Testes e ensaios' : 'Documentos e desenhos', { q: g.qtd, titulo: g.titulo, sub: g.linhas.filter((l) => l[0] !== 'descricao').map((l) => '#' + l[0] + '|' + l[1]) });
-    return GRUPOS_ESC.filter((g) => (G[g] || []).length).map((g) => ({ g, itens: G[g] }));
+    for (const g of especDoItem(S)) add(g.titulo === '@pintura' ? 'Bomba' : g.titulo === '@testes' ? 'Testes e ensaios' : 'Documentos e desenhos', { q: g.qtd, titulo: g.titulo, sub: g.linhas.filter((l) => l[0] !== 'descricao').map((l) => '#' + l[0] + '|' + l[1]), ord: 9 });
+    // componente principal primeiro em cada grupo (a bomba antes da base, o motor antes das baterias…)
+    return GRUPOS_ESC.filter((g) => (G[g] || []).length).map((g) => ({ g, itens: G[g].map((x, i) => [x, i]).sort((a, b) => a[0].ord - b[0].ord || a[1] - b[1]).map(([x]) => { const y = Object.assign({}, x); delete y.ord; return y; }) }));
   }
   // o que a proposta puxa do cadastro para um item: folhas técnicas de bombas e motores (somando iguais) e desenhos
   function cadastroDoItem(S) {
@@ -9429,6 +9738,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         <div class="f"><label for="fSit">Situação</label><select id="fSit"${ro}>${SITUACOES.map(([k, lb]) => `<option value="${k}"${situ(rec) === k ? ' selected' : ''}>${esc(lb)}</option>`).join('')}</select></div>
         <div class="f"><label for="fFab">Fabricante</label><input id="fFab" list="dlFabAll" value="${esc(rec.fab || '')}"${ro}><datalist id="dlFabAll">${[...new Set(REG.insumos.map((i) => i.fab).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist></div>
         <div class="f"><label for="fCodFab">Código do fabricante</label><input id="fCodFab" value="${esc(rec.codFab || '')}"${ro}></div>
+        <div class="f"><label>Certificação</label>${certHtml('f', rec.cert, ro)}</div>
         <div class="f"><label for="fTipo">Tipo/config.</label><input id="fTipo" list="dlTipos" value="${esc(rec.tipo || '')}"${ro}><datalist id="dlTipos">${[...new Set(REG.insumos.filter((x) => x.fam === rec.fam && x.tipo).map((x) => x.tipo))].map((t) => `<option value="${esc(t)}">`).join('')}</datalist></div>
         <div class="f"><label for="fOri">Origem</label><select id="fOri"${ro}><option${rec.origem === 'NAC' ? ' selected' : ''}>NAC</option><option${rec.origem === 'IMP' ? ' selected' : ''}>IMP</option></select></div>
         <div class="f span2" id="fSubWrap"${['inativo', 'descontinuado'].includes(situ(rec)) ? '' : ' hidden'}><label for="fSub">Substituto (quando descontinuado)</label><input id="fSub" list="dlInsAll" value="${esc(rec.substituto ? rec.substituto + ' · ' + ((REG.insumos.find((i) => i.id === rec.substituto) || {}).produto || '') : '')}"${ro}></div>
@@ -9461,7 +9771,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       ${!isNew ? ondeUsadoHtml(rec) : ''}
       ${!isNew ? `<h2>Histórico de preço</h2>${hpHtml}` : ''}
       ${!isNew ? `<h2>Na proposta</h2><div class="fields">${escCampoHtml(rec.id, rec.fam)}</div>` : ''}
-      ${!isNew && FDTEC_FAM[H.famCode(rec.fam)] ? `<h2>Folha de dados técnica</h2><div id="fdtBox" data-ins="${esc(rec.id)}">${fdTecHtml(rec.id)}</div>` : ''}
+      ${!isNew && FDTEC_FAM[H.famCode(rec.fam)] ? `<h2>Folha de dados técnica</h2><div id="fdtBox" data-fdtins="${esc(rec.id)}">${fdTecHtml(rec.id)}</div>` : ''}
       ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden><button class="btn sm" data-close data-view="documentos" data-ico="folder-open">Todos os documentos</button></div>` : ''}
       ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
     (o, close) => {
@@ -9569,7 +9879,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         const out = { id: nid, a, b, fam, produto, fab: g('#fFab').value.trim().toUpperCase(), tipo: g('#fTipo').value.trim().toUpperCase(), valor, origem: g('#fOri').value, obs: g('#fObs').value.trim(),
           situacao: sit === 'ativo' && !rec.situacao ? undefined : sit, codFab: g('#fCodFab').value.trim() || undefined, caract: Object.keys(caract).length ? caract : undefined, descCom: g('#fCom').value.trim() || undefined, descFab: g('#fDescFab').value.trim() || undefined,
           excecao: padMsg ? exc : undefined, substituto: subId || undefined, fonte: g('#fFonte').value.trim() || undefined, dataCot: g('#fDataCot').value || undefined,
-          forn: st.forn.filter((f) => f.nome || typeof f.preco === 'number').length ? st.forn.filter((f) => f.nome || typeof f.preco === 'number') : undefined, equiv: st.equiv.length ? st.equiv : undefined };
+          forn: st.forn.filter((f) => f.nome || typeof f.preco === 'number').length ? st.forn.filter((f) => f.nome || typeof f.preco === 'number') : undefined, equiv: st.equiv.length ? st.equiv : undefined, cert: certLer(g) };
         // renomear um insumo em uso: mostra o impacto e pede confirmação; estruturas e tabelas acompanham
         if (!isNew && produto !== rec.produto) {
           const imp = renomeImpacto(rec, produto);
@@ -9670,13 +9980,14 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         <div class="f spanall"><label for="kDesc">Descrição (igual à do CADASTRO)</label><input id="kDesc" list="dlKitProd" value="${esc(rec.desc)}"${ro}><datalist id="dlKitProd">${prodList.map((p) => `<option value="${esc(p)}">`).join('')}</datalist></div>
         <div class="f"><label for="kTipo">Origem</label><select id="kTipo"${ro}><option${rec.tipo === 'NAC' ? ' selected' : ''}>NAC</option><option${rec.tipo === 'IMP' ? ' selected' : ''}>IMP</option></select></div>
         <div class="f"><label for="kMarca">Marca</label><input id="kMarca" list="dl_kmarca" value="${esc(rec.marca || '')}"${ro}><datalist id="dl_kmarca">${[...new Set(list.map((k) => k.marca).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist></div>
+        <div class="f"><label>Certificação</label>${certHtml('k', rec.cert, ro)}</div>
       </div>
       <p class="sub" id="kWarn"></p>
       <h2>Componentes (R$)</h2>
       <div class="fields" id="kParts">${parts}</div>
       <div class="kpis" id="kTot"></div>
       <div id="kErr" class="bad-t"></div>
-      ${!isNew ? `<h2>Na proposta</h2><div class="fields">${escCampoHtml((motor ? 'km:' : 'kb:') + rec.id, motor ? '01.MOTORDIESEL' : '11.BOMBAMANCAL')}</div><h2>Folha de dados técnica</h2><div id="fdtBox" data-ins="${esc((motor ? 'km:' : 'kb:') + rec.id)}">${fdTecHtml((motor ? 'km:' : 'kb:') + rec.id)}</div>` : ''}
+      ${!isNew ? `<h2>Na proposta</h2><div class="fields">${escCampoHtml((motor ? 'km:' : 'kb:') + rec.id, motor ? '01.MOTORDIESEL' : '11.BOMBAMANCAL')}</div><h2>Folha de dados técnica</h2><div id="fdtBox" data-fdtins="${esc((motor ? 'km:' : 'kb:') + rec.id)}">${fdTecHtml((motor ? 'km:' : 'kb:') + rec.id)}</div>` : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap">${canEd() ? `<button class="btn pri" id="kSave">${isNew ? 'Cadastrar kit' : 'Salvar'}</button>` : ''}${canEd() && !isNew ? '<button class="btn" id="kDup">Duplicar</button><button class="btn" id="kDel">Excluir</button>' : ''}<button class="btn" data-close>${canEd() ? 'Cancelar' : 'Fechar'}</button></div>
       ${!isNew ? (() => { const u = kitUso(rec); return `<h2>Onde é usado</h2><p class="sub" style="margin:0">${u.ins ? 'Insumo de mesmo nome: ' + esc(u.ins.id) + (typeof u.ins.valor === 'number' ? ' (' + brl(u.ins.valor) + ')' : ' (sem preço)') : '<span class="bad-t">Nenhum insumo com este nome no cadastro: o seletor do item não o oferece.</span>'}${u.mods.length ? '<br>Modelos prontos: ' + esc(u.mods.join(', ')) : ''}${u.props.length ? '<br>' + u.props.length + ' proposta(s): ' + esc(u.props.slice(0, 6).map((q) => q.numero || q.name || '').join(', ')) : ''}. Propostas enviadas e aprovadas guardam os valores do kit da época.</p>`; })() : ''}
       ${!isNew ? `<h2>Histórico deste kit</h2>${hist.length ? `<div class="hist">${hist.map((h) => `<div><small>${fmtAt(h.at)} · ${who(h.by)}</small>${(h.mudancas || []).map((m) => `<div class="chg"><b>${esc(m.campo)}</b> ${esc(fmtVal(m.de))} → ${esc(fmtVal(m.para))}</div>`).join('')}</div>`).join('')}</div>` : '<p class="sub">Sem alterações registradas — valores da planilha REV21.</p>'}` : ''}`,
@@ -9693,7 +10004,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       const sv = $('#kSave', o);
       if (sv) sv.onclick = async () => {
         const desc = $('#kDesc', o).value.trim(); if (!desc) { $('#kErr', o).textContent = 'Informe a descrição.'; return; }
-        const out = { id: rec.id || ((motor ? 'm' : 'b') + Date.now().toString(36)), ord: rec.ord, desc, tipo: $('#kTipo', o).value, marca: $('#kMarca', o).value.trim(), p: read() };
+        const out = { id: rec.id || ((motor ? 'm' : 'b') + Date.now().toString(36)), ord: rec.ord, desc, tipo: $('#kTipo', o).value, marca: $('#kMarca', o).value.trim(), p: read(), cert: certLer((q) => $(q, o), 'k') };
         sv.disabled = true;
         try { const ch = await REG.saveKit(kind, out, isNew); close(); toast(ch === false ? 'Nada mudou' : 'Kit salvo'); } catch (err) { sv.disabled = false; $('#kErr', o).textContent = errMsg(err); }
       };
@@ -10858,7 +11169,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       <div class="f span2"><label for="fmNome">Nome (sem espaços, como no código do insumo)</label><input id="fmNome" value="${esc(nome)}" placeholder="EX.: VALVULARETENCAO"></div>
       <div class="f spanall"><label for="fmDesc">Descrição</label><input id="fmDesc" value="${esc(desc)}" placeholder="Para que serve, o que entra aqui"></div>
       <div class="f span2"><label for="fmGrupo">Grupo no escopo da proposta</label><select id="fmGrupo">${GRUPOS_ESC.map((g) => `<option${(escFam(code).grupo || GRUPO_PAD[code] || 'Acessórios') === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select></div>
-      <div class="f spanall"><label for="fmEsc">Texto padrão no escopo <span class="sub">uma linha por item; {marca}, {modelo} e {qtd} são trocados; vale para os insumos da família sem descrição própria</span></label><textarea id="fmEsc" rows="3" placeholder="ex.: Marca: {marca}&#10;Modelo: {modelo}">${esc(escFam(code).t || '')}</textarea></div></div>
+      <div class="f spanall"><label for="fmEsc">Texto padrão no escopo <span class="sub">uma linha por item; {marca}, {modelo} e {qtd} são trocados; vale para os insumos da família sem descrição própria</span></label><textarea id="fmEsc" rows="3" placeholder="${esc(((EP.fams[code] || {}).t || {}).pt || 'ex.: Marca: {marca}\nModelo: {modelo}')}">${esc(escFam(code).t || '')}</textarea></div></div>
       ${!isNew && n ? `<p class="sub" style="margin:0">Renomear troca a família nos ${n} insumos dela e nas linhas da estrutura padrão. Propostas já salvas mantêm o nome antigo no escopo digitado à mão.</p>` : ''}
       <p class="sub" id="fmMsg" style="margin:0"></p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="fmOk">Salvar</button>${!isNew && !n ? '<button class="btn" id="fmDel">Excluir família vazia</button>' : ''}<button class="btn" data-close>Fechar</button></div>`, (o, close) => {
@@ -11182,15 +11493,19 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="mBlank">SEQ em branco</button><button class="btn pri" id="mSpv">SPV (serviço, peças, contrato)</button><button class="btn" id="mExample">Exemplo SEQ (Cocamar)</button><button class="btn" data-close>Cancelar</button></div>`,
     (o, close) => { $('#mBlank', o).onclick = () => { close(); newSeq(); }; $('#mSpv', o).onclick = () => { close(); setView('inicio'); const t = document.querySelector('[data-spvnew]'); if (t) t.closest('.card, section, div').scrollIntoView({ block: 'center' }); toast('Escolha o tipo de SPV'); }; $('#mExample', o).onclick = () => { close(); loadDoc(MODEL.example, ''); setView('proposta'); toast('Exemplo carregado'); }; });
 
-  // cancelar: na proposta nova, desiste da criação e volta ao início; na salva, descarta as alterações e reabre a última versão salva
-  $('#bCancel').onclick = () => {
-    if (!dirty || state.verRev) return;
+  // cancelar: na proposta nova (mesmo sem nada preenchido), desiste da criação e volta ao início; na salva, descarta as
+  // alterações e reabre a última versão salva. Aparece no topo e ao lado da situação da proposta.
+  function podeCancelar() { if (state.verRev || !viewDaProposta(ui.view)) return false; const salva = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null; return !salva || dirty; }
+  $('#bCancel').onclick = () => cancelar();
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-cancelar]')) cancelar(); });
+  function cancelar() {
+    if (!podeCancelar()) return;
     const salva = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
-    if (!salva) { if (!window.confirm('Cancelar a criação desta proposta? O que foi preenchido e não foi salvo será descartado.')) return;
+    if (!salva) { if (dirty && !window.confirm('Cancelar a criação desta proposta? O que foi preenchido e não foi salvo será descartado.')) return;
       loadDoc({}, ''); dirty = false; persist(); setView('inicio'); toast('Proposta nova descartada'); return; }
     if (!window.confirm('Descartar as alterações não salvas e voltar à última versão salva?')) return;
     openProposta(salva, false); dirty = false; persist(); render(); toast('Alterações descartadas: voltou à versão salva');
-  };
+  }
   // salvar mostra o estado: girando enquanto grava, e volta ao normal no fim (sucesso ou erro)
   $('#bSave').onclick = async (ev) => { const sb = $('#bSave'); if (sb.classList.contains('busy')) return; sb.classList.add('busy'); sb.dataset.ico = 'loader-circle'; decorar(sb.parentElement);
     try { return await salvar0(ev); } finally { sb.classList.remove('busy'); sb.dataset.ico = 'save'; decorar(sb.parentElement); } };
@@ -11254,7 +11569,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     else if (dirty) { cls = 'warn'; t = state.id ? '● Alterações não salvas' : '● Proposta ainda não salva'; }
     else if (state.id) t = '✓ Salvo' + (ui.salvoEm ? ' às ' + hm(ui.salvoEm) : '');
     el.className = 'savest ' + cls; el.textContent = t; el.hidden = !t || ['inicio', 'cadastro', 'pendencias', 'guia'].includes(ui.view) && !armazFalhou;
-    { const bc = $('#bCancel'); if (bc) bc.hidden = !(dirty && !state.verRev && viewDaProposta(ui.view)); }
+    { const bc = $('#bCancel'); if (bc) bc.hidden = !podeCancelar(); }
     el.title = cls === 'warn' ? 'Clique em Salvar para gravar. O rascunho fica guardado neste navegador.' : '';
   }
   // rascunho: o estado em edição já fica no navegador; marca se há alteração pendente para recuperar depois

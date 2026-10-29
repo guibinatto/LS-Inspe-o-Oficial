@@ -6,9 +6,9 @@
   'use strict';
   const LAR = '#E4650E', ESC = '#2F2F2F', TXT = '#3A3A3A', MUTED = '#7A7A7A', GRID = '#E6E6E6', EIXO = '#BDBDBD';
   const L = {
-    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)' },
-    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)' },
-    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)' },
+    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)', vetor: 'Curvas traçadas pela LS Fire a partir do gráfico da folha de dados do fabricante', npsh: 'NPSH requerido', diam: 'Ø' },
+    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)', vetor: 'Curves plotted by LS Fire from the manufacturer datasheet chart', npsh: 'NPSH required', diam: 'Ø' },
+    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)', vetor: 'Curvas trazadas por LS Fire a partir del gráfico de la hoja de datos del fabricante', npsh: 'NPSH requerido', diam: 'Ø' },
   };
   const LOC = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' };
   let fonteOk = null;
@@ -37,15 +37,15 @@
     if (!temPontos(dados)) return null;
     const lang = L[o.lang] ? o.lang : 'pt'; const t = L[lang]; await fontes();
     const nf = (d) => new Intl.NumberFormat(LOC[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
-    const P = dados.pontos; const pts = P.pts; const U = Object.assign({ q: 'USgpm', h: 'm', eff: '%', p: 'hp' }, P.unid || {});
+    const P = dados.pontos; const pts = P.pts; const U = Object.assign({ q: 'USgpm', h: 'm', eff: '%', p: 'hp', npsh: 'm' }, P.unid || {}); const outros = P.outros || [];
     const W = 2400, H = 1760; const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     const FT = (w, sz) => `${w} ${sz}px MontLS, Montserrat, Arial, sans-serif`;
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
-    const qMax = Math.max(...pts.map((p) => p.q)); const xStep = passo(qMax * 1.06, 10); const xMax = Math.ceil((qMax * 1.04) / xStep) * xStep;
+    const qMax = Math.max(...pts.map((p) => p.q), ...outros.map((o) => Math.max(...o.pts.map((p) => p.q)))); const xStep = passo(qMax * 1.06, 10); const xMax = Math.ceil((qMax * 1.04) / xStep) * xStep;
     const X0 = 190, X1 = W - 70; const sx = (q) => X0 + (q / xMax) * (X1 - X0);
     // painéis: altura (grande), rendimento e potência; cada um com o seu eixo
-    const series = [['h', t.h, 0.52], ['eff', t.eff, 0.19], ['p', t.p, 0.19]].filter(([k]) => pts.some((p) => typeof p[k] === 'number'));
-    const topo = 190, base = H - 190, gap = 64; const alt = base - topo - gap * (series.length - 1); const soma = series.reduce((a, s) => a + s[2], 0);
+    const series = [['h', t.h, 0.52], ['eff', t.eff, 0.19], ['p', t.p, 0.19], ['npsh', t.npsh, 0.17]].filter(([k]) => pts.filter((p) => typeof p[k] === 'number').length >= 2);
+    const topo = 190, base = H - 190, gap = series.length > 3 ? 58 : 64; const alt = base - topo - gap * (series.length - 1); const soma = series.reduce((a, s) => a + s[2], 0);
     let y = topo; const paineis = series.map(([k, nome, f]) => { const h = alt * f / soma; const p = { k, nome, y0: y, y1: y + h }; y += h + gap; return p; });
     // dados do ponto de trabalho e da NFPA 20 (só o que estiver na folha)
     const qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0] || nums(campo(dados, /Operat/i, /^Flow$/))[0]; const hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0] || nums(campo(dados, /Operat/i, /^Head$/))[0];
@@ -53,13 +53,17 @@
     const sh = nums(campo(dados, /NFPA/i, /^Head at shutoff/)), h150 = nums(campo(dados, /NFPA/i, /^Head at 150%/)), q150 = nums(campo(dados, /NFPA/i, /^Flow at 150%/))[0];
     for (const pn of paineis) {
       const vals = pts.map((p) => p[pn.k]).filter((v) => typeof v === 'number'); let vmax = Math.max(...vals);
-      if (pn.k === 'h') vmax = Math.max(vmax, hT || 0, hN || 0, sh[1] || 0);
+      if (pn.k === 'h') vmax = Math.max(vmax, hT || 0, hN || 0, sh[1] || 0, ...outros.map((o) => Math.max(...o.pts.map((p) => p.h))));
       const ys = passo(vmax * 1.08, pn.k === 'h' ? 8 : 3); const ymax = Math.ceil((vmax * 1.06) / ys) * ys; const syy = (v) => pn.y1 - (v / ymax) * (pn.y1 - pn.y0); pn.sy = syy;
       // grade e eixo y (recessivos)
       g.lineWidth = 2; g.font = FT(400, 30); g.textAlign = 'right'; g.textBaseline = 'middle';
       for (let v = 0; v <= ymax + 1e-9; v += ys) { const yy = syy(v); g.strokeStyle = v === 0 ? EIXO : GRID; g.beginPath(); g.moveTo(X0, yy); g.lineTo(X1, yy); g.stroke(); g.fillStyle = MUTED; g.fillText(nf(ys < 1 ? 1 : 0).format(v), X0 - 18, yy); }
       for (let q = 0; q <= xMax + 1e-9; q += xStep) { const xx = sx(q); g.strokeStyle = GRID; g.beginPath(); g.moveTo(xx, pn.y0); g.lineTo(xx, pn.y1); g.stroke(); }
       g.fillStyle = TXT; g.font = FT(600, 34); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(pn.nome + ' (' + U[pn.k] + ')', X0, pn.y0 - 18);
+      // outros diâmetros de rotor (tracejados, recessivos), com o diâmetro na ponta
+      if (pn.k === 'h') for (const o of outros) { const op = o.pts.filter((p, i, A) => !i || p.q > A[i - 1].q); if (op.length < 2) continue; const fo = monotona(op.map((p) => p.q), op.map((p) => p.h));
+        g.setLineDash([16, 12]); g.strokeStyle = '#A8A8A8'; g.lineWidth = 3; g.beginPath(); for (let i = 0; i <= 120; i++) { const q = op[0].q + (op[op.length - 1].q - op[0].q) * i / 120; const xx = sx(q), yy = syy(fo(q)); if (i) g.lineTo(xx, yy); else g.moveTo(xx, yy); } g.stroke(); g.setLineDash([]);
+        const fim = op[op.length - 1]; g.fillStyle = MUTED; g.font = FT(400, 24); g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t.diam + ' ' + (lang === 'en' ? o.rot : String(o.rot).replace('.', ',')), Math.min(sx(fim.q) + 10, X1 - 110), syy(fim.h)); }
       // curva: só entre os pontos do fabricante
       const ps = pts.filter((p) => typeof p[pn.k] === 'number'); const f = monotona(ps.map((p) => p.q), ps.map((p) => p[pn.k]));
       g.strokeStyle = LAR; g.lineWidth = pn.k === 'h' ? 7 : 5; g.lineJoin = 'round'; g.lineCap = 'round'; g.beginPath();
@@ -83,6 +87,12 @@
       if (P.chave) for (const p of pts) { g.fillStyle = LAR; g.beginPath(); g.arc(sx(p.q), ph.sy(p.h), 9, 0, Math.PI * 2); g.fill(); }
       if (qT && hT) { const xx = sx(qT), yy = ph.sy(hT); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, ph.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true); rotulo(t.trab + ': ' + fq(qT) + ' · ' + fh(hT), xx, yy + 54, P.chave ? 'e' : 'd'); }
     }
+    // ponto de trabalho também nos outros painéis (valor lido na curva do fabricante)
+    if (qT) for (const pn of paineis) { if (pn.k === 'h' || !pn.f) continue; const ps = pts.filter((p) => typeof p[pn.k] === 'number'); if (!ps.length || qT < ps[0].q || qT > ps[ps.length - 1].q) continue;
+      // valor escrito na folha quando houver; senão, o lido na curva
+      const fol = { eff: nums(campo(dados, null, /^Efficiency(, rated)?$/))[0], p: nums(campo(dados, null, /^(Shaft Power|Power, rated)$/))[0], npsh: nums(campo(dados, null, /^NPSH\s?r(equired)?$/i))[0] }[pn.k];
+      const v0 = pn.f(qT); const v = fol && Math.abs(fol - v0) <= Math.max(0.08 * Math.abs(v0), 0.5) ? fol : v0; const xx = sx(qT), yy = pn.sy(v0); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, pn.y0); g.lineTo(xx, pn.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true);
+      rotulo(nf(pn.k === 'p' ? 1 : pn.k === 'eff' ? 1 : 2).format(v) + ' ' + U[pn.k], xx, yy - 40, 'd'); }
     // eixo x (vazão) com equivalente em m³/h quando a vazão vem em galões
     const yb = paineis[paineis.length - 1].y1; g.textAlign = 'center'; g.textBaseline = 'top';
     for (let q = 0; q <= xMax + 1e-9; q += xStep) { const xx = sx(q); g.fillStyle = MUTED; g.font = FT(400, 30); g.fillText(nf(0).format(q), xx, yb + 16); if (/gpm/i.test(U.q)) { g.font = FT(400, 24); g.fillText(nf(0).format(q * 0.2271247), xx, yb + 54); } }
@@ -95,7 +105,7 @@
     g.fillText([dados.fabricante, mod].filter(Boolean).join(' ') + (rot ? ' · ' + t.rotor + ' ' + dec(rot) : '') + (rpm ? ' · ' + rpm : ''), X0, 58);
     if (o.logo) { try { const im = new Image(); im.src = o.logo; await im.decode(); const w = 230, h = w * im.height / im.width; g.drawImage(im, W - 70 - w, 18, w, h); } catch (e) { /* sem logo */ } }
     g.fillStyle = LAR; g.fillRect(X0, 80, 120, 6);
-    g.fillStyle = MUTED; g.font = FT(400, 26); g.textAlign = 'right'; g.fillText((P.chave ? t.chave : t.fonte) + (dados.pontos.pag ? ' (p. ' + dados.pontos.pag + ')' : '') + '.', X1, H - 22);
+    g.fillStyle = MUTED; g.font = FT(400, 26); g.textAlign = 'right'; g.fillText((P.chave ? t.chave : P.vetor ? t.vetor : t.fonte) + (dados.pontos.pag ? ' (p. ' + dados.pontos.pag + ')' : '') + '.', X1, H - 22);
     return cv.toDataURL('image/png');
   }
   window.PricerCurva = { desenhar, temPontos };

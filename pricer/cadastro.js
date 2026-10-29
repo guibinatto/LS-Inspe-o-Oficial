@@ -142,7 +142,7 @@
     const INS_FIELDS = [['fam', 'Família'], ['produto', 'Produto'], ['fab', 'Fabricante'], ['tipo', 'Tipo/config.'], ['valor', 'Valor'], ['origem', 'Origem'], ['obs', 'Observações'],
       // REV22: ficha técnica e governança (campos opcionais; registros da REV21 continuam válidos sem eles)
       ['situacao', 'Situação'], ['codFab', 'Código do fabricante'], ['caract', 'Características'], ['descCom', 'Descrição comercial'], ['descFab', 'Descrição do fabricante'],
-      ['excecao', 'Exceção ao padrão'], ['substituto', 'Substituto'], ['fonte', 'Origem do preço'], ['dataCot', 'Data da cotação'], ['forn', 'Fornecedores'], ['equiv', 'Equivalentes']];
+      ['excecao', 'Exceção ao padrão'], ['substituto', 'Substituto'], ['fonte', 'Origem do preço'], ['dataCot', 'Data da cotação'], ['forn', 'Fornecedores'], ['equiv', 'Equivalentes'], ['cert', 'Certificação (UL/FM)']];
     R.INS_FIELDS = INS_FIELDS;
     const guard = () => { if (!R.canEditCadastro) throw new Error('Sem permissão para editar o cadastro. Peça acesso de Editor a quem publicou o app.'); if (R.mode === 'shared' && !R.seeded) throw new Error('O cadastro compartilhado ainda não foi carregado.'); };
 
@@ -247,7 +247,7 @@
       if (isNew && list.length >= lim) throw new Error('Não há linha livre na aba KIT ' + (kind === 'motor' ? 'MOTORES DIESEL' : 'BOMBA') + ' (limite de ' + lim + ').');
       const before = list.find((x) => x.id === rec.id) || null;
       const labels = kind === 'motor' ? KMD_LABELS : KB_LABELS;
-      const mud = diff(before, rec, [['desc', 'Descrição'], ['tipo', 'Origem'], ['marca', 'Marca']]);
+      const mud = diff(before, rec, [['desc', 'Descrição'], ['tipo', 'Origem'], ['marca', 'Marca'], ['cert', 'Certificação (UL/FM)']]);
       for (const [c, lb] of Object.entries(labels)) { const a = before && before.p ? before.p[c] : undefined, b = rec.p ? rec.p[c] : undefined; if ((a ?? null) !== (b ?? null)) mud.push({ campo: lb, de: a ?? null, para: b ?? null }); }
       if (!isNew && !mud.length) return false;
       const body = clean(Object.assign({}, rec)); delete body.id; body.upd = new Date().toISOString(); if (R.me) body.updBy = R.me;

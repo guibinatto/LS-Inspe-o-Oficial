@@ -170,7 +170,8 @@ Linha da proposta: os botões ficam num grupo alinhado — próximo passo (desta
 ## 18. Curva no padrão LS Fire
 
 - `fabricante.js` lê a tabela de pontos da curva (Flow | Head | Efficiency | Power | NPSHr) → `dados.pontos`.
-- `curva-ls.js` (`PricerCurva.desenhar`) traça em canvas: três painéis com o mesmo eixo de vazão (sem eixo duplo), interpolação monotônica só entre os pontos do fabricante, ponto de trabalho, nominal NFPA 20, shutoff e 150% com os limites da folha, eixo secundário em m³/h, logo LS Fire. Usada nos dois padrões; prévia no item; opção "Imagem do fabricante" mantém o recorte da página.
+- `curva-ls.js` (`PricerCurva.desenhar`) traça em canvas: três painéis com o mesmo eixo de vazão (sem eixo duplo), interpolação monotônica só entre os pontos do fabricante, ponto de trabalho, nominal NFPA 20, shutoff e 150% com os limites da folha, eixo secundário em m³/h, logo LS Fire. Usada nos dois padrões e no campo "Curva da bomba"; prévia no item. A curva sai sempre no padrão LS Fire (não há mais a opção de imagem do fabricante); sem pontos legíveis, a curva não entra e o item avisa.
+- Curva em vetor (`curvasVetor`): `PricerLeitor.itensPdf` traz os traços da página (`pg.vet`: cor, espessura, tracejado, pontos); os números de cada eixo, alinhados à grade do traço mais comum, dão a escala de cada painel (altura, rendimento, potência, NPSH); a curva do rotor é o traço contínuo colorido; os tracejados do painel de altura viram os outros diâmetros, com o diâmetro escrito na ponta. Resultado em `dados.pontosPag[página]` (`vetor: true`, `outros`).
 - Botão "Anexar folha do fabricante" por item no cartão da proposta.
 
 ## 19. Cadastro como fonte da folha de dados e do escopo
@@ -180,4 +181,11 @@ Linha da proposta: os botões ficam num grupo alinhado — próximo passo (desta
 - Texto de escopo na tabela `ESCOPO_PROPOSTA` (`itens[chave]`, `fams[código] = { grupo, t }`), com {marca}, {modelo}, {qtd}.
 - Proposta: `it.cad` (folhas e desenhos), `it.escopoG` (escopo por grupo); folha construtiva do cadastro (bomba à esquerda, motor à direita), desenhos como páginas; o escopo do fabricante anexado na proposta fica desligado por padrão.
 - Curva por pontos-chave (shutoff, mínima, trabalho, nominal, máxima) quando não há tabela de pontos; quadros com título embaixo da curva viram seções.
-- Planilha de preços em paisagem com preços sem impostos, impostos e IPI; botão Cancelar no topo.
+- Planilha de preços em paisagem com preços sem impostos, impostos e IPI; botão Cancelar no topo e ao lado da situação da proposta (aparece também na proposta nova ainda sem nada preenchido).
+
+## 20. Escopo padrão e certificação
+
+- `escopo-padrao.js` (`PRICER_ESCOPO_PADRAO`): título e texto por família e por tipo (`código|TIPO`), em pt/en/es, e o grupo de cada família. Ordem: texto do item → texto da família no banco → padrão do tipo → padrão da família.
+- No componente principal (bomba, motor, painel), linhas técnicas do cadastro: materiais, bocais e vedação da folha técnica da bomba; potência, rotação, tensão, proteção e rendimento da folha do motor; ponto de trabalho da folha do fabricante do item. O componente principal vem primeiro no grupo.
+- Certificação no cadastro do insumo e do kit (`cert`: "UL", "FM" ou "UL / FM", marcada em caixas): sai como "Listado UL · Aprovado FM" (en "UL Listed · FM Approved") na linha do item no escopo.
+- Leitura da Sempa: título girado na margem, títulos de seção pela letra maior, rótulos de grupo (Flow / Head / Impeller D) aplicados às linhas recuadas, modelo da linha "… rpm / … m³/h / …".
