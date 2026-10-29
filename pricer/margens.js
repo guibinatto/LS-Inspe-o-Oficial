@@ -576,10 +576,10 @@
       const [pid, k] = b.dataset.etp.split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
       const x = etapas(p).find((y) => y.k === k); if (!x) return;
       if (x.act === 'baixa') { fecharModal(p); return; }
-      if (x.act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
+      if (x.act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 5); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
       if (x.act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (x.act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
-      if (x.act === 'cliente') { ctx.aoEnviar && ctx.aoEnviar(p);
+      if (x.act === 'cliente') { const bq = ctx.bloqueioEnvio ? ctx.bloqueioEnvio(p) : 0; if (bq) { toast(bq + ' item(ns) da conferência impedem enviar. Veja na etapa Conferência.'); ctx.abrirProposta && ctx.abrirProposta(p, 5); return; } ctx.aoEnviar && ctx.aoEnviar(p);
         REG.patchProposta(p.id, (r) => { r.status = 'enviada'; r.etapas = Object.assign({}, r.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }); }).then(() => { ctx.log && ctx.log({ tipo: 'Etapa da proposta', ref: p.id, desc: (p.numero || '') + ' — enviada ao cliente', mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: 'enviada' }] }); toast('Marcada como enviada ao cliente'); ctx.render(); }); return; }
       if (x.act === 'avisar' && x.s !== 'ok') { avisarModal(p, [k]); return; }
       if (x.act !== 'marcar' && x.act !== 'avisar') return;
@@ -740,9 +740,9 @@
       return { assunto: `Aprovação de desconto · proposta ${n}${alvo ? ' · target ' + brl(alvo.vendaSem * ri) : ''}${p.cliente ? ' · ' + p.cliente : ''}`, corpo: l.join('\n') };
     }
     const fAprov = (p, a) => ({ id: p.id, propId: p.id, div: p.div || 'SEQ', tipo: p.tipo || null, numero: p.numero || '', cliente: p.cliente || '', nome: p.name || '', fechadoEm: (a && a.at || new Date().toISOString()).slice(0, 10), pedido: '', obs: 'Análise para aprovação de desconto', modo: 'aprovacao', vendaProposta: a.snap.venda, valorFechado: a.alvo ? a.alvo.vendaSem : a.snap.venda, snap: a.snap, real: {}, execucao: '' });
-    function pedirAprovacao(p, snap) {
+    function pedirAprovacao(p, snap, alvoIpi) {
       ensureA(); const cfg = avisosCfg(); const ri = ipiRatio(snap); const minS = minPelaMargem(snap);
-      const ant = aprovDe(p.id); const ini = ant && ant.alvo ? ant.alvo : null;
+      const ant = aprovDe(p.id); const ini = typeof alvoIpi === 'number' ? { base: 'com', vendaSem: alvoIpi / ri } : ant && ant.alvo ? ant.alvo : null;
       modal(`<h2>Pedir aprovação da proposta</h2><p class="sub" style="margin:0">${esc((p.numero || p.name || '') + (p.cliente ? ' · ' + p.cliente : ''))}. Diga por quanto quer fechar; Diretoria e Financeiro analisam esse valor e aprovam no app.</p>
         <div class="kpis"><div class="kpi"><span>Valor atual (com IPI)</span><b>${brl(snap.venda * ri)}</b><em>${brl(snap.venda)} sem IPI</em></div><div class="kpi"><span>Margem atual</span><b>${pct(snap.margemPct, 1)}</b><em>mínimo ${pct(snap.minimo || 0, 0)}</em></div><div class="kpi"><span>Menor preço pela margem mínima</span><b>${minS ? brl(minS * ri) : '—'}</b><em>com IPI</em></div></div>
         <div class="fields"><div class="f span2 req"><label for="apAlvo">Valor target</label><input id="apAlvo" inputmode="decimal" placeholder="ex.: 4.000.000,00" value="${ini ? esc(NF[2].format(ini.base === 'sem' ? ini.vendaSem : ini.vendaSem * ri)) : ''}"></div>
@@ -804,7 +804,7 @@
       const t = ev.target;
       const op = t.closest('[data-apopen]'); if (op && !t.closest('[data-apdec]')) { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = op.dataset.apopen; ctx.render(); window.scrollTo(0, 0); return; }
       if (t.closest('[data-apback]')) { ui.apId = null; ctx.render(); return; }
-      const ap2 = t.closest('[data-approp]'); if (ap2) { const p = (REG.listPropostas() || []).find((x) => x.id === ap2.dataset.approp); if (!p) { toast('Proposta não encontrada'); return; } ctx.abrirProposta && ctx.abrirProposta(p, 3); return; }
+      const ap2 = t.closest('[data-approp]'); if (ap2) { const p = (REG.listPropostas() || []).find((x) => x.id === ap2.dataset.approp); if (!p) { toast('Proposta não encontrada'); return; } ctx.abrirProposta && ctx.abrirProposta(p, 5); return; }
       const xl = t.closest('[data-apxls]'); if (xl) { const a = aprov.find((x) => x.id === xl.dataset.apxls); if (a) excel(fAprov({ id: a.id, numero: a.numero, cliente: a.cliente, name: a.nome, div: a.div }, a), true).catch((e) => toast(e.message || 'Não consegui gerar o Excel')); return; }
       const dc = t.closest('[data-apdec]'); if (dc) { const [id, papel, decisao] = dc.dataset.apdec.split('|'); const a = aprov.find((x) => x.id === id); if (!a) return;
         modal(`<h2>${decisao === 'aprovada' ? 'Aprovar' : 'Reprovar'} · ${esc(PAPEIS.find((x) => x[0] === papel)[1])}</h2><div class="f"><label for="adCom">Comentário${decisao === 'reprovada' ? ' (obrigatório)' : ' (opcional)'}</label><input id="adCom" placeholder="${decisao === 'aprovada' ? 'ex.: aprovado com prazo de pagamento 28 DDL' : 'ex.: margem baixa demais; tentar 30%'}"></div><div style="display:flex;gap:8px"><button class="btn pri" id="adOk">Confirmar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
@@ -843,10 +843,10 @@
       const b = ev.target.closest('[data-hnext]'); const pd = ev.target.closest('[data-hperdida]'); if (!b && !pd) return;
       const [pid, act] = (b ? b.dataset.hnext : pd.dataset.hperdida + '|perdida').split('|'); const p = (REG.listPropostas() || []).find((x) => x.id === pid); if (!p) return;
       const salvaStatus = async (status, extra, desc) => { await REG.patchProposta(p.id, (r) => { r.status = status; for (const [k, v] of Object.entries(extra || {})) { if (k === 'etapas') r.etapas = Object.assign({}, r.etapas || {}, v); else r[k] = v; } }); ctx.log && ctx.log({ tipo: 'Status da proposta', ref: p.id, desc: (p.numero || p.name || '') + ' · ' + (p.cliente || '') + (desc ? ' — ' + desc : ''), mudancas: [{ campo: 'Status', de: p.status || 'rascunho', para: status }] }); ctx.render(); };
-      if (act === 'cliente') { ctx.aoEnviar && ctx.aoEnviar(p); salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
+      if (act === 'cliente') { const bq = ctx.bloqueioEnvio ? ctx.bloqueioEnvio(p) : 0; if (bq) { toast(bq + ' item(ns) da conferência impedem enviar. Veja na etapa Conferência.'); ctx.abrirProposta && ctx.abrirProposta(p, 5); return; } ctx.aoEnviar && ctx.aoEnviar(p); salvaStatus('enviada', { etapas: Object.assign({}, p.etapas || {}, { cliente: { at: new Date().toISOString(), by: REG.me || null } }) }).then(() => toast('Marcada como enviada ao cliente')); return; }
       if (act === 'baixa') { fecharModal(p); return; }
-      if (act === 'aplicar') { ctx.abrirProposta && ctx.abrirProposta(p, 3); return; }
-      if (act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 3); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
+      if (act === 'aplicar') { ctx.abrirProposta && ctx.abrirProposta(p, 5); return; }
+      if (act === 'conferir') { ctx.abrirProposta && ctx.abrirProposta(p, 5); setTimeout(() => { const el = document.getElementById('confCard'); if (el) el.scrollIntoView({ block: 'start' }); }, 80); return; }
       if (act === 'aprovacao') { ui.view = 'margens'; ui.mgTab = 'aprovacoes'; ui.mgId = null; ui.apId = p.id; ctx.render(); window.scrollTo(0, 0); return; }
       if (act === 'avisar') { const e = p.etapas || {}; avisarModal(p, ['financeiro', 'engenharia'].filter((a) => !e[a])); return; }
       if (act === 'real') { ui.view = 'margens'; ui.mgId = p.id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }

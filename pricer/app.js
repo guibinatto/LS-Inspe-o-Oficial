@@ -890,9 +890,9 @@
     if (e.target.closest('[data-revisar]')) { $('#overlay').innerHTML = ''; revisarModal(); return; }
     const vr = e.target.closest('[data-revver]'); if (vr) { const x = revCache.list.find((y) => y.id === vr.dataset.revver); if (!x) return;
       if (dirty && !state.verRev && !window.confirm('Há alterações não salvas na revisão atual. Abrir a revisão ' + x.rev + ' mesmo assim? (as alterações se perdem)')) return;
-      $('#overlay').innerHTML = ''; const pid = state.id; carregarCorpo(x.body, { verRev: { rev: x.rev, propId: pid, at: x.at } }); dirty = false; ui.step = 3; setView('proposta'); return; }
+      $('#overlay').innerHTML = ''; const pid = state.id; carregarCorpo(x.body, { verRev: { rev: x.rev, propId: pid, at: x.at } }); dirty = false; ui.step = 4; setView('proposta'); return; }
     const rs = e.target.closest('[data-revrest]'); if (rs) { const x = revCache.list.find((y) => y.id === rs.dataset.revrest); if (!x) return; $('#overlay').innerHTML = ''; await revRestaurar(x); return; }
-    if (e.target.closest('[data-revatual]')) { $('#overlay').innerHTML = ''; const pid = (state.verRev || {}).propId || state.id; const q = (REG.listPropostas() || []).find((y) => y.id === pid); if (q) { openProposta(q, false); ui.step = 3; render(); } return; }
+    if (e.target.closest('[data-revatual]')) { $('#overlay').innerHTML = ''; const pid = (state.verRev || {}).propId || state.id; const q = (REG.listPropostas() || []).find((y) => y.id === pid); if (q) { openProposta(q, false); ui.step = 4; render(); } return; }
   });
   async function revRestaurar(x) {
     const pid = (state.verRev || {}).propId || state.id; const salva = (REG.listPropostas() || []).find((y) => y.id === pid); if (!salva) return;
@@ -902,7 +902,7 @@
       state.id = pid; carregarCorpo(x.body, { uid: salva.uid, verRev: null }); state.id = pid; state.verRev = null; setRev(n + 1); state._novaRev = true;
       await salvarSilencioso();
       logEv({ tipo: 'Proposta — revisão', ref: pid, desc: docTitle() + ': revisão ' + x.rev + ' restaurada como revisão ' + (n + 1), mudancas: [{ campo: 'Revisão', de: n, para: n + 1 }] });
-      ui.step = 3; render(); toast('Revisão ' + x.rev + ' restaurada como revisão ' + (n + 1));
+      ui.step = 4; render(); toast('Revisão ' + x.rev + ' restaurada como revisão ' + (n + 1));
     } catch (e) { toast(errMsg(e)); }
   }
   // ---------- conferência do PDF: o que a formação diz ----------
@@ -927,16 +927,237 @@
   // selo "Rev. N" no topo da proposta
   const revSelo = () => (state.id ? `<div style="display:flex;gap:4px;align-items:center"><button class="pill ${state.verRev ? 'warn' : 'mute'} apselo" data-revs title="Ver as revisões desta proposta">${state.verRev ? 'Consultando rev. ' + state.verRev.rev : 'Rev. ' + revAtual()} ▾</button>${state.verRev ? '' : `<button class="btn sm" data-revisar title="Guarda a revisão ${revAtual()} e abre a ${revAtual() + 1} para editar">Revisar</button>`}</div>` : '');
 
+  // ---------- jornada da proposta SEQ em 6 etapas ----------
+  const ETAPAS_P = [[1, 'Identificação'], [2, 'Configuração'], [3, 'Custos'], [4, 'Formação'], [5, 'Conferência'], [6, 'Emissão']];
+  // parâmetros de custos (Custos): validade das cotações e variação de preço que pede atenção
+  const custosCfg = () => Object.assign({ validadeDias: 90, avisoDias: 15, variacaoPct: 0.15, bloquearEnvio: true }, ((REG.tabelas || {}).CUSTOS_CFG || {}).cfg || {});
+  const insPorProduto = (() => { let m = null, v = null; return (d) => { if (v !== REG.insumos) { m = new Map(REG.insumos.map((i) => [i.produto, i])); v = REG.insumos; } return m.get(d) || null; }; })();
+  function variacaoPreco(ins) {
+    for (const h of REG.historico || []) { if (h.ref !== ins.id && h.ref !== 'import') continue;
+      for (const m of h.mudancas || []) { if (!(h.ref === ins.id ? /valor/i.test(m.campo) : String(m.campo).startsWith(ins.id))) continue; if (typeof m.de === 'number' && typeof m.para === 'number' && m.de) return { pct: (m.para - m.de) / m.de, at: h.at, de: m.de, para: m.para }; } }
+    return null;
+  }
+  // linhas de custo de todos os itens, com origem, data e validade da cotação e os alertas de cada uma
+  function linhasCusto() {
+    const C = custosCfg(); const hoje = Date.now(); const sn = seqSnapshot(); const na = state.naCustos || {}; const out = [];
+    for (const it of sn.itens) {
+      const S = it.n; const q = it.qtd || 1;
+      for (const l of it.linhas || []) {
+        if (['startup', 'frete'].includes(l.k)) continue;
+        const ins = l.desc ? insPorProduto(l.desc) : null; const r = /^[me]\d+$/.test(l.k) ? +l.k.slice(1) : null;
+        const manual = r && state.doc && state.doc[S] && state.doc[S]['G' + r] !== undefined;
+        const upd = ins && ins.upd ? Date.parse(ins.upd) : null; const idade = upd ? (hoje - upd) / 864e5 : null;
+        const al = [];
+        const principal = /MOTOR|BOMBA|JOCKEY/.test(String(l.grupo || '') + ' ' + String(l.fam || '')) && !/ACOPLAMENTO|CAPA/.test(String(l.fam || ''));
+        if (l.desc && !(l.custo > 0)) al.push(principal ? ['imped', 'componente principal sem preço'] : ['aviso', 'item sem custo']);
+        else if (l.desc && l.unit === 0 && l.qtd) al.push(['aviso', 'custo unitário zerado']);
+        if (l.qtd === 0 && l.custo > 0) al.push(['aviso', 'quantidade zero com custo']);
+        if (l.qtd && l.unit && Math.abs(l.unit * l.qtd - l.custo) > Math.max(1, l.custo * 0.01)) al.push(['aviso', 'quantidade × unitário não fecha com o total']);
+        if (!manual && ins && idade !== null) { if (idade > C.validadeDias) al.push(['aviso', 'cotação vencida (' + Math.round(idade) + ' dias)']); else if (idade > C.validadeDias - C.avisoDias) al.push(['info', 'cotação vence em ' + Math.round(C.validadeDias - idade) + ' dias']); }
+        if (!manual && ins && !ins.upd) al.push(['info', 'preço da planilha original, sem data de cotação']);
+        const vp = ins && variacaoPreco(ins); if (vp && Math.abs(vp.pct) >= C.variacaoPct) al.push(['aviso', 'preço mudou ' + (vp.pct > 0 ? '+' : '') + pct(vp.pct, 0) + ' em ' + new Date(vp.at).toLocaleDateString('pt-BR')]);
+        if (l.desc && !ins && !manual) al.push(['info', 'fora do cadastro (nome não encontrado)']);
+        const key = S + '|' + l.k; const marcado = na[key];
+        out.push({ S, key, item: it.nome, l, ins, q, manual, upd, idade, al: marcado ? [] : al, na: marcado || null, total: l.custo * q });
+      }
+    }
+    return out;
+  }
+  function vCustos() {
+    const L = linhasCusto(); const C = custosCfg(); const sev = { imped: 0, aviso: 0, info: 0 }; for (const x of L) for (const [s] of x.al) sev[s]++;
+    const filtro = ui.custoFiltro || 'alertas';
+    const vis = filtro === 'todos' ? L : L.filter((x) => x.al.length || x.na);
+    const porItem = [...new Set(vis.map((x) => x.S))];
+    const ic = { imped: '<span class="bad-t">✕</span>', aviso: '<span class="warn-t">!</span>', info: '<span class="sub">i</span>' };
+    const tab = porItem.map((S) => { const X = vis.filter((x) => x.S === S); const tot = L.filter((x) => x.S === S).reduce((t, x) => t + x.total, 0);
+      return `<tr class="grp"><td colspan="9">${esc(S)} · ${esc(String(X[0].item).slice(0, 70))} <span class="sub">· custo do item ${brl(tot)}</span></td></tr>` + X.map((x) => `<tr class="${x.al.some((a) => a[0] === 'imped') ? 'cf-erro' : x.al.some((a) => a[0] === 'aviso') ? 'cf-aviso' : ''}">
+        <td>${x.ins ? `<button class="restore" data-ins="${esc(x.ins.id)}" title="abrir o insumo e o histórico">${esc(x.ins.id)}</button>` : '<span class="sub">—</span>'}</td>
+        <td>${esc(x.l.desc || x.l.rot || '')}<br><small class="sub">${esc([x.l.fam, x.l.grupo !== 'ESCOPO' ? x.l.grupo : 'escopo', x.ins && x.ins.fab].filter(Boolean).join(' · '))}</small></td>
+        <td class="n">${NF[2].format(x.l.qtd * x.q)}</td><td class="n">${brl(x.l.unit)}</td><td class="n"><b>${brl(x.total)}</b></td>
+        <td>${x.manual ? 'digitado na proposta' : x.ins ? (x.l.ori || x.ins.origem || 'NAC') + ' · cadastro' : 'sem cadastro'}</td>
+        <td>${x.manual ? '—' : x.upd ? new Date(x.upd).toLocaleDateString('pt-BR') + `<br><small class="sub">vale até ${new Date(x.upd + C.validadeDias * 864e5).toLocaleDateString('pt-BR')}</small>` : '<span class="sub">sem data</span>'}</td>
+        <td>${x.na ? `<span class="pill mute">não se aplica</span><br><small class="sub">${esc(x.na.motivo)}</small> <button class="restore" data-naundo="${esc(x.key)}">desfazer</button>` : x.al.map(([s, t]) => `<div>${ic[s]} ${esc(t)}</div>`).join('') || '<span class="ok-t">✓</span>'}</td>
+        <td>${!x.na && x.al.length ? `<button class="restore" data-namark="${esc(x.key)}" title="marcar como intencional: não é pendência">não se aplica</button>` : ''}</td></tr>`).join(''); }).join('');
+    return `<section class="card"><h2>Composição de custos <span class="sub">de onde vem cada custo, a data da cotação e o que pede atenção</span></h2>
+      <div class="kpis" style="margin-bottom:10px"><div class="kpi"><span>Custo total</span><b>${brl(L.reduce((t, x) => t + x.total, 0))}</b><em>${L.length} linhas em ${new Set(L.map((x) => x.S)).size} item(ns)</em></div><div class="kpi"><span>Impeditivos</span><b class="${sev.imped ? 'bad-t' : 'ok-t'}">${sev.imped}</b><em>componente principal sem preço</em></div><div class="kpi"><span>Avisos</span><b class="${sev.aviso ? 'warn-t' : 'ok-t'}">${sev.aviso}</b><em>sem custo, cotação vencida, variação ≥ ${pct(C.variacaoPct, 0)}</em></div><div class="kpi"><span>Informações</span><b>${sev.info}</b><em>validade ${C.validadeDias} dias (Custos)</em></div></div>
+      <div class="hchips" style="margin-bottom:8px">${[['alertas', 'Só o que pede atenção'], ['todos', 'Todas as linhas']].map(([k, lb]) => `<button class="hchip${filtro === k ? ' on' : ''}" data-custofiltro="${k}">${lb}</button>`).join('')}</div>
+      ${vis.length ? `<div class="tw"><table class="t"><thead><tr><th>Código</th><th>Componente</th><th>Qtd</th><th>Unitário</th><th>Total</th><th>Origem do preço</th><th>Cotação</th><th>Situação</th><th></th></tr></thead><tbody>${tab}</tbody></table></div>` : '<p class="ok-t" style="margin:0">Nenhum custo pedindo atenção.</p>'}
+      <p class="sub" style="margin:8px 0 0">Valores do cadastro em reais. "Não se aplica" registra que a ausência é intencional (fica no histórico) e tira a linha das pendências. A validade e a variação que pede atenção são ajustáveis em Cadastro → Custos.</p></section>`;
+  }
+  document.addEventListener('click', (e) => {
+    const f = e.target.closest('[data-custofiltro]'); if (f) { ui.custoFiltro = f.dataset.custofiltro; render(); return; }
+    const nm = e.target.closest('[data-namark]'); if (nm) { const key = nm.dataset.namark;
+      modal(`<h2>Não se aplica</h2><p class="sub" style="margin:0">${esc(key)}</p><div class="f"><label for="naMot">Por quê? (fica no histórico)</label><input id="naMot" placeholder="ex.: cliente fornece; já incluso no kit; não faz parte deste escopo"></div><div style="display:flex;gap:8px"><button class="btn pri" id="naOk">Confirmar</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+        $('#naMot', o).focus(); $('#naOk', o).onclick = () => { const m = $('#naMot', o).value.trim(); if (!m) { toast('Escreva o motivo'); return; } state.naCustos = Object.assign({}, state.naCustos, { [key]: { motivo: m, by: REG.me || null, at: new Date().toISOString() } }); dirty = true; persist(); logEv({ tipo: 'Custo — não se aplica', ref: docTitle(), desc: key, mudancas: [{ campo: 'Justificativa', de: null, para: m }] }); close(); render(); }; }); return; }
+    const nu = e.target.closest('[data-naundo]'); if (nu) { const n2 = Object.assign({}, state.naCustos); delete n2[nu.dataset.naundo]; state.naCustos = n2; dirty = true; persist(); render(); }
+  });
+
+  function vCustosCfg() {
+    const C = custosCfg(); const ed = canEd();
+    const f = (k, lb, suf, d) => `<div class="f"><label for="cc_${k}">${lb}</label><div class="mbc"><input id="cc_${k}" data-ccfg="${k}" value="${esc(k === 'variacaoPct' ? NF[0].format(C[k] * 100) : C[k])}" inputmode="decimal"${ed ? '' : ' disabled'}><span class="sub">${suf}</span></div><small class="sub">${d}</small></div>`;
+    return `<section class="card"><h2>Validade das cotações e alertas de custo</h2><div class="fields">${f('validadeDias', 'Validade da cotação', 'dias', 'depois disso a linha aparece como cotação vencida')}${f('avisoDias', 'Avisar antes de vencer', 'dias', 'informa que a cotação está perto de vencer')}${f('variacaoPct', 'Variação de preço que pede atenção', '%', 'mudança do preço do insumo desde a última referência')}
+      <div class="f span2"><label>Política de envio</label><label class="chk"><input type="checkbox" data-ccfg="bloquearEnvio"${C.bloquearEnvio ? ' checked' : ''}${ed ? '' : ' disabled'}> Travar "Enviar ao cliente" quando a conferência tiver itens que impedem seguir</label></div></div>
+      <p class="sub" style="margin:8px 0 0">${ed ? 'Alterações ficam no histórico.' : 'Só quem cuida de Custos altera.'}</p></section>`;
+  }
+  document.addEventListener('change', async (e) => {
+    const el = e.target.closest('[data-ccfg]'); if (!el) return; const k = el.dataset.ccfg; const C = custosCfg(); let v;
+    if (k === 'bloquearEnvio') v = el.checked; else { const n = parseInput(el.value, 'num'); if (typeof n !== 'number' || n < 0) { toast('Número inválido'); return; } v = k === 'variacaoPct' ? n / 100 : Math.round(n); }
+    try { await REG.setTable('CUSTOS_CFG', { cfg: Object.assign({}, ((REG.tabelas || {}).CUSTOS_CFG || {}).cfg || {}, { [k]: v }) }, 'Política de custos', [{ campo: k, de: C[k], para: v }]); toast('Salvo'); } catch (er) { toast(errMsg(er)); }
+  });
+
+  // ---------- modelos de item: um equipamento configurado vira modelo para outras propostas ----------
+  let modelosItem = []; let modSub = null; const MODK = 'lspricer.modelos.v1';
+  function ensureModelos() {
+    const m = REG.mode === 'shared' && REG.db ? 'shared' : 'local'; if (modSub === m || modSub === 'shared') return; modSub = m;
+    if (m === 'shared') REG.db.collection('modelos').orderBy('at', 'desc').limit(300).onSnapshot((s) => { modelosItem = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, () => {});
+    else modelosItem = Object.entries(store.get(MODK, {})).map(([id, x]) => Object.assign({ id }, x)).sort((x, y) => String(y.at).localeCompare(String(x.at)));
+  }
+  async function gravarModelo(id, body) {
+    if (REG.mode === 'shared' && REG.db) { if (body === null) await REG.db.doc('modelos/' + id).delete(); else await REG.db.doc('modelos/' + id).set(JSON.parse(JSON.stringify(body))); return; }
+    const all = store.get(MODK, {}); if (body === null) delete all[id]; else all[id] = body; if (!store.set(MODK, all)) throw new Error('O navegador não deixou gravar o modelo (sem espaço)');
+    modelosItem = Object.entries(all).map(([k, x]) => Object.assign({ id: k }, x)).sort((x, y) => String(y.at).localeCompare(String(x.at)));
+  }
+  function vModelosItem() {
+    ensureModelos(); if (!modelosItem.length) return `<p class="sub" style="margin:0">Dica: em cada item, "Salvar como modelo" guarda a configuração para usar em outras propostas.</p>`;
+    const free = firstFree();
+    return `<section class="card"><h2>Modelos de item <span class="sub">configurações salvas pela equipe</span></h2><div class="tw"><table class="t"><tbody>${modelosItem.map((x) => `<tr><td><b>${esc(x.nome)}</b><br><small class="sub">${esc(x.desc || '')}</small></td><td class="sub">${esc(FAM_SEQ_LB[x.fam] || x.fam || '')}<br>${who(x.by)} · ${esc(fmtAt(x.at))}</td><td style="text-align:right;white-space:nowrap">${free >= 0 ? `<button class="btn sm pri" data-moduse="${esc(x.id)}">Usar</button>` : ''} ${!x.by || x.by === REG.me || REG.isOwner || REG.mode === 'local' ? `<button class="restore" data-moddel="${esc(x.id)}">excluir</button>` : ''}</td></tr>`).join('')}</tbody></table></div></section>`;
+  }
+  document.addEventListener('click', async (e) => {
+    const sv = e.target.closest('[data-modsave]'); if (sv) { const S = ITEMS[+sv.dataset.modsave]; const cells = JSON.parse(JSON.stringify((state.doc || {})[S] || {})); if (!Object.keys(cells).length) { toast('Configure o item antes'); return; }
+      const nome = window.prompt('Nome do modelo', txt(S, 'C28').slice(0, 60)); if (!nome) return;
+      const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      try { await gravarModelo(id, { nome, desc: txt(S, 'C28'), fam: txt(S, 'C21'), cells, at: new Date().toISOString(), by: REG.me || null }); logEv({ tipo: 'Modelo de item salvo', ref: id, desc: nome + ' · ' + txt(S, 'C28'), mudancas: [] }); toast('Modelo salvo'); render(); } catch (er) { toast(errMsg(er)); } return; }
+    const us = e.target.closest('[data-moduse]'); if (us) { const x = modelosItem.find((y) => y.id === us.dataset.moduse); const j = firstFree(); if (!x || j < 0) return; const S = ITEMS[j];
+      state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.cells)); build(); persist(); dirty = true; listCache = new Map(); logEv({ tipo: 'Modelo de item usado', ref: docTitle(), desc: S + ' ← ' + x.nome, mudancas: [] }); ui.item = j; ui.itemFull = false; setView('item'); toast('Item criado a partir do modelo: confira e ajuste'); return; }
+    const dl = e.target.closest('[data-moddel]'); if (dl) { if (!window.confirm('Excluir este modelo?')) return; try { await gravarModelo(dl.dataset.moddel, null); logEv({ tipo: 'Modelo de item excluído', ref: dl.dataset.moddel, desc: '', mudancas: [] }); render(); } catch (er) { toast(errMsg(er)); } }
+  });
+
+  // ---------- simulador de negociação: o motor real numa cópia; a proposta oficial não muda ----------
+  function simular(sc) {
+    const doc = JSON.parse(JSON.stringify(state.doc || {})); migrar(doc); doc.PROPOSTA = doc.PROPOSTA || {};
+    if (sc.pag) doc.PROPOSTA.J6 = sc.pag;
+    if (sc.comV !== undefined) doc.PROPOSTA.J7 = sc.comV ? 'SEQ' : 'SEM COMISSÃO';
+    if (sc.comA !== undefined) doc.PROPOSTA.J8 = sc.comA ? 'SEQ' : 'SEM COMISSÃO';
+    if (typeof sc.desc === 'number') doc.PROPOSTA.C9 = sc.desc;
+    const k = 1 + num0(sc.custoPct);
+    const monta = (d) => { const w2 = new Workbook(MODEL); REG.applyTo(w2);
+      if (Math.abs(k - 1) > 1e-9) { for (const [sh, cols] of [['CADASTRO', ['G']], ['KIT MOTORES DIESEL', ['U', 'V']], ['KIT BOMBA', ['I', 'J']]]) { const s = w2.sheet(sh); for (const [a, v] of s.cells) if (typeof v === 'number' && cols.includes(a.replace(/\d+/, '')) && +a.replace(/\D/g, '') > 1) s.cells.set(a, v * k); }
+        for (const S of ITEMS) if (d[S]) for (let r = 34; r <= 112; r++) if (typeof d[S]['G' + r] === 'number') d[S]['G' + r] *= k; }
+      w2.applyDoc(d); return w2; };
+    const ler = (w2) => { const keep = wb; wb = w2; listCache = new Map(); try { const sn = seqSnapshot(); return { sn, total: val('PROPOSTA', 'P43'), margem: val('PROPOSTA', 'J16'), fora: ITEMS.filter((S) => filled(S)).filter((S) => val(S, 'P84') === 'ABAIXO DO PISO' || txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val('PROPOSTA', 'C9')) }; } finally { wb = keep; listCache = new Map(); } };
+    let w2 = monta(JSON.parse(JSON.stringify(doc))); let r = ler(w2);
+    // valor final negociado: acha o desconto global que leva a esse total (com IPI)
+    if (typeof sc.alvo === 'number' && sc.alvo > 0) { for (let i = 0; i < 10 && Math.abs(r.total - sc.alvo) > 0.5; i++) { const d = num0(doc.PROPOSTA.C9); doc.PROPOSTA.C9 = Math.min(0.95, 1 - (1 - d) * sc.alvo / r.total); w2 = monta(JSON.parse(JSON.stringify(doc))); r = ler(w2); } }
+    r.docSim = doc; return r;
+  }
+  const resumoSim = (r) => { const s = r.sn; const custo = s.custo; return { total: r.total, venda: s.venda, custo, impostos: s.impostos, comissao: s.comissao, margem: s.margem, margemPct: r.margem, markup: custo ? s.venda / custo : null, fora: r.fora, desc: r.desc }; };
+  function vSimulador() {
+    const P = 'PROPOSTA'; const sc = ui.sim || {}; const O = resumoSim({ sn: seqSnapshot(), total: val(P, 'P43'), margem: val(P, 'J16'), fora: ITEMS.filter((S) => filled(S)).filter((S) => val(S, 'P84') === 'ABAIXO DO PISO' || txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val(P, 'C9')) });
+    let Sres = null; if (ui.simRes) Sres = ui.simRes;
+    const mMin = val('PARÂMETROS', 'C34'); const pags = listFor(P, 'J6') || [];
+    const lin = (lb, f, fmt) => `<tr><td>${lb}</td><td class="n">${fmt(f(O))}</td><td class="n"><b>${Sres ? fmt(f(Sres)) : '—'}</b></td><td class="n">${Sres && typeof f(O) === 'number' && typeof f(Sres) === 'number' ? (f(Sres) - f(O) >= 0 ? '+' : '−') + fmt(Math.abs(f(Sres) - f(O))).replace('R$ ', '') : ''}</td></tr>`;
+    const x = (v) => (typeof v === 'number' && isFinite(v) ? NF[2].format(v) + 'x' : '—');
+    const salvos = state.cenSim || [];
+    return `<section class="card" id="simCard"><h2>Simulador de negociação <span class="pill warn">simulação: não altera a proposta</span></h2>
+      <p class="sub" style="margin:0 0 8px">Usa o mesmo motor de cálculo da proposta, numa cópia. Nada muda até você converter o cenário em revisão.</p>
+      <div class="fields">
+        <div class="f"><label for="simDesc">Desconto global (%)</label><input id="simDesc" inputmode="decimal" value="${typeof sc.desc === 'number' ? esc(NF[2].format(sc.desc * 100)) : ''}" placeholder="${esc(NF[2].format(O.desc * 100))}"></div>
+        <div class="f"><label for="simAlvo">ou valor final negociado (com IPI)</label><input id="simAlvo" inputmode="decimal" value="${typeof sc.alvo === 'number' ? esc(NF[2].format(sc.alvo)) : ''}" placeholder="R$"></div>
+        <div class="f"><label for="simCusto">Variação de custos (%)</label><input id="simCusto" inputmode="decimal" value="${typeof sc.custoPct === 'number' ? esc(NF[2].format(sc.custoPct * 100)) : ''}" placeholder="0"></div>
+        <div class="f span2"><label for="simPag">Condição de pagamento</label><select id="simPag"><option value="">igual à proposta</option>${pags.map((o) => `<option${sc.pag === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></div>
+        <div class="f span2"><label>Comissões</label><div class="seg"><label><input type="checkbox" id="simComV"${sc.comV ?? (txt(P, 'J7') !== 'SEM COMISSÃO' && txt(P, 'J7') !== '') ? ' checked' : ''}>Vendedor</label><label><input type="checkbox" id="simComA"${sc.comA ?? (txt(P, 'J8') !== 'SEM COMISSÃO' && txt(P, 'J8') !== '') ? ' checked' : ''}>AN</label></div></div></div>
+      <div class="docbar" style="margin-top:8px"><button class="btn pri" data-simrun>Simular</button>${Sres ? '<button class="btn" data-simsave>Salvar cenário</button><button class="btn" data-simrev>Converter em revisão</button>' : ''}<button class="btn" data-simclear>Restaurar o original</button></div>
+      ${Sres ? `<div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th></th><th>Proposta oficial</th><th>Simulação</th><th>Diferença</th></tr></thead><tbody>
+        ${lin('Total ao cliente (com IPI)', (v) => v.total, brl)}${lin('Venda sem IPI', (v) => v.venda, brl)}${lin('Custo', (v) => v.custo, brl)}${lin('Impostos', (v) => v.impostos, brl)}${lin('Comissões', (v) => v.comissao, brl)}${lin('Resultado (margem líquida R$)', (v) => v.margem, brl)}
+        ${lin('Margem líquida', (v) => v.margemPct, (v) => pct(v, 1))}${lin('Markup (venda ÷ custo)', (v) => v.markup, x)}${lin('Desconto global', (v) => v.desc, (v) => pct(v, 1))}${lin('Itens fora da política', (v) => v.fora, (v) => String(v ?? '—'))}</tbody></table></div>
+        <div class="banner ${Sres.fora || Sres.margemPct < mMin - 5e-4 ? 'warn' : 'ok'}" style="margin:8px 0 0">${Sres.fora || Sres.margemPct < mMin - 5e-4 ? `Este cenário <b>precisa de aprovação</b> da Diretoria e do Financeiro (margem ${pct(Sres.margemPct, 1)}, mínimo ${pct(mMin, 0)}). <button class="restore" data-simaprov>pedir aprovação com este valor</button>` : 'Este cenário fica dentro da política.'}</div>` : ''}
+      ${salvos.length ? `<h2 style="margin-top:12px">Cenários salvos</h2><div class="tw"><table class="t"><tbody>${salvos.map((c, i) => `<tr><td><b>${esc(c.nome)}</b><br><small class="sub">${esc(fmtAt(c.at))}</small></td><td class="n">${brl(c.res.total)}</td><td class="n">${pct(c.res.margemPct, 1)}</td><td style="white-space:nowrap"><button class="btn sm" data-simload="${i}">Abrir</button> <button class="restore" data-simdel="${i}">excluir</button></td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
+  }
+  function lerSimForm() {
+    const pv = (id, k) => { const t = ($('#' + id) || {}).value; if (!t || !t.trim()) return undefined; const n = parseInput(t.trim(), 'num'); return typeof n === 'number' ? n / k : undefined; };
+    return { desc: pv('simDesc', 100), alvo: pv('simAlvo', 1), custoPct: pv('simCusto', 100), pag: ($('#simPag') || {}).value || undefined, comV: !!($('#simComV') || {}).checked, comA: !!($('#simComA') || {}).checked };
+  }
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-simrun]')) { const sc = lerSimForm(); ui.sim = sc; toast('Simulando…'); setTimeout(() => { try { const r = simular(sc); ui.simRes = resumoSim(r); ui.simDoc = r.docSim; } catch (er) { toast('Não consegui simular: ' + errMsg(er)); } render(); const c = $('#simCard'); if (c) c.scrollIntoView({ block: 'start' }); }, 20); return; }
+    if (e.target.closest('[data-simclear]')) { ui.sim = null; ui.simRes = null; ui.simDoc = null; render(); return; }
+    if (e.target.closest('[data-simsave]')) { const nome = window.prompt('Nome do cenário', 'Cenário ' + ((state.cenSim || []).length + 1)); if (!nome) return; state.cenSim = (state.cenSim || []).concat([{ nome, at: new Date().toISOString(), by: REG.me || null, sc: ui.sim, res: ui.simRes }]); dirty = true; persist(); logEv({ tipo: 'Simulação salva', ref: docTitle(), desc: nome + ': ' + brl(ui.simRes.total) + ' · margem ' + pct(ui.simRes.margemPct, 1), mudancas: [] }); render(); toast('Cenário salvo (não altera a proposta)'); return; }
+    const ld = e.target.closest('[data-simload]'); if (ld) { const c = (state.cenSim || [])[+ld.dataset.simload]; if (c) { ui.sim = c.sc; const r = simular(c.sc); ui.simRes = resumoSim(r); ui.simDoc = r.docSim; render(); } return; }
+    const dl = e.target.closest('[data-simdel]'); if (dl) { state.cenSim = (state.cenSim || []).filter((_, i) => i !== +dl.dataset.simdel); dirty = true; persist(); render(); return; }
+    if (e.target.closest('[data-simaprov]')) { e.preventDefault(); $('#app [data-alaprov]') ? null : null; ui.simAlvoAprov = ui.simRes.total; await abrirAprovacaoComAlvo(ui.simRes.total); return; }
+    if (e.target.closest('[data-simrev]')) {
+      if (!state.id) { toast('Salve a proposta primeiro'); return; } if (!ui.simDoc) return;
+      if (!window.confirm('Converter este cenário em revisão? A revisão atual fica guardada e os valores simulados viram a próxima revisão (proposta oficial).')) return;
+      const docSim = ui.simDoc; const res = ui.simRes;
+      await revisar('cenário simulado: ' + brl(res.total) + ' · margem ' + pct(res.margemPct, 1), () => { for (const [sh, cells] of Object.entries(docSim)) { if (!PROPOSAL_SHEETS.has(sh)) continue; state.doc[sh] = Object.assign({}, cells); } build(); });
+      ui.sim = null; ui.simRes = null; ui.simDoc = null; ui.step = 4; render(); return;
+    }
+  });
+  async function abrirAprovacaoComAlvo(totalIpi) {
+    if (!state.id || dirty) { await $('#bSave').onclick(); if (!state.id) return; }
+    const p = (REG.listPropostas() || []).find((x) => x.id === state.id) || { id: state.id, uid: state.uid, name: docTitle(), div: 'SEQ' };
+    MG.pedirAprovacao(Object.assign({ numero: txt('PROPOSTA', 'C5'), cliente: txt('PROPOSTA', 'F5') }, p, { id: state.id, name: docTitle() }), seqSnapshot(), totalIpi);
+  }
+
+  // ---------- conferência central: tudo o que impede, pede atenção ou só informa, num lugar só ----------
+  function conferenciaCentral() {
+    const P = 'PROPOSTA'; const out = []; const add = (sev, area, msg, go) => { if (!out.some((x) => x.msg === msg && x.area === area)) out.push({ sev, area, msg, go }); };
+    // cabeçalho completo é obrigatório nas propostas novas; nas antigas (antes da regra), falta vira aviso
+    for (const [, lb] of faltaCab()) add(state.cabReq ? 'imped' : 'aviso', 'Identificação', 'Falta preencher: ' + lb, { step: 1 });
+    const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => used(x.i));
+    if (!items.some((x) => filled(x.s))) add('imped', 'Configuração', 'Nenhum equipamento com preço na proposta', { step: 2 });
+    for (const x of items) {
+      if (!filled(x.s)) { add('aviso', 'Configuração', x.s + ': equipamento ainda não configurado', { item: x.i }); continue; }
+      for (const a of alertsFor(x.s)) { if (a.ack) continue; const ap = a.aprov && a.aprov.estado;
+        if (a.aprov) { if (ap === 'aprovada') continue; add(ap === 'pendente' ? 'aviso' : 'aviso', 'Margem e desconto', x.s + ': ' + a.msg + (ap === 'pendente' ? ' — aprovação pedida' : ' — exige aprovação'), { step: 5, sel: '.aprovbox' }); continue; }
+        add(a.lvl === 'bad' ? 'imped' : a.lvl === 'warn' ? 'aviso' : 'info', a.lvl === 'info' ? 'Fiscal e FCI' : 'Configuração', x.s + ': ' + a.msg, { item: x.i }); }
+      if (!txt(x.s, 'G7')) add('aviso', 'Fiscal e FCI', x.s + ': item sem NCM (cadastre o NCM da família em Fiscal)', { step: 1 });
+    }
+    try { const L = linhasCusto(); const n = (s) => L.filter((y) => y.al.some((a) => a[0] === s)).length;
+      if (n('imped')) add('imped', 'Custos', n('imped') + ' componente(s) principal(is) sem preço', { step: 3 }); if (n('aviso')) add('aviso', 'Custos', n('aviso') + ' linha(s) de custo pedindo atenção (sem custo, cotação vencida, variação)', { step: 3 }); if (n('info')) add('info', 'Custos', n('info') + ' linha(s) com informação de cotação', { step: 3 }); } catch (e) { /* segue */ }
+    const memo = val(P, 'E83'); if (typeof memo === 'number' && Math.abs(memo) > 0.005) add('imped', 'Integridade do cálculo', 'A proposta não bate com o memorial: diferença de ' + brl(memo), { step: 4 });
+    const ai = aprovInfo(); if (ai.estado === 'pendente') add('aviso', 'Aprovação', 'Aprovação ' + (ai.com || '').replace(/<[^>]+>/g, ''), { step: 5, sel: '.aprovbox' }); else if (ai.estado === 'reprovada') add('imped', 'Aprovação', 'Desconto reprovado: ajuste o preço ou peça de novo', { step: 5, sel: '.aprovbox' }); else if (ai.estado === 'vencida') add('imped', 'Aprovação', 'Proposta abaixo do valor aprovado', { step: 5, sel: '.aprovbox' });
+    const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    if (sv && !MG.conferidaOk(sv)) add(sv.conferencia ? 'aviso' : 'info', 'Documentos', sv.conferencia ? (sv.conferencia.ok ? 'Conferência do PDF desatualizada: a proposta mudou' : 'O PDF conferido tem divergências') : 'PDF da proposta ainda não conferido', { step: 5, sel: '#confCard' });
+    if (!state.id) add('aviso', 'Documentos', 'Proposta ainda não salva', { save: true });
+    return out;
+  }
+  const resumoConf = () => { try { const L = conferenciaCentral(); return { imped: L.filter((x) => x.sev === 'imped').length, aviso: L.filter((x) => x.sev === 'aviso').length, info: L.filter((x) => x.sev === 'info').length }; } catch (e) { return { imped: 0, aviso: 0, info: 0 }; } };
+  function vConferenciaCentral() {
+    const L = conferenciaCentral(); const g = { imped: 'Impede seguir', aviso: 'Pede tratamento ou justificativa', info: 'Informação' };
+    const ic = { imped: '<span class="bad-t">✕</span>', aviso: '<span class="warn-t">!</span>', info: '<span class="sub">i</span>' };
+    return `<section class="card" id="confCentral"><h2>Conferência da proposta <span class="sub">campos, cliente, equipamentos, custos, fiscal, margem, aprovações, documentos e cálculo</span></h2>
+      <div class="kpis" style="margin-bottom:8px">${['imped', 'aviso', 'info'].map((s) => `<div class="kpi"><span>${g[s]}</span><b class="${s === 'imped' && L.some((x) => x.sev === s) ? 'bad-t' : s === 'aviso' && L.some((x) => x.sev === s) ? 'warn-t' : 'ok-t'}">${L.filter((x) => x.sev === s).length}</b></div>`).join('')}</div>
+      ${L.length ? `<div class="tw"><table class="t"><tbody>${['imped', 'aviso', 'info'].flatMap((s) => L.filter((x) => x.sev === s)).map((x) => `<tr class="${x.sev === 'imped' ? 'cf-erro' : x.sev === 'aviso' ? 'cf-aviso' : ''}"><td style="width:24px">${ic[x.sev]}</td><td><small class="sub">${esc(x.area)}</small><br>${esc(x.msg)}</td><td style="text-align:right"><button class="btn sm" data-confgo="${esc(JSON.stringify(x.go))}">Ir</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="ok-t" style="margin:0">Tudo conferido: nada impede, nada pede atenção.</p>'}
+      <p class="sub" style="margin:8px 0 0">${custosCfg().bloquearEnvio ? 'Pela política (Cadastro → Custos), "Enviar ao cliente" fica travado enquanto houver itens que impedem seguir.' : 'A política atual não trava o envio: os impeditivos ficam só como aviso.'}</p></section>`;
+  }
+  document.addEventListener('click', (e) => {
+    const g = e.target.closest('[data-confgo]'); if (!g) return; let go; try { go = JSON.parse(g.dataset.confgo); } catch (er) { return; }
+    if (go.save) { $('#bSave').onclick(); return; }
+    if (typeof go.item === 'number') { ui.item = go.item; ui.itemFull = false; setView('item'); return; }
+    ui.step = go.step || 1; setView('proposta'); if (go.sel) setTimeout(() => { const el = document.querySelector(go.sel); if (el) el.scrollIntoView({ block: 'center' }); }, 60);
+  });
+
   function vPropostaS() {
-    const P = 'PROPOSTA'; const step = ui.step || 1;
+    const P = 'PROPOSTA'; let step = ui.step || 1; if (step > 6) step = 6;
     const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => used(x.i));
     const alerts = items.flatMap((x) => alertsFor(x.s).map((a) => Object.assign({ i: x.i }, a)));
-    const okCli = !!(txt(P, 'F5') && txt(P, 'F7') && txt(P, 'J5') && txt(P, 'J6'));
     const margem = val(P, 'J16'), mMin = val('PARÂMETROS', 'C34');
-    const st = (n, lb, info, done) => `<button class="step ${step === n ? 'on' : ''} ${done && step !== n ? 'done' : ''}" data-step="${n}" aria-current="${step === n ? 'step' : 'false'}"><span class="sn">${done && step !== n ? '✓' : n}</span><span class="st"><b>${lb}</b><small>${esc(info)}</small></span></button>`;
-    const head = `<div class="flowhead"><div><h1>Proposta ${esc(txt(P, 'C5') || 'nova')}</h1><div class="sub">${esc(txt(P, 'F5') || 'Comece pelo cliente')}</div></div>
-      <div class="sumbar"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div>${revSelo()}${apSelo()}</div></div>
-      <nav class="steps" aria-label="Etapas da proposta">${st(1, 'Cliente', okCli ? txt(P, 'F5') : 'falta preencher', okCli)}${st(2, 'Itens', items.length ? items.length + ' item(ns)' : 'nenhum item ainda', items.length > 0)}${st(3, 'Revisão', alerts.filter((a) => !a.ack).some((a) => a.lvl === 'bad') ? 'há alertas para ver' : 'conferir e gerar documentos', false)}</nav>`;
+    const rc = resumoConf(); const nCusto = (() => { try { const L = linhasCusto(); return { imped: L.filter((x) => x.al.some((a) => a[0] === 'imped')).length, aviso: L.filter((x) => x.al.some((a) => a[0] === 'aviso')).length }; } catch (e) { return { imped: 0, aviso: 0 }; } })();
+    const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    const estado = {
+      1: faltaCab().length ? ['pend', faltaCab().length + ' campo(s) a preencher'] : ['ok', txt(P, 'F5')],
+      2: !items.some((x) => filled(x.s)) ? ['pend', 'nenhum equipamento'] : alerts.some((a) => !a.ack && a.lvl === 'bad' && !a.aprov) ? ['warn', items.length + ' item(ns) · alertas'] : ['ok', items.length + ' item(ns)'],
+      3: nCusto.imped ? ['bad', nCusto.imped + ' sem preço'] : nCusto.aviso ? ['warn', nCusto.aviso + ' a conferir'] : ['ok', brl(val(P, 'G16'))],
+      4: typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? ['warn', 'margem ' + pct(margem) + ' < mínimo'] : ['ok', 'margem ' + pct(margem)],
+      5: rc.imped ? ['bad', rc.imped + ' impede(m) seguir'] : rc.aviso ? ['warn', rc.aviso + ' aviso(s)'] : ['ok', 'conferida'],
+      6: sv ? ['ok', ({ rascunho: 'pronta para enviar', enviada: 'enviada', negociacao: 'em negociação', ganha: 'ganha', perdida: 'perdida' })[sv.status || 'rascunho'] || sv.status] : ['pend', 'salve a proposta'],
+    };
+    const st = ([n, lb]) => { const [s, info] = estado[n]; const marca = s === 'ok' && step !== n ? '✓' : s === 'bad' ? '!' : n;
+      return `<button class="step st-${s} ${step === n ? 'on' : ''} ${s === 'ok' && step !== n ? 'done' : ''}" data-step="${n}" aria-current="${step === n ? 'step' : 'false'}"><span class="sn">${marca}</span><span class="st"><b>${lb}</b><small>${esc(info || '')}</small></span></button>`; };
+    const head = `<div class="flowhead"><div><h1>Proposta ${esc(txt(P, 'C5') || 'nova')}</h1><div class="sub">${esc(txt(P, 'F5') || 'Comece pela identificação')}</div></div>
+      <div class="sumbar sticky"><div><span>Preço total</span><b>${brl(val(P, 'B16'))}</b></div><div><span>Custo</span><b>${brl(val(P, 'G16'))}</b></div><div><span>Margem</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b></div><div><span>Itens</span><b>${items.length}</b></div><div>${countPills(alerts)}</div>${revSelo()}${apSelo()}</div></div>
+      <nav class="steps six" aria-label="Etapas da proposta">${ETAPAS_P.map(st).join('')}</nav>`;
+    const nav = (ant, prox) => `<div class="flowbar">${ant ? `<button class="btn" data-step="${ant}">← ${ETAPAS_P[ant - 1][1]}</button>` : '<span></span>'}${prox ? `<button class="btn pri" data-step="${prox}">Próximo: ${ETAPAS_P[prox - 1][1].toLowerCase()} →</button>` : '<span></span>'}</div>`;
     let body = '';
     if (step === 1) {
       const cif = /^CIF/.test(txt(P, 'B13')); const falta = new Set(ui.reqShow ? faltaCab().map((x) => x[0]) : []);
@@ -959,7 +1180,7 @@
         <section class="card"><h2>Frete</h2><div class="fields">${rq('B13', 'Modalidade', 'span2')}${cif ? rq('D13', 'Distância (km)') + fieldS(P, 'F13', 'Valor fechado (opcional)') : ''}${field(P, 'H13', 'Frete total', { ro: true, fmt: brl })}</div></section>
         <details class="card"${keep('mais')}><summary>Mais opções <span class="sub">desconto global e R$ por km do frete</span></summary>
           <div class="fields">${fieldS(P, 'C9', 'Desconto global (vazio = sem desconto)')}${fieldS(P, 'E13', 'Frete — R$ por km')}</div></details>
-        <div class="flowbar"><span class="sub">${ui.reqShow && falta.size ? 'Falta: ' + esc(faltaCab().map((x) => x[1]).join(', ')) : ''}</span><button class="btn pri" data-cabnext>${famPend ? 'Próximo: equipamento →' : 'Próximo: itens →'}</button></div>`;
+        <div class="flowbar"><span class="sub">${ui.reqShow && falta.size ? 'Falta: ' + esc(faltaCab().map((x) => x[1]).join(', ')) : ''}</span><button class="btn pri" data-cabnext>${famPend ? 'Próximo: equipamento →' : 'Próximo: configuração →'}</button></div>`;
     } else if (step === 2) {
       const fechada = !!(state.id && MG.liberaReal(state.id));
       const cards = items.map((x) => {
@@ -967,29 +1188,48 @@
         return `<article class="icard"><header><span class="ino">${S.slice(5)}</span><div style="min-width:0"><b>${esc(txt(S, 'C28') || 'Equipamento ainda não escolhido')}</b><code>${esc(txt(S, 'C27'))}</code></div></header>
           ${ok ? `<div class="itotal"><span>Total c/ IPI</span><b>${brl(val(S, 'D15'))}</b></div><dl class="ifacts"><div><dt>Qtd</dt><dd>${show(S, 'P17')}</dd></div><div><dt>Margem</dt><dd class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</dd></div><div><dt>Origem</dt><dd>${esc(txt(S, 'P33').slice(0, 3))} ${pct(val(S, 'P32'), 0)}</dd></div></dl>` : '<p class="sub" style="margin:0">Abra para escolher o modelo pronto ou montar o equipamento.</p>'}
           <div>${ok ? countPills(al) : ''}</div>
-          <footer>${fechada ? `<button class="btn sm pri" data-mgreal="${esc(state.id)}" data-mgitem="${S}">Lançar custo real</button><button class="btn sm" data-goitem="${x.i}">Abrir</button>` : `<button class="btn sm pri" data-goitem="${x.i}">Abrir</button>`}<button class="btn sm" data-dup="${x.i}">Duplicar</button><button class="btn sm" data-rmitem="${x.i}">Remover</button></footer></article>`;
+          <footer>${fechada ? `<button class="btn sm pri" data-mgreal="${esc(state.id)}" data-mgitem="${S}">Lançar custo real</button><button class="btn sm" data-goitem="${x.i}">Abrir</button>` : `<button class="btn sm pri" data-goitem="${x.i}">Abrir</button>`}<button class="btn sm" data-dup="${x.i}">Duplicar</button>${ok ? `<button class="btn sm" data-modsave="${x.i}" title="Guardar esta configuração para outras propostas">Salvar como modelo</button>` : ''}<button class="btn sm" data-rmitem="${x.i}">Remover</button></footer></article>`;
       }).join('');
       const free = firstFree();
       body = `<div class="icards">${cards}${free >= 0 ? `<button class="icard add" data-additem>+ Adicionar item<small>modelo pronto ou montagem própria</small></button>` : ''}</div>
-        <div class="flowbar"><button class="btn" data-step="1">← Cliente</button><button class="btn pri" data-step="3">Próximo: revisão →</button></div>`;
-    } else {
+        ${vModelosItem()}
+        ${nav(1, 3)}`;
+    } else if (step === 3) {
+      body = vCustos() + nav(2, 4);
+    } else if (step === 4) {
       const rows = items.filter((x) => filled(x.s)).map((x) => { const S = x.s; return `<tr><td><button class="btn sm" data-goitem="${x.i}">${S.slice(5)}</button></td><td style="min-width:240px">${esc(txt(S, 'C28'))}</td><td class="n">${show(S, 'P17')}</td><td class="n">${brl(val(S, 'B15'))}</td><td class="n"><b>${brl(val(S, 'D15'))}</b></td><td class="n">${pct(val(S, 'J15'))}</td><td>${situPill(txt(S, 'P84'))} ${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? situPill('MARGEM ABAIXO DO MÍNIMO') : ''}</td></tr>`; }).join('');
-      const memo = val(P, 'E83'); const memoOk = typeof memo !== 'number' || Math.abs(memo) <= 0.005;
+      const sn = (() => { try { return seqSnapshot(); } catch (e) { return null; } })();
       body = `<div class="kpis">
           <div class="kpi lead"><span>Preço total (com IPI)</span><b>${brl(val(P, 'B16'))}</b></div>
-          <div class="kpi"><span>Custo total</span><b>${brl(val(P, 'G16'))}</b></div>
+          <div class="kpi"><span>Custo total</span><b>${brl(val(P, 'G16'))}</b><em>${sn && sn.custo ? 'markup ' + NF[2].format(sn.venda / sn.custo) + 'x' : ''}</em></div>
           <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
+          <div class="kpi"><span>Impostos · comissões</span><b>${sn ? brl(sn.impostos) : '—'}</b><em>${sn ? 'comissões ' + brl(sn.comissao) : ''}</em></div>
           <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
+        <section class="card"><h2>Condições comerciais <span class="sub">o que mexe no preço</span></h2><div class="fields">${fieldS(P, 'C9', 'Desconto global')}${fieldS(P, 'J6', 'Condição de pagamento', { cls: 'span2' })}${fieldS(P, 'B13', 'Frete', { cls: 'span2' })}</div>
+          <p class="sub" style="margin:8px 0 0">Comissões: ${esc(txt(P, 'J7') || '—')} (vendedor) · ${esc(txt(P, 'J8') || '—')} (AN) — ajuste em Identificação. Margem-alvo e desconto por item ficam na tela de cada item.</p></section>
+        <section class="card"><h2>Preço por item</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
+        ${vSimulador()}
+        ${(() => { try { return TB.cardProposta(sn || seqSnapshot(), { uf: txt(P, 'F7'), cadfiscal: txt(P, 'J5'), div: 'SEQ' }); } catch (e) { return ''; } })()}
+        ${nav(3, 5)}`;
+    } else if (step === 5) {
+      body = `${vConferenciaCentral()}
         ${(() => { const ai = aprovInfo(); return `<section class="card"><h2>Aprovação da proposta <span class="sub">desconto além da política: peça pela proposta toda, com o valor target</span></h2><div class="aprovbox">${ai.estado ? aprovLinha({ aprov: ai }).replace(/^<br>/, '') : '<small class="sub">Nenhum pedido de aprovação para esta proposta.</small>'}<button class="btn${ai.estado === 'pendente' || ai.estado === 'aprovada' ? '' : ' pri'}" data-alaprov>${ai.estado ? 'Pedir de novo (novo valor target)' : 'Pedir aprovação (valor target)'}</button></div></section>`; })()}
         ${confCard()}
-        <section class="card"><h2>Alertas</h2>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta: preços dentro da política, conferências fechando e FCI pronta.</p>'}${memoOk ? '' : `<ul class="alerts" style="margin-top:6px"><li class="bad"><span>A proposta não bate com o memorial: diferença de ${brl(memo)}.</span></li></ul>`}</section>
-        <section class="card"><h2>Itens</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
-        ${(() => { try { return TB.cardProposta(seqSnapshot(), { uf: txt(P, 'F7'), cadfiscal: txt(P, 'J5'), div: 'SEQ' }); } catch (e) { return ''; } })()}
-        <section class="card"><h2>Documentos</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-savebtn>Salvar proposta</button><button class="btn" data-propfull>Ver todas as colunas</button></div></section>
-        <div class="flowbar"><button class="btn" data-step="2">← Itens</button><span></span></div>`;
+        <details class="card"${keep('alertas')}><summary>Alertas por item <span class="sub">${countPills(alerts)}</span></summary>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta nos itens.</p>'}</details>
+        ${nav(4, 6)}`;
+    } else {
+      const nx = sv ? MG.proximo(sv) : null;
+      const docsP = (() => { try { return SPV.docsDaProposta(state.uid); } catch (e) { return []; } })();
+      body = `<section class="card"><h2>Situação e próximo passo</h2>${sv ? MG.etapasHtml(sv) : '<p class="sub" style="margin:0">Salve a proposta para acompanhar as etapas.</p>'}
+          ${nx ? `<div class="docbar" style="margin-top:8px"><button class="btn pri" data-hnext="${esc(sv.id)}|${nx.act}">${esc(nx.lb)}</button></div>` : ''}</section>
+        <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button></div>
+          ${docsP.length ? `<div class="tw" style="margin-top:8px"><table class="t"><tbody>${docsP.map((d) => `<tr><td>${esc(d.nome || '')}<br><small class="sub">${esc([d.tipo, d.numero, d.fornecedor].filter(Boolean).join(' · '))}</small></td><td class="sub">${esc(fmtAt(d.at))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:8px 0 0">Nenhum documento ligado ainda (o PDF conferido entra aqui).</p>'}</section>
+        <section class="card"><h2>Revisões</h2><div class="docbar">${state.id ? '<button class="btn" data-revs>Ver e comparar revisões</button><button class="btn" data-revisar>Revisar (nova revisão)</button>' : '<span class="sub">Salve a proposta para ter revisões.</span>'}</div></section>
+        ${nav(5, 0)}`;
     }
     return `<div class="stack">${head}${body}</div>`;
   }
+
 
   function vItemS() {
     const S = ITEMS[ui.item]; const f = (a, lb, o) => field(S, a, lb, o); const fs = (a, lb, o) => fieldS(S, a, lb, o);
@@ -1262,7 +1502,7 @@
   const H = REG.helpers;
   // cadastro por área: cada área tem um responsável e só ele edita o que é dela
   const AREAS = [
-    ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação'], ['facts', 'FACTS (MECON)'], ['pedidos', 'Pedidos de cadastro']]],
+    ['custos', 'Custos', 'Preço de compra de insumos e kits, importação e câmbio', [['insumos', 'Insumos e preços'], ['importar', 'Importar preços'], ['motor', 'Kits de motor diesel'], ['bomba', 'Kits de bomba'], ['valvulas', 'Válvulas de alívio'], ['cambio', 'Câmbio e importação'], ['facts', 'FACTS (MECON)'], ['custoscfg', 'Validade e alertas'], ['pedidos', 'Pedidos de cadastro']]],
     ['engenharia', 'Engenharia', 'O que entra em cada equipamento e como ele é codificado', [['estruturas', 'Estruturas'], ['mobase', 'Mão de obra e bases'], ['familias', 'Famílias'], ['codificacao', 'Codificação']]],
     ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado, FCI e os cenários da reforma tributária', [['fiscal', 'Impostos e NCM'], ['cenarios', 'Cenários tributários (reforma)']]],
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
@@ -1300,7 +1540,7 @@
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -2498,7 +2738,7 @@
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
   function openProposta(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
-    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []) };
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}) };
     if (p.div === 'SPV' && p.spv) {
       const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
@@ -2529,7 +2769,7 @@
     return S;
   }
   document.addEventListener('click', (e) => { const g = e.target.closest('[data-pendgo]'); if (!g) return; const [v, c] = g.dataset.pendgo.split('|'); if (g.dataset.cenpend) ui.cenSel = g.dataset.cenpend; ui.view = v; if (c) ui.cad = c; store.set(SK.view, ui); render(); window.scrollTo(0, 0); });
-  const MG = window.PricerMargens({ pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
+  const MG = window.PricerMargens({ bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
     // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas
@@ -2562,6 +2802,8 @@
     if (typeof p.total !== 'number') delete p.total;
     if (state.ack && Object.keys(state.ack).length) p.ack = state.ack;
     if (state.cenSim && state.cenSim.length) p.cenSim = state.cenSim;
+    if (!isSpv() && !isFacts()) { try { p.checagem = Object.assign(resumoConf(), { at: new Date().toISOString() }); } catch (e) { /* segue */ } }
+    if (state.naCustos && Object.keys(state.naCustos).length) p.naCustos = state.naCustos;
     try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
     // status, etapas, conferência e motivo de perda são da tela inicial: vêm do registro atual do banco
     const ajustar = (body, cur) => {
@@ -2594,6 +2836,7 @@
   }
   // indicador de gravação no topo
   function atualizaSaveSt() {
+    { const h = document.querySelector('header.top'); if (h) document.documentElement.style.setProperty('--hdr', h.offsetHeight + 'px'); }
     const el = $('#saveSt'); if (!el) return; const hm = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     let cls = 'ok', t = '';
     if (armazFalhou) { cls = 'bad'; t = 'Falha ao gravar: ' + armazFalhou.msg; }
