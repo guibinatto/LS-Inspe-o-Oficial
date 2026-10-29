@@ -104,6 +104,13 @@
         itens.push({ n: 'fx_serv', nome: 'FACTS — instalação, treinamento e suporte', familia: 'FAC', familiaNome: 'FACTS', qtd: 1, venda, custo: r.custoSv, impostos, comissao, margem, margemPct: venda ? margem / venda : 0, linhas: r.serv.map((s) => ({ k: s.k, grupo: 'SERVIÇOS', rot: s.desc, desc: s.desc, qtd: 1, unit: s.custo, custo: s.custo })) }); }
       return { div: 'SEQ', tipo: 'FAC', venda: r.V, vendaIpi: r.VcomIpi, custo: r.custo, impostos: r.imp, comissao: r.comV, margem: r.margem, margemPct: r.margemPct, minimo: r.minimo, itens };
     }
+    // dados para a proposta técnica e comercial (modelo PTC)
+    function propostaDados(f) {
+      f = f || F(); const r = calc(f); const sn = snapshot(f); const venc = (() => { const d = new Date((f.data || new Date().toISOString().slice(0, 10)) + 'T12:00'); d.setDate(d.getDate() + (num(f.validade) || 15)); return d.toISOString().slice(0, 10); })();
+      const itens = sn.itens.map((x, i) => { const q = num(x.qtd) || 1; const eq = x.n !== 'fx_serv'; const ipi = eq ? num(cfg().ipi) : 0; const tot = x.venda * (1 + ipi); return { key: x.n, codigo: x.codigo || '', qtd: q, un: eq ? 'CJ' : 'Un', pisCofins: x.pisCofinsPct ?? (num(r.pis) + num(r.cof)), icms: x.icmsPct ?? (eq ? r.icms : null), ipi, ncm: '', unit: tot / q, total: tot, breve: x.nome, escopo: i === 0 ? escopo(f).split('\n').map((l) => l.trim()).filter(Boolean) : [] }; });
+      return { tipo: 'FACTS', numero: f.numero || '', rev: f.revisao ?? '0', data: f.data, validade: venc, cliente: f.cliente || '', razao: f.cliente || '', cnpj: f.cnpj || '', contato: f.contato || '', obra: f.local || '', cidade: '',
+        pagamento: f.pagamento || '', frete: '', prazo: '', exclusoes: '', vendedor: f.vendedor || '', total: r.VcomIpi, itens, flags: {} };
+    }
     // texto técnico para a proposta (a proposta comercial é feita fora do app)
     function escopo(f) {
       const r = calc(f); const lab = (k, v) => (OPC[k].find((o) => o[0] === v) || [0, v])[1];
@@ -205,7 +212,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const er = t.closest('[data-fxeqrm]'); if (er) { F().equipe.splice(+er.dataset.fxeqrm, 1); ctx.persist(); ctx.render(); return; }
       if (t.closest('[data-fxtxt]')) { const txt = escopo(F()); navigator.clipboard.writeText(txt).then(() => toast('Texto técnico copiado'), () => ctx.modal(`<h2>Texto técnico</h2><textarea rows="14" style="width:100%">${esc(txt)}</textarea><div><button class="btn" data-close>Fechar</button></div>`)); }
     });
-    return { vFacts, vCfg, calc, snapshot, novo, escopo, total: () => (F() ? calc(F()).V : null) };
+    return { vFacts, vCfg, calc, snapshot, novo, escopo, propostaDados, total: () => (F() ? calc(F()).V : null) };
   }
   window.PricerFacts = Facts;
 })();

@@ -114,7 +114,7 @@
         $('#cfOk', o).onclick = async () => { const j = $('#cfJus', o).value.trim(); if (!j) { toast('Escreva o motivo'); return; } close(); const p = ctx.propostaAtual(); if (!p) return; await salvar(p, ctx.formacao(), ultimo.file, ultimo.res, j); };
       });
     });
-    return { card, conferir, tokensTecnicos };
+    return { card, conferir, tokensTecnicos, rodar };
   }
   window.PricerConferencia = Conferencia;
   window.PricerConferencia.tokensTecnicos = tokensTecnicos;

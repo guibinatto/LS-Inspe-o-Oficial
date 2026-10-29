@@ -6,7 +6,7 @@
   "titulo": "Aba Memorial: título e documentos para o financeiro",
   "vp": "desktop",
   "arquivo": "05-01-memorial-cabecalho.png",
-  "data": "2026-10-29T14:36:18.087Z",
+  "data": "2026-10-29T16:47:06.487Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -43,7 +43,7 @@
   "titulo": "Memorial do exemplo: custos, impostos, comissão e margem",
   "vp": "desktop",
   "arquivo": "05-02-memorial-custos-margem.png",
-  "data": "2026-10-29T14:36:19.420Z",
+  "data": "2026-10-29T16:47:07.596Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -92,7 +92,7 @@
   "titulo": "Memorial do exemplo: preços, IPI, origem e demonstrativo",
   "vp": "desktop",
   "arquivo": "05-03-memorial-precos-demonstrativo.png",
-  "data": "2026-10-29T14:36:20.168Z",
+  "data": "2026-10-29T16:47:08.146Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -141,7 +141,7 @@
   "titulo": "Fim do Memorial: linhas de conferência e a nota de cálculo",
   "vp": "desktop",
   "arquivo": "05-04-memorial-notas.png",
-  "data": "2026-10-29T14:36:20.995Z",
+  "data": "2026-10-29T16:47:08.660Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -178,7 +178,7 @@
   "titulo": "Aba Documentos (proposta salva)",
   "vp": "desktop",
   "arquivo": "05-05-memorial-aba-documentos.png",
-  "data": "2026-10-29T14:36:21.543Z",
+  "data": "2026-10-29T16:47:09.110Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -196,12 +196,18 @@
    },
    {
     "n": 3,
+    "txt": "Proposta técnica e comercial: gera o PDF no modelo LS Fire (PTC).",
+    "sel": "#pcCard [data-pcgerar]",
+    "ok": true
+   },
+   {
+    "n": 4,
     "txt": "Memorial (PDF), FCI (PDF), FCI (Excel) e Ver todas as colunas (abre a planilha completa da proposta).",
     "sel": "#app .stack [data-propfull]",
     "ok": true
    },
    {
-    "n": 4,
+    "n": 5,
     "txt": "Ver e comparar revisões e Revisar (nova revisão).",
     "sel": "#app .stack [data-revisar]",
     "ok": true
@@ -215,7 +221,7 @@
   "titulo": "Memorial (PDF) sem acesso à internet: aviso do app",
   "vp": "desktop",
   "arquivo": "05-06-memorial-pdf-sem-internet.png",
-  "data": "2026-10-29T14:36:24.387Z",
+  "data": "2026-10-29T16:47:11.992Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -240,7 +246,7 @@
   "titulo": "Conferência do PDF da proposta (aba Conferência)",
   "vp": "desktop",
   "arquivo": "05-07-memorial-conferencia-pdf.png",
-  "data": "2026-10-29T14:36:25.867Z",
+  "data": "2026-10-29T16:47:13.397Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -271,7 +277,7 @@
   "titulo": "Bloco FCI do item 01",
   "vp": "desktop",
   "arquivo": "05-08-memorial-item-fci.png",
-  "data": "2026-10-29T14:36:27.041Z",
+  "data": "2026-10-29T16:47:14.546Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -309,6 +315,86 @@
     "n": 6,
     "txt": "FCI em PDF e FCI em Excel (template), só deste item.",
     "sel": "#app details[data-keep=\"fci\"] [data-doc=\"fcixlsx\"]",
+    "ok": true
+   }
+  ]
+ },
+ "05-09": {
+  "id": "05-09",
+  "cap": 5,
+  "nome": "proposta-ptc-cartao",
+  "titulo": "Aba Documentos: cartão Proposta técnica e comercial",
+  "vp": "desktop",
+  "arquivo": "05-09-proposta-ptc-cartao.png",
+  "data": "2026-10-29T16:47:17.169Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Gerar proposta (PDF): monta a PTC com os números desta formação.",
+    "sel": "#pcCard [data-pcgerar]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Aos cuidados de e Projeto/Obra vêm de Obra / local (o que vem depois de \"a/c\").",
+    "sel": "#pc_aosCuidados",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Código do produto (ERP) de cada item; sem ele, a coluna Código sai vazia.",
+    "sel": "#pcCard [data-pccod=\"ITEM 01\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Fabricação + entrega viram \"Prazo Total: N dias.\".",
+    "sel": "#pc_prazoFab",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Condição de pagamento e frete vêm de Dados gerais; dá para ajustar o texto só no PDF.",
+    "sel": "#pc_pagamento",
+    "ok": true
+   }
+  ]
+ },
+ "05-10": {
+  "id": "05-10",
+  "cap": 5,
+  "nome": "proposta-ptc-modelo",
+  "titulo": "Cadastros → Cadastro geral → Modelo da proposta",
+  "vp": "desktop",
+  "arquivo": "05-10-proposta-ptc-modelo.png",
+  "data": "2026-10-29T16:47:19.109Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Textos padrão e contatos usados no PDF de todas as propostas.",
+    "sel": "#app section.card:has([data-pmct]) h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "\"Sempre\": o contato entra em todas as propostas.",
+    "sel": "#app [data-pmct=\"0|sempre\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Incluir contato.",
+    "sel": "#app [data-pmctadd]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Notas, comissionamento e prazos (SEQ); serviços e peças (SPV); termos e condições.",
+    "sel": "#app details[data-keep=\"pm_Equipamentos (SEQ)\"] summary",
     "ok": true
    }
   ]

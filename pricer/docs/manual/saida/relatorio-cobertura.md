@@ -9,10 +9,10 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | Indicador | Valor |
 |---|---|
 | Capítulos | 18 |
-| Tutoriais e exercícios (modelo padrão) | 87 |
-| Telas capturadas (cada uma com original e anotada) | 151 |
-| Capturas validadas (todos os marcadores encontrados no elemento real) | 151 de 151 |
-| Trechos marcados como "Não validado" | 30 |
+| Tutoriais e exercícios (modelo padrão) | 88 |
+| Telas capturadas (cada uma com original e anotada) | 153 |
+| Capturas validadas (todos os marcadores encontrados no elemento real) | 153 de 153 |
+| Trechos marcados como "Não validado" | 31 |
 
 ## Módulos documentados
 
@@ -22,7 +22,7 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | 2 | Primeiro acesso e navegação | 2 | 4 | 4 | 0 |
 | 3 | Criação de proposta | 5 | 12 | 12 | 1 |
 | 4 | Precificação SEQ | 7 | 13 | 13 | 1 |
-| 5 | Memorial | 3 | 8 | 8 | 2 |
+| 5 | Memorial | 4 | 10 | 10 | 3 |
 | 6 | SPV (serviços e pós-venda) e FACTS | 7 | 14 | 14 | 4 |
 | 7 | Cadastro de insumos | 9 | 19 | 19 | 3 |
 | 8 | Padronização de descrições | 6 | 7 | 7 | 1 |
@@ -94,6 +94,7 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | padrao | Padronização de descrições | sim |
 | campos | Campos por família | sim |
 | sinonimos | Sinônimos e abreviações | sim |
+| propmodelo | Modelo da proposta | sim |
 | historico | Histórico | sim |
 | acessos | Responsáveis, e-mails e logo | sim |
 | backup | Backup e restauração | sim |
@@ -144,6 +145,8 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 05-06 | 05-06-memorial-pdf-sem-internet.png | Memorial (PDF) sem acesso à internet: aviso do app | desktop | validada |
 | 05-07 | 05-07-memorial-conferencia-pdf.png | Conferência do PDF da proposta (aba Conferência) | desktop | validada |
 | 05-08 | 05-08-memorial-item-fci.png | Bloco FCI do item 01 | desktop | validada |
+| 05-09 | 05-09-proposta-ptc-cartao.png | Aba Documentos: cartão Proposta técnica e comercial | desktop | validada |
+| 05-10 | 05-10-proposta-ptc-modelo.png | Cadastros → Cadastro geral → Modelo da proposta | desktop | validada |
 | 06-01 | 06-01-spv-inicio-botoes.png | Tela Início: botões para começar uma SPV e o FACTS | desktop | validada |
 | 06-02 | 06-02-spv-cabecalho-abas.png | SPV aberta: resumo, abas e barra de preço | desktop | validada |
 | 06-03 | 06-03-spv-cliente-escopo.png | Cartão Cliente e escopo preenchido | desktop | validada |
@@ -272,6 +275,7 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 3 | O retorno real da Receita (razão social, cidade, inscrição estadual e o cadastro fiscal sugerido) não foi validado neste manual: as capturas rodam sem acesso à internet, e a consulta externa sempre cai no aviso de falta de conexão. O comportamento descrito acima foi conferido na leitura do código. |
 | 4 | O fluxo de Salvar como modelo e Buscar em configurações já usadas foi conferido no código, mas não foi capturado: ele usa uma janela do navegador para o nome do modelo, que a ferramenta de capturas responde sozinha. |
 | 5 | O conteúdo dos arquivos gerados (Memorial em PDF, FCI em PDF e FCI em Excel) não foi validado neste manual: as capturas rodam sem internet, e o app precisa baixar as bibliotecas de PDF e Excel na hora de gerar. A descrição do Memorial em PDF foi conferida no código. |
+| 5 | O conteúdo do PDF gerado não aparece nas capturas: elas rodam sem internet, e o app precisa baixar a biblioteca do PDF. A geração e a conferência automática foram verificadas pelos testes prop_test (proposta SEQ de exemplo) e prop_spv_test (contrato de inspeção, Fireconnect e proposta só de peças) da REV22. |
 | 5 | A leitura real de um PDF e o resultado da conferência não foram validados nas capturas: o leitor de PDF é baixado da internet na hora (pdf.js) e as capturas rodam sem acesso externo. O fluxo foi conferido no código (conferencia.js) e é coberto pelo teste conf_test da REV22. |
 | 6 | A leitura de PDF, Excel e foto não foi testada nas capturas: o ambiente de captura bloqueia a internet, e essas leituras baixam bibliotecas (pdf.js, ExcelJS, Tesseract). Só a leitura de XML de NF-e (com dados de exemplo) foi executada. Também não foi validado, no modo compartilhado, quem consegue anexar arquivos: o código recusa o anexo com "Só quem tem acesso de Editor pode anexar arquivos" quando o armazenamento de arquivos não está liberado, mas a tela de acessos diz que o Contribuidor anexa documentos. |
 | 6 | A geração do arquivo Formação de custo (PDF) e o fluxo completo de Pedir aprovação (valor target) não foram executados nas capturas: o PDF depende de bibliotecas baixadas da internet (bloqueada no ambiente de captura) e a aprovação é tratada no capítulo de aprovações. O código da SPV também tem um PDF "Proposta de serviço" para o cliente, mas nenhum botão da tela chama esse PDF. |
@@ -315,7 +319,7 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 2 | Os menus existem? | Sim: os 7 itens do menu lateral citados no manual são os do arquivo index.html. |
 | 3 | Os caminhos de navegação estão corretos? | Sim: cada caminho foi percorrido pela ferramenta de captura antes de cada foto (os passos clicam nos elementos reais). |
 | 4 | Os prints correspondem aos procedimentos? | Sim: cada figura é gerada pelos passos do próprio tutorial. |
-| 5 | As marcações estão posicionadas corretamente? | 151 de 151 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
+| 5 | As marcações estão posicionadas corretamente? | 153 de 153 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
 | 6 | As descrições dos campos estão corretas? | Conferidas contra o código (rótulos, mensagens e regras). |
 | 7 | Os exemplos usam dados fictícios identificados? | Sim: proposta de exemplo do sistema e dados de treinamento identificados como fictícios no capítulo 18. |
 | 8 | As fórmulas apresentadas são reais? | Sim: só aparecem as fórmulas que o próprio sistema mostra (nota de cálculo do Memorial e "Como cada número é calculado" do painel). |

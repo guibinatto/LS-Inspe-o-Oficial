@@ -1,0 +1,31 @@
+// Proposta técnica e comercial (modelo PTC): gera o PDF do exemplo SEQ, confere com a formação e guarda nos documentos.
+const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
+const L = __dirname + '/libs/'; const fs = require('fs');
+(async () => {
+  const b = await chromium.launch(); const ctxB = await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true }); const p = await ctxB.newPage();
+  await p.route('https://cdnjs.cloudflare.com/**', (r) => { const u = r.request().url();
+    const f = u.endsWith('pdf.min.js') ? 'pdfjs-dist-3.11.174/build/pdf.min.js' : u.endsWith('pdf.worker.min.js') ? 'pdfjs-dist-3.11.174/build/pdf.worker.min.js' : /jspdf\.umd\.min\.js$/.test(u) ? 'jspdf-2.5.1/dist/jspdf.umd.min.js' : /autotable/.test(u) ? 'jspdf-autotable-3.8.2/dist/jspdf.plugin.autotable.min.js' : null;
+    return f ? r.fulfill({ path: L + f, contentType: 'text/javascript' }) : r.abort(); });
+  await p.route('https://fonts.googleapis.com/**', (r) => r.abort());
+  const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto('file://' + require('path').resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1200);
+  await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(800); await p.click('#bSave'); await p.waitForTimeout(400);
+  await p.click('[data-view="proposta"]'); await p.click('[data-step="6"]'); await p.waitForTimeout(400);
+  console.log('cartão:', !!(await p.$('#pcCard')));
+  await p.evaluate(() => document.querySelectorAll('#pcCard details').forEach((d) => { d.open = true; }));
+  const fill = async (sel, v) => { await p.fill(sel, v); await p.dispatchEvent(sel, 'change'); await p.waitForTimeout(150); };
+  await fill('#pc_cliente', 'COCAMAR SEDE'); await fill('#pc_prazoFab', '90'); await fill('#pc_prazoEnt', '30'); await fill('#pc_cidade', 'MARINGÁ-PR');
+  await p.evaluate(() => document.querySelectorAll('#pcCard details').forEach((d) => { d.open = true; }));
+  await fill('[data-pccod="ITEM 02"]', '004-00242');
+  console.log('aos cuidados (vindo de Obra/local):', await p.inputValue('#pc_aosCuidados'), '| obra:', await p.inputValue('#pc_obra'));
+  await p.click('#bSave'); await p.waitForTimeout(500);
+  const dl = p.waitForEvent('download', { timeout: 30000 });
+  await p.click('[data-pcgerar]'); const d = await dl; const out = __dirname + '/prop_ptc.pdf'; await d.saveAs(out);
+  console.log('arquivo:', d.suggestedFilename(), fs.statSync(out).size, 'bytes');
+  await p.waitForTimeout(4000);
+  const conf = await p.$eval('#app', (x) => x.innerText).catch(() => '');
+  console.log('toast/conferência:', (await p.$$eval('.toast, #toast', (x) => x.map((e) => e.innerText))).join(' | '));
+  await p.click('[data-step="5"]'); await p.waitForTimeout(500);
+  console.log('conferência:', await p.$eval('#confCard', (x) => x.innerText.replace(/\s+/g, ' ').slice(0, 300)).catch(() => 'sem cartão'));
+  console.log('erros', errs); await b.close();
+})();

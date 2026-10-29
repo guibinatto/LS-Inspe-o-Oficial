@@ -343,6 +343,24 @@
  },
  {
   "num": "5.8",
+  "id": "05-09",
+  "titulo": "Aba Documentos: cartão Proposta técnica e comercial",
+  "arquivo": "05-09-proposta-ptc-cartao.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 5
+ },
+ {
+  "num": "5.9",
+  "id": "05-10",
+  "titulo": "Cadastros → Cadastro geral → Modelo da proposta",
+  "arquivo": "05-10-proposta-ptc-modelo.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 5
+ },
+ {
+  "num": "5.10",
   "id": "05-07",
   "titulo": "Conferência do PDF da proposta (aba Conferência)",
   "arquivo": "05-07-memorial-conferencia-pdf.png",

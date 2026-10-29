@@ -1070,7 +1070,7 @@
     } catch (e) { toast('Não consegui congelar a versão ' + (marco === 'aprovada' ? 'aprovada' : 'enviada') + ': ' + errMsg(e)); }
   }
   function carregarCorpo(q, extra) {
-    const ex = Object.assign({ uid: q.uid || newUid(), status: q.status || 'rascunho', ack: q.ack || {}, verBase: (((REG.listPropostas() || []).find((y) => y.id === state.id)) || {}).verDoc }, extra || {});
+    const ex = Object.assign({ uid: q.uid || newUid(), status: q.status || 'rascunho', ack: q.ack || {}, propCom: q.propCom ? JSON.parse(JSON.stringify(q.propCom)) : {}, verBase: (((REG.listPropostas() || []).find((y) => y.id === state.id)) || {}).verDoc }, extra || {});
     if (q.div === 'SPV' && q.spv) loadDoc({}, q.name, state.id, Object.assign(ex, { div: 'SPV', spv: JSON.parse(JSON.stringify(q.spv)) }));
     else if (q.facts) loadDoc({}, q.name, state.id, Object.assign(ex, { div: 'SEQ', sol: 'FACTS', facts: JSON.parse(JSON.stringify(q.facts)) }));
     else loadDoc(q.doc, q.name, state.id, ex);
@@ -1116,6 +1116,120 @@
   const CF = window.PricerConferencia({ esc, brl, toast, modal, ui, REG, render, log: (e) => logEv(e), salvarDoc: (m, f) => SPV.salvarDoc(Object.assign({ rev: revAtual(), etapa: 'Conferência e aprovação' }, m), f), conferidaOk: (p) => MG.conferidaOk(p),
     propostaAtual: () => { const p = propostaAtual(); if (p && dirty) toast('Há alterações não salvas: salve antes de conferir para valer a versão certa'); return p; }, formacao: () => formacaoConf() });
   const confCard = () => { try { return CF.card(propostaAtual(), formacaoConf()); } catch (e) { return ''; } };
+
+  // ---------- proposta técnica e comercial (modelo PTC LS Fire): o que a formação diz ----------
+  const PRP = window.PricerProposta;
+  // folha de dados: o que entra de cada família de insumo (o resto é interno: base, mão de obra, embalagem…)
+  const FD_TIT = { '01': 'Motor Diesel', '10': 'Motor Elétrico', '11': 'Bomba Centrífuga', '12': 'Motobomba', '13': 'Bomba Jockey', '15': 'Tanque de combustível diesel', '16': 'Silencioso / escapamento', '17': 'Baterias', '19': 'Chave de partida', '20': 'Painel de comando', '21': 'Painel de comando', '22': 'Sensores', '26': 'Kit de pré-aquecimento', '29': 'Pressostato', '30': 'Manovacuômetro', '40': 'Cabeçote', '42': 'Manômetro', '43': 'Kit de recirculação', '45': 'Acessórios do tanque' };
+  const FD_ADIC = { '23': 'Válvula de alívio', '24': 'Cone de descarga', '25': 'Medidor de vazão', '27': 'Barrilete de sucção', '28': 'Barrilete de recalque', '44': 'Kit válvula de ar' };
+  const FD_SEMFAM = [[/A\/H\b|BATERIA/, 'Baterias'], [/ACOPLAMENTO/, 'Acoplamento'], [/PAINEL LOCAL/, 'Painel local'], [/TROCADOR/, 'Trocador de calor'], [/VALVULA DE ALIVIO/, 'Válvula de alívio'], [/GAVETA/, 'Válvula gaveta'], [/BORBOLETA/, 'Válvula borboleta'], [/RENTENCAO|RETENCAO/, 'Válvula de retenção'], [/FLOW/, 'Medidor de vazão']];
+  const FD_FORA = new Set(['14', '18', '31', '32', '33', '34', '35', '36', '37', '38', '39', '41']);
+  const TIPO_BOMBA = { 'END SUCTION': 'Mancalizada (end-suction)', 'SPLIT CASE': 'Bipartida (split case)', MONOBLOCO: 'Monobloco', 'IN LINE': 'In-line', INLINE: 'In-line', VERTICAL: 'Turbina vertical' };
+  const nBR = (v) => (typeof v === 'number' && isFinite(v) ? NF[Number.isInteger(v) ? 0 : Math.abs(v * 10 - Math.round(v * 10)) < 1e-9 ? 1 : 2].format(v) : String(v || ''));
+  const upNoAc = (s) => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // atributos da folha de dados tirados da descrição do insumo e do cadastro (nada além do que o app sabe)
+  function fdLinhas(cod, desc, fab, ins) {
+    const d = upNoAc(desc); const L = [];
+    if (['11', '12', '13'].includes(cod) && ins && ins.tipo) L.push('Tipo: ' + (TIPO_BOMBA[upNoAc(ins.tipo)] || ins.tipo));
+    if (fab && !/^(VARIOS|0|-)$/.test(upNoAc(fab).trim())) L.push('Marca: ' + fab);
+    L.push('Modelo: ' + desc);
+    if (cod === '01') {
+      const m = d.match(/(\d+(?:[.,]\d+)?)\s*HP\s*@?\s*(\d{3,4})\s*RPM/); if (m) L.push('Potência: ' + m[1] + ' HP @ ' + m[2] + ' rpm');
+      const c = d.match(/(\d+)\s*CIL\b/); if (c) L.push('Cilindros: ' + c[1]);
+      if (/RADIADOR/.test(d)) L.push('Resfriamento: Radiador'); else if (/TROCADOR/.test(d)) L.push('Resfriamento: Trocador de calor');
+      if (/\bMEC\b/.test(d)) L.push('Injeção: Mecânica'); else if (/\bELET/.test(d)) L.push('Injeção: Eletrônica');
+    }
+    if (cod === '10') { const p = d.match(/(\d+(?:[.,]\d+)?)\s*CV\b/); if (p) L.push('Potência: ' + p[1] + ' CV'); const po = d.match(/\b(\d{1,2})\s*P(?:OLOS)?\b/); if (po) L.push('Número de polos: ' + po[1]); const ip = d.match(/IPW?\s?(\d{2})\b/); if (ip) L.push('Grau de proteção: IP' + ip[1]); }
+    if (['01', '20', '21', '22'].includes(cod)) { const v = d.match(/\b(12|24)\s*VCC/); if (v) L.push('Tensão cont.: ' + v[1] + ' VCC'); }
+    return L;
+  }
+  function propostaDados() {
+    if (isSpv()) return SPV.propostaDados(state.spv);
+    if (isFacts()) return FX.propostaDados(state.facts);
+    const P = 'PROPOSTA'; const itens = []; const fl = { diesel: false, eletrica: false, startup: false, diarias: 0, ulfm: false }; const normas = new Set();
+    ITEMS.forEach((S, i) => {
+      const r = 33 + i; const total = val(P, 'P' + r); if (!filled(S) || !(typeof total === 'number' && total > 0)) return;
+      const bombas = []; for (let b = 23; b <= 26; b++) { const ac = txt(S, 'C' + b); if (ac) bombas.push({ ac, mod: txt(S, 'D' + b), cfg: txt(S, 'E' + b), pot: val(S, 'F' + b), rpm: val(S, 'G' + b), vz: val(S, 'K' + b), pr: val(S, 'L' + b) }); }
+      if (bombas.some((b) => b.ac === 'DIESEL')) fl.diesel = true; if (bombas.some((b) => /ELETR|JOCKEY/.test(b.ac))) fl.eletrica = true;
+      const su = val(S, 'K12'); if (typeof su === 'number' && su > 0) { fl.startup = true; fl.diarias = Math.max(fl.diarias, num0(val(S, 'F12')) || 1); }
+      const nrm = txt(S, 'L21') || txt(P, 'F9'); if (nrm) normas.add(nrm); if (/UL|FM/.test(nrm.toUpperCase())) fl.ulfm = true;
+      const comps = [], adic = [];
+      const linhas = []; for (let k = 34; k <= 63; k++) linhas.push(k); for (let k = 68; k <= 112; k++) linhas.push(k);
+      for (const k of linhas) {
+        const d = txt(S, 'D' + k); const q = val(S, 'F' + k); if (!d || !(typeof q === 'number' && q > 0)) continue;
+        const fam = String(txt(S, 'U' + k) || txt(S, 'C' + k) || ''); const cod = /^\d\d\./.test(fam) ? fam.slice(0, 2) : '';
+        if (FD_FORA.has(cod)) continue;
+        const custo = val(S, 'H' + k);
+        if (!cod && (!(typeof custo === 'number' && custo > 0) || /TUBULA|ADITIV|MISC|MIUDEZ|INTERLIGA|SOLDAD|EMBALAG|MAO DE OBRA|^BASE\b|OLEO/.test(upNoAc(d)))) continue;
+        if (cod && !FD_TIT[cod] && !FD_ADIC[cod]) continue;
+        const ins = insPorProduto(d); const fab = txt(S, 'E' + k) || (ins && ins.fab) || '';
+        const ehAdic = FD_ADIC[cod] || (!cod && /VALV|FLOW|CONE|BARRILETE/.test(upNoAc(d)));
+        const semFam = !cod ? (FD_SEMFAM.find((x) => x[0].test(upNoAc(d))) || [0, ''])[1] : '';
+        const titulo = FD_TIT[cod] ? (cod === '20' && fl.diesel ? 'Painel de comando do conjunto diesel' : FD_TIT[cod]) : FD_ADIC[cod] || semFam || d;
+        (ehAdic ? adic : comps).push({ qtd: q, titulo, linhas: cod ? fdLinhas(cod, d, fab, ins) : [].concat(fab && !/^(VARIOS|0)$/.test(upNoAc(fab)) ? ['Marca: ' + fab] : [], semFam ? ['Descrição: ' + d] : []) });
+      }
+      const vn = val(S, 'AR4');
+      const condicao = [...new Set(bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => nBR(b.vz) + ' m³/h x ' + nBR(b.pr) + ' mca'))].join(' · ');
+      const acion = { DIESEL: 'diesel', ELETRICA: 'elétrica', ELETRICO: 'elétrica', JOCKEY: 'jockey' };
+      itens.push({ key: S, codigo: '', qtd: num0(val(P, 'F' + r)) || 1, un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
+        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '',
+        folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ titulo: 'Bomba ' + (k + 1) + ' — ' + (acion[b.ac] || b.ac.toLowerCase()) + (b.cfg ? ' · ' + b.cfg.toLowerCase() : ''),
+          dados: [['Modelo', b.mod], ['Vazão nominal', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['Vazão de projeto', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['Pressão diferencial', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['Rotação', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['Potência', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
+    });
+    const f6 = txt(P, 'F6'); const ac = f6.match(/\s*[·\-–—|,;]?\s*a\/c\.?\s*(.+)$/i);
+    return { tipo: 'SEQ', numero: txt(P, 'C5'), rev: txt(P, 'C6'), data: txt(P, 'C7'), validade: txt(P, 'C10'), cliente: txt(P, 'F5'), razao: txt(P, 'F5'), cnpj: txt(P, 'L5'), contato: ac ? ac[1].trim() : '', obra: ac ? f6.slice(0, ac.index).trim() : f6, cidade: '',
+      pagamento: txt(P, 'J6'), frete: txt(P, 'B13'), prazo: '', exclusoes: '', vendedor: txt(P, 'C8'), total: val(P, 'P43'), itens,
+      flags: Object.assign(fl, { normaTxt: [...new Set([...normas].map(PRP.normaTxt))].join(' / ') || 'NFPA 20' }) };
+  }
+  const pcGet = () => state.propCom || {};
+  function pcSet(k, v) { const pc = Object.assign({}, pcGet()); if (v === undefined) delete pc[k]; else pc[k] = v; state.propCom = pc; dirty = true; persist(); atualizaSaveSt(); }
+  function propComCard() {
+    let D, E, M; try { D = propostaDados(); M = PRP.modelo(REG); E = PRP.efetivo(D, pcGet(), M); } catch (e) { return ''; }
+    const pc = pcGet(); const ro = state.verRev ? ' disabled' : '';
+    const has = (k) => Object.prototype.hasOwnProperty.call(pc, k);
+    const reset = (k) => (has(k) ? ` <button type="button" class="linkbtn" data-pcreset="${k}">voltar ao padrão</button>` : '');
+    const inp = (k, lb, o = {}) => `<div class="f ${o.cls || ''}"><label for="pc_${k}">${esc(lb)}${reset(k)}</label><input id="pc_${k}" data-pc="${k}" value="${esc(E[k] ?? '')}"${o.num ? ' inputmode="numeric"' : ''}${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}${ro}>${o.dica ? `<small class="sub">${esc(o.dica)}</small>` : ''}</div>`;
+    const area = (k, lb, dica, rows) => `<div class="f spanall"><label for="pc_${k}">${esc(lb)}${reset(k)}</label><textarea id="pc_${k}" data-pc="${k}" rows="${rows || Math.min(12, Math.max(3, String(E[k] || '').split('\n').length + 1))}"${ro}>${esc(E[k] || '')}</textarea>${dica ? `<small class="sub">${esc(dica)}</small>` : ''}</div>`;
+    const sec = [['solucoes', 'Soluções LS Fire (CMB, skid e container)', D.tipo === 'SEQ'], ['folha', 'Folha de dados de cada item', D.tipo === 'SEQ'], ['comiss', 'Comissionamento e start-up', D.tipo === 'SEQ'], ['prazos', 'Prazos e condições', D.tipo === 'SEQ'], ['docs', 'Escopo de documentos', D.tipo === 'SEQ'], ['termos', 'Termos e condições', true]].filter((x) => x[2]);
+    const faltam = [!D.numero && 'número da proposta', !E.aosCuidados && 'aos cuidados de', !E.pagamento && 'condição de pagamento', D.tipo === 'SEQ' && !(Number(E.prazoFab) || Number(E.prazoEnt) || E.prazoTexto) && 'prazo'].filter(Boolean);
+    const salva = propostaAtual();
+    return `<section class="card" id="pcCard"><h2>Proposta técnica e comercial <span class="sub">PDF no modelo LS Fire (PTC), com os números desta formação</span></h2>
+      <p class="sub" style="margin:0 0 8px">Itens, quantidades, impostos, NCM, preços e total saem da formação; os textos padrão vêm de Cadastros → Cadastro geral → Modelo da proposta. O que você ajustar aqui fica salvo nesta proposta.</p>
+      ${faltam.length ? `<div class="banner warn" style="margin:0 0 8px">Falta preencher: ${esc(faltam.join(', '))}. Dá para gerar assim mesmo (sai "—").</div>` : ''}
+      <div class="docbar"><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta (PDF)</button><span class="sub">${D.itens.length} item(ns) · total ${esc(brl(D.total))}${salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos'}</span></div>
+      <details class="sub2"${keep('pc_cab')}><summary>Cliente e obra</summary><div class="fields">${inp('cliente', 'Cliente (topo das páginas)', { cls: 'span2' })}${inp('razao', 'Razão social', { cls: 'span2' })}${inp('cnpj', 'CNPJ')}${inp('aosCuidados', 'Aos cuidados de')}${inp('obra', 'Projeto/Obra', { cls: 'span2' })}${inp('cidade', 'Cidade da obra', { ph: 'ex.: SANTOS-SP' })}</div></details>
+      <details class="sub2"${keep('pc_itens')}><summary>Itens: código do produto${D.tipo === 'SEQ' ? ' e notas da folha de dados' : ''}</summary>
+        <div class="tw"><table class="t"><thead><tr><th>#</th><th>Descrição breve</th><th class="num">Qtd</th><th class="num">Total</th><th>Código do produto</th>${D.tipo === 'SEQ' ? '<th>Notas da folha de dados</th>' : ''}</tr></thead><tbody>${D.itens.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.breve || '')}</td><td class="num">${esc(nBR(it.qtd))}</td><td class="num">${esc(brl(it.total))}</td>
+          <td class="in"><input data-pccod="${esc(it.key)}" value="${esc(E.codigos[it.key] ?? it.codigo ?? '')}" placeholder="ex.: 004-00242" aria-label="Código do produto do item ${i + 1}"${ro}></td>${D.tipo === 'SEQ' ? `<td class="in"><input data-pcni="${esc(it.key)}" value="${esc(E.notasItem[it.key] || '')}" placeholder="opcional" aria-label="Notas do item ${i + 1}"${ro}></td>` : ''}</tr>`).join('')}</tbody></table></div>
+        <small class="sub">O código é o do cadastro de produtos (ERP); sem ele, a coluna sai vazia.</small></details>
+      <details class="sub2"${keep('pc_cond')}><summary>Condições: pagamento, prazo, frete e observações</summary><div class="fields">${inp('pagamento', 'Condição de pagamento', { cls: 'spanall' })}${D.tipo !== 'SPV' ? inp('prazoFab', 'Prazo de fabricação (dias, DAPC)', { num: true }) + inp('prazoEnt', 'Prazo de entrega (dias, DAE)', { num: true }) : ''}${area('prazoTexto', D.tipo === 'SPV' ? 'Prazo' : 'Prazo — texto livre (opcional)', D.tipo === 'SPV' ? 'ex.: Prazo para primeira visita: 40 dias.' : 'Fabricação + entrega viram "Prazo Total: N dias."; use o texto para algo diferente.', 2)}${inp('frete', 'Frete', { cls: 'spanall' })}${area('observacoes', 'Observações', D.tipo === 'SPV' ? 'Uma por linha; vêm do modelo de serviços.' : 'ex.: o detalhe da condição de pagamento.')}</div></details>
+      <details class="sub2"${keep('pc_notas')}><summary>Notas, desvios e exclusões</summary><div class="fields">${area('notas', 'Notas', 'Uma por linha. O padrão já considera o que a proposta tem (diesel, elétrica, start-up, norma).')}${area('desvios', 'Desvios', '', 2)}${area('exclusoes', 'Exclusões', '', 2)}</div></details>
+      <details class="sub2"${keep('pc_sec')}><summary>Seções e contatos</summary><div class="fields"><div class="f span2"><label>Seções</label><div class="chks" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px">${sec.map(([k, lb]) => `<label class="chk"><input type="checkbox" data-pcsec="${k}"${E.secoes[k] ? ' checked' : ''}${ro}> ${esc(lb)}</label>`).join('')}</div></div>
+        <div class="f span2"><label>Contatos no fim da proposta${reset('contatos')}</label><div class="chks" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px">${(M.contatos || []).map((c) => `<label class="chk"><input type="checkbox" data-pcct="${esc(c.nome)}"${(E.contatos || []).includes(c.nome) ? ' checked' : ''}${ro}> ${esc(c.nome)} <small class="sub">${esc(c.cargo || '')}</small></label>`).join('') || '<span class="sub">Nenhum contato no modelo da proposta.</span>'}</div></div></div></details>
+    </section>`;
+  }
+  document.addEventListener('change', (e) => {
+    const t = e.target; if (!t.closest || !t.closest('#pcCard') || state.verRev) return;
+    if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } pcSet(k, v); render(); return; }
+    if (t.dataset.pccod !== undefined) { pcSet('codigos', Object.assign({}, pcGet().codigos || {}, { [t.dataset.pccod]: t.value.trim() })); return; }
+    if (t.dataset.pcni !== undefined) { pcSet('notasItem', Object.assign({}, pcGet().notasItem || {}, { [t.dataset.pcni]: t.value.trim() })); return; }
+    if (t.dataset.pcsec) { pcSet('secoes', Object.assign({}, pcGet().secoes || {}, { [t.dataset.pcsec]: t.checked })); return; }
+    if (t.dataset.pcct !== undefined) { let D, E; try { D = propostaDados(); E = PRP.efetivo(D, pcGet(), PRP.modelo(REG)); } catch (er) { return; } const set = new Set(E.contatos || []); if (t.checked) set.add(t.dataset.pcct); else set.delete(t.dataset.pcct); pcSet('contatos', [...set]); }
+  });
+  document.addEventListener('click', async (e) => {
+    const rs = e.target.closest('[data-pcreset]'); if (rs) { e.preventDefault(); pcSet(rs.dataset.pcreset, undefined); render(); return; }
+    if (!e.target.closest('[data-pcgerar]')) return;
+    try {
+      const D = propostaDados(); if (!D.itens.length) { toast('Nenhum item com preço para a proposta'); return; }
+      toast('Montando a proposta…');
+      const r = await PRP.montar(D, pcGet(), PRP.modelo(REG));
+      const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
+      logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + r.paginas + ' páginas)', mudancas: [] });
+      const p = propostaAtual();
+      if (p && !dirty && !state.verRev) await CF.rodar(new File([r.bytes], r.nome, { type: 'application/pdf' }));
+      else toast(ok ? 'PDF gerado (' + r.paginas + ' páginas). Salve a proposta para o PDF ser conferido e guardado nos documentos.' : 'Download cancelado');
+    } catch (er) { toast(errMsg(er)); }
+  });
 
   // selo "Rev. N" no topo da proposta
   const revSelo = () => (state.id ? `<div style="display:flex;gap:4px;align-items:center"><button class="pill ${state.verRev ? 'warn' : 'mute'} apselo" data-revs title="Ver as revisões desta proposta">${state.verRev ? 'Consultando rev. ' + state.verRev.rev : 'Rev. ' + revAtual()} ▾</button>${state.verRev ? '' : `<button class="btn sm" data-revisar title="Guarda a revisão ${revAtual()} e abre a ${revAtual() + 1} para editar">Revisar</button>`}</div>` : '');
@@ -1207,6 +1321,63 @@
     const nu = e.target.closest('[data-naundo]'); if (nu) { const n2 = Object.assign({}, state.naCustos); delete n2[nu.dataset.naundo]; state.naCustos = n2; dirty = true; persist(); render(); }
   });
 
+  // ---------- modelo da proposta técnica e comercial: textos padrão e contatos (Cadastro geral) ----------
+  const PM_CAMPOS = [
+    ['Textos gerais', [['somos', 'Somos a LS Fire', 'par'], ['notaPagamento', 'Nota da condição de pagamento', 'txt'], ['atencao', 'Aviso ATENÇÃO (duas linhas)', 'lin'], ['rodape', 'Rodapé das páginas', 'txt']]],
+    ['Equipamentos (SEQ)', [['notasSeq', 'Notas', 'lin'], ['comissionamento.incluso', 'Comissionamento: o que está incluso', 'lin'], ['comissionamento.adicionais', 'Comissionamento: serviços adicionais', 'lin'], ['comissionamento.responsabilidades', 'Comissionamento: responsabilidades do cliente', 'lin'],
+      ['prazos.intro', 'Prazos: composição do prazo total', 'txt'], ['prazos.inicio', 'Prazos: condições para início da contagem', 'lin'], ['prazos.suspensao', 'Prazos: hipóteses de suspensão', 'lin'], ['prazos.recebimento', 'Prazos: recebimento', 'txt']]],
+    ['Serviços e peças (SPV)', [['notasServico', 'Notas — serviços', 'lin'], ['observacoesServico', 'Observações — serviços', 'lin'], ['pecas.escopo', 'Escopo padrão — peças', 'par'], ['pecas.notas', 'Notas — peças', 'lin'], ['pecas.desvios', 'Desvios — peças', 'lin'], ['pecas.exclusoes', 'Exclusões — peças', 'lin']]],
+    ['Termos e condições', [['termos', 'Termos e condições', 'termos']]],
+  ];
+  const pmGet = (o, k) => k.split('.').reduce((a, p) => (a == null ? a : a[p]), o);
+  const pmSalvo = () => (((REG.tabelas || {}).PROPOSTA_MODELO || {}).m || {});
+  const pmTexto = (v, tipo) => tipo === 'par' ? (v || []).join('\n\n') : tipo === 'lin' ? (v || []).join('\n') : tipo === 'termos' ? (v || []).map((c) => '## ' + c.t + '\n' + (c.p || []).join('\n')).join('\n\n') : String(v || '');
+  function pmValor(t, tipo) {
+    if (tipo === 'par') return t.split(/\n\s*\n/).map((x) => x.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
+    if (tipo === 'lin') return t.split('\n').map((x) => x.trim()).filter(Boolean);
+    if (tipo === 'termos') { const out = []; for (const l of t.split('\n').map((x) => x.trim()).filter(Boolean)) { if (/^##\s*/.test(l)) out.push({ t: l.replace(/^##\s*/, ''), p: [] }); else { if (!out.length) out.push({ t: '', p: [] }); out[out.length - 1].p.push(l); } } return out; }
+    return t.trim();
+  }
+  function vModeloProposta() {
+    const ed = canEd(); const ro = ed ? '' : ' disabled'; const M = PRP.modelo(REG); const sv = pmSalvo(); const base = window.PRICER_PROPOSTA_TEXTOS || {};
+    const mudou = (k) => { const top = k.split('.')[0]; return Object.prototype.hasOwnProperty.call(sv, top) && JSON.stringify(pmGet(sv, k)) !== JSON.stringify(pmGet(base, k)); };
+    const campo = ([k, lb, tipo]) => { const t = pmTexto(pmGet(M, k), tipo); return `<div class="f spanall"><label for="pm_${k}">${esc(lb)}${mudou(k) ? ` <span class="pill warn">alterado</span>${ed ? ` <button type="button" class="linkbtn" data-pmreset="${k}">voltar ao texto original</button>` : ''}` : ''}</label><textarea id="pm_${k}" data-pm="${k}" data-pmt="${tipo}" rows="${tipo === 'termos' ? 24 : Math.min(14, Math.max(2, t.split('\n').length + 1))}"${ro}>${esc(t)}</textarea></div>`; };
+    const cts = M.contatos || [];
+    return `<section class="card"><h2>Modelo da proposta técnica e comercial <span class="sub">textos padrão e contatos do PDF da proposta (modelo PTC)</span></h2>
+      <p class="sub" style="margin:0 0 6px">Valem para todas as propostas geradas a partir de agora; as já enviadas não mudam (o PDF fica nos documentos). Em cada proposta dá para ajustar notas, observações e contatos só para ela.</p>
+      <p class="sub" style="margin:0 0 6px">Nas notas, uma linha pode começar com uma condição entre colchetes e só entra quando a proposta atende: <b>[diesel]</b>, <b>[eletrica]</b>, <b>[start-up]</b>, <b>[sem start-up]</b>, <b>[contrato]</b>, <b>[campo]</b>, <b>[fabrica]</b>. O app troca <b>{norma}</b>, <b>{certificacao}</b> (com ou sem UL e FM), <b>{meses}</b>, <b>{visitas}</b> e <b>{diarias}</b> pelo que está na proposta. Nos termos, cada cláusula começa com uma linha <b>## título</b>.</p>
+      ${ed ? '' : '<p class="sub" style="margin:0 0 6px">Só quem cuida do Cadastro geral altera.</p>'}
+      <details class="sub2" open><summary>Contatos <span class="sub">${cts.length}</span></summary>
+        <div class="tw"><table class="t"><thead><tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th>E-mail</th><th>Sempre</th><th></th></tr></thead><tbody>${cts.map((c, i) => `<tr>${['nome', 'cargo', 'tel', 'email'].map((f) => `<td class="in"><input data-pmct="${i}|${f}" value="${esc(c[f] || '')}" aria-label="${f} do contato ${i + 1}"${ro}></td>`).join('')}<td><input type="checkbox" data-pmct="${i}|sempre"${c.sempre ? ' checked' : ''} aria-label="Sempre na proposta"${ro}></td><td>${ed ? `<button class="btn sm" data-pmctdel="${i}" aria-label="Tirar ${esc(c.nome || 'contato')}">Tirar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+        ${ed ? '<div class="docbar" style="margin-top:6px"><button class="btn sm" data-pmctadd data-ico="plus">Incluir contato</button></div>' : ''}
+        <small class="sub">"Sempre" entra em todas as propostas; quem tem o mesmo nome do vendedor da proposta também entra. Na proposta dá para marcar outros.</small></details>
+      ${PM_CAMPOS.map(([g, L]) => `<details class="sub2"${keep('pm_' + g)}><summary>${esc(g)}</summary><div class="fields">${L.map(campo).join('')}</div></details>`).join('')}
+    </section>`;
+  }
+  async function pmSalvar(top, valor, rot) {
+    const m = Object.assign({}, pmSalvo()); const de = JSON.stringify(m[top] ?? null).slice(0, 80);
+    if (valor === undefined) delete m[top]; else m[top] = valor;
+    await REG.setTable('PROPOSTA_MODELO', { m }, 'Modelo da proposta: ' + rot, [{ campo: rot, de, para: valor === undefined ? 'texto original' : JSON.stringify(valor).slice(0, 80) }]);
+    toast('Salvo'); render();
+  }
+  document.addEventListener('change', async (e) => {
+    const t = e.target; if (!canEd()) return;
+    try {
+      if (t.dataset && t.dataset.pm) { const k = t.dataset.pm; const top = k.split('.')[0]; const M = PRP.modelo(REG); const v = pmValor(t.value, t.dataset.pmt); const lb = (PM_CAMPOS.flatMap((x) => x[1]).find((x) => x[0] === k) || [0, k])[1];
+        if (k.includes('.')) { const sub = k.split('.')[1]; await pmSalvar(top, Object.assign({}, M[top] || {}, { [sub]: v }), lb); } else await pmSalvar(top, v, lb); return; }
+      if (t.dataset && t.dataset.pmct) { const [i, f] = t.dataset.pmct.split('|'); const L = JSON.parse(JSON.stringify(PRP.modelo(REG).contatos || [])); if (!L[+i]) return; L[+i][f] = f === 'sempre' ? t.checked : t.value.trim(); await pmSalvar('contatos', L, 'contatos'); }
+    } catch (er) { toast(errMsg(er)); }
+  });
+  document.addEventListener('click', async (e) => {
+    const r = e.target.closest('[data-pmreset]'), a = e.target.closest('[data-pmctadd]'), d = e.target.closest('[data-pmctdel]'); if (!(r || a || d) || !canEd()) return;
+    try {
+      if (r) { const k = r.dataset.pmreset; const top = k.split('.')[0]; const base = window.PRICER_PROPOSTA_TEXTOS || {};
+        if (k.includes('.')) { const sub = k.split('.')[1]; const cur = Object.assign({}, PRP.modelo(REG)[top] || {}, { [sub]: (base[top] || {})[sub] }); await pmSalvar(top, JSON.stringify(cur) === JSON.stringify(base[top]) ? undefined : cur, k); } else await pmSalvar(top, undefined, k); return; }
+      const L = JSON.parse(JSON.stringify(PRP.modelo(REG).contatos || []));
+      if (a) { L.push({ nome: 'Novo contato', cargo: '', tel: '', email: '' }); await pmSalvar('contatos', L, 'contatos'); return; }
+      if (d) { const i = +d.dataset.pmctdel; if (!window.confirm('Tirar ' + ((L[i] || {}).nome || 'este contato') + ' do modelo da proposta?')) return; L.splice(i, 1); await pmSalvar('contatos', L, 'contatos'); }
+    } catch (er) { toast(errMsg(er)); }
+  });
   function vCustosCfg() {
     const C = custosCfg(); const ed = canEd();
     const f = (k, lb, suf, d) => `<div class="f"><label for="cc_${k}">${lb}</label><div class="mbc"><input id="cc_${k}" data-ccfg="${k}" value="${esc(k === 'variacaoPct' ? NF[0].format(C[k] * 100) : C[k])}" inputmode="decimal"${ed ? '' : ' disabled'}><span class="sub">${suf}</span></div><small class="sub">${d}</small></div>`;
@@ -1522,6 +1693,7 @@
       const docsP = (() => { try { return SPV.docsDaProposta(state.uid); } catch (e) { return []; } })();
       body = `<section class="card"><h2>Situação e próximo passo</h2>${sv ? MG.etapasHtml(sv) : '<p class="sub" style="margin:0">Salve a proposta para acompanhar as etapas.</p>'}
           ${nx ? `<div class="docbar" style="margin-top:8px"><button class="btn pri" data-hnext="${esc(sv.id)}|${nx.act}">${esc(nx.lb)}</button></div>` : ''}</section>
+        ${propComCard()}
         <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button><button class="btn" data-view="documentos" data-ico="folder-open">Anexar ou ver todos os documentos</button></div>
           ${docsP.length ? `<div class="tw" style="margin-top:8px"><table class="t"><tbody>${docsP.map((d) => `<tr><td>${esc(d.nome || '')}<br><small class="sub">${esc([d.tipo, d.numero, d.fornecedor, d.rev != null && !isNaN(d.rev) ? 'rev. ' + d.rev : '', d.item, d.etapa].filter(Boolean).join(' · '))}</small></td><td class="sub">${esc(fmtAt(d.at))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:8px 0 0">Nenhum documento ligado ainda (o PDF conferido entra aqui).</p>'}</section>
         <section class="card"><h2>Revisões</h2><div class="docbar">${state.id ? '<button class="btn" data-revs>Ver e comparar revisões</button><button class="btn" data-revisar>Revisar (nova revisão)</button>' : '<span class="sub">Salve a proposta para ter revisões.</span>'}</div></section>
@@ -1814,7 +1986,7 @@
     ['fiscal', 'Fiscal', 'Impostos, NCM, ICMS por estado, FCI e os cenários da reforma tributária', [['fiscal', 'Impostos e NCM'], ['cenarios', 'Cenários tributários (reforma)']]],
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
-    ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições'], ['campos', 'Campos por família'], ['sinonimos', 'Sinônimos e abreviações']]],
+    ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão, o padrão de descrição dos insumos e o modelo da proposta técnica e comercial', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições'], ['campos', 'Campos por família'], ['sinonimos', 'Sinônimos e abreviações'], ['propmodelo', 'Modelo da proposta']]],
     ['sistema', 'Sistema', 'Histórico, responsáveis e e-mails, backup e restauração e planilha (avançado)', [['historico', 'Histórico'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
@@ -1849,7 +2021,7 @@
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = cfg ? 'historico' : 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, regras: () => RG.vCfg(canEd()), mapa: vMapa, qualidade: vQualidade, fornecedores: vFornecedores, campos: vCampos, sinonimos: vSinonimos, testador: vTestador, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, propmodelo: vModeloProposta, regras: () => RG.vCfg(canEd()), mapa: vMapa, qualidade: vQualidade, fornecedores: vFornecedores, campos: vCampos, sinonimos: vSinonimos, testador: vTestador, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -3725,7 +3897,7 @@
     bind && bind(o, close);
   }
   function loadDoc(doc, name, id, extra) { state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); ui.assinaturaAberta = assinatura(); setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }
-  const assinatura = () => JSON.stringify([state.doc, state.spv, state.facts]);
+  const assinatura = () => JSON.stringify([state.doc, state.spv, state.facts, state.propCom || {}]);
   function docTitle() {
     if (isSpv()) return [state.spv.numero, state.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome';
     if (isFacts()) return ['FACTS', state.facts.numero, state.facts.cliente].filter(Boolean).join(' · ');
@@ -3734,7 +3906,7 @@
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
   function openProposta(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
-    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null), origemItens: p.origemItens || {} };
+    const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null), origemItens: p.origemItens || {}, propCom: p.propCom ? JSON.parse(JSON.stringify(p.propCom)) : {} };
     if (p.div === 'SPV' && p.spv) {
       const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
@@ -3749,7 +3921,7 @@
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
   const PN = window.PricerPendencias({ REG, esc, toast, modal, ui, render, log: logEv, fillNames: (o) => fillNames(o), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); } });
-  const FX = window.PricerFacts({ confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
+  const FX = window.PricerFacts({ confCard: () => propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
   // pendências de cadastro (pedidos de preço) e do fiscal (NCM por família, alíquotas a definir)
@@ -3784,7 +3956,7 @@
     const b = e.target.closest('[data-spvnew],[data-seqnew],[data-seqfam],[data-factsnew]'); if (!b || !dirty || assinatura() === ui.assinaturaAberta) return;
     if (!window.confirm('A proposta aberta tem alterações não salvas. Começar uma nova mesmo assim? (as alterações se perdem)')) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
-  const SPV = window.PricerSPV({ revisar: () => revisarModal(), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ revisar: () => revisarModal(), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
@@ -3814,6 +3986,7 @@
     if (state.naCustos && Object.keys(state.naCustos).length) p.naCustos = state.naCustos;
     if (!isSpv() && !isFacts()) { try { p.precos = precosUsados(); } catch (e) { /* segue sem a fotografia de preços */ } }
     if (state.origemItens && Object.keys(state.origemItens).length) p.origemItens = state.origemItens;
+    if (state.propCom && Object.keys(state.propCom).length) p.propCom = state.propCom;
     try { p.resumo = resumoOf(isSpv() ? SPV.snapshot(state.spv) : isFacts() ? FX.snapshot(state.facts) : seqSnapshot()); } catch (e) { /* segue sem resumo */ }
     // status, etapas, conferência e motivo de perda são da tela inicial: vêm do registro atual do banco
     const ajustar = (body, cur) => {

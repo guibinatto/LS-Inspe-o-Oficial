@@ -218,6 +218,22 @@
       return { div: 'SPV', tipo: s.tipo, venda, vendaIpi: venda, custo: sum('custo'), impostos: sum('impostos'), comissao: sum('comissao'), margem, margemPct: venda ? margem / venda : 0, minimo: mk.lucro_min, itens };
     }
 
+    // dados para a proposta técnica e comercial (modelo PTC): um item para o serviço e um por peça
+    function propostaDados(s) {
+      s = s || S(); const r = calc(s); const sn = snapshot(s); const mk = r.mk; const nV = r.ct ? r.ct.nV : 1;
+      const mod = (cfg().modelos || []).find((m) => m.id === s.modelo); const tit = (mod && mod.nome) || (TIPO_INI[s.tipo] || {}).titulo || tipoInfo(s.tipo).nome;
+      const tx = num(mk.pis) + num(mk.cofins); const itens = []; const sv = sn.itens.find((x) => x.n === 'servico');
+      if (sv) itens.push({ key: 'servico', codigo: '', qtd: 1, un: 'Un', pisCofins: tx, icms: num(mk.iss), ipi: 0, ncm: '', unit: sv.venda, total: sv.venda,
+        breve: (tit + (r.ct ? ' — contrato de ' + num(s.contrato.meses) + ' meses' : '')).toUpperCase(), escopo: String(s.descricao || '').split('\n').map((x) => x.trim()).filter(Boolean) });
+      let primeira = true;
+      if (s.blocos.pecas) r.pecas.forEach((p, i) => { if (p.incluso === false || !(p.venda > 0)) return; const q = num(p.qtd) * nV; const tot = p.venda * nV;
+        itens.push({ key: 'pc' + i, codigo: p.cod || '', qtd: q, un: p.un || 'Un', pisCofins: tx, icms: r.icms, ipi: null, ncm: p.ncm || '', unit: q ? tot / q : tot, total: tot, breve: p.desc || '', escopo: [], escopoPecas: primeira }); primeira = false; });
+      const venc = (() => { const d = new Date((s.data || new Date().toISOString().slice(0, 10)) + 'T12:00'); d.setDate(d.getDate() + (num(s.validade) || 15)); return d.toISOString().slice(0, 10); })();
+      return { tipo: 'SPV', numero: s.numero || '', rev: s.revisao ?? '0', data: s.data, validade: venc, cliente: s.cliente || '', razao: s.cliente || '', cnpj: s.cnpj || '', contato: s.contato || '', obra: s.local || '', cidade: '',
+        pagamento: s.pagamento || '', frete: sv && !r.Vp ? 'Não aplicável' : '', prazo: s.prazo_exec || '', exclusoes: s.exclusoes || '', vendedor: s.vendedor || '', total: r.total, itens,
+        flags: { pecas: !primeira, soPecas: !sv, contrato: !!r.ct, campo: s.campo !== false, fabrica: s.campo === false, meses: r.ct ? num(s.contrato.meses) : '', visitas: r.ct ? Math.round(nV) : '' } };
+    }
+
     // ---------- leitura com Claude ----------
     let sampleFn;
     const getSample = async () => { if (sampleFn !== undefined) return sampleFn; try { sampleFn = window.claude && window.claude.use ? await window.claude.use('sample') : null; } catch (e) { sampleFn = null; } return sampleFn; };
@@ -734,7 +750,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     document.addEventListener('drop', (e) => { const d = e.target.closest && e.target.closest('#docDrop'); if (!d) return; e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) importar(f, false); });
 
     const docList2 = (list) => (list.length ? docList(list) : '<p class="sub" style="margin:0">Nenhum documento ligado.</p>');
-    return { docsDoInsumo: (id) => docList2(docs.filter((d) => (d.insumos || []).includes(id))), cfg, vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
+    return { propostaDados, docsDoInsumo: (id) => docList2(docs.filter((d) => (d.insumos || []).includes(id))), cfg, vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
   }
   window.PricerSPV = SPV;
 })();

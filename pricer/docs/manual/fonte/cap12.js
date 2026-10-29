@@ -127,11 +127,11 @@ module.exports = {
         { sel: '#confCard .pill.ok', txt: 'Situação: conferida, com a data.', pos: 't' },
         { sel: '#confCard .banner.ok', txt: 'Tudo confere com a formação; o PDF foi salvo nos documentos da proposta.', pos: 'r' },
       ] },
-    { id: '12-08', nome: 'documentos-aba-proposta', titulo: 'Aba Documentos da proposta: documentos ligados e o PDF conferido', clip: '#app section.card', clipNth: 1, pad: 8,
+    { id: '12-08', nome: 'documentos-aba-proposta', titulo: 'Aba Documentos da proposta: documentos ligados e o PDF conferido', clip: '#app section.card:has([data-doc="memorial"])', pad: 8,
       prep: async (p, h) => { await p.click('#nav [data-view="proposta"]'); await h.esperar(200); await h.aba(6); },
       marcas: [
         { sel: '#app [data-doc="memorial"]', txt: 'Gera o Memorial (PDF) e a FCI (PDF ou Excel) desta proposta.', pos: 't' },
-        { sel: '#app section.card:nth-of-type(2) tbody tr:nth-child(1) td:nth-child(1)', txt: 'Cada documento ligado: tipo, número, fornecedor, revisão, item e etapa.', pos: 'l' },
+        { sel: '#app section.card:has([data-doc="memorial"]) tbody tr:nth-child(1) td:nth-child(1)', txt: 'Cada documento ligado: tipo, número, fornecedor, revisão, item e etapa.', pos: 'l' },
       ] },
   ],
   conteudo: [
