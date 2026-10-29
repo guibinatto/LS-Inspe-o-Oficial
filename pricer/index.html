@@ -43,7 +43,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .side-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 14px 10px}
 .brand{display:flex;align-items:center;gap:10px;font-family:var(--f-cond);font-weight:700;font-size:21px;letter-spacing:.02em;min-width:0}
 .brand .bt{color:var(--or);white-space:nowrap}
-.logo-plate{display:flex;align-items:center;background:#fff;border-radius:8px;padding:3px 8px;flex:0 0 auto}
+.logo-plate{display:flex;align-items:center;background:transparent;border-radius:8px;padding:0;flex:0 0 auto}
+.logo-plate.custom{background:#fff;padding:3px 8px}
 .logo-plate img{display:block;height:30px;width:auto}
 .brand small{font-weight:500;font-size:11px;color:var(--bar-dim);letter-spacing:.08em;text-transform:uppercase;margin-left:4px}
 .nav{display:flex;flex-direction:column;gap:2px;padding:6px 10px;flex:1 1 auto;overflow:auto}
@@ -468,6 +469,7 @@ input.rin.pend{color:var(--ink3);font-style:italic}.rok{all:unset;cursor:pointer
 table.cent td{vertical-align:top}table.cent select{max-width:190px}table.cent .chk{display:inline-flex;gap:3px;margin-right:6px;white-space:nowrap}
 .warn-t{color:var(--warn)}tr.cf-erro td{background:var(--bad-bg)}tr.cf-aviso td{background:var(--warn-bg)}
 .pendbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--card);font-size:13.5px}
+.linkbtn{background:none;border:0;padding:0;color:var(--or-ink);text-decoration:underline;cursor:pointer;font:inherit}
 .pnfil{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.pnfil select,.pnfil input{border:1px solid var(--line2);background:var(--card);border-radius:7px;padding:6px 9px;font-size:14px;min-height:34px}.pnfil select,.pnfil input{width:auto;min-width:150px;flex:1 1 150px}.pnfil .btn{flex:0 0 auto}
 .stepper{display:flex;gap:4px;align-items:stretch}.stepper input{flex:1 1 auto;min-width:0;text-align:center}.stepper .btn{min-width:34px;font-size:16px}
 .t.perm td.c{text-align:center}.t.perm th{font-size:12px}
@@ -521,7 +523,7 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 <div class="shell" id="shell">
 <aside class="sidenav" id="side" aria-label="Menu principal">
   <div class="side-top">
-    <div class="brand"><span class="logo-plate"><img src="logo-lsfire.png" alt="LS Fire — Sistemas de Combate a Incêndio" width="130" height="48"></span><span class="bt">Pricer <small>REV22</small></span></div>
+    <div class="brand"><span class="logo-plate"><img src="logo-lsfire-escuro.png" alt="LS Fire — Sistemas de Combate a Incêndio" width="130" height="48"></span><img id="logoPdf" src="logo-lsfire.png" alt="" hidden><span class="bt">Pricer <small>REV22</small></span></div>
     <button class="iconbtn side-x" id="bSideX" data-ico="x" aria-label="Fechar o menu"></button>
   </div>
   <nav class="nav" id="nav" aria-label="Seções">

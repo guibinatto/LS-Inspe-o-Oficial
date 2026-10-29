@@ -1123,7 +1123,12 @@
   // ---------- jornada da proposta SEQ em 6 etapas ----------
   const ETAPAS_P = [[1, 'Identificação'], [2, 'Configuração'], [3, 'Custos'], [4, 'Formação'], [5, 'Conferência'], [6, 'Emissão']];
   // parâmetros de custos (Custos): validade das cotações e variação de preço que pede atenção
-  const custosCfg = () => Object.assign({ validadeDias: 90, avisoDias: 15, variacaoPct: 0.15, bloquearEnvio: true, congelarRascunho: false }, ((REG.tabelas || {}).CUSTOS_CFG || {}).cfg || {});
+  const custosCfg = () => Object.assign({ validadeDias: 30, avisoDias: 5, variacaoPct: 0.15, bloquearEnvio: true, congelarRascunho: false }, ((REG.tabelas || {}).CUSTOS_CFG || {}).cfg || {});
+  // data da última atualização do preço: a mais recente entre a data da cotação e a data em que o preço mudou no cadastro
+  // (registros antigos, sem precoEm, usam a data da última gravação)
+  function precoRef(i) { if (!i) return null; const a = (i.precoEm ? Date.parse(i.precoEm) : Date.parse(i.upd || '')) || 0, b = i.dataCot ? Date.parse(i.dataCot + 'T12:00') || 0 : 0; return Math.max(a, b) || null; }
+  const idadePreco = (i) => { const r = precoRef(i); return r ? (Date.now() - r) / 864e5 : null; };
+  const precoVencido = (i) => { const d = idadePreco(i); return typeof i.valor === 'number' && d !== null && d > custosCfg().validadeDias; };
   const insPorProduto = (() => { let m = null, v = null; return (d) => { if (v !== REG.insumos) { m = new Map(REG.insumos.map((i) => [i.produto, i])); v = REG.insumos; } return m.get(d) || null; }; })();
   function variacaoPreco(ins) {
     for (const h of REG.historico || []) { if (h.ref !== ins.id && h.ref !== 'import' && !/^L/.test(String(h.ref))) continue;
@@ -1139,15 +1144,15 @@
         if (['startup', 'frete'].includes(l.k)) continue;
         const ins = l.desc ? insPorProduto(l.desc) : null; const r = /^[me]\d+$/.test(l.k) ? +l.k.slice(1) : null;
         const manual = r && state.doc && state.doc[S] && state.doc[S]['G' + r] !== undefined;
-        const dq = ins && (ins.dataCot || ins.upd); const upd = dq ? Date.parse(dq) : null; const idade = upd ? (hoje - upd) / 864e5 : null;
+        const upd = precoRef(ins); const idade = upd ? (hoje - upd) / 864e5 : null;
         const al = [];
         const principal = /MOTOR|BOMBA|JOCKEY/.test(String(l.grupo || '') + ' ' + String(l.fam || '')) && !/ACOPLAMENTO|CAPA/.test(String(l.fam || ''));
         if (l.desc && !(l.custo > 0)) al.push(principal ? ['imped', 'componente principal sem preço'] : ['aviso', 'item sem custo']);
         else if (l.desc && l.unit === 0 && l.qtd) al.push(['aviso', 'custo unitário zerado']);
         if (l.qtd === 0 && l.custo > 0) al.push(['aviso', 'quantidade zero com custo']);
         if (l.qtd && l.unit && Math.abs(l.unit * l.qtd - l.custo) > Math.max(1, l.custo * 0.01)) al.push(['aviso', 'quantidade × unitário não fecha com o total']);
-        if (!manual && ins && idade !== null) { if (idade > C.validadeDias) al.push(['aviso', 'cotação vencida (' + Math.round(idade) + ' dias)']); else if (idade > C.validadeDias - C.avisoDias) al.push(['info', 'cotação vence em ' + Math.round(C.validadeDias - idade) + ' dias']); }
-        if (!manual && ins && !ins.upd && !ins.dataCot) al.push(['info', 'preço da planilha original, sem data de cotação']);
+        if (!manual && ins && idade !== null) { if (idade > C.validadeDias) al.push(['aviso', 'preço vencido (' + Math.round(idade) + ' dias sem atualizar)']); else if (idade > C.validadeDias - C.avisoDias) al.push(['info', 'preço vence em ' + Math.round(C.validadeDias - idade) + ' dias']); }
+        if (!manual && ins && !precoRef(ins)) al.push(['info', 'preço da planilha original, sem data de atualização']);
         if (ins && foraDeUso(ins)) al.push(['aviso', 'insumo ' + situ(ins) + (ins.substituto ? ' — substituto: ' + ins.substituto : '')]);
         else if (ins && ['provisorio', 'validacao', 'preco'].includes(situ(ins))) al.push(['aviso', 'cadastro ' + (SITUACOES.find((x) => x[0] === situ(ins)) || [0, ''])[1].toLowerCase()]);
         const vp = ins && variacaoPreco(ins); if (vp && Math.abs(vp.pct) >= C.variacaoPct) al.push(['aviso', 'preço mudou ' + (vp.pct > 0 ? '+' : '') + pct(vp.pct, 0) + ' em ' + new Date(vp.at).toLocaleDateString('pt-BR')]);
@@ -1161,6 +1166,18 @@
   function vCustos() {
     return precosCard() + vCustos0();
   }
+  // aviso de preço vencido na proposta (atualização mensal), com atalho para o cadastro; propostas com preços da época não usam o cadastro de hoje
+  function vencidosBanner() {
+    if (state.precosFix) return '';
+    let L; try { L = linhasCusto(); } catch (e) { return ''; }
+    const C = custosCfg(); const m = new Map(); for (const x of L) if (!x.manual && x.ins && !x.na && precoVencido(x.ins)) m.set(x.ins.id, x.ins);
+    if (!m.size) return '';
+    const lista = [...m.values()].sort((a, b) => (precoRef(a) || 0) - (precoRef(b) || 0));
+    const nomes = lista.slice(0, 4).map((i) => `${esc(i.produto)} <small class="sub">(${new Date(precoRef(i)).toLocaleDateString('pt-BR')})</small>`).join('; ');
+    return `<div class="banner warn" style="margin:0 0 12px"><b>${m.size} insumo(s) desta proposta com preço vencido</b> — mais de ${C.validadeDias} dias sem atualizar no cadastro: ${nomes}${lista.length > 4 ? '; …' : ''}.
+      <button class="btn sm pri" data-irvenc="${esc(lista.map((i) => i.id).join(','))}">Atualizar no cadastro</button></div>`;
+  }
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-irvenc]'); if (!b) return; ui.insIds = b.dataset.irvenc.split(',').filter(Boolean); ui.insSit = ''; ui.insQ = ''; ui.insFam = ''; ui.cad = 'insumos'; setView('cadastro'); });
   function vCustos0() {
     const L = linhasCusto(); const C = custosCfg(); const sev = { imped: 0, aviso: 0, info: 0 }; for (const x of L) for (const [s] of x.al) sev[s]++;
     const filtro = ui.custoFiltro || 'alertas';
@@ -1193,7 +1210,7 @@
   function vCustosCfg() {
     const C = custosCfg(); const ed = canEd();
     const f = (k, lb, suf, d) => `<div class="f"><label for="cc_${k}">${lb}</label><div class="mbc"><input id="cc_${k}" data-ccfg="${k}" value="${esc(k === 'variacaoPct' ? NF[0].format(C[k] * 100) : C[k])}" inputmode="decimal"${ed ? '' : ' disabled'}><span class="sub">${suf}</span></div><small class="sub">${d}</small></div>`;
-    return `<section class="card"><h2>Validade das cotações e alertas de custo</h2><div class="fields">${f('validadeDias', 'Validade da cotação', 'dias', 'depois disso a linha aparece como cotação vencida')}${f('avisoDias', 'Avisar antes de vencer', 'dias', 'informa que a cotação está perto de vencer')}${f('variacaoPct', 'Variação de preço que pede atenção', '%', 'mudança do preço do insumo desde a última referência')}
+    return `<section class="card"><h2>Validade dos preços e alertas de custo <span class="sub">atualização de preços mensal: padrão de 30 dias</span></h2><div class="fields">${f('validadeDias', 'Validade do preço', 'dias', 'depois disso o insumo aparece como preço vencido no cadastro e a proposta avisa (Custos e Formação)')}${f('avisoDias', 'Avisar antes de vencer', 'dias', 'informa que o preço está perto de vencer')}${f('variacaoPct', 'Variação de preço que pede atenção', '%', 'mudança do preço do insumo desde a última referência')}
       <div class="f span2"><label>Política de envio</label><label class="chk"><input type="checkbox" data-ccfg="bloquearEnvio"${C.bloquearEnvio ? ' checked' : ''}${ed ? '' : ' disabled'}> Travar "Enviar ao cliente" quando a conferência tiver itens que impedem seguir</label></div>
       <div class="f span2"><label>Preços da época</label><label class="chk"><input type="checkbox" data-ccfg="congelarRascunho"${C.congelarRascunho ? ' checked' : ''}${ed ? '' : ' disabled'}> Rascunhos também ficam com os preços de quando foram salvos</label><small class="sub">Propostas enviadas, aprovadas e ganhas sempre ficam com os preços da época; a atualização é escolhida item a item.</small></div></div>
       <p class="sub" style="margin:8px 0 0">${ed ? 'Alterações ficam no histórico.' : 'Só quem cuida de Custos altera.'}</p></section>`;
@@ -1477,11 +1494,11 @@
         ${vModelosItem()}
         ${nav(1, 3)}`;
     } else if (step === 3) {
-      body = vCustos() + nav(2, 4);
+      body = vencidosBanner() + vCustos() + nav(2, 4);
     } else if (step === 4) {
       const rows = items.filter((x) => filled(x.s)).map((x) => { const S = x.s; return `<tr><td><button class="btn sm" data-goitem="${x.i}">${S.slice(5)}</button></td><td style="min-width:240px">${esc(txt(S, 'C28'))}</td><td class="n">${show(S, 'P17')}</td><td class="n">${brl(val(S, 'B15'))}</td><td class="n"><b>${brl(val(S, 'D15'))}</b></td><td class="n">${pct(val(S, 'J15'))}</td><td>${situPill(txt(S, 'P84'))} ${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? situPill('MARGEM ABAIXO DO MÍNIMO') : ''}</td></tr>`; }).join('');
       const sn = (() => { try { return seqSnapshot(); } catch (e) { return null; } })();
-      body = `<div class="kpis">
+      body = vencidosBanner() + `<div class="kpis">
           <div class="kpi lead"><span>Preço total (com IPI)</span><b>${brl(val(P, 'B16'))}</b></div>
           <div class="kpi"><span>Custo total</span><b>${brl(val(P, 'G16'))}</b><em>${sn && sn.custo ? 'markup ' + NF[2].format(sn.venda / sn.custo) + 'x' : ''}</em></div>
           <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
@@ -1746,7 +1763,7 @@
   // data da última atualização do preço do insumo (cadastro; ou a data escrita nas observações)
   function precoData(prod) {
     const i = prod && REG.insumos.find((x) => x.produto === prod); if (!i) return null;
-    let d = i.dataCot ? new Date(i.dataCot + 'T12:00') : i.upd ? new Date(i.upd) : null;
+    let d = precoRef(i) ? new Date(precoRef(i)) : null;
     if (!d || isNaN(d)) { const m = String(i.obs || '').match(/(\d{2})\/(\d{2})\/(\d{4})(?!.*\d{2}\/\d{2}\/\d{4})/); if (m) d = new Date(+m[3], +m[2] - 1, +m[1]); }
     return d && !isNaN(d) ? d : null;
   }
@@ -1868,38 +1885,50 @@
   const favs = () => { try { return new Set(JSON.parse(localStorage.getItem(favKey()) || '[]')); } catch (e) { return new Set(); } };
   function favToggle(id) { const f = favs(); if (f.has(id)) f.delete(id); else f.add(id); try { localStorage.setItem(favKey(), JSON.stringify([...f])); } catch (e) { toast('O navegador não deixou guardar o favorito'); } }
   const selIns = new Set();
+  // coluna "Preço atualizado em": data e selo de vencido / vence em breve / sem data
+  function dataPrecoHtml(x, C) {
+    if (typeof x.valor !== 'number') return '<span class="sub">—</span>';
+    const r = precoRef(x); if (!r) return '<span class="pill mute" title="preço da planilha original, sem data de atualização">sem data</span>';
+    const d = (Date.now() - r) / 864e5; const dt = new Date(r).toLocaleDateString('pt-BR');
+    return `${dt}${d > C.validadeDias ? ` <span class="pill warn" title="mais de ${C.validadeDias} dias sem atualizar">vencido · ${Math.round(d)} d</span>` : d > C.validadeDias - C.avisoDias ? ` <span class="pill mute">vence em ${Math.max(0, Math.round(C.validadeDias - d))} d</span>` : ''}`;
+  }
   function vInsumos() {
     const fam = ui.insFam || ''; const fab = ui.insFab || ''; const sit = ui.insSit || ''; const sem = !!ui.insSem; const soFav = !!ui.insFav; const ord = ui.insOrd || 'codigo';
     const all = H.sortIns(REG.insumos); const cfg = famCfg(); const F = favs(); const C = custosCfg();
     const semPreco = all.filter((x) => typeof x.valor !== 'number');
     const grupos = FAMS_F.termos(ui.insQ || '', sinonimos());
     const pend = (x) => { const L = []; if (typeof x.valor !== 'number') L.push(['sem preço', 'warn']); const m = FAMS_F.checar(x.fam, x.produto, cfg); if (m && !x.excecao) L.push(['fora do padrão', 'warn']);
-      const dq = x.dataCot || x.upd; if (dq && (Date.now() - Date.parse(dq)) / 864e5 > C.validadeDias) L.push(['cotação vencida', 'warn']); return L; };
+      if (precoVencido(x)) L.push(['preço vencido', 'warn']); return L; };
+    const ids = ui.insIds && ui.insIds.length ? new Set(ui.insIds) : null;
     let list = all.filter((x) => (!fam || x.fam === fam) && (!fab || (x.fab || '') === fab) && (!sem || typeof x.valor !== 'number') && (!soFav || F.has(x.id))
-      && (!sit || (sit === 'pend' ? pend(x).length || situ(x) !== 'ativo' : situ(x) === sit))
+      && (!sit || (sit === 'pend' ? pend(x).length || situ(x) !== 'ativo' : sit === 'vencido' ? precoVencido(x) : sit === 'semdata' ? typeof x.valor === 'number' && !precoRef(x) : situ(x) === sit)) && (!ids || ids.has(x.id))
       && (!grupos.length || FAMS_F.casa([x.id, x.produto, x.fab, x.tipo, x.obs, x.fam, x.codFab, x.descCom, x.descFab, Object.values(x.caract || {}).join(' ')].join(' '), grupos)));
-    const cmp = { codigo: () => 0, produto: (a, b) => a.produto.localeCompare(b.produto), valor: (a, b) => (b.valor ?? -1) - (a.valor ?? -1), upd: (a, b) => String(b.dataCot || b.upd || '').localeCompare(String(a.dataCot || a.upd || '')) }[ord] || (() => 0);
+    const cmp = { codigo: () => 0, produto: (a, b) => a.produto.localeCompare(b.produto), valor: (a, b) => (b.valor ?? -1) - (a.valor ?? -1), upd: (a, b) => (precoRef(a) || 0) - (precoRef(b) || 0) }[ord] || (() => 0);
     list = list.slice().sort((a, b) => (F.has(b.id) - F.has(a.id)) || cmp(a, b));
     const shown = list.slice(0, 400); const ed = canEd();
     const last = all.reduce((m, x) => (x.upd && x.upd > (m.upd || '') ? x : m), {});
     const th = (k, lb) => `<th><button class="thsort${ord === k ? ' on' : ''}" data-insord="${k}">${lb}${ord === k ? ' ▾' : ''}</button></th>`;
     const rows = shown.map((x) => `<tr class="click" data-ins="${esc(x.id)}">${ed ? `<td class="in"><input type="checkbox" data-inssel="${esc(x.id)}"${selIns.has(x.id) ? ' checked' : ''} aria-label="Selecionar ${esc(x.id)}"></td>` : ''}<td><button class="star${F.has(x.id) ? ' on' : ''}" data-insfav="${esc(x.id)}" aria-label="${F.has(x.id) ? 'Tirar dos favoritos' : 'Favoritar'}">${F.has(x.id) ? '★' : '☆'}</button></td><td class="code">${esc(x.id)}</td><td>${esc(x.fam)}</td>
       <td style="min-width:280px">${esc(x.produto)} ${situPillIns(x)} ${pend(x).filter((p) => p[0] !== 'sem preço').map(([t, c]) => `<span class="pill ${c}">${t}</span>`).join(' ')}</td><td>${esc(x.fab || '')}</td><td>${esc(x.tipo || '')}</td>
-      <td class="n">${typeof x.valor === 'number' ? brl(x.valor) : '<span class="pill warn">sem preço</span>'}</td><td>${esc(x.origem || '')}</td><td class="sub">${x.dataCot ? esc(new Date(x.dataCot + 'T12:00').toLocaleDateString('pt-BR')) : x.upd ? esc(new Date(x.upd).toLocaleDateString('pt-BR')) : '—'}</td></tr>`).join('');
+      <td class="n">${typeof x.valor === 'number' ? brl(x.valor) : '<span class="pill warn">sem preço</span>'}</td><td>${esc(x.origem || '')}</td><td>${dataPrecoHtml(x, C)}</td></tr>`).join('');
+    const semData = all.filter((x) => typeof x.valor === 'number' && !precoRef(x)); const vencidos = all.filter((x) => precoVencido(x)); const UI = vencidos.length ? usoIndex() : null; const vUso = vencidos.filter((x) => UI.de(x).length);
     const fams = famList(); const fabs = [...new Set(all.map((x) => x.fab).filter(Boolean))].sort();
     for (const id of [...selIns]) if (!REG.insumos.some((x) => x.id === id)) selIns.delete(id);
     return `<div class="kpis">
         <div class="kpi"><span>Insumos</span><b>${NF[0].format(all.length)}</b><em>limite da planilha: ${H.LIMITS.insumos}</em></div>
         <div class="kpi"><span>Famílias</span><b>${fams.length}</b></div>
         <div class="kpi"><span>Sem preço</span><b class="${semPreco.length ? 'bad-t' : ''}">${semPreco.length}</b><em>puxam custo zero na proposta</em></div>
+        <div class="kpi"><span>Preço vencido</span><b class="${vencidos.length ? 'warn-t' : 'ok-t'}">${vencidos.length}</b><em>mais de ${C.validadeDias} dias sem atualizar${vUso.length ? ' · ' + vUso.length + ' em uso' : ''}${semData.length ? ` · <button class="linkbtn" data-inssemdata>${semData.length} sem data</button>` : ''}</em></div>
         <div class="kpi"><span>Última alteração</span><b style="font-size:18px">${last.upd ? fmtAt(last.upd) : '—'}</b><em>${last.upd ? esc(last.produto || '') : 'valores da planilha REV21'}</em></div>
       </div>
+      ${vencidos.length && sit !== 'vencido' ? `<div class="banner warn" style="margin:0"><b>${vencidos.length} insumo(s) com preço vencido</b> — a atualização de preços é mensal (${C.validadeDias} dias)${vUso.length ? `; ${vUso.length} estão em uso em estruturas, kits ou propostas` : ''}. <button class="btn sm" data-insvenc>Ver os vencidos</button></div>` : ''}
+      ${ids ? `<div class="banner info" style="margin:0">Mostrando só os ${ids.size} insumo(s) vindos da proposta. <button class="btn sm" data-insids>Mostrar todos</button></div>` : ''}
       <section class="card">
         <div class="sheetbar">
           <input id="insQ" type="search" placeholder="Buscar código, fabricante, modelo, característica… (aceita sinônimos)" value="${esc(ui.insQ || '')}" aria-label="Buscar insumo" style="flex:1 1 260px">
           <select id="insFam" aria-label="Família"><option value="">Todas as famílias</option>${fams.map((f) => `<option${f === fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select>
           <select id="insFab" aria-label="Fabricante"><option value="">Todos os fabricantes</option>${fabs.map((f) => `<option${f === fab ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select>
-          <select id="insSit" aria-label="Situação"><option value="">Toda situação</option><option value="pend"${sit === 'pend' ? ' selected' : ''}>Com pendência</option>${SITUACOES.map(([k, lb]) => `<option value="${k}"${sit === k ? ' selected' : ''}>${esc(lb)}</option>`).join('')}</select>
+          <select id="insSit" aria-label="Situação"><option value="">Toda situação</option><option value="pend"${sit === 'pend' ? ' selected' : ''}>Com pendência</option><option value="vencido"${sit === 'vencido' ? ' selected' : ''}>Preço vencido (mais de ${C.validadeDias} dias)</option><option value="semdata"${sit === 'semdata' ? ' selected' : ''}>Preço sem data de atualização</option>${SITUACOES.map(([k, lb]) => `<option value="${k}"${sit === k ? ' selected' : ''}>${esc(lb)}</option>`).join('')}</select>
           <label class="chk"><input type="checkbox" id="insSem"${sem ? ' checked' : ''}> Só sem preço</label>
           <label class="chk"><input type="checkbox" id="insFavF"${soFav ? ' checked' : ''}> ★ Favoritos</label>
           <span style="flex:1"></span>
@@ -1907,7 +1936,7 @@
           ${ed ? `<button class="btn sm" id="insLote"${selIns.size ? '' : ' disabled'}>Edição em massa (${selIns.size})</button><button class="btn sm pri" id="insNew">+ Novo insumo</button>` : ''}
         </div>
         <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + '; refine a busca' : ''}. Clique numa linha para ver ou editar.${ed ? ' Marque as caixas para a edição em massa.' : ''}</p>
-        <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr>${ed ? `<th><input type="checkbox" id="insSelAll" aria-label="Marcar os visíveis"></th>` : ''}<th></th>${th('codigo', 'Código')}<th>Família</th>${th('produto', 'Produto')}<th>Fabricante</th><th>Tipo/config.</th>${th('valor', 'Valor')}<th>Origem</th>${th('upd', 'Cotação')}</tr></thead><tbody>${rows || `<tr><td colspan="${ed ? 10 : 9}" class="sub">Nenhum insumo com esse filtro.</td></tr>`}</tbody></table></div>
+        <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr>${ed ? `<th><input type="checkbox" id="insSelAll" aria-label="Marcar os visíveis"></th>` : ''}<th></th>${th('codigo', 'Código')}<th>Família</th>${th('produto', 'Produto')}<th>Fabricante</th><th>Tipo/config.</th>${th('valor', 'Valor')}<th>Origem</th>${th('upd', 'Preço atualizado em')}</tr></thead><tbody>${rows || `<tr><td colspan="${ed ? 10 : 9}" class="sub">Nenhum insumo com esse filtro.</td></tr>`}</tbody></table></div>
       </section>`;
   }
   // edição em massa: escolhe o campo, vê a prévia e o impacto, confirma; fica no histórico e pode ser desfeita
@@ -1941,6 +1970,9 @@
   document.addEventListener('click', (e) => {
     const fv = e.target.closest('[data-insfav]'); if (fv) { e.stopPropagation(); favToggle(fv.dataset.insfav); render(); return; }
     const so = e.target.closest('[data-insord]'); if (so) { ui.insOrd = so.dataset.insord; render(); return; }
+    if (e.target.closest('[data-inssemdata]')) { ui.insSit = 'semdata'; render(); return; }
+    if (e.target.closest('[data-insvenc]')) { ui.insSit = 'vencido'; ui.insOrd = 'upd'; render(); return; }
+    if (e.target.closest('[data-insids]')) { ui.insIds = null; render(); return; }
     if (e.target.closest('#insLote')) { loteModal(); return; }
     const dz = e.target.closest('[data-desfaz]'); if (dz) { const h = REG.historico.find((x) => x.at === dz.dataset.desfaz && String(x.ref) === dz.dataset.ref); if (!h) return;
       if (!dz.dataset.sure) { dz.dataset.sure = 1; dz.textContent = 'confirmar: desfazer este lote'; return; }
@@ -2506,14 +2538,22 @@
   });
   // logo da empresa: enviado pelo app, vale no topo e nos PDFs
   const logoAtual = () => ((REG.tabelas || {}).MARCA || {}).logo || '';
-  function aplicaLogo() { const img = document.querySelector('.logo-plate img'); const lg = logoAtual(); if (img && lg && img.getAttribute('src') !== lg) img.setAttribute('src', lg); }
+  // o menu usa a versão para fundo escuro; os PDFs usam o logo original (#logoPdf). Logo próprio da empresa vale nos dois, no menu sobre fundo branco
+  const LOGO_ORIG = { side: (document.querySelector('.sidenav .logo-plate img') || {}).getAttribute?.('src'), pdf: (document.getElementById('logoPdf') || {}).getAttribute?.('src') };
+  function aplicaLogo() {
+    const img = document.querySelector('.sidenav .logo-plate img'), pdf = document.getElementById('logoPdf'); const lg = logoAtual();
+    const quer = { side: lg || LOGO_ORIG.side, pdf: lg || LOGO_ORIG.pdf };
+    if (img && quer.side && img.getAttribute('src') !== quer.side) img.setAttribute('src', quer.side);
+    if (pdf && quer.pdf && pdf.getAttribute('src') !== quer.pdf) pdf.setAttribute('src', quer.pdf);
+    const pl = document.querySelector('.sidenav .logo-plate'); if (pl) pl.classList.toggle('custom', !!lg);
+  }
   function logoCard() {
     const ed = REG.areaOk('sistema');
     return `<section class="card"><h2>Logo <span class="sub">topo do app, memorial e PDFs</span></h2>
-      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="logo-plate" style="border:1px solid var(--line)"><img src="${esc(logoAtual() || (document.querySelector('.logo-plate img') || {}).src || '')}" alt="Logo atual" style="height:44px"></span>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="logo-plate custom" style="border:1px solid var(--line)"><img src="${esc(logoAtual() || (document.getElementById('logoPdf') || {}).src || '')}" alt="Logo atual" style="height:44px"></span>
       ${ed ? '<label class="btn pri" for="logoUp">Trocar logo (PNG, JPG ou SVG)</label><input type="file" id="logoUp" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden>' + (logoAtual() ? ' <button class="btn" data-logoreset>Voltar ao original</button>' : '') : '<span class="sub">Só quem cuida de Sistema troca o logo.</span>'}</div></section>`;
   }
-  async function salvaLogo(dataUrl, desc) { try { await REG.setTable('MARCA', dataUrl ? { logo: dataUrl } : {}, desc, []); if (!dataUrl) { const img = document.querySelector('.logo-plate img'); if (img) img.setAttribute('src', 'logo-lsfire.png'); } render(); toast(dataUrl ? 'Logo trocado' : 'Logo original'); } catch (e) { toast(errMsg(e)); } }
+  async function salvaLogo(dataUrl, desc) { try { await REG.setTable('MARCA', dataUrl ? { logo: dataUrl } : {}, desc, []); render(); toast(dataUrl ? 'Logo trocado' : 'Logo original'); } catch (e) { toast(errMsg(e)); } }
   document.addEventListener('change', (e) => {
     if (e.target.id !== 'logoUp') return; const f = e.target.files[0]; e.target.value = ''; if (!f) return;
     const rd = new FileReader();
@@ -2948,7 +2988,7 @@
       if (!i.fam) add('imped', 'Sem família', '', i.id + ' ' + i.produto, go);
       if (!i.fab && FAMS_F.PADRAO[H.famCode(i.fam)]) add('aviso', 'Sem fabricante', i.fam, i.id + ' ' + i.produto, go);
       if (typeof i.valor !== 'number') add(emUso ? 'imped' : 'aviso', 'Sem preço', i.fam, i.id + ' ' + i.produto + (emUso ? ' — em uso: ' + usos.join(', ') : ''), go);
-      const dq = i.dataCot || i.upd; if (typeof i.valor === 'number' && dq && (Date.now() - Date.parse(dq)) / 864e5 > C.validadeDias && emUso) add('aviso', 'Preço desatualizado', i.fam, i.id + ' ' + i.produto + ' — cotação de ' + new Date(dq).toLocaleDateString('pt-BR'), go);
+      if (precoVencido(i) && emUso) add('aviso', 'Preço desatualizado', i.fam, i.id + ' ' + i.produto + ' — preço atualizado em ' + new Date(precoRef(i)).toLocaleDateString('pt-BR'), go);
       const m = FAMS_F.checar(i.fam, i.produto, cfg); if (m && !i.excecao) add('aviso', 'Descrição fora do padrão', i.fam, i.id + ' ' + i.produto + ' — ' + m, go);
       const p = FAMS_F.padraoDe(i.fam, cfg); if (p && p.modelo && !m) { const falta = FAMS_F.faltando(p, Object.assign({}, FAMS_F.lerP(p, i.produto), i.caract || {})); if (falta.length) add('info', 'Características obrigatórias ausentes', i.fam, i.id + ' ' + i.produto + ' — falta: ' + falta.join(', '), go); }
       if (foraDeUso(i) && (usos.includes('estrutura') || usos.includes('tabela por porte'))) add('imped', 'Descontinuado ainda utilizado', i.fam, i.id + ' ' + i.produto + ' — ' + usos.join(', ') + (i.substituto ? ' · substituto ' + i.substituto : ' · sem substituto'), go);

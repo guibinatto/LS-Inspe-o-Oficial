@@ -45,7 +45,7 @@ module.exports = {
     ], resultado: 'O impacto mostra "60 de 72 modelo(s) pronto(s) mudam" e o CMB DIESEL 1500 USgpm de R$ 316.071,95 para R$ 314.367,95. Depois de descartar, a estrutura publicada fica como estava.', criterio: 'Nada foi publicado: o Testador de estruturas, com o modelo "CMB DIESEL 1500 USgpm — 2 BOMBAS (PTC 10.116)", continua mostrando R$ 316.071,95.', atencao: 'Não clique em **Publicar** no exercício. As tabelas por porte gravam direto, mesmo em rascunho: não as altere no treinamento.' }),
     E({ titulo: 'Elaborar uma proposta SPV', objetivo: 'Montar um serviço em campo e ver o efeito do deslocamento e do multiplicador no preço.', quem: 'Qualquer participante.', pre: ['Modo local.'], passos: [
       'Na tela **Início**, clique em **Serviço em campo**.',
-      'Digite 300 em **Distância (só ida)**.',
+      'Digite 300 em **Distância até o local (só ida, km)**.',
       'Mude o **Multiplicador** para 2.',
       'Clique em **aplicar** no aviso de lucro.',
     ], resultado: 'Ao abrir: Preço R$ 9.885,00 e Lucro líquido 50,7%. Com 300 km: custo da prestação R$ 4.915,00 e preço R$ 14.745,00. Com multiplicador 2: aviso de lucro líquido de 34,1%, abaixo do mínimo de 40%, com o botão "aplicar 2,28".', criterio: 'Depois de aplicar, o selo de lucro deixa de mostrar "abaixo de 40%".' }),

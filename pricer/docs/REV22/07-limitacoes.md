@@ -47,3 +47,10 @@
 - Os ícones são embutidos (sem internet); as fontes Barlow vêm do Google Fonts. Sem internet, o app usa Arial, com a mesma disposição.
 - O preenchimento inteligente sugere apenas valores que já existem nas propostas e no cadastro **deste banco** (no modo local, deste navegador). Não há base externa de clientes.
 - As capturas do manual foram feitas no modo local. No modo compartilhado aparecem, além do que está nas capturas, nomes de pessoas e selos de permissão.
+- **Composição dos itens não fica congelada**: os preços da época congelam os preços, não a estrutura. Uma proposta enviada que monta pela estrutura, reaberta depois de uma mudança publicada, passa a usar a estrutura nova (a janela de publicação avisa). Congelar a composição exige guardar os componentes na proposta: fica para uma próxima revisão.
+- **Tabelas por porte gravam direto**, mesmo com "editar em rascunho" marcado.
+- **Margem em duas bases** no menu Margens: cartões e gráficos por divisão, família e item dividem pela venda sem IPI; proposta, tabela Fechadas e painel da tela Início dividem pela receita líquida. Não foi mudado porque é uma decisão de indicador (qual base a Diretoria quer ver).
+- **Margem e custo do item entre telas**: nas abas Itens e Formação, sem o start-up; no Memorial, com o start-up (vem da planilha REV21).
+- **Busca com sinônimos**: grafias com espaço e sinônimos muito curtos podem trazer itens sem relação.
+- **Três definições do padrão de descrição** (familias.js, texto da tela de Padronização e montagem do pedido de cadastro) não são idênticas em todas as famílias.
+- **Exclusão de insumo é definitiva** (não há lixeira de insumos).

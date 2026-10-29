@@ -6,7 +6,7 @@
   "titulo": "Lista de insumos com busca, filtros, favorito e ordenação",
   "vp": "desktop",
   "arquivo": "07-01-cadastro-insumos-lista.png",
-  "data": "2026-10-29T04:54:27.583Z",
+  "data": "2026-10-29T11:31:14.009Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -67,7 +67,7 @@
   "titulo": "Ficha guiada de um novo insumo: identificação e características técnicas",
   "vp": "desktop",
   "arquivo": "07-02-cadastro-ficha-identificacao.png",
-  "data": "2026-10-29T04:54:32.329Z",
+  "data": "2026-10-29T11:31:18.776Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -128,7 +128,7 @@
   "titulo": "Descrições do insumo e aviso de itens parecidos",
   "vp": "desktop",
   "arquivo": "07-03-cadastro-ficha-descricoes.png",
-  "data": "2026-10-29T04:54:36.788Z",
+  "data": "2026-10-29T11:31:23.202Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -183,7 +183,7 @@
   "titulo": "Fornecedores e cotações, com o custo total, e equivalentes",
   "vp": "desktop",
   "arquivo": "07-04-cadastro-ficha-fornecedores.png",
-  "data": "2026-10-29T04:54:38.971Z",
+  "data": "2026-10-29T11:31:25.414Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -244,7 +244,7 @@
   "titulo": "Mudança de preço: aviso e impacto na margem das propostas",
   "vp": "desktop",
   "arquivo": "07-05-cadastro-ficha-impacto-preco.png",
-  "data": "2026-10-29T04:54:48.646Z",
+  "data": "2026-10-29T11:31:35.209Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -262,7 +262,7 @@
    },
    {
     "n": 3,
-    "txt": "Data da cotação: conta para \"cotação vencida\".",
+    "txt": "Data da cotação: conta para a data do preço (vale a mais recente entre esta data e a da última mudança de preço).",
     "sel": "#fDataCot",
     "ok": true
    },
@@ -293,7 +293,7 @@
   "titulo": "Final da ficha: onde é usado e históricos",
   "vp": "desktop",
   "arquivo": "07-06-cadastro-ficha-onde-usado.png",
-  "data": "2026-10-29T04:54:55.333Z",
+  "data": "2026-10-29T11:31:41.878Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -336,7 +336,7 @@
   "titulo": "Renomear um insumo usado em estrutura: o app mostra o impacto antes",
   "vp": "desktop",
   "arquivo": "07-07-cadastro-renomear.png",
-  "data": "2026-10-29T04:54:57.699Z",
+  "data": "2026-10-29T11:31:44.237Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -373,7 +373,7 @@
   "titulo": "Edição em massa: campo, novo valor e prévia",
   "vp": "desktop",
   "arquivo": "07-08-cadastro-edicao-massa.png",
-  "data": "2026-10-29T04:55:02.388Z",
+  "data": "2026-10-29T11:31:48.933Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -416,7 +416,7 @@
   "titulo": "Configurações → Histórico: desfazer um lote",
   "vp": "desktop",
   "arquivo": "07-09-cadastro-historico-desfazer.png",
-  "data": "2026-10-29T04:55:06.956Z",
+  "data": "2026-10-29T11:31:53.535Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -465,7 +465,7 @@
   "titulo": "Pedir cadastro de insumo",
   "vp": "desktop",
   "arquivo": "07-10-cadastro-pedir-cadastro.png",
-  "data": "2026-10-29T04:55:11.154Z",
+  "data": "2026-10-29T11:31:57.755Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -526,7 +526,7 @@
   "titulo": "Custos atende o pedido: preço e situação ao cadastrar",
   "vp": "desktop",
   "arquivo": "07-11-cadastro-atender-pedido.png",
-  "data": "2026-10-29T04:55:16.417Z",
+  "data": "2026-10-29T11:32:03.078Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -575,7 +575,7 @@
   "titulo": "Visão geral → Qualidade dos dados",
   "vp": "desktop",
   "arquivo": "07-12-cadastro-qualidade.png",
-  "data": "2026-10-29T04:55:18.016Z",
+  "data": "2026-10-29T11:32:04.655Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -613,6 +613,165 @@
     "n": 6,
     "txt": "Abrir: leva à ficha do insumo para corrigir.",
     "sel": "#app section.card button[data-ins]",
+    "ok": true
+   }
+  ]
+ },
+ "07-13": {
+  "id": "07-13",
+  "cap": 7,
+  "nome": "cadastro-importar-colar",
+  "titulo": "Importar preços: lista de preços colada",
+  "vp": "desktop",
+  "arquivo": "07-13-cadastro-importar-colar.png",
+  "data": "2026-10-29T11:32:12.153Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Escolher arquivo Excel (.xlsx), CSV ou texto.",
+    "sel": "label[for=\"impFile\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Ou cole as colunas copiadas de uma planilha (código ou descrição e preço).",
+    "sel": "#impTxt",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ler o texto colado.",
+    "sel": "#impRead",
+    "ok": true
+   }
+  ]
+ },
+ "07-14": {
+  "id": "07-14",
+  "cap": 7,
+  "nome": "cadastro-importar-conferir",
+  "titulo": "Importar preços: colunas, conferência e aplicação",
+  "vp": "desktop",
+  "arquivo": "07-14-cadastro-importar-conferir.png",
+  "data": "2026-10-29T11:32:14.643Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Coluna que identifica o insumo (código ou descrição).",
+    "sel": "#impId",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Coluna do preço.",
+    "sel": "#impVal",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Primeira linha é cabeçalho.",
+    "sel": "#impHdr",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Quantos preços mudam, iguais, não encontrados e ilegíveis.",
+    "sel": "#app section.card:has(#impReset) .kpis",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Aplicar só os marcados; a importação entra no histórico como uma alteração.",
+    "sel": "#impGo",
+    "ok": true
+   }
+  ]
+ },
+ "07-15": {
+  "id": "07-15",
+  "cap": 7,
+  "nome": "cadastro-validade-alertas",
+  "titulo": "Custos → Validade e alertas",
+  "vp": "desktop",
+  "arquivo": "07-15-cadastro-validade-alertas.png",
+  "data": "2026-10-29T11:32:20.571Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "07-16": {
+  "id": "07-16",
+  "cap": 7,
+  "nome": "cadastro-cambio",
+  "titulo": "Custos → Câmbio e importação (peças importadas da SPV)",
+  "vp": "desktop",
+  "arquivo": "07-16-cadastro-cambio.png",
+  "data": "2026-10-29T11:32:27.673Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "07-17": {
+  "id": "07-17",
+  "cap": 7,
+  "nome": "cadastro-valvulas",
+  "titulo": "Custos → Válvulas de alívio",
+  "vp": "desktop",
+  "arquivo": "07-17-cadastro-valvulas.png",
+  "data": "2026-10-29T11:32:34.686Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "07-18": {
+  "id": "07-18",
+  "cap": 7,
+  "nome": "cadastro-facts-mecon",
+  "titulo": "Custos → FACTS (MECON): lista de preços e custos de importação",
+  "vp": "desktop",
+  "arquivo": "07-18-cadastro-facts-mecon.png",
+  "data": "2026-10-29T11:32:41.860Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "07-19": {
+  "id": "07-19",
+  "cap": 7,
+  "nome": "cadastro-precos-vencidos",
+  "titulo": "Insumos com preço vencido: indicador, aviso, filtro e coluna Preço atualizado em",
+  "vp": "desktop",
+  "arquivo": "07-19-cadastro-precos-vencidos.png",
+  "data": "2026-10-29T11:32:49.097Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Preço vencido: quantos estão há mais de 30 dias sem atualizar, quantos em uso e quantos sem data.",
+    "sel": "#app .kpis .kpi:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Filtro \"Preço vencido (mais de 30 dias)\" (também há \"Preço sem data de atualização\").",
+    "sel": "#insSit",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Coluna Preço atualizado em: clique para ordenar do preço mais antigo ao mais novo.",
+    "sel": "button[data-insord=\"upd\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Selo \"vencido · N d\" na data do preço.",
+    "sel": "tr[data-ins=\"01-1020\"] td:last-child .pill",
     "ok": true
    }
   ]

@@ -178,3 +178,17 @@ module.exports = {
     ['Regra de configuração', 'Regra da Engenharia que confere os itens e gera alerta (impeditivo, atenção ou informativo), sem mudar o preço.'],
   ],
 };
+
+// ---- Codificação ----
+module.exports.capturas.push(
+  { id: '11-09', nome: 'modelos-codificacao', titulo: 'Engenharia → Codificação: padrões e a tabela Configurações de bomba', novo: true,
+    prep: async (p, h) => { await h.nav('cadastro'); await p.click('.areatabs [data-cad="estruturas"]'); await h.esperar(400); await h.cad('codificacao'); await h.topo(); },
+    clip: [['#app section.card', 0], ['#app section.card', 1]], alto: 1100, marcas: [] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Codificação dos equipamentos' },
+  { t: 'p', x: 'Em **Cadastros** → **Engenharia** → **Codificação** ficam os padrões usados para montar o código e a descrição de cada item: **Segmento padrão**, **Marca padrão**, **Tensão do painel quando é diesel** e **Partida do painel quando é diesel**, e as tabelas de siglas — **Configurações de bomba**, **Rotações**, **Normas**, **Tensões do painel**, **Marcas** e **Segmentos da codificação**. Cada tabela tem **Adicionar** e **excluir** por linha. Mais abaixo ficam a **Configuração por modelo de bomba** (uma linha por modelo) e as **Listas do sistema**, só de leitura: as fórmulas comparam estes nomes, por isso não podem ser editadas aqui.' },
+  { t: 'fig', id: '11-09' },
+  { t: 'aviso', x: 'O código gerado tem limite de 60 caracteres no ERP (o item avisa quando passa). Mudar uma sigla muda o código dos itens novos; propostas já enviadas guardam o código que tinham.' },
+  { t: 'nv', x: 'Que propostas enviadas guardam o código anterior depende de a proposta não ser recalculada ao reabrir; não foi testado com uma mudança de sigla.' },
+);

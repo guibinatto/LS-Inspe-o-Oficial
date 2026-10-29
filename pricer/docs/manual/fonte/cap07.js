@@ -105,7 +105,7 @@ module.exports = {
       marcas: [
         { sel: '#fVal', txt: 'Valor (R$): o preço do cadastro, sempre em reais.', pos: 't' },
         { sel: '#fFonte', txt: 'Origem do preço: fornecedor, nº do orçamento.', pos: 't' },
-        { sel: '#fDataCot', txt: 'Data da cotação: conta para "cotação vencida".', pos: 'l' },
+        { sel: '#fDataCot', txt: 'Data da cotação: conta para a data do preço (vale a mais recente entre esta data e a da última mudança de preço).', pos: 'l' },
         { sel: '#fImp .banner', txt: 'Mudança de preço: de → para, variação e onde o insumo é usado.', pos: 'l' },
         { sel: '#fImpCalc', txt: 'Calcula o impacto na margem das propostas salvas, sem gravar nada.', pos: 'b' },
         { sel: '#fImpRes', txt: 'Resultado: tabela com proposta, custo e margem antes → depois, ou o aviso de que nenhuma proposta muda.', pos: 'l' },
@@ -219,10 +219,11 @@ module.exports = {
     { t: 'fig', id: '07-01' },
     { t: 'tab', cab: ['Recurso', 'Como funciona'], lin: [
       ['Busca', 'Procura em código, descrição técnica, fabricante, tipo, observações, família, código do fabricante, descrições comercial e do fabricante e nas características técnicas. Todas as palavras digitadas precisam aparecer. Os **sinônimos** cadastrados ampliam a busca (por exemplo, IPW55 também encontra IP55).'],
-      ['Filtros', '**Todas as famílias**, **Todos os fabricantes**, **Toda situação** (inclui "Com pendência": sem preço, fora do padrão, cotação vencida ou situação diferente de Ativo), **Só sem preço** e **★ Favoritos**.'],
+      ['Filtros', '**Todas as famílias**, **Todos os fabricantes**, **Toda situação** (inclui "Com pendência": sem preço, fora do padrão, preço vencido ou situação diferente de Ativo; "Preço vencido (mais de 30 dias)"; e "Preço sem data de atualização"), **Só sem preço** e **★ Favoritos**.'],
       ['Favoritos', 'A estrela ☆ de cada linha marca o insumo como favorito. Os favoritos ficam no topo da lista. Eles são guardados neste navegador, por pessoa.'],
-      ['Ordenação', 'Clique no título **Código**, **Produto**, **Valor** ou **Cotação**. A coluna ativa mostra ▾.'],
-      ['Selos na linha', 'Situação (quando não é Ativo), **fora do padrão**, **cotação vencida** e, na coluna Valor, **sem preço**.'],
+      ['Ordenação', 'Clique no título **Código**, **Produto**, **Valor** ou **Preço atualizado em** (este, do preço mais antigo para o mais novo). A coluna ativa mostra ▾.'],
+      ['Selos na linha', 'Situação (quando não é Ativo), **fora do padrão**, **preço vencido** e, na coluna Valor, **sem preço**.'],
+      ['Preço atualizado em', 'Data da última atualização do preço (a mais recente entre a data da cotação e a data em que o preço mudou no cadastro), com o selo **vencido · N d** depois de 30 dias, **vence em N d** nos 5 dias antes, ou **sem data** para preços da planilha original.'],
       ['Exportar CSV', 'Baixa a lista completa (código, família, produto, fabricante, tipo, valor, origem, observações).'],
     ] },
     { t: 'tut', titulo: 'Encontrar um insumo', objetivo: 'Localizar rapidamente um item do cadastro para consultar ou editar.', quem: 'Qualquer usuário consulta (inclusive Leitor). No modo local não há controle de acesso.', pre: ['App aberto em **Cadastros** → **Custos** → **Insumos e preços**.'], passos: [
@@ -325,3 +326,82 @@ module.exports = {
     ['Lote', 'Conjunto de alterações gravadas de uma vez (edição em massa, importação, consolidação), que pode ser desfeito pelo histórico.'],
   ],
 };
+
+// ---- Importar preços e demais tabelas da área Custos ----
+const irCustos = async (p, h, aba) => { await h.nav('cadastro'); await p.click('.areatabs [data-cad="insumos"]'); await h.esperar(400); await h.cad(aba); await h.topo(); };
+module.exports.capturas.push(
+  { id: '07-13', nome: 'cadastro-importar-colar', titulo: 'Importar preços: lista de preços colada', novo: true,
+    prep: async (p, h) => { await irCustos(p, h, 'importar'); await p.fill('#impTxt', 'Código\tPreço\n01-1002\t71.500,00\n11-11001\t52.300,00\nBOMBA TREINO FICTICIA 123\t1.000,00'); },
+    clip: '#app section.card:has(#impTxt)', marcas: [
+      { sel: 'label[for="impFile"]', txt: 'Escolher arquivo Excel (.xlsx), CSV ou texto.', pos: 'tr' },
+      { sel: '#impTxt', txt: 'Ou cole as colunas copiadas de uma planilha (código ou descrição e preço).', pos: 'l' },
+      { sel: '#impRead', txt: 'Ler o texto colado.', pos: 'r' },
+    ] },
+  { id: '07-14', nome: 'cadastro-importar-conferir', titulo: 'Importar preços: colunas, conferência e aplicação',
+    prep: async (p, h) => { await h.clicar('#impRead', 700); },
+    clip: ['#app section.card:has(#impId)', '#app section.card:has(#impReset)'], marcas: [
+      { sel: '#impId', txt: 'Coluna que identifica o insumo (código ou descrição).', pos: 'l' },
+      { sel: '#impVal', txt: 'Coluna do preço.', pos: 'b' },
+      { sel: '#impHdr', txt: 'Primeira linha é cabeçalho.', pos: 't' },
+      { sel: '#app section.card:has(#impReset) .kpis', txt: 'Quantos preços mudam, iguais, não encontrados e ilegíveis.', pos: 'l' },
+      { sel: '#impGo', txt: 'Aplicar só os marcados; a importação entra no histórico como uma alteração.', pos: 'b' },
+    ] },
+  { id: '07-15', nome: 'cadastro-validade-alertas', titulo: 'Custos → Validade e alertas', novo: true,
+    prep: async (p, h) => { await irCustos(p, h, 'custoscfg'); },
+    clip: '#app section.card:last-of-type', marcas: [] },
+  { id: '07-16', nome: 'cadastro-cambio', titulo: 'Custos → Câmbio e importação (peças importadas da SPV)', novo: true,
+    prep: async (p, h) => { await irCustos(p, h, 'cambio'); },
+    clip: '#app section.card:last-of-type', marcas: [] },
+  { id: '07-17', nome: 'cadastro-valvulas', titulo: 'Custos → Válvulas de alívio', novo: true,
+    prep: async (p, h) => { await irCustos(p, h, 'valvulas'); },
+    clip: '#app section.card:last-of-type', alto: 1100, marcas: [] },
+  { id: '07-18', nome: 'cadastro-facts-mecon', titulo: 'Custos → FACTS (MECON): lista de preços e custos de importação', novo: true,
+    prep: async (p, h) => { await irCustos(p, h, 'facts'); },
+    clip: [['#app section.card', -2], ['#app section.card', -1]], alto: 1600, marcas: [] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Importar preços em massa' },
+  { t: 'p', x: 'Em **Cadastros** → **Custos** → **Importar preços**, a lista de preços de um fornecedor atualiza vários insumos de uma vez. O sistema aceita Excel (.xlsx), CSV ou colunas copiadas de uma planilha, e precisa de uma coluna com o código do insumo (01-1001) ou a descrição exatamente como está no cadastro, e de uma coluna com o preço.' },
+  { t: 'tut', titulo: 'Importar uma lista de preços', objetivo: 'Atualizar os preços de vários insumos a partir da lista de um fornecedor, conferindo antes de gravar.', quem: 'Editor (no modo compartilhado; responsável pela área Custos, se definida). Sem acesso de Editor, a tela mostra "Importar preços muda o cadastro de todos. Só quem tem acesso de Editor ao app pode fazer."', pre: ['Lista de preços com uma coluna de código ou descrição e uma de preço.'], passos: [
+    { x: 'Clique em **Escolher arquivo**, ou cole as colunas no quadro e clique em **Ler o texto colado**.', fig: '07-13' },
+    { x: 'Em **2. Colunas**, escolha a coluna que identifica o insumo e a **Coluna do preço**; marque **Primeira linha é cabeçalho** se for o caso.', fig: '07-14' },
+    'Em **3. Conferir e aplicar**, confira a tabela: preço atual, novo e variação. Variações acima de 30% ficam em vermelho. Desmarque o que não deve ser gravado.',
+    'Clique em **Aplicar N preço(s)**.',
+  ], resultado: 'Os preços marcados são gravados e a importação inteira entra no histórico como uma alteração (Configurações → Histórico, com **desfazer este lote**).', atencao: 'Descrições não encontradas podem ser cadastradas como provisórias (botão **Conferir e cadastrar N provisório(s)**, em "Ver os N não encontrados"): entram com situação "Provisório" e o preço do arquivo, para validação de Engenharia/Custos. Códigos (01-1234) não encontrados não viram cadastro. O desfazer do lote volta os preços, mas não apaga os provisórios criados.', dica: 'Prefira importar pelo código do insumo: a descrição precisa ser idêntica à do cadastro.' },
+  { t: 'nota', x: 'Na figura, a lista colada é fictícia (a linha "BOMBA TREINO FICTICIA 123" não existe no cadastro e aparece entre os não encontrados). A importação não foi aplicada.' },
+  { t: 'h', x: 'Outras tabelas da área Custos' },
+  { t: 'tab', cab: ['Aba', 'O que guarda', 'Onde é usado'], lin: [
+    ['Validade e alertas', 'Validade do preço (padrão 30 dias: atualização mensal), aviso antes de vencer, variação de preço que pede atenção, política de envio (travar "Enviar ao cliente" com impeditivos) e preços da época dos rascunhos', 'Aba Custos e Conferência das propostas'],
+    ['Câmbio e importação', 'Câmbio do dólar e do euro e fator de importação (frete, impostos e despacho)', 'Peças importadas das propostas SPV'],
+    ['Válvulas de alívio', 'Kits de válvula de alívio: descrição, tipo, marca, válvula, waste cone e custo total', 'Itens SEQ com válvula de alívio'],
+    ['FACTS (MECON)', 'Lista MECON (preço de integrador em EUR), R$ por EUR, IPI dos equipamentos, materiais de instalação, treinamento e engenheiro MECON em campo', 'Propostas FACTS'],
+    ['Fornecedores e fabricantes', 'Cadastro de fornecedores (capítulo 12)', 'Ficha do insumo e documentos'],
+    ['Pedidos de cadastro', 'Fila de pedidos de novos insumos (tutoriais deste capítulo)', 'Itens e SPV'],
+  ] },
+  { t: 'fig', id: '07-15' }, { t: 'fig', id: '07-16' }, { t: 'fig', id: '07-17' }, { t: 'fig', id: '07-18' },
+  { t: 'aviso', x: 'Essas tabelas valem para todas as propostas novas (e para os rascunhos que não estão com preços da época). Alterar câmbio, fator de importação ou validade muda custos e alertas de muita gente: faça só se for o responsável pela área Custos.' },
+);
+
+// ---- Preço vencido: atualização mensal ----
+const venceUm = async (p, h) => { await h.nav('cadastro'); await p.click('.areatabs [data-cad="insumos"]'); await h.esperar(300); await h.cad('insumos'); await p.fill('#insQ', '01-1020'); await h.esperar(500); await h.clicar('tr[data-ins="01-1020"]', 600); await p.fill('#fDataCot', '2026-08-15'); await h.clicar('#fSave', 900); await p.fill('#insQ', ''); await h.esperar(500); };
+module.exports.capturas.push(
+  { id: '07-19', nome: 'cadastro-precos-vencidos', titulo: 'Insumos com preço vencido: indicador, aviso, filtro e coluna Preço atualizado em', novo: true,
+    prep: async (p, h) => { await venceUm(p, h); await h.clicar('[data-insvenc]', 600); await h.topo(); },
+    clip: ['#app .kpis', '#app section.card:has(#insQ)'], alto: 1100, marcas: [
+      { sel: '#app .kpis .kpi:nth-child(4)', txt: 'Preço vencido: quantos estão há mais de 30 dias sem atualizar, quantos em uso e quantos sem data.', pos: 'tl' },
+      { sel: '#insSit', txt: 'Filtro "Preço vencido (mais de 30 dias)" (também há "Preço sem data de atualização").', pos: 'bl' },
+      { sel: 'button[data-insord="upd"]', txt: 'Coluna Preço atualizado em: clique para ordenar do preço mais antigo ao mais novo.', pos: 't' },
+      { sel: 'tr[data-ins="01-1020"] td:last-child .pill', txt: 'Selo "vencido · N d" na data do preço.', pos: 'l' },
+    ] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Atualização mensal dos preços' },
+  { t: 'p', x: 'A atualização de preços dos insumos é **mensal**: depois de 30 dias sem atualizar, o preço fica **vencido**. A data que conta é a **última atualização do preço** — a mais recente entre a **Data da cotação** informada na ficha e a data em que o valor mudou no cadastro (pela ficha, pela edição em massa ou pela importação). Mudar outro campo do insumo (fabricante, descrição, situação) não renova o preço.' },
+  { t: 'tut', titulo: 'Encontrar e atualizar os preços vencidos', objetivo: 'Manter os preços do cadastro com no máximo 30 dias, para as propostas novas saírem com custo atual.', quem: 'Editor (no modo compartilhado; responsável pela área Custos, se definida). No modo local, quem abre o arquivo.', pre: ['Preços atualizados dos fornecedores (lista, cotação ou orçamento).'], passos: [
+    { x: 'Abra **Cadastros** → **Custos** → **Insumos e preços**. O indicador **Preço vencido** e a faixa amarela mostram quantos insumos passaram de 30 dias; clique em **Ver os vencidos**.', fig: '07-19' },
+    'A lista mostra só os vencidos, do preço mais antigo para o mais novo (coluna **Preço atualizado em**, com o selo **vencido · N d**).',
+    'Para poucos itens, clique na linha, informe o novo **Valor** e a **Data da cotação** e clique em **Salvar**. Para muitos, use **Importar preços** (lista do fornecedor) ou a **Edição em massa**.',
+    'Confira se o selo sumiu e se o indicador diminuiu.',
+  ], resultado: 'A coluna Preço atualizado em mostra a data de hoje (ou a data da cotação informada) e o insumo sai do filtro de vencidos. As propostas abertas que usam esse insumo param de mostrar o aviso de preço vencido.', atencao: 'Os preços que vieram da planilha original não têm data e aparecem como **sem data** (filtro "Preço sem data de atualização"). Eles não entram na contagem de vencidos porque a data não é conhecida: atualize-os e eles passam a ter data e a entrar na regra dos 30 dias.', dica: 'Se a proposta mostrar o aviso, o botão **Atualizar no cadastro** abre esta lista já filtrada só com os insumos daquela proposta.' },
+  { t: 'nota', x: 'Na figura, o preço de 01-1020 recebeu a data de cotação fictícia 15/08/2026 só para o exemplo de preço vencido.' },
+);

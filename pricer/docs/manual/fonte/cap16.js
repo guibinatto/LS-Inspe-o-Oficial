@@ -186,7 +186,7 @@ module.exports = {
       { x: 'Confira a prévia: para cada coleção, quantos registros estão no arquivo, quantos são novos, diferentes do atual e iguais. Marque o que restaurar.', fig: '16-07' },
       'Se quiser trocar também os registros diferentes, marque **Substituir também os registros diferentes**. Sem essa marca, o app só acrescenta o que não existe.',
       'Clique em **Restaurar o que está marcado** e confirme.',
-    ], resultado: 'O app mostra "N registro(s) restaurado(s). Recarregando…" e recarrega. O histórico registra "Backup restaurado". Quando uma proposta é substituída, a versão anterior vai para as revisões.', atencao: 'A linha **Cadastro (insumos, kits, tabelas)** só pode ser marcada no modo local e substitui o cadastro inteiro deste navegador. No banco da equipe, o cadastro se restaura pelo Cadastro → Importar preços e pelas tabelas.', dica: 'A **Lixeira**, logo abaixo, guarda as propostas excluídas: **Restaurar** (o administrador ou quem excluiu) e **Apagar de vez** (só o administrador, sem volta a não ser por backup).' },
+    ], resultado: 'O app mostra "N registro(s) restaurado(s). Recarregando…" e recarrega. O histórico registra "Backup restaurado". Quando uma proposta é substituída, a versão anterior vai para as revisões.', atencao: 'A linha **Cadastro (insumos, kits, tabelas)** só pode ser marcada no modo local e substitui o cadastro inteiro deste navegador. No banco da equipe, o cadastro se restaura pelo Cadastros → Importar preços e pelas tabelas.', dica: 'A **Lixeira**, logo abaixo, guarda as propostas excluídas: **Restaurar** (o administrador ou quem excluiu) e **Apagar de vez** (só o administrador, sem volta a não ser por backup).' },
     { t: 'nv', x: 'A restauração no banco compartilhado (gravação direta em cada coleção) não foi validada: as capturas param na prévia, no modo local.' },
 
     { t: 'h', x: 'Planilha (avançado)' },
@@ -213,3 +213,16 @@ module.exports = {
     ['Lixeira', 'Lugar das propostas excluídas, de onde podem ser restauradas ou apagadas de vez pelo administrador.'],
   ],
 };
+
+// ---- Cenários tributários ----
+module.exports.capturas.push(
+  { id: '16-10', nome: 'config-cenarios-tributarios', titulo: 'Cadastros → Fiscal → Cenários tributários (reforma)', novo: true,
+    prep: async (p, h) => { await h.nav('cadastro'); await p.click('.areatabs [data-cad="fiscal"]'); await h.esperar(400); await h.cad('cenarios'); await h.topo(); },
+    clip: '#app section.card:last-of-type', marcas: [] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Parâmetros fiscais: cenários da reforma tributária' },
+  { t: 'p', x: 'Em **Cadastros** → **Fiscal** → **Cenários tributários (reforma)**, a área Fiscal cadastra os tributos e as regras de cada fase da reforma: quais tributos incidem, com qual alíquota, se entram por dentro do preço (como o ICMS hoje) ou por fora (somados ao preço, como o IPI e a CBS/IBS), o que sai da base de cada um e se geram crédito sobre o custo. As regras mudam a alíquota para casos específicos (UF, NCM, cadastro fiscal, família). Comece por **Cenário 2027 (rascunho pronto)** ou **Cenário em branco**.' },
+  { t: 'fig', id: '16-10' },
+  { t: 'nota', x: 'A formação oficial continua na planilha até a área Fiscal confirmar as regras: o cenário serve para comparar "hoje × cenário" em cada proposta, sem mudar o preço oficial.' },
+);

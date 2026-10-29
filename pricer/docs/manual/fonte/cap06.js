@@ -225,7 +225,7 @@ module.exports = {
         'Leia o total em **Custo da prestação do serviço**.',
       ], resultado: 'O cabeçalho do cartão mostra "mão de obra" e "deslocamento", e a linha **Custo da prestação do serviço** mostra o total. No exemplo da figura (Yago e Alessandro, 2 dias, 300 km só ida, alimentação alterada para 6) o custo é R$ 5.215,00.',
       atencao: 'Quando a ida e volta passa de 1.000 km, o app troca o carro por avião: zera o km, lança passagens aéreas (2 trechos por pessoa) e diárias de carro locado no destino, e mostra "Ida e volta passa de 1.000 km: vai de avião, com carro locado no destino.". Digitar a distância de ida e volta no campo de só ida dobra o deslocamento e pode disparar essa troca sem necessidade.',
-      dica: 'Os preços de km, passagem, carro, hotel, alimentação e ART são os do cadastro (**Cadastro → Serviços**) no dia em que a proposta foi criada. Se o cadastro mudar depois, o cartão mostra "Os preços de deslocamento mudaram no cadastro depois que esta proposta foi criada." com o botão **Usar os preços atuais**.' },
+      dica: 'Os preços de km, passagem, carro, hotel, alimentação e ART são os do cadastro (**Cadastros → Serviços**) no dia em que a proposta foi criada. Se o cadastro mudar depois, o cartão mostra "Os preços de deslocamento mudaram no cadastro depois que esta proposta foi criada." com o botão **Usar os preços atuais**.' },
 
     { t: 'h', x: 'Peças, orçamentos e documentos' },
     { t: 'p', x: 'O cartão **Peças e materiais** lista cada peça com **Incl.**, **Descrição**, **Qtd**, **Moeda**, **Unit.**, **IPI**, **Custo unit. R$**, **Fator** e **Venda**. O custo unitário em reais já inclui o IPI e, para peça em USD ou EUR, o câmbio e o fator de importação do cadastro. A venda é custo × fator (padrão 1,5).' },
@@ -245,7 +245,7 @@ module.exports = {
     { t: 'nv', x: 'A leitura de PDF, Excel e foto não foi testada nas capturas: o ambiente de captura bloqueia a internet, e essas leituras baixam bibliotecas (pdf.js, ExcelJS, Tesseract). Só a leitura de XML de NF-e (com dados de exemplo) foi executada. Também não foi validado, no modo compartilhado, quem consegue anexar arquivos: o código recusa o anexo com "Só quem tem acesso de Editor pode anexar arquivos" quando o armazenamento de arquivos não está liberado, mas a tela de acessos diz que o Contribuidor anexa documentos.' },
 
     { t: 'h', x: 'Preço, lucro e meta' },
-    { t: 'p', x: 'O cartão **Formação do preço** mostra a conta inteira: **Custo da prestação do serviço** × **Multiplicador do serviço** = **Venda do serviço**; mais **Venda das peças** = **Venda bruta (valor da proposta)**. Dela saem PIS, COFINS, IRPJ/CSLL, ISS (serviço), ICMS e IRPJ/CSLL (peças), comissões e custos, e sobra o **Lucro líquido**. O multiplicador padrão é 3 ("3,00 = margem bruta de 200%"). Impostos vêm de **Cadastro → Fiscal**; multiplicador, comissões e lucro mínimo, de **Cadastro → Precificação**.' },
+    { t: 'p', x: 'O cartão **Formação do preço** mostra a conta inteira: **Custo da prestação do serviço** × **Multiplicador do serviço** = **Venda do serviço**; mais **Venda das peças** = **Venda bruta (valor da proposta)**. Dela saem PIS, COFINS, IRPJ/CSLL, ISS (serviço), ICMS e IRPJ/CSLL (peças), comissões e custos, e sobra o **Lucro líquido**. O multiplicador padrão é 3 ("3,00 = margem bruta de 200%"). Impostos vêm de **Cadastros → Fiscal**; multiplicador, comissões e lucro mínimo, de **Cadastros → Precificação**.' },
     { t: 'fig', id: '06-07' },
     { t: 'p', x: 'Quando o lucro líquido fica abaixo de 40%, o selo da barra fica vermelho ("abaixo de 40%") e aparece um aviso com o multiplicador necessário para chegar à meta.' },
     { t: 'fig', id: '06-06' },
@@ -290,7 +290,7 @@ module.exports = {
         { x: 'Para duplicar, vá à tela **Início**, encontre a SPV na lista **Propostas** (o filtro **SPV** ajuda) e clique em **Duplicar**.', fig: '06-09' },
         'A cópia abre sem número, como rascunho e com a data de hoje, e o app avisa "Cópia criada: dê um número novo e salve". Preencha o **Nº da proposta** e clique em **Salvar**.',
         'Para ver revisões e o registro da SPV, clique na aba **Histórico**. Ela mostra "Situação e etapas", "Revisões" (**Ver, comparar e restaurar revisões** e **Revisar (nova revisão)**) e "Registro".',
-      ], resultado: 'A SPV aparece na lista com o total salvo; o novo modelo aparece no cartão Modelo das SPV do mesmo tipo (e em **Cadastro → Serviços**); a cópia vira uma proposta nova quando é salva.',
+      ], resultado: 'A SPV aparece na lista com o total salvo; o novo modelo aparece no cartão Modelo das SPV do mesmo tipo (e em **Cadastros → Serviços**); a cópia vira uma proposta nova quando é salva.',
       atencao: 'Se a SPV já foi enviada ao cliente, salvar uma alteração abre a janela "Esta revisão já foi enviada ao cliente", com **Salvar como revisão N** e **É só correção: salvar na revisão N**. Antes de salvar a primeira vez, a aba **Histórico** só mostra "Salve a proposta para ter histórico e revisões.".',
       dica: 'O modelo vale para toda a equipe (fica no cadastro). Peças sem valor no modelo usam o último preço pago, tirado dos orçamentos e propostas.' },
     { t: 'nv', x: 'A janela de modelo foi capturada e o modelo foi salvo no modo local. A visibilidade do botão **Salvar esta proposta como modelo** para cada papel no modo compartilhado foi confirmada só pela leitura do código (regra de área "servicos"), não por captura.' },
@@ -316,7 +316,7 @@ module.exports = {
     ] },
     { t: 'fig', id: '06-12' },
     { t: 'tut', titulo: 'Formar o preço de um FACTS', objetivo: 'Configurar o FACTS de uma ou mais bombas e chegar ao preço sem IPI com a margem alvo.',
-      quem: 'Contribuidor, Editor ou dono no app compartilhado. A lista MECON e o fator R$/EUR (**Cadastro → Custos → FACTS (MECON)**) só são alterados por quem edita o cadastro de Custos. No modo local não há controle de acesso.',
+      quem: 'Contribuidor, Editor ou dono no app compartilhado. A lista MECON e o fator R$/EUR (**Cadastros → Custos → FACTS (MECON)**) só são alterados por quem edita o cadastro de Custos. No modo local não há controle de acesso.',
       pre: ['Dados da casa de bombas: acionamento, arrefecimento, vedação, sucção e se o controlador é novo ou retrofit.'], passos: [
         'Na tela **Início**, no quadro SEQ, clique em **FACTS**.',
         'No cartão **Cliente**, preencha **Cliente**, **Nº da proposta**, **Contato**, **Local**, **UF** e **Vendedor**.',
@@ -338,3 +338,23 @@ module.exports = {
     ['FACTS', 'Fully Automatic Churn Testing System (MECON, FM 1330): sistema de teste automático semanal de bombas de incêndio.'],
   ],
 };
+
+// ---- Cadastro de serviços ----
+module.exports.capturas.push(
+  { id: '06-13', nome: 'spv-cadastro-servicos', titulo: 'Cadastros → Serviços: técnicos, deslocamento e modelos de serviço e contrato', novo: true,
+    prep: async (p, h) => { await h.nav('cadastro'); await h.cad('servicos'); await h.topo(); },
+    clip: [['#app section.card', 0], ['#app section.card', 1]], alto: 1500, marcas: [] },
+  { id: '06-14', nome: 'spv-cadastro-modelos', titulo: 'Cadastros → Serviços: modelos de serviço e contrato',
+    clip: [['#app section.card', 2]], alto: 1800, marcas: [] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'De onde vêm os valores da SPV: Cadastros → Serviços' },
+  { t: 'p', x: 'Os valores que a SPV usa ficam em **Cadastros** → **Serviços**, área de responsabilidade de Serviços:' },
+  { t: 'lista', itens: [
+    '**Técnicos e diárias**: nome, função e diária de cada técnico; o botão **Técnico** inclui uma linha.',
+    '**Deslocamento e estadia** (preços usados em todas as propostas SPV novas): R$ por km, passagem aérea (trecho), locação de automóvel (dia), hotel (noite, quarto individual), alimentação (dia), ART, a distância acima da qual a equipe vai de avião (km ida e volta) e o endereço de saída.',
+    '**Modelos de serviço e contrato**: ao começar uma proposta SPV, o modelo preenche escopo, itens não inclusos, prazo, equipe e frequência das visitas. Cada modelo tem **Editar**.',
+  ] },
+  { t: 'fig', id: '06-13' }, { t: 'fig', id: '06-14' },
+  { t: 'aviso', x: 'Mudar diária, km, hotel ou alimentação muda o custo de todas as SPV novas. Nas SPV já criadas, os preços de deslocamento continuam os do dia da criação; o cartão avisa quando o cadastro mudou e oferece **Usar os preços atuais**.' },
+);

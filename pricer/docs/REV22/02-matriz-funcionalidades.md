@@ -71,3 +71,5 @@ Toda função da REV21 foi mantida. A coluna "Como foi verificado" cita os teste
 | Sistema (histórico, responsáveis, backup, planilha) | dentro de Cadastro | **Alterada**: em Configurações | ap_test, bk_test, p25_test, c2_test |
 | Cabeçalho de contexto da proposta | parcial | **Ampliada**: número, cliente, revisão, situação, total, margem, custo, itens, pendências | st_test, c2_test |
 | Preenchimento inteligente | — | **Nova**: listas de valores usados, botões de escolha, − e +, recuperação de dados do cliente só em campos vazios | c1_test, cab_test |
+| Data da última atualização de preço e aviso mensal | coluna "Cotação" (data de qualquer edição) | **Nova**: coluna Preço atualizado em, preço vencido aos 30 dias, avisos no cadastro e nas abas Custos e Formação com o botão Atualizar no cadastro | c1_test, c2_test, jor_test e verificação dedicada (venc3) |
+| Logo no menu | sobre placa branca | **Alterada**: versão para fundo escuro, sem placa; PDFs com o logo original | captura de tela claro/escuro |

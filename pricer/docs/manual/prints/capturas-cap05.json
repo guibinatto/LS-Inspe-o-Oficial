@@ -6,7 +6,7 @@
   "titulo": "Aba Memorial: título e documentos para o financeiro",
   "vp": "desktop",
   "arquivo": "05-01-memorial-cabecalho.png",
-  "data": "2026-10-29T04:50:13.519Z",
+  "data": "2026-10-29T11:33:19.198Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -43,7 +43,7 @@
   "titulo": "Memorial do exemplo: custos, impostos, comissão e margem",
   "vp": "desktop",
   "arquivo": "05-02-memorial-custos-margem.png",
-  "data": "2026-10-29T04:50:14.584Z",
+  "data": "2026-10-29T11:33:20.268Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -92,7 +92,7 @@
   "titulo": "Memorial do exemplo: preços, IPI, origem e demonstrativo",
   "vp": "desktop",
   "arquivo": "05-03-memorial-precos-demonstrativo.png",
-  "data": "2026-10-29T04:50:15.052Z",
+  "data": "2026-10-29T11:33:20.900Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -141,18 +141,30 @@
   "titulo": "Fim do Memorial: linhas de conferência e a nota de cálculo",
   "vp": "desktop",
   "arquivo": "05-04-memorial-notas.png",
-  "data": "2026-10-29T04:50:15.590Z",
+  "data": "2026-10-29T11:33:21.595Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Linhas de conferência do memorial: aparecem só com o nome, sem valores.",
-    "sel": "#app section.card > p.sub",
+    "txt": "Conferência: custos + comissão + margem, por item e no total.",
+    "sel": "#app section.card table.t tbody tr:nth-last-child(6)",
     "ok": true
    },
    {
     "n": 2,
+    "txt": "Preço do item calculado nas abas de item (sem IPI).",
+    "sel": "#app section.card table.t tbody tr:nth-last-child(4)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Diferença entre o preço do item e o preço refeito pelo memorial: deve ser zero.",
+    "sel": "#app section.card table.t tbody tr:nth-last-child(2)",
+    "ok": true
+   },
+   {
+    "n": 4,
     "txt": "Como o preço é formado e como ler o total da proposta.",
     "sel": "#app section.card > p.sub:last-child",
     "ok": true
@@ -166,7 +178,7 @@
   "titulo": "Aba Documentos (proposta salva)",
   "vp": "desktop",
   "arquivo": "05-05-memorial-aba-documentos.png",
-  "data": "2026-10-29T04:50:16.049Z",
+  "data": "2026-10-29T11:33:22.151Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -203,7 +215,7 @@
   "titulo": "Memorial (PDF) sem acesso à internet: aviso do app",
   "vp": "desktop",
   "arquivo": "05-06-memorial-pdf-sem-internet.png",
-  "data": "2026-10-29T04:50:18.449Z",
+  "data": "2026-10-29T11:33:24.680Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -228,7 +240,7 @@
   "titulo": "Conferência do PDF da proposta (aba Conferência)",
   "vp": "desktop",
   "arquivo": "05-07-memorial-conferencia-pdf.png",
-  "data": "2026-10-29T04:50:19.845Z",
+  "data": "2026-10-29T11:33:26.141Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -259,7 +271,7 @@
   "titulo": "Bloco FCI do item 01",
   "vp": "desktop",
   "arquivo": "05-08-memorial-item-fci.png",
-  "data": "2026-10-29T04:50:20.928Z",
+  "data": "2026-10-29T11:33:27.413Z",
   "ok": true,
   "problemas": [],
   "marcas": [

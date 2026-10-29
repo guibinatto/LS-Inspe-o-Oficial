@@ -6,7 +6,7 @@
   "titulo": "Aba Itens da proposta de exemplo",
   "vp": "desktop",
   "arquivo": "04-01-precificacao-itens-lista.png",
-  "data": "2026-10-29T04:51:23.440Z",
+  "data": "2026-10-29T11:28:29.488Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -49,7 +49,7 @@
   "titulo": "Item 02 aberto: resumo do item e alerta de margem",
   "vp": "desktop",
   "arquivo": "04-02-precificacao-item-alerta.png",
-  "data": "2026-10-29T04:51:24.642Z",
+  "data": "2026-10-29T11:28:30.774Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -92,7 +92,7 @@
   "titulo": "Aba Formação: resumo, condições comerciais e preço por item",
   "vp": "desktop",
   "arquivo": "04-03-precificacao-formacao.png",
-  "data": "2026-10-29T04:51:26.141Z",
+  "data": "2026-10-29T11:28:32.194Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -147,7 +147,7 @@
   "titulo": "Simulador de negociação com valor final de R$ 4.000.000,00",
   "vp": "desktop",
   "arquivo": "04-04-precificacao-simulador.png",
-  "data": "2026-10-29T04:51:27.565Z",
+  "data": "2026-10-29T11:28:33.526Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -196,7 +196,7 @@
   "titulo": "Aba Conferência: conferência central e pedido de aprovação",
   "vp": "desktop",
   "arquivo": "04-05-precificacao-conferencia.png",
-  "data": "2026-10-29T04:51:31.738Z",
+  "data": "2026-10-29T11:28:37.684Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -245,7 +245,7 @@
   "titulo": "Item novo: escolha da família",
   "vp": "desktop",
   "arquivo": "04-06-precificacao-item-familia.png",
-  "data": "2026-10-29T04:51:33.472Z",
+  "data": "2026-10-29T11:28:39.441Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -282,7 +282,7 @@
   "titulo": "Cartão Equipamento: modelo pronto ou montagem",
   "vp": "desktop",
   "arquivo": "04-07-precificacao-item-equipamento.png",
-  "data": "2026-10-29T04:51:35.471Z",
+  "data": "2026-10-29T11:28:41.491Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -331,7 +331,7 @@
   "titulo": "Modelo pronto aplicado: preço calculado e avisos de código e descrição",
   "vp": "desktop",
   "arquivo": "04-08-precificacao-item-modelo-alertas.png",
-  "data": "2026-10-29T04:51:37.002Z",
+  "data": "2026-10-29T11:28:43.032Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -374,7 +374,7 @@
   "titulo": "Condições deste item",
   "vp": "desktop",
   "arquivo": "04-09-precificacao-item-condicoes.png",
-  "data": "2026-10-29T04:51:39.124Z",
+  "data": "2026-10-29T11:28:45.121Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -417,7 +417,7 @@
   "titulo": "Componentes do item (do modelo pronto)",
   "vp": "desktop",
   "arquivo": "04-10-precificacao-item-componentes.png",
-  "data": "2026-10-29T04:51:39.815Z",
+  "data": "2026-10-29T11:28:45.841Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -478,7 +478,7 @@
   "titulo": "Aba Custos com o item novo (linhas com informação de cotação)",
   "vp": "desktop",
   "arquivo": "04-11-precificacao-custos.png",
-  "data": "2026-10-29T04:51:41.248Z",
+  "data": "2026-10-29T11:28:47.245Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -496,7 +496,7 @@
    },
    {
     "n": 3,
-    "txt": "Avisos: sem custo, cotação vencida, variação de preço.",
+    "txt": "Avisos: sem custo, preço vencido, variação de preço.",
     "sel": "#app section.card:has([data-custofiltro]) .kpi:nth-child(3)",
     "ok": true
    },
@@ -539,7 +539,7 @@
   "titulo": "Botão Planilha completa: visão com todas as colunas da proposta",
   "vp": "desktop",
   "arquivo": "04-12-precificacao-planilha-completa.png",
-  "data": "2026-10-29T04:51:42.441Z",
+  "data": "2026-10-29T11:28:48.490Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -571,6 +571,31 @@
     "n": 5,
     "txt": "Mesmos totais da visão guiada.",
     "sel": "#app .stack > .kpis .kpi.lead",
+    "ok": true
+   }
+  ]
+ },
+ "04-13": {
+  "id": "04-13",
+  "cap": 4,
+  "nome": "precificacao-preco-vencido",
+  "titulo": "Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro",
+  "vp": "desktop",
+  "arquivo": "04-13-precificacao-preco-vencido.png",
+  "data": "2026-10-29T11:28:54.818Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Insumos da proposta com preço vencido (mais de 30 dias), com a data do último preço.",
+    "sel": "#app .banner.warn",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Atualizar no cadastro: abre os insumos e preços filtrados só nestes insumos.",
+    "sel": "[data-irvenc]",
     "ok": true
    }
   ]

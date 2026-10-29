@@ -24,7 +24,7 @@
 
   function logoData() {
     try {
-      const img = document.querySelector('.logo-plate img'); if (!img || !img.naturalWidth) return null;
+      const img = document.getElementById('logoPdf') || document.querySelector('.logo-plate img'); if (!img || !img.naturalWidth) return null;
       const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
       c.getContext('2d').drawImage(img, 0, 0); return { url: c.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight };
     } catch (e) { return null; }

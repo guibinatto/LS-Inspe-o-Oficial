@@ -595,7 +595,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         if (r.ct) res.push(['Contrato: ' + fmt(r.ct.nV, 0) + ' visitas + ART uma vez (' + bl(r.ct.artV) + ')', 'mensal ' + bl(r.ct.mensal) + ' / total ' + bl(r.ct.total)]);
         doc.autoTable(Object.assign({}, head, { startY: doc.lastAutoTable.finalY + 6, head: [['Formação do preço', '']], body: res.map((x) => x.map(safe)), columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } } }));
       }
-      const pages = doc.getNumberOfPages(); const Hh = doc.internal.pageSize.getHeight(); const img = document.querySelector('.logo-plate img');
+      const pages = doc.getNumberOfPages(); const Hh = doc.internal.pageSize.getHeight(); const img = document.getElementById('logoPdf') || document.querySelector('.logo-plate img');
       let logo = null; try { if (img && img.naturalWidth) { const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight; cv.getContext('2d').drawImage(img, 0, 0); logo = { url: cv.toDataURL('image/png'), r: img.naturalHeight / img.naturalWidth }; } } catch (e) { logo = null; }
       for (let i = 1; i <= pages; i++) { doc.setPage(i); doc.setFillColor(...OR); doc.rect(0, 0, W, 3, 'F'); if (logo) doc.addImage(logo.url, 'PNG', 12, 7, 38, 38 * logo.r); doc.setDrawColor(215, 212, 206); doc.line(12, 24, W - 12, 24);
         doc.setFillColor(...OR); doc.rect(0, Hh - 10, W, 10, 'F'); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.text('A FORÇA DA ÁGUA É A NOSSA FORÇA', 12, Hh - 3.8);

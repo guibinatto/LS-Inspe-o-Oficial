@@ -1,0 +1,285 @@
+{
+ "naoAchados": [
+  [
+   3,
+   "SEQ — Soluções e equipamentos"
+  ],
+  [
+   3,
+   "só nos campos vazios"
+  ],
+  [
+   3,
+   "Salvar como revisão N"
+  ],
+  [
+   3,
+   "É só correção: salvar na revisão N"
+  ],
+  [
+   3,
+   "← <etapa anterior>"
+  ],
+  [
+   3,
+   "Próximo: <etapa> →"
+  ],
+  [
+   6,
+   "lucro líquido mínimo de 40%"
+  ],
+  [
+   6,
+   "SPV — Serviços e pós-venda"
+  ],
+  [
+   6,
+   "SEQ — Soluções e equipamentos"
+  ],
+  [
+   6,
+   "SPV — Serviços e pós-venda"
+  ],
+  [
+   6,
+   "Pagamento a prazo (+3,5% de encargo)"
+  ],
+  [
+   6,
+   "Preço do contrato"
+  ],
+  [
+   6,
+   "Contrato anual — 4 visitas (trimestral)"
+  ],
+  [
+   6,
+   "Mensal · 12×/ano"
+  ],
+  [
+   6,
+   "Bimestral · 6×/ano"
+  ],
+  [
+   6,
+   "Trimestral · 4×/ano"
+  ],
+  [
+   6,
+   "Quadrimestral · 3×/ano"
+  ],
+  [
+   6,
+   "Semestral · 2×/ano"
+  ],
+  [
+   6,
+   "Anual · 1×/ano"
+  ],
+  [
+   6,
+   "Salvar como revisão N"
+  ],
+  [
+   6,
+   "É só correção: salvar na revisão N"
+  ],
+  [
+   7,
+   "modo compartilhado"
+  ],
+  [
+   7,
+   "vencido · N d"
+  ],
+  [
+   7,
+   "vence em N d"
+  ],
+  [
+   7,
+   "Edição em massa (N)"
+  ],
+  [
+   7,
+   "Edição em massa (N)"
+  ],
+  [
+   7,
+   "Aplicar em N"
+  ],
+  [
+   7,
+   "Confirmar: alterar N insumo(s)"
+  ],
+  [
+   7,
+   "Ver os N não encontrados (registros novos)"
+  ],
+  [
+   7,
+   "Conferir e cadastrar N provisório(s)"
+  ],
+  [
+   7,
+   "Conferir e cadastrar N provisório(s)"
+  ],
+  [
+   7,
+   "Aplicar N preço(s)"
+  ],
+  [
+   7,
+   "vencido · N d"
+  ],
+  [
+   8,
+   "leem dados de dentro do nome"
+  ],
+  [
+   8,
+   "modo compartilhado"
+  ],
+  [
+   8,
+   "Motor diesel (01)"
+  ],
+  [
+   8,
+   "Motor elétrico (10)"
+  ],
+  [
+   8,
+   "Bomba de eixo livre (11)"
+  ],
+  [
+   8,
+   "Motobomba (12)"
+  ],
+  [
+   8,
+   "Bomba jockey (13)"
+  ],
+  [
+   8,
+   "Aplicar marcadas (N)"
+  ],
+  [
+   9,
+   "Cadastros → Engenharia → Estruturas"
+  ],
+  [
+   9,
+   "Cadastros → Engenharia → Estruturas"
+  ],
+  [
+   9,
+   "Cadastros → Engenharia → Estruturas"
+  ],
+  [
+   9,
+   "Cadastros → Engenharia → Testador de estruturas"
+  ],
+  [
+   10,
+   "Cadastros → Custos → Kits de motor diesel"
+  ],
+  [
+   10,
+   "Cadastros → Custos → Kits de motor diesel"
+  ],
+  [
+   10,
+   "Comparar (N)"
+  ],
+  [
+   11,
+   "Cadastros → Engenharia → Famílias"
+  ],
+  [
+   11,
+   "Cadastros → Fiscal → Impostos e NCM"
+  ],
+  [
+   11,
+   "Cadastros → Engenharia → Regras de configuração"
+  ],
+  [
+   12,
+   "não entram no backup"
+  ],
+  [
+   12,
+   "O que / Na formação / No PDF"
+  ],
+  [
+   13,
+   "aprovação de desconto com valor target"
+  ],
+  [
+   14,
+   "Cadastros → Precificação → Margens e política"
+  ],
+  [
+   14,
+   "✓ Conferir as N restantes como iguais ao previsto"
+  ],
+  [
+   15,
+   "Criar revisão N+1"
+  ],
+  [
+   15,
+   "Salvar como revisão N+1"
+  ],
+  [
+   15,
+   "É só correção: salvar na revisão N"
+  ],
+  [
+   15,
+   "Rev. N ▾"
+  ],
+  [
+   15,
+   "Rev. N ▾"
+  ],
+  [
+   15,
+   "Rev. N ▾"
+  ],
+  [
+   16,
+   "No modo local não há login nem controle de acesso"
+  ],
+  [
+   16,
+   "Esconder um botão não é segurança"
+  ],
+  [
+   17,
+   "Tabelas por porte gravam direto"
+  ],
+  [
+   17,
+   "Margem em duas bases"
+  ],
+  [
+   17,
+   "Margem e custo do item entre telas"
+  ],
+  [
+   17,
+   "Exclusão de insumo é definitiva"
+  ],
+  [
+   18,
+   "proposta de exemplo"
+  ]
+ ],
+ "faltaCad": [],
+ "totFig": 151,
+ "totOk": 151,
+ "totTut": 86,
+ "totNv": 30
+}

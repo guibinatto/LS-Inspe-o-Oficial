@@ -123,7 +123,7 @@ module.exports = {
       marcas: [
         { sel: '#app section.card:has([data-custofiltro]) .kpi:nth-child(1)', txt: 'Custo total, número de linhas e de itens.', pos: 't' },
         { sel: '#app section.card:has([data-custofiltro]) .kpi:nth-child(2)', txt: 'Impeditivos: componente principal sem preço.', pos: 't' },
-        { sel: '#app section.card:has([data-custofiltro]) .kpi:nth-child(3)', txt: 'Avisos: sem custo, cotação vencida, variação de preço.', pos: 't' },
+        { sel: '#app section.card:has([data-custofiltro]) .kpi:nth-child(3)', txt: 'Avisos: sem custo, preço vencido, variação de preço.', pos: 't' },
         { sel: '#app section.card:has([data-custofiltro]) .kpi:nth-child(4)', txt: 'Informações (ex.: preço sem data de cotação).', pos: 't' },
         { sel: '[data-custofiltro="todos"]', txt: 'Só o que pede atenção / Todas as linhas.', pos: 'r' },
         { sel: '#app section.card:has([data-custofiltro]) tbody tr:nth-child(2) td:nth-child(6)', txt: 'Origem do preço e, ao lado, a data da cotação (com "vale até") ou "sem data".', pos: 'b' },
@@ -216,10 +216,14 @@ module.exports = {
     { t: 'fig', id: '04-11' },
     { t: 'tab', cab: ['Situação', 'Quando aparece'], lin: [
       ['✕ impeditivo', 'Componente principal (motor, bomba, jockey) sem preço.'],
-      ['! aviso', 'Item sem custo, custo unitário zerado, quantidade zero com custo, quantidade × unitário que não fecha, cotação vencida, insumo fora de uso ou com cadastro provisório, variação de preço igual ou acima do limite.'],
+      ['! aviso', 'Item sem custo, custo unitário zerado, quantidade zero com custo, quantidade × unitário que não fecha, preço vencido (mais de 30 dias sem atualizar), insumo fora de uso ou com cadastro provisório, variação de preço igual ou acima do limite.'],
       ['i informação', 'Cotação perto de vencer, preço da planilha original sem data de cotação, nome fora do cadastro.'],
     ] },
-    { t: 'p', x: 'Os limites (validade de 90 dias, aviso 15 dias antes, variação de 15%) e a trava de envio ficam em Cadastros → Custos → **Validade e alertas**.' },
+    { t: 'p', x: 'Os limites (validade do preço de 30 dias — a atualização de preços é mensal —, aviso 5 dias antes, variação de 15%) e a trava de envio ficam em Cadastros → Custos → **Validade e alertas**.' },
+    { t: 'h', x: 'Aviso de preço vencido na proposta' },
+    { t: 'p', x: 'Quando algum insumo usado pela proposta (com o preço vindo do cadastro, não digitado na proposta) está há mais de 30 dias sem atualização de preço, as abas **Custos** e **Formação** mostram no topo a faixa "N insumo(s) desta proposta com preço vencido", com os nomes e a data do último preço. O botão **Atualizar no cadastro** abre Cadastros → Custos → Insumos e preços mostrando só esses insumos ("Mostrando só os N insumo(s) vindos da proposta"; **Mostrar todos** volta à lista completa).' },
+    { t: 'fig', id: '04-13' },
+    { t: 'nota', x: 'Propostas com preços da época (enviadas, aprovadas e ganhas) não mostram esse aviso: elas não usam o preço de hoje do cadastro. Linhas com custo digitado na proposta também não, como as da proposta de exemplo.' },
     { t: 'tut', titulo: 'Marcar uma linha de custo como "não se aplica"', objetivo: 'Registrar que a falta de custo é intencional (ex.: cliente fornece).', quem: 'Contribuidor, Editor ou dono. No modo local não há controle de acesso.', pre: ['Linha com alerta na aba Custos.'], passos: [
       'Na aba **Custos**, deixe o filtro em **Só o que pede atenção**.',
       { x: 'Na linha, clique em **não se aplica**.', fig: '04-11' },
@@ -274,3 +278,17 @@ module.exports = {
     ['Conferência central', 'Lista única de tudo o que impede, pede atenção ou informa antes de enviar a proposta.'],
   ],
 };
+
+// ---- aviso de preço vencido na proposta ----
+module.exports.capturas.push(
+  { id: '04-13', nome: 'precificacao-preco-vencido', titulo: 'Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro', novo: true,
+    prep: async (p, h) => {
+      await h.nav('cadastro'); await p.fill('#insQ', '01-1020'); await h.esperar(500); await h.clicar('tr[data-ins="01-1020"]', 600); await p.fill('#fDataCot', '2026-08-15'); await h.clicar('#fSave', 900);
+      await h.exemplo(); await h.aba(2); await h.clicar('[data-additem]', 800); await h.clicar('.famgrid [data-fam="CONJUNTO MOTOBOMBA"]', 900);
+      await p.selectOption('#c_ITEM04_C17', 'CMB DIESEL 1000 USgpm — 1 BOMBA'); await h.esperar(1500); await h.aba(4); await h.topo();
+    },
+    clip: ['#app .banner.warn', '#app .kpis'], marcas: [
+      { sel: '#app .banner.warn', txt: 'Insumos da proposta com preço vencido (mais de 30 dias), com a data do último preço.', pos: 't' },
+      { sel: '[data-irvenc]', txt: 'Atualizar no cadastro: abre os insumos e preços filtrados só nestes insumos.', pos: 'b' },
+    ] },
+);

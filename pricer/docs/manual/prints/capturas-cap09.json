@@ -6,7 +6,7 @@
   "titulo": "Cadastros → Engenharia → Estruturas: componentes da estrutura Conjunto motobomba",
   "vp": "desktop",
   "arquivo": "09-01-estruturas-lista.png",
-  "data": "2026-10-29T04:44:45.673Z",
+  "data": "2026-10-29T11:33:17.545Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -67,7 +67,7 @@
   "titulo": "Janela do componente da estrutura (Tanque de combustível)",
   "vp": "desktop",
   "arquivo": "09-02-estruturas-componente.png",
-  "data": "2026-10-29T04:44:49.869Z",
+  "data": "2026-10-29T11:33:22.079Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -128,7 +128,7 @@
   "titulo": "Tabelas por porte: potência do diesel (HP)",
   "vp": "desktop",
   "arquivo": "09-03-estruturas-tabelas-porte.png",
-  "data": "2026-10-29T04:44:51.342Z",
+  "data": "2026-10-29T11:33:23.518Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -165,7 +165,7 @@
   "titulo": "Estrutura em rascunho com uma alteração pendente",
   "vp": "desktop",
   "arquivo": "09-04-estruturas-rascunho.png",
-  "data": "2026-10-29T04:44:51.855Z",
+  "data": "2026-10-29T11:33:24.069Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -220,7 +220,7 @@
   "titulo": "Publicar o rascunho: diferenças e impacto nos modelos prontos",
   "vp": "desktop",
   "arquivo": "09-05-estruturas-impacto.png",
-  "data": "2026-10-29T04:44:54.757Z",
+  "data": "2026-10-29T11:33:27.182Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -257,7 +257,7 @@
   "titulo": "Versões publicadas recentes, com Desfazer esta versão",
   "vp": "desktop",
   "arquivo": "09-06-estruturas-versoes.png",
-  "data": "2026-10-29T04:45:06.801Z",
+  "data": "2026-10-29T11:33:41.340Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -288,7 +288,7 @@
   "titulo": "Testador de estruturas comparando dois modelos prontos",
   "vp": "desktop",
   "arquivo": "09-07-estruturas-testador-comparar.png",
-  "data": "2026-10-29T04:45:09.362Z",
+  "data": "2026-10-29T11:33:43.920Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -343,7 +343,7 @@
   "titulo": "Resultado do testador: componentes, custo e diagnóstico",
   "vp": "desktop",
   "arquivo": "09-08-estruturas-testador-resultado.png",
-  "data": "2026-10-29T04:45:14.676Z",
+  "data": "2026-10-29T11:33:49.381Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -386,7 +386,7 @@
   "titulo": "Comparar estruturas: Conjunto motobomba × Skid (trecho com diferenças)",
   "vp": "desktop",
   "arquivo": "09-09-estruturas-comparar.png",
-  "data": "2026-10-29T04:45:15.807Z",
+  "data": "2026-10-29T11:33:50.661Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -403,5 +403,17 @@
     "ok": true
    }
   ]
+ },
+ "09-10": {
+  "id": "09-10",
+  "cap": 9,
+  "nome": "estruturas-mao-de-obra-bases",
+  "titulo": "Engenharia → Mão de obra e bases por porte",
+  "vp": "desktop",
+  "arquivo": "09-10-estruturas-mao-de-obra-bases.png",
+  "data": "2026-10-29T11:33:55.843Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
  }
 }

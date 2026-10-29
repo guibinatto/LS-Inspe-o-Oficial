@@ -6,7 +6,7 @@
   "titulo": "Tela inicial e menu lateral",
   "vp": "desktop",
   "arquivo": "02-01-navegacao-tela-inicial.png",
-  "data": "2026-10-29T04:23:42.493Z",
+  "data": "2026-10-29T11:33:23.470Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -79,7 +79,7 @@
   "titulo": "Barra superior com a proposta aberta",
   "vp": "desktop",
   "arquivo": "02-02-navegacao-barra-superior.png",
-  "data": "2026-10-29T04:23:43.263Z",
+  "data": "2026-10-29T11:33:24.319Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -128,7 +128,7 @@
   "titulo": "Menu lateral recolhido (só ícones)",
   "vp": "desktop",
   "arquivo": "02-03-navegacao-menu-recolhido.png",
-  "data": "2026-10-29T04:23:45.014Z",
+  "data": "2026-10-29T11:33:26.315Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -153,7 +153,7 @@
   "titulo": "No celular: menu pelo botão ☰",
   "vp": "celular",
   "arquivo": "02-04-navegacao-celular.png",
-  "data": "2026-10-29T04:23:49.491Z",
+  "data": "2026-10-29T11:33:31.272Z",
   "ok": true,
   "problemas": [],
   "marcas": [

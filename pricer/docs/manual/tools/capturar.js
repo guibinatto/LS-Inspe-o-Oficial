@@ -105,7 +105,7 @@ async function recorte(p, s, vpBase) {
   const pad = s.pad == null ? 10 : s.pad;
   const medir = () => p.evaluate(({ sel, nth }) => {
     // um seletor ou uma lista de seletores (o recorte cobre todos)
-    const els = (Array.isArray(sel) ? sel : [sel]).map((q) => [...document.querySelectorAll(q)].filter((e) => e.getBoundingClientRect().height > 0)[Array.isArray(sel) ? 0 : nth || 0]);
+    const els = (Array.isArray(sel) ? sel : [[sel, nth || 0]]).map((q) => { const [qs, k] = Array.isArray(q) ? q : [q, 0]; const l = [...document.querySelectorAll(qs)].filter((e) => e.getBoundingClientRect().height > 0); return l[k < 0 ? l.length + k : k]; });
     if (els.some((e) => !e)) return null;
     const topo = document.querySelector('header.top'); const off = topo && getComputedStyle(topo).position === 'sticky' ? topo.getBoundingClientRect().height + 8 : 8;
     window.scrollTo(0, Math.max(0, Math.min(...els.map((e) => e.getBoundingClientRect().top)) + scrollY - off));
@@ -130,10 +130,11 @@ async function recorte(p, s, vpBase) {
     // um registro por capítulo: capítulos diferentes podem ser capturados ao mesmo tempo
     const regPath = path.join(MAN, 'prints', `capturas-cap${String(cap.n).padStart(2, '0')}.json`);
     const reg = {};
-    const grupos = {}; // um contexto por viewport, passos acumulados na ordem
+    const grupos = {}, atual = {}; // um contexto por viewport, passos acumulados na ordem; 'novo' abre outro, que as seguintes continuam
     for (const s of cap.capturas) {
       const vpn = s.vp || 'desktop';
-      let g = grupos[vpn + (s.novo ? s.id : '')];
+      const chave = s.novo ? vpn + s.id : (atual[vpn] || vpn); atual[vpn] = chave;
+      let g = grupos[chave];
       if (!g) {
         const ctx = await b.newContext({ viewport: VP[vpn], deviceScaleFactor: 1.5, colorScheme: s.escuro ? 'dark' : 'light', acceptDownloads: true });
         const p = await ctx.newPage(); const erros = [];
@@ -149,7 +150,7 @@ async function recorte(p, s, vpBase) {
         await p.addStyleTag({ content: '.toast{display:none!important} *{caret-color:transparent!important}' + (cap.css || '') });
         g = { ctx, p, erros, h: ajudantes(p, vpn) };
         if (cap.inicio) await cap.inicio(p, g.h);
-        grupos[vpn + (s.novo ? s.id : '')] = g;
+        grupos[chave] = g;
       }
       const { p, h } = g;
       const nome = `${s.id}-${s.nome}`;

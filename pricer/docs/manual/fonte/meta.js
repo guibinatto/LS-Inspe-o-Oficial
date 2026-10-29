@@ -27,7 +27,7 @@ module.exports = {
     { t: 'lista', itens: [
       '**Figuras anotadas**: cada número laranja aponta um elemento real da tela. A legenda abaixo da figura explica cada número.',
       '**Tutoriais**: seguem sempre o mesmo modelo — objetivo, quem pode executar, pré-requisitos, passo a passo, resultado esperado, atenção e dica.',
-      '**Nomes de botões e campos** aparecem em **negrito**, exatamente como estão na tela.',
+      '**Nomes de botões e campos** aparecem em **negrito**, exatamente como estão na tela. Botões com o ícone de mais aparecem escritos como "+ Nome" (por exemplo, **+ Novo insumo**).',
       'O manual segue a ordem do trabalho: navegação, proposta SEQ, memorial, SPV, cadastros, processo (documentos, pendências, aprovações, margens, revisões), administração, erros comuns e exercícios.',
     ] },
     { t: 'aviso', x: 'Caixas de atenção apontam risco de erro ou de perda de dados.' },

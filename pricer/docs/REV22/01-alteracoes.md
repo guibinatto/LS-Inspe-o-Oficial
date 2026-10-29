@@ -28,6 +28,7 @@ Nenhuma fórmula, referência de célula, índice, arredondamento ou tabela da p
 | `regras.js` | **novo** | regras de configuração da Engenharia; depois ganhou prioridade, status, versão, responsável e a condição "componente presente" |
 | `familias.js` | **novo** | campos técnicos e modelos de descrição por família, leitura de características do nome, duplicidade, sinônimos |
 | `pedidos.js` | alterado | atendimento define a situação do item; conferência de padrão e duplicidade via `familias.js` |
+| `logo-lsfire-escuro.png` | **novo** | logo para o menu escuro (sem fundo branco); os PDFs seguem com `logo-lsfire.png` |
 | `icones.js` | **novo** | 75 ícones Lucide (ISC) embutidos; `ICO(nome)` |
 | `index.html` | alterado | novos scripts, estilos (6 etapas, barra de resumo, pendências, painel, matriz, regras, link "pular"), botão de tema, selo REV22; depois, menu lateral, cabeçalho de contexto, abas da proposta, botões com estados, tabelas, animações com respeito a "menos movimento" |
 | `tools/regressao/*` | **novo** | regressão do motor e de SPV/FACTS, com as referências da REV21 |

@@ -172,7 +172,7 @@ module.exports = {
       ['Obra / local, UF de destino, Cadastro fiscal, Segmento', 'Obrigatórios. UF e cadastro fiscal mudam os impostos do preço.'],
       ['Nº da proposta, Revisão, Data, Validade', 'Obrigatórios. Revisão e data já vêm preenchidas na proposta nova.'],
       ['Condição de pagamento, Norma', 'Obrigatórios. Escolha na lista.'],
-      ['Vendedor', 'Obrigatório. Os nomes vêm de Cadastros → Precificação, cartão **Vendedores e agentes de negócio**. Sem vendedor cadastrado aparece: "Nenhum vendedor cadastrado: cadastre em Cadastro → Precificação → Vendedores e agentes."'],
+      ['Vendedor', 'Obrigatório. Os nomes vêm de Cadastros → Precificação, cartão **Vendedores e agentes de negócio**. Sem vendedor cadastrado aparece: "Nenhum vendedor cadastrado: cadastre em Cadastros → Precificação → Vendedores e agentes."'],
       ['Comissões', 'Duas caixas: **Vendedor** e **Agente de negócio (AN)**. Com AN marcado, o campo **Agente de negócio** fica obrigatório.'],
       ['Frete → Modalidade', 'Obrigatório. Com frete CIF, informe a **Distância (km)** ou o **Valor fechado (opcional)**. O **Frete total** é calculado.'],
     ] },

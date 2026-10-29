@@ -192,3 +192,17 @@ module.exports = {
     ['Testador de estruturas', 'Monta um item de teste no motor real da planilha, sem gravar nada.'],
   ],
 };
+
+// ---- Mão de obra e bases por porte ----
+module.exports.capturas.push(
+  { id: '09-10', nome: 'estruturas-mao-de-obra-bases', titulo: 'Engenharia → Mão de obra e bases por porte', novo: true,
+    prep: async (p, h) => { await h.nav('cadastro'); await p.click('.areatabs [data-cad="estruturas"]'); await h.esperar(400); await h.cad('mobase'); await h.topo(); },
+    clip: '#app section.card:last-of-type', alto: 1300, marcas: [] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Mão de obra e bases por porte' },
+  { t: 'p', x: 'Em **Cadastros** → **Engenharia** → **Mão de obra e bases**, cada porte de equipamento tem o preço da base metálica, da mão de obra de montagem (conjunto e skid) e da embalagem. O porte sai da potência do motor diesel (Estruturas → Tabelas por porte) e escolhe a base, a mão de obra e a embalagem do item.' },
+  { t: 'p', x: 'A tela transforma cada preço em critério: **mão de obra = horas × R$/hora** e **base = peso (kg) × R$/kg**. Informe o R$ por hora de montagem, o R$ por kg de base e, em cada porte, as horas e o peso: o sistema mostra o preço pelo critério ao lado do atual ("atual R$ …") e aplica com registro no histórico.' },
+  { t: 'fig', id: '09-10' },
+  { t: 'aviso', x: 'Aplicar o critério muda o custo de base, montagem e embalagem de todos os itens novos daquele porte. Confira o impacto no Testador de estruturas antes e depois.' },
+);

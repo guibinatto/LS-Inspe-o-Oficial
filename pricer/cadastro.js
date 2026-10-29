@@ -157,6 +157,9 @@
       if (isNew && R.insumos.length >= LIMITS.insumos) throw new Error('O cadastro chegou ao limite de 999 insumos da planilha.');
       const body = clean(Object.assign({}, rec)); delete body.id;
       body.upd = new Date().toISOString(); if (R.me) body.updBy = R.me;
+      // data da última atualização do preço: muda só quando o valor muda (editar outro campo não "renova" o preço)
+      const mudouPreco = before ? before.valor !== rec.valor : typeof rec.valor === 'number';
+      body.precoEm = mudouPreco ? body.upd : before ? (before.precoEm || before.upd || 'planilha') : undefined; if (!body.precoEm) delete body.precoEm; // 'planilha': preço sem data conhecida
       const mud = diff(before, rec, INS_FIELDS);
       if (!isNew && !mud.length) return false;
       if (R.mode === 'shared') {
@@ -170,7 +173,9 @@
     // edição em lote (edição em massa, consolidação): grava por família, registra de/para de cada campo e devolve o lote para desfazer
     R.saveInsumosLote = async (changes, desc, tipo) => {
       guard(); const at = new Date().toISOString(); const byFam = new Map(); const mud = [];
-      for (const c of changes) { const rec = R.insumos.find((x) => x.id === c.id); if (!rec) continue; if (!byFam.has(rec.fam)) byFam.set(rec.fam, []); byFam.get(rec.fam).push([c, rec]); }
+      for (const c of changes) { const rec = R.insumos.find((x) => x.id === c.id); if (!rec) continue; if (!byFam.has(rec.fam)) byFam.set(rec.fam, []); byFam.get(rec.fam).push([c, rec]);
+        // preço alterado no lote: grava a data da atualização (e a anterior, para o desfazer voltar as duas)
+        if ('valor' in c.campos && !('precoEm' in c.campos) && c.campos.valor !== rec.valor) { c.campos.precoEm = at; c.de = c.de || {}; c.de.precoEm = rec.precoEm || rec.upd || null; } }
       const lote = 'L' + Date.now().toString(36);
       for (const [fam, list] of byFam) {
         const upd = (it, c) => { for (const [k, v] of Object.entries(c.campos)) { if (v === null || v === '' || v === undefined) delete it[k]; else it[k] = JSON.parse(JSON.stringify(v)); } it.upd = at; if (R.me) it.updBy = R.me; };
@@ -301,18 +306,19 @@
 
     // ---- importação de preços em lote ----
     R.applyPrices = async (changes, fonte, onProgress) => {
-      guard(); let done = 0; const ok = []; const at = new Date().toISOString();
+      guard(); let done = 0; const ok = [], datas = []; const at = new Date().toISOString();
       const byFam = new Map();
       for (const c of changes) { const rec = R.insumos.find((x) => x.id === c.id); if (!rec) continue; if (!byFam.has(rec.fam)) byFam.set(rec.fam, []); byFam.get(rec.fam).push([c, rec]); }
       for (const [fam, list] of byFam) {
         if (R.mode === 'shared') {
-          await mutate(famDoc(fam), (d) => { d.itens = d.itens || {}; for (const [c] of list) if (d.itens[c.id]) { d.itens[c.id].valor = c.para; d.itens[c.id].upd = at; if (R.me) d.itens[c.id].updBy = R.me; } return d; });
-        } else for (const [c, rec] of list) { rec.valor = c.para; rec.upd = at; }
-        for (const [c, rec] of list) ok.push({ campo: c.id + ' · ' + rec.produto, de: c.de ?? null, para: c.para });
+          await mutate(famDoc(fam), (d) => { d.itens = d.itens || {}; for (const [c] of list) if (d.itens[c.id]) { d.itens[c.id].valor = c.para; d.itens[c.id].upd = at; d.itens[c.id].precoEm = at; if (R.me) d.itens[c.id].updBy = R.me; } return d; });
+        }
+        for (const [c, rec] of list) { datas.push({ campo: c.id + ' · data do preço', de: rec.precoEm || rec.upd || null, para: at, id: c.id, k: 'precoEm' }); ok.push({ campo: c.id + ' · ' + rec.produto, de: c.de ?? null, para: c.para }); }
+        if (R.mode !== 'shared') for (const [c, rec] of list) { rec.valor = c.para; rec.upd = at; rec.precoEm = at; }
         done += list.length; onProgress && onProgress(done, changes.length);
       }
       if (R.mode === 'local') { R.insumos = R.insumos.slice(); saveLocal(); changed('insumos'); }
-      await log({ tipo: 'Importação de preços', ref: 'import', desc: fonte + ' — ' + ok.length + ' preço(s)', mudancas: ok });
+      await log({ tipo: 'Importação de preços', ref: 'import', desc: fonte + ' — ' + ok.length + ' preço(s)', mudancas: ok.concat(datas) });
       return ok.length;
     };
 

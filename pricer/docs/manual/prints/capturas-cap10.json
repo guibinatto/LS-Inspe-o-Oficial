@@ -6,7 +6,7 @@
   "titulo": "Cadastros → Custos → Kits de motor diesel",
   "vp": "desktop",
   "arquivo": "10-01-kits-lista.png",
-  "data": "2026-10-29T04:45:20.947Z",
+  "data": "2026-10-29T11:34:01.953Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -61,7 +61,7 @@
   "titulo": "Ficha do kit de motor diesel, com Onde é usado",
   "vp": "desktop",
   "arquivo": "10-02-kits-ficha.png",
-  "data": "2026-10-29T04:45:23.616Z",
+  "data": "2026-10-29T11:34:04.782Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -122,7 +122,7 @@
   "titulo": "Kit duplicado: Novo kit com a descrição terminada em (CÓPIA)",
   "vp": "desktop",
   "arquivo": "10-03-kits-duplicar.png",
-  "data": "2026-10-29T04:45:24.987Z",
+  "data": "2026-10-29T11:34:06.215Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -153,7 +153,7 @@
   "titulo": "Comparar kits: componente por componente",
   "vp": "desktop",
   "arquivo": "10-04-kits-comparar.png",
-  "data": "2026-10-29T04:45:26.597Z",
+  "data": "2026-10-29T11:34:07.906Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -184,7 +184,7 @@
   "titulo": "Cadastros → Custos → Kits de bomba",
   "vp": "desktop",
   "arquivo": "10-05-kits-bomba.png",
-  "data": "2026-10-29T04:45:28.588Z",
+  "data": "2026-10-29T11:34:10.128Z",
   "ok": true,
   "problemas": [],
   "marcas": [

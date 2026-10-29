@@ -32,7 +32,9 @@ function runs(txt, base) {
   return out;
 }
 const P = (txt, o) => new D.Paragraph(Object.assign({ children: runs(txt, (o || {}).run), spacing: { after: 120, line: 276 } }, o && o.p));
-const vazio = (pt) => new D.Paragraph({ spacing: { after: 0 }, children: [new D.TextRun({ text: '', size: pt || 8 })] });
+const vazio = (pt) => Object.assign(new D.Paragraph({ spacing: { after: 0 }, children: [new D.TextRun({ text: '', size: pt || 8 })] }), { _vazio: true });
+// tira os espaçadores do fim de um bloco: no fim da página eles criariam uma página em branco antes da quebra seguinte
+const semVazioFinal = (l) => { while (l.length && l[l.length - 1]._vazio) l.pop(); return l; };
 const borda = (c, s) => ({ style: D.BorderStyle.SINGLE, size: s || 4, color: c });
 const semBorda = { style: D.BorderStyle.NONE, size: 0, color: 'FFFFFF' };
 
@@ -68,7 +70,10 @@ const figuras = []; // para o relatório e a lista de figuras
 function figura(cap, id, ctx, recuo) {
   const s = (cap.capturas || []).find((c) => c.id === id); const r = regCapt[id];
   if (!s || !r) return [caixa('nv', `Figura ${id} não encontrada nas capturas.`)];
-  ctx.fig++; const num = `${cap.n}.${ctx.fig}`;
+  // a mesma tela citada de novo no capítulo: remete à figura já mostrada
+  ctx.vistas = ctx.vistas || {};
+  if (ctx.vistas[id]) return [new D.Paragraph({ indent: { left: recuo ? 460 : 0 }, spacing: { after: 100 }, children: [new D.TextRun({ text: `Veja a Figura ${ctx.vistas[id]} — ${s.titulo}.`, italics: true, size: 19, color: CZ, font: 'Arial' })] })];
+  ctx.fig++; const num = `${cap.n}.${ctx.fig}`; ctx.vistas[id] = num;
   figuras.push({ num, id, titulo: s.titulo, arquivo: r.arquivo, ok: r.ok, problemas: r.problemas, cap: cap.n });
   const im = imagem(r.arquivo);
   const cel = (s.vp || 'desktop') === 'celular';
@@ -131,7 +136,7 @@ function tutorial(cap, b, ctx) {
 }
 
 // ---------- cabeçalho e rodapé LS Fire ----------
-function cabecalho() {
+function cabecalho(titulo) {
   const k = UTIL / 10065; const c = [Math.round(2620 * k), Math.round(6168 * k)]; c.push(UTIL - c[0] - c[1]);
   const logo = fs.readFileSync(LOGO);
   const bd = borda('000000');
@@ -140,7 +145,7 @@ function cabecalho() {
   const tab = new D.Table({ width: { size: UTIL, type: D.WidthType.DXA }, columnWidths: c, borders: { top: bd, bottom: bd, left: bd, right: bd, insideHorizontal: bd, insideVertical: bd }, rows: [
     new D.TableRow({ children: [
       cel(c[0], [new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { after: 0 }, children: [new D.ImageRun({ type: 'jpg', data: logo, transformation: { width: 125, height: 48 } })] })], { verticalMerge: D.VerticalMergeType.RESTART }),
-      cel(c[1], [t(META.titulo, { bold: true, size: 24 }), t(META.subtitulo, { size: 16, color: CZ })], { verticalMerge: D.VerticalMergeType.RESTART }),
+      cel(c[1], [t(titulo || META.titulo, { bold: true, size: 24 }), t(META.subtitulo, { size: 16, color: CZ })], { verticalMerge: D.VerticalMergeType.RESTART }),
       cel(c[2], [t(META.codigo, { bold: true, size: 18 }), t('Revisão: ' + META.revisao, { size: 15 })]),
     ] }),
     new D.TableRow({ children: [cel(c[0], [new D.Paragraph({})], { verticalMerge: D.VerticalMergeType.CONTINUE }), cel(c[1], [new D.Paragraph({})], { verticalMerge: D.VerticalMergeType.CONTINUE }), cel(c[2], [t('Data:', { size: 15 }), t(META.data, { size: 15 })])] }),
@@ -208,22 +213,18 @@ function manual() {
   F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, children: [new D.TextRun('Controle do documento')] }));
   F.push(tabela(['Revisão', 'Data', 'Descrição', 'Elaborado por', 'Aprovado por'], META.revisoes.map((r) => [r.rev, r.data, r.desc, r.elab || '', r.aprov || '']), [900, 1300, 4300, 1570, 1570].map((x) => Math.round(x * UTIL / 9640))));
   F.push(vazio(10));
-  F.push(...blocos({ n: 0, capturas: [] }, META.sobre, { fig: 0, tut: 0 }));
-  F.push(new D.Paragraph({ children: [new D.PageBreak()] }));
-  F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, children: [new D.TextRun('Sumário')] }));
+  F.push(...semVazioFinal(blocos({ n: 0, capturas: [] }, META.sobre, { fig: 0, tut: 0 })));
+  F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new D.TextRun('Sumário')] }));
   F.push(new D.TableOfContents('Sumário', { hyperlink: true, headingStyleRange: '1-2' }));
   const gloss = new Map(META.glossario.map(([a, b]) => [a, b]));
   for (const cap of caps) {
-    F.push(new D.Paragraph({ children: [new D.PageBreak()] }));
-    F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, children: [new D.TextRun(`${cap.n}. ${cap.titulo}`)] }));
-    F.push(...blocos(cap, cap.conteudo, { fig: 0, tut: 0 }));
+    F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new D.TextRun(`${cap.n}. ${cap.titulo}`)] }));
+    F.push(...semVazioFinal(blocos(cap, cap.conteudo, { fig: 0, tut: 0 })));
     for (const [a, b] of cap.glossario || []) if (!gloss.has(a)) gloss.set(a, b);
   }
-  F.push(new D.Paragraph({ children: [new D.PageBreak()] }));
-  F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, children: [new D.TextRun('Glossário')] }));
+  F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new D.TextRun('Glossário')] }));
   F.push(tabela(['Termo', 'Significado'], [...gloss.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt')), [Math.round(UTIL * 0.27), UTIL - Math.round(UTIL * 0.27)]));
-  F.push(new D.Paragraph({ children: [new D.PageBreak()] }));
-  F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, children: [new D.TextRun('Lista de figuras')] }));
+  F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new D.TextRun('Lista de figuras')] }));
   F.push(tabela(['Figura', 'Título', 'Arquivo (prints/anotado e prints/original)'], figuras.map((f) => [f.num, f.titulo + (f.ok ? '' : ' (não validada)'), f.arquivo]), [1000, 4700, 3940].map((x) => Math.round(x * UTIL / 9640))));
   return { doc: documento(F), caps };
 }
@@ -241,7 +242,7 @@ function guia() {
     F.push(...blocos({ n: 'G', capturas: [] }, sec.blocos, { fig: 0, tut: 0 }));
   }
   return { doc: new D.Document({ creator: 'LS Fire', title: 'Guia rápido — LS Pricer', styles: estilos(), numbering: numeracao,
-    sections: [{ properties: { page: { size: { width: A4.w, height: A4.h }, margin: { top: 1000, bottom: 900, left: MRG, right: MRG, header: 400, footer: 400 } } }, headers: { default: cabecalho() }, footers: { default: rodape() }, children: F }] }) };
+    sections: [{ properties: { page: { size: { width: A4.w, height: A4.h }, margin: { top: 1000, bottom: 900, left: MRG, right: MRG, header: 400, footer: 400 } } }, headers: { default: cabecalho('GUIA RÁPIDO — LS PRICER') }, footers: { default: rodape() }, children: F }] }) };
 }
 
 (async () => {

@@ -6,7 +6,7 @@
   "titulo": "Pendências → Acompanhamento: pendências automáticas geradas ao salvar a proposta",
   "vp": "desktop",
   "arquivo": "13-01-pendencias-acompanhamento.png",
-  "data": "2026-10-29T04:41:23.416Z",
+  "data": "2026-10-29T11:33:19.864Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -67,7 +67,7 @@
   "titulo": "Pendência aberta: campos, situação e histórico",
   "vp": "desktop",
   "arquivo": "13-02-pendencias-detalhe.png",
-  "data": "2026-10-29T04:41:24.720Z",
+  "data": "2026-10-29T11:33:21.327Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -128,7 +128,7 @@
   "titulo": "Aba Conferência: a conferência da proposta, origem das pendências automáticas",
   "vp": "desktop",
   "arquivo": "13-03-pendencias-conferencia.png",
-  "data": "2026-10-29T04:41:27.980Z",
+  "data": "2026-10-29T11:33:24.740Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -171,7 +171,7 @@
   "titulo": "Pedir aprovação da proposta com o valor target",
   "vp": "desktop",
   "arquivo": "13-04-pendencias-pedir-aprovacao.png",
-  "data": "2026-10-29T04:41:29.644Z",
+  "data": "2026-10-29T11:33:26.513Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -226,7 +226,7 @@
   "titulo": "Tela Início: a situação mostra com quem está a aprovação",
   "vp": "desktop",
   "arquivo": "13-05-pendencias-inicio-com-quem.png",
-  "data": "2026-10-29T04:41:32.773Z",
+  "data": "2026-10-29T11:33:29.803Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -257,7 +257,7 @@
   "titulo": "Minhas pendências: aprovações esperando cada papel",
   "vp": "desktop",
   "arquivo": "13-06-pendencias-minhas.png",
-  "data": "2026-10-29T04:41:33.880Z",
+  "data": "2026-10-29T11:33:30.978Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -300,7 +300,7 @@
   "titulo": "Margens → Aprovações: onde está e a decisão de cada papel",
   "vp": "desktop",
   "arquivo": "13-07-pendencias-analise.png",
-  "data": "2026-10-29T04:41:35.614Z",
+  "data": "2026-10-29T11:33:32.765Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -343,7 +343,7 @@
   "titulo": "Aprovação concluída: aplicar o valor aprovado na proposta",
   "vp": "desktop",
   "arquivo": "13-08-pendencias-aplicar-valor.png",
-  "data": "2026-10-29T04:41:38.543Z",
+  "data": "2026-10-29T11:33:35.830Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -374,7 +374,7 @@
   "titulo": "Alertas por item: corrigir agora ou seguir assim",
   "vp": "desktop",
   "arquivo": "13-09-pendencias-alertas.png",
-  "data": "2026-10-29T04:41:42.355Z",
+  "data": "2026-10-29T11:33:39.762Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -411,7 +411,7 @@
   "titulo": "Seguir assim: a justificativa é obrigatória",
   "vp": "desktop",
   "arquivo": "13-10-pendencias-seguir-assim.png",
-  "data": "2026-10-29T04:41:47.268Z",
+  "data": "2026-10-29T11:33:44.998Z",
   "ok": true,
   "problemas": [],
   "marcas": [

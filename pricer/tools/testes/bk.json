@@ -1,14 +1,14 @@
 {
  "app": "ls-pricer",
  "rev": "REV22",
- "criadoEm": "2026-10-29T10:48:42.657Z",
+ "criadoEm": "2026-10-29T11:19:43.466Z",
  "modo": "local",
  "colecoes": {
   "propostas": {
-   "pmvtf7emrv6h": {
+   "pmvtgbafiuxu": {
     "name": "10.102 / 10.116 · COCAMAR COOPERATIVA AGROINDUSTRIAL — SEDE",
-    "at": "2026-10-29T10:48:41.427Z",
-    "uid": "umvtf7dt5bs36l",
+    "at": "2026-10-29T11:19:42.222Z",
+    "uid": "umvtgb9lbl82cf",
     "div": "SEQ",
     "numero": "10.102 / 10.116",
     "cliente": "COCAMAR COOPERATIVA AGROINDUSTRIAL — SEDE",
@@ -392,10 +392,10 @@
      "imped": 0,
      "aviso": 5,
      "info": 0,
-     "at": "2026-10-29T10:48:41.431Z"
+     "at": "2026-10-29T11:19:42.226Z"
     },
     "precos": {
-     "at": "2026-10-29T10:48:41.445Z",
+     "at": "2026-10-29T11:19:42.251Z",
      "ins": {
       "6M33G633/6 952HP@1800RPM 6CIL 24VCC RADIADOR MEC": 220000,
       "TKF 125-400 EFF": 14000,
@@ -494,7 +494,7 @@
      ]
     },
     "status": "rascunho",
-    "criadaEm": "2026-10-29T10:48:41.427Z",
+    "criadaEm": "2026-10-29T11:19:42.222Z",
     "criadaPor": null,
     "ver": 1,
     "verDoc": 1
@@ -506,10 +506,10 @@
   "pedidos": {},
   "documentos": {},
   "pendencias": {
-   "PND-A0YJLH87": {
-    "chave": "pmvtf7emrv6h|Identificação|Falta preencher: CNPJ/CPF",
+   "PND-A1O8L35V": {
+    "chave": "pmvtgbafiuxu|Identificação|Falta preencher: CNPJ/CPF",
     "origem": "auto",
-    "propId": "pmvtf7emrv6h",
+    "propId": "pmvtgbafiuxu",
     "propNome": "10.102 / 10.116 · COCAMAR COOPERATIVA AGROINDUSTRIAL — SEDE",
     "item": null,
     "titulo": "Falta preencher: CNPJ/CPF",
@@ -521,22 +521,22 @@
     "prioridade": "media",
     "criticidade": "atencao",
     "status": "aberta",
-    "criadaEm": "2026-10-29T10:48:41.455Z",
+    "criadaEm": "2026-10-29T11:19:42.268Z",
     "criadaPor": null,
     "solucao": "",
     "historico": [
      {
-      "at": "2026-10-29T10:48:41.455Z",
+      "at": "2026-10-29T11:19:42.268Z",
       "by": null,
       "texto": "Gerada pela conferência da proposta",
       "campos": []
      }
     ]
    },
-   "PND-A1WIRJXV": {
-    "chave": "pmvtf7emrv6h|Margem e desconto|ITEM 02: Margem #% abaixo do mínimo de #% — exige aprovação",
+   "PND-A1MJ36RB": {
+    "chave": "pmvtgbafiuxu|Margem e desconto|ITEM 02: Margem #% abaixo do mínimo de #% — exige aprovação",
     "origem": "auto",
-    "propId": "pmvtf7emrv6h",
+    "propId": "pmvtgbafiuxu",
     "propNome": "10.102 / 10.116 · COCAMAR COOPERATIVA AGROINDUSTRIAL — SEDE",
     "item": "ITEM 02",
     "titulo": "ITEM 02: Margem 22,6% abaixo do mínimo de 30,0% — exige aprovação",
@@ -548,22 +548,22 @@
     "prioridade": "media",
     "criticidade": "atencao",
     "status": "aberta",
-    "criadaEm": "2026-10-29T10:48:41.456Z",
+    "criadaEm": "2026-10-29T11:19:42.270Z",
     "criadaPor": null,
     "solucao": "",
     "historico": [
      {
-      "at": "2026-10-29T10:48:41.456Z",
+      "at": "2026-10-29T11:19:42.270Z",
       "by": null,
       "texto": "Gerada pela conferência da proposta",
       "campos": []
      }
     ]
    },
-   "PND-A0DUHWVZ": {
-    "chave": "pmvtf7emrv6h|Margem e desconto|ITEM 03: Fator efetivo # abaixo do piso da política (#): precisa de aprovação — exige aprovação",
+   "PND-A10Z6VMJ": {
+    "chave": "pmvtgbafiuxu|Margem e desconto|ITEM 03: Fator efetivo # abaixo do piso da política (#): precisa de aprovação — exige aprovação",
     "origem": "auto",
-    "propId": "pmvtf7emrv6h",
+    "propId": "pmvtgbafiuxu",
     "propNome": "10.102 / 10.116 · COCAMAR COOPERATIVA AGROINDUSTRIAL — SEDE",
     "item": "ITEM 03",
     "titulo": "ITEM 03: Fator efetivo 1,249 abaixo do piso da política (1,300): precisa de aprovação — exige aprovação",
@@ -575,22 +575,22 @@
     "prioridade": "media",
     "criticidade": "atencao",
     "status": "aberta",
-    "criadaEm": "2026-10-29T10:48:41.456Z",
+    "criadaEm": "2026-10-29T11:19:42.270Z",
     "criadaPor": null,
     "solucao": "",
     "historico": [
      {
-      "at": "2026-10-29T10:48:41.456Z",
+      "at": "2026-10-29T11:19:42.270Z",
       "by": null,
       "texto": "Gerada pela conferência da proposta",
       "campos": []
      }
     ]
    },
-   "PND-A0Y3HOG0": {
-    "chave": "pmvtf7emrv6h|Margem e desconto|ITEM 03: Margem #% abaixo do mínimo de #% — exige aprovação",
+   "PND-A0S8FKSK": {
+    "chave": "pmvtgbafiuxu|Margem e desconto|ITEM 03: Margem #% abaixo do mínimo de #% — exige aprovação",
     "origem": "auto",
-    "propId": "pmvtf7emrv6h",
+    "propId": "pmvtgbafiuxu",
     "propNome": "10.102 / 10.116 · COCAMAR COOPERATIVA AGROINDUSTRIAL — SEDE",
     "item": "ITEM 03",
     "titulo": "ITEM 03: Margem 17,7% abaixo do mínimo de 30,0% — exige aprovação",
@@ -602,12 +602,12 @@
     "prioridade": "media",
     "criticidade": "atencao",
     "status": "aberta",
-    "criadaEm": "2026-10-29T10:48:41.456Z",
+    "criadaEm": "2026-10-29T11:19:42.271Z",
     "criadaPor": null,
     "solucao": "",
     "historico": [
      {
-      "at": "2026-10-29T10:48:41.456Z",
+      "at": "2026-10-29T11:19:42.271Z",
       "by": null,
       "texto": "Gerada pela conferência da proposta",
       "campos": []
@@ -12199,10 +12199,10 @@
  },
  "historico": [
   {
-   "at": "2026-10-29T10:48:41.455Z",
+   "at": "2026-10-29T11:19:42.269Z",
    "by": null,
    "tipo": "Proposta criada",
-   "ref": "pmvtf7emrv6h",
+   "ref": "pmvtgbafiuxu",
    "desc": "10.102 / 10.116 · COCAMAR COOPERATIVA AGROINDUSTRIAL — SEDE · SEQ",
    "mudancas": [
     {
