@@ -129,7 +129,7 @@ body.side-mini .nav .nbadge{position:absolute;top:2px;right:4px}
   .ctx-tt h1{font-size:20px}
   .ptab span{display:none}.ptab.on span{display:inline}
 }
-@media (max-width:600px){.doc-name{display:none}}
+@media (max-width:600px){.doc-name{display:none}.actions #bCancel{display:none}.actions{min-width:0;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}}
 /* acabamento moderno (só aparência; nada muda nos dados) */
 .card{border-radius:12px;border-color:var(--line)}
 .t th{background:var(--th-bg);color:var(--ink2);border-bottom:1px solid var(--line2);font-size:12px;padding:9px 10px}
@@ -258,6 +258,38 @@ details.sub2{border-top:1px solid var(--line);padding:8px 0}.pcopts{display:flex
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--bar);color:var(--bar-ink);padding:9px 16px;border-radius:8px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:50}
 .modal{position:fixed;inset:0;background:rgba(10,10,10,.45);display:grid;place-items:center;z-index:40;padding:16px}
 .modal .card{width:min(680px,100%);max-height:88vh;overflow:auto;display:grid;gap:12px}
+/* configurador assistido do equipamento: Configurar → Compor → Conferir */
+.cfghead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end}
+.cfgsteps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cfgstep{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--card);color:var(--ink2);font-weight:700;cursor:pointer;font-size:15px}
+.cfgstep .ico{width:18px;height:18px}
+.cfgstep.on{border-color:var(--or);background:var(--or-soft);color:var(--or-ink);box-shadow:inset 0 -3px 0 var(--or)}
+.cfgstep.done:not(.on){color:var(--ok)}
+.cfgstep.prob:not(.on){color:var(--warn);border-color:var(--warn)}
+.cfgstep:focus-visible{outline:2px solid var(--or);outline-offset:2px}
+.cfggrid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+.famcard.on{border-color:var(--or);box-shadow:inset 0 -3px 0 var(--or);background:var(--or-soft)}
+.mcard.on{border-color:var(--or);background:var(--or-soft)}
+.cfgmods{max-height:420px;overflow:auto}
+.cfglegenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 10px}
+.cfgcomp td{vertical-align:middle}
+.cfgcomp tr.cfgoff td{opacity:.62}
+.cfgcomp tr.cfgsel td{background:var(--or-soft)}
+.cfgchk{width:30px;text-align:center}
+.cfgtags{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.cfgwhy{white-space:nowrap}
+.cfglock{display:inline-flex;color:var(--ink3)}.cfglock .ico{width:15px;height:15px}
+.cfgqtd{display:inline-flex;align-items:center;gap:4px}.cfgqtd input{width:58px;text-align:right}
+.cfgqtd .btn.sm{padding:3px 6px}.cfgqtd .ico{width:14px;height:14px}
+.cfgcustos{display:grid;gap:6px;margin-top:10px}
+.cfgcusto summary{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.cfgcusto[open] summary{border-color:var(--or)}
+.cfgalerts li{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.pill.info{background:var(--or-soft);color:var(--or-ink)}
+.cfgpainel h2{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:1000px){.cfggrid{grid-template-columns:minmax(0,1fr)}.cfggrid .side{position:static;max-height:none}}
+@media (max-width:640px){.cfgsteps{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.cfgstep{padding:8px 4px;font-size:13px}.cfgstep .ico{display:none}.cfgcomp th:nth-child(4),.cfgcomp td:nth-child(4){display:none}.cfgwhy{font-size:0;gap:0}}
 /* confirmação e visualização dentro do app (dialogo.js): por cima de tudo, inclusive dos modais */
 .dlgwrap{position:fixed;inset:0;background:rgba(10,10,10,.5);display:grid;place-items:center;z-index:9000;padding:16px}
 .dlgbox{background:var(--card,#fff);color:var(--ink,#222);border-radius:14px;padding:18px;width:min(460px,100%);box-shadow:0 12px 40px rgba(0,0,0,.25);display:grid;gap:10px}

@@ -330,7 +330,7 @@
     const r = e.target.closest('[data-restore]');
     if (r) { const [s, a] = r.dataset.restore.split('|'); commit(s, a, null, true); return; }
     const go = e.target.closest('[data-goitem]');
-    if (go) { ui.item = +go.dataset.goitem; ui.itemFull = false; setView('item'); return; }
+    if (go) { ui.item = +go.dataset.goitem; ui.itemFull = false; cfgEtRestart(ui.item); setView('item'); return; }
     const nv = e.target.closest('[data-view]');
     if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = cabOk() ? 2 : 1; if (!cabOk()) ui.reqShow = true; ui.propFull = false; setView('proposta'); return; } if (nv.dataset.view === 'cadastro' && areaOfTab(ui.cad) === 'sistema') ui.cad = 'insumos'; setView(nv.dataset.view); return; }
   });
@@ -386,7 +386,7 @@
     { const b = $('#bMode'); if (b) b.hidden = outro || !['proposta', 'item'].includes(ui.view); }
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
     const full = !outro && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
-    const views = spv ? { proposta: SPV.vSpv } : fx ? { proposta: FX.vFacts } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : vItemS } : { proposta: vProposta, item: vItem };
+    const views = spv ? { proposta: SPV.vSpv } : fx ? { proposta: FX.vFacts } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : ui.cfgClassico ? vItemS : vConfig } : { proposta: vProposta, item: vItem };
     const html = (viewDaProposta(ui.view) ? propHeader() : '') + Object.assign({ inicio: SPV.vHome, pendencias: MG.vPendencias, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: () => vCadastro('cadastro'), config: () => vCadastro('config'), guia: vGuia, phist: vPropHist }, views)[ui.view]();
     MG.ensure(); SPV.ensureDocs(); PD.ensure();
     // contadores do menu: só o selo muda; o ícone e o nome ficam
@@ -850,10 +850,13 @@
     return `<br><small class="sub">${esc(t).replace('\u0001', '<b>' + a.com + '</b>')} ${a.aplicar ? '<button class="btn sm pri" data-apaplica>Aplicar o valor aprovado na proposta</button> ' : ''}<button class="restore" data-apopen="${esc(a.id)}">ver aprovação</button></small>`;
   }
   // cada alerta: corrigir agora (quando dá) ou seguir assim, com a justificativa no histórico
-  const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => { const key = esc(JSON.stringify([x.S, x.msg]));
-    const ap = x.aprov && x.aprov.estado; const okAp = ap === 'aprovada'; const pedeAp = x.aprov && !x.ack && (!ap || ap === 'reprovada' || ap === 'vencida');
+  const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => {
+    const okAp = x.aprov && x.aprov.estado === 'aprovada';
     return `<li class="${x.ack || okAp ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${aprovLinha(x)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(new Date(x.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span>
-      <span class="alact">${pedeAp ? `<button class="btn sm${ap ? ' pri' : ''}" data-alaprov>${ap ? 'Pedir de novo' : 'Pedir aprovação'}</button>` : ''}${x.fix && !x.ack && !okAp ? `<button class="btn sm pri" data-alfix="${esc(JSON.stringify({ S: x.S, act: x.fix.act, data: x.fix.data }))}">${esc(x.fix.lb)}</button>` : ''}${x.ack ? `<button class="restore" data-alundo="${key}">desfazer</button>` : x.lvl !== 'info' && !x.aprov ? `<button class="btn sm" data-alack="${key}">Seguir assim</button>` : ''}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
+      <span class="alact">${alAcoes(x)}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
+  // ações de um alerta (as mesmas na tela clássica, na conferência e no configurador)
+  function alAcoes(x) { const key = esc(JSON.stringify([x.S, x.msg])); const ap = x.aprov && x.aprov.estado; const okAp = ap === 'aprovada'; const pedeAp = x.aprov && !x.ack && (!ap || ap === 'reprovada' || ap === 'vencida');
+    return `${pedeAp ? `<button class="btn sm${ap ? ' pri' : ''}" data-alaprov>${ap ? 'Pedir de novo' : 'Pedir aprovação'}</button>` : ''}${x.fix && !x.ack && !okAp ? `<button class="btn sm pri" data-alfix="${esc(JSON.stringify({ S: x.S, act: x.fix.act, data: x.fix.data }))}">${esc(x.fix.lb)}</button>` : ''}${x.ack ? `<button class="restore" data-alundo="${key}">desfazer</button>` : x.lvl !== 'info' && !x.aprov ? `<button class="btn sm" data-alack="${key}">Seguir assim</button>` : ''}`; }
   const countPills = (list) => { const n = (l) => list.filter((x) => x.lvl === l && !x.ack && !(x.aprov && x.aprov.estado === 'aprovada')).length; return list.length ? [['bad', 'alerta'], ['warn', 'aviso']].filter(([l]) => n(l)).map(([l, w]) => `<span class="pill ${l}">${n(l)} ${w}${n(l) > 1 ? 's' : ''}</span>`).join(' ') || '<span class="pill mute">só informação</span>' : '<span class="pill ok">sem alertas</span>'; };
 
   // ações dos alertas
@@ -884,9 +887,9 @@
         for (let k = 0; k < 8; k++) { const m = val(S, 'J15'); if (typeof m !== 'number' || m >= mn - 5e-4) break; alvo = Math.min(0.9, alvo + (mn - m) + 1e-4); setq('L17', alvo); }
         listCache = new Map(); dirty = true; persist(); render(); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': preço ajustado à margem mínima de ' + pct(mn), mudancas: [{ campo: 'Modo de preço', de: null, para: 'MARGEM ALVO' }, { campo: 'Margem alvo', de: null, para: alvo }, { campo: 'Margem final', de: null, para: val(S, 'J15') }] }); toast('Preço ajustado à margem mínima'); return; }
       if (a.act === 'desconto') { const d0 = val(S, 'C8'); commit(S, 'C8', null, true); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': desconto retirado', mudancas: [{ campo: 'Desconto', de: d0, para: null }] }); toast('Desconto retirado'); return; }
-      if (a.act === 'esp') { ui.item = i; ui.itemFull = false; if (ui.view !== 'item') setView('item');
+      if (a.act === 'esp') { ui.item = i; ui.itemFull = false; ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: 3 }); if (ui.view !== 'item') setView('item'); else render();
         setTimeout(() => { const el = document.getElementById('esp_' + S.replace(/\W/g, '') + '_' + a.data); if (!el) return; el.scrollIntoView({ block: 'start' }); const vazio = [...el.querySelectorAll('[data-esp]')].find((x) => !x.value.trim()); if (vazio) vazio.focus(); }, 60); return; }
-      if (a.act === 'foco' || a.act === 'abrir') { ui.item = i; ui.itemFull = false; if (ui.view !== 'item') setView('item');
+      if (a.act === 'foco' || a.act === 'abrir') { ui.item = i; ui.itemFull = false; ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: a.act === 'foco' ? 1 : 3 }); if (a.act === 'foco' && !['C17', 'C6', 'C21'].includes(a.data)) ui.cfgModo = Object.assign({}, ui.cfgModo, { [S]: 'carac' }); if (ui.view !== 'item') setView('item'); else render();
         setTimeout(() => { if (a.act === 'abrir') { const d = document.querySelector(`details[data-keep="${a.data}"]`); if (d) { d.open = true; d.scrollIntoView({ block: 'start' }); } return; }
           const el = document.getElementById(id(S, a.data)); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } else toast('Escolha a família e o equipamento primeiro'); }, 60); return; }
     }
@@ -956,7 +959,7 @@
     }
     if (e.target.closest('[data-cabnext]')) {
       if (!cabOk()) { ui.reqShow = true; render(); const m = document.querySelector('.f.miss'); if (m) m.scrollIntoView({ block: 'center' }); toast('Preencha os campos marcados'); return; }
-      ui.reqShow = false; if (ui.famPend && !filled(ITEMS[0])) { ui.item = 0; ui.itemFull = false; ui.famPend = null; setView('item'); return; }
+      ui.reqShow = false; if (ui.famPend && !filled(ITEMS[0])) { ui.item = 0; ui.itemFull = false; ui.famPend = null; cfgEtRestart(0); setView('item'); return; }
       ui.famPend = null; ui.step = 2; setView('proposta'); return;
     }
   });
@@ -1482,7 +1485,7 @@
   // do cartão da proposta direto para o bloco da folha do fabricante no item
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-insabre]'); if (b) { ui.cad = 'insumos'; insumoModal(b.dataset.insabre); } });
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-fdir]'); if (!b) return; const i = ITEMS.indexOf(b.dataset.fdir); if (i < 0) return;
-    ui.item = i; ui.itemFull = false; openSet.fdprop = true; if (ui.view !== 'item') setView('item'); else render();
+    ui.item = i; ui.itemFull = false; openSet.fdprop = true; ui.cfgEt = Object.assign({}, ui.cfgEt, { [ITEMS[i]]: 3 }); if (ui.view !== 'item') setView('item'); else render();
     setTimeout(() => { const d = document.querySelector('details[data-keep="fdprop"]'); if (d) { d.open = true; const alvo = d.querySelector('[data-fdup$="|fab"]') ? d.querySelector('[data-fdup$="|fab"]').closest('.fdslot') : d.querySelector('[data-fabler]')?.closest('.fdslot'); (alvo || d).scrollIntoView({ block: 'start' }); } }, 80); });
   document.addEventListener('click', async (e) => { const b = e.target.closest('[data-fabler]'); if (!b || state.verRev) return; const S = b.dataset.fabler;
     try { const F0 = (((pcGet().fd || {})[S]) || {}).fab; const file = await fdArquivo(S, 'fab'); if (!F0 || !file) { toast('Não encontrei o arquivo.'); return; } if (!await DLG.confirmar('Ler de novo? As marcações e correções feitas nesta folha voltam ao que o app lê.')) return; await fabLerArquivo(S, file, { docId: F0.docId, nome: F0.nome }); } catch (er) { toast(errMsg(er)); } });
@@ -1893,7 +1896,7 @@
       const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
       try { await gravarModelo(id, { nome, desc: txt(S, 'C28'), fam: txt(S, 'C21'), cells, at: new Date().toISOString(), by: REG.me || null }); logEv({ tipo: 'Modelo de item salvo', ref: id, desc: nome + ' · ' + txt(S, 'C28'), mudancas: [] }); toast('Modelo salvo'); render(); } catch (er) { toast(errMsg(er)); } return; }
     const us = e.target.closest('[data-moduse]'); if (us) { const x = modelosItem.find((y) => y.id === us.dataset.moduse); const j = firstFree(); if (!x || j < 0) return; const S = ITEMS[j];
-      state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.cells)); build(); persist(); dirty = true; listCache = new Map(); logEv({ tipo: 'Modelo de item usado', ref: docTitle(), desc: S + ' ← ' + x.nome, mudancas: [] }); ui.item = j; ui.itemFull = false; setView('item'); toast('Item criado a partir do modelo: confira e ajuste'); return; }
+      state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.cells)); build(); persist(); dirty = true; listCache = new Map(); logEv({ tipo: 'Modelo de item usado', ref: docTitle(), desc: S + ' ← ' + x.nome, mudancas: [] }); ui.item = j; ui.itemFull = false; cfgEtRestart(j); setView('item'); toast('Item criado a partir do modelo: confira e ajuste'); return; }
     const dl = e.target.closest('[data-moddel]'); if (dl) { if (!await DLG.confirmar('Excluir este modelo?')) return; try { await gravarModelo(dl.dataset.moddel, null); logEv({ tipo: 'Modelo de item excluído', ref: dl.dataset.moddel, desc: '', mudancas: [] }); render(); } catch (er) { toast(errMsg(er)); } }
   });
 
@@ -1999,7 +2002,7 @@
   document.addEventListener('click', (e) => {
     const g = e.target.closest('[data-confgo]'); if (!g) return; let go; try { go = JSON.parse(g.dataset.confgo); } catch (er) { return; }
     if (go.save) { $('#bSave').onclick(); return; }
-    if (typeof go.item === 'number') { ui.item = go.item; ui.itemFull = false; setView('item'); return; }
+    if (typeof go.item === 'number') { ui.item = go.item; ui.itemFull = false; cfgEtRestart(go.item); setView('item'); return; }
     ui.step = go.step || 1; setView('proposta'); if (go.sel) setTimeout(() => { const el = document.querySelector(go.sel); if (el) el.scrollIntoView({ block: 'center' }); }, 60);
   });
 
@@ -2160,6 +2163,35 @@
   }
 
 
+  // blocos do item usados na tela clássica e na etapa Conferir do configurador
+  const lenTag = (n, lim) => `<span class="pill ${n > lim ? 'bad' : 'ok'}">${n} de ${lim} caracteres</span>`;
+  function itemCodHtml(S) { const fs = (a, lb, o) => fieldS(S, a, lb, o);
+    return `<details class="card"${keep('cod')}><summary>Código e descrição <span class="sub">${lenTag(txt(S, 'C27').length, 60)} ${lenTag(txt(S, 'C28').length, 120)}</span></summary>
+        <div class="stack">
+          <div><div class="lbl">Código ${lenTag(txt(S, 'C27').length, 60)}</div><div class="codebox">${esc(txt(S, 'C27') || 'o código sai aqui')}</div></div>
+          <div><div class="lbl">Descrição breve ${lenTag(txt(S, 'C28').length, 120)}</div><p class="txtv">${esc(txt(S, 'C28')) || '—'}</p></div>
+          <div><div class="lbl">Descrição completa</div><p class="txtv">${esc(txt(S, 'C29')) || '—'}</p></div>
+          <div><div class="lbl">Ponto operacional</div><p class="txtv">${esc(txt(S, 'C30')) || '—'}</p></div>
+          <div class="fields">${fs('J21', 'Marca')}${fs('G7', 'NCM (do cadastro Fiscal)')}${fs('H21', 'Unidade (do cadastro Fiscal)')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div>
+        </div></details>`; }
+  function itemFciHtml(S) { const fs = (a, lb, o) => fieldS(S, a, lb, o); const num = (x) => (typeof x === 'number' ? x : 0);
+    const imp = []; let nNac = 0;
+    for (let r = 34; r <= 112; r++) { if ((r > 63 && r < 68) || val(S, 'AU' + r) !== 1) continue; if (txt(S, 'AB' + r) === 'IMP') imp.push({ d: txt(S, 'D' + r), q: show(S, 'F' + r), t: num(val(S, 'F' + r)) * num(val(S, 'AD' + r)) }); else nNac++; }
+    for (const x of fciHidden(S)) { if (x.ori === 'IMP') imp.push({ d: x.desc, q: fmtNum(x.qtd), t: x.tot }); else nNac++; }
+    const fciSt = txt(S, 'C196');
+    return `<details class="card"${keep('fci')}><summary>FCI <span class="sub">conteúdo importado ${pct(val(S, 'C172'), 2)} · ${esc(txt(S, 'E172'))} · ${/^OK/.test(fciSt) ? 'pronta' : 'com pendência'}</span></summary>
+        <div class="stack">
+          ${fciSt && !/^OK/.test(fciSt) ? `<div class="banner warn">${esc(fciSt)}</div>` : ''}
+          <div class="kpis">
+            <div class="kpi"><span>Conteúdo importado</span><b>${pct(val(S, 'C172'), 2)}</b><em>${esc(txt(S, 'E172'))} (limite ${pct(val('PARÂMETROS', 'C9'), 0)})</em></div>
+            <div class="kpi"><span>Valor da saída</span><b>${brl(val(S, 'H170'))}</b><em>sem ICMS e IPI</em></div>
+            <div class="kpi"><span>ICMS na nota</span><b>${pct(val(S, 'C181'), 2)}</b><em>CST ${esc(txt(S, 'C183'))}</em></div>
+          </div>
+          <div class="fields">${fs('C193', 'Unidade p/ transmissão')}${fs('C194', 'Finalidade', { list: ['ATIVO IMOBILIZADO', 'USO E CONSUMO'] })}</div>
+          ${imp.length ? `<div class="tw"><table class="t"><thead><tr><th>Componente importado</th><th>Qtd</th><th>Parcela importada</th></tr></thead><tbody>${imp.map((x) => `<tr><td>${esc(x.d)}</td><td class="n">${esc(x.q)}</td><td class="n">${fmtNum(x.t, '#,##0.00')}</td></tr>`).join('')}<tr class="tot"><td colspan="2">Total importado</td><td class="n">${show(S, 'H166')}</td></tr></tbody></table></div>` : '<p class="sub" style="margin:0">Nenhum componente importado.</p>'}
+          <p class="sub" style="margin:0">${nNac} componente(s) nacional(is): entram na FCI com parcela importada zero.</p>
+          <div class="docbar"><button class="btn sm pri" data-doc="fcipdf" data-docitem="${S}">FCI em PDF</button><button class="btn sm" data-doc="fcixlsx" data-docitem="${S}">FCI em Excel (template)</button></div>
+        </div></details>`; }
   function vItemS() {
     const S = ITEMS[ui.item]; const f = (a, lb, o) => field(S, a, lb, o); const fs = (a, lb, o) => fieldS(S, a, lb, o);
     const c = arrCounts(S); const ok = filled(S); const al = alertsFor(S);
@@ -2208,12 +2240,6 @@
       return `<tr>${first}${insumo}${x.esc ? cellIn(S, 'F' + r) : qtdRO(S, r)}${custo}${updCell(S, r)}<td class="n">${show(S, 'H' + r)}</td><td class="n sub">${pItem(num(val(S, 'H' + r)))}</td><td>${obs(r)}${x.esc ? ` <button class="restore" data-rmrow="${r}">remover</button>` : ''}</td></tr>`;
     };
     const comp = Object.entries(groups).filter(([, g]) => g.length).map(([k, g]) => { const gt = g.reduce((t, x) => t + x.tot, 0); return `<tr class="grp"><td colspan="5">${gl[k]}</td><td class="n">${fmtNum(gt, '#,##0.00')}</td><td class="n">${pItem(gt)}</td><td></td></tr>${g.map(rowC).join('')}`; }).join('');
-    // código e FCI
-    const lenTag = (n, lim) => `<span class="pill ${n > lim ? 'bad' : 'ok'}">${n} de ${lim} caracteres</span>`;
-    const imp = []; let nNac = 0;
-    for (let r = 34; r <= 112; r++) { if ((r > 63 && r < 68) || val(S, 'AU' + r) !== 1) continue; if (txt(S, 'AB' + r) === 'IMP') imp.push({ d: txt(S, 'D' + r), q: show(S, 'F' + r), t: num(val(S, 'F' + r)) * num(val(S, 'AD' + r)) }); else nNac++; }
-    for (const x of fciHidden(S)) { if (x.ori === 'IMP') imp.push({ d: x.desc, q: fmtNum(x.qtd), t: x.tot }); else nNac++; }
-    const fciSt = txt(S, 'C196');
     const cond = `Desconto ${pct(val(S, 'C8') || 0, 1)} · margem alvo ${pct(val(S, 'P89'))} · start-up ${val(S, 'K12') ? brl(val(S, 'K12')) + '/un.' : 'não'}`;
     return `<div class="stack">
       <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-step="2">← Itens da proposta</button><h1 style="margin-top:8px">${S}</h1><div class="sub">${esc(txt(S, 'C28')) || 'Escolha um modelo pronto ou monte o equipamento abaixo.'}</div></div>
@@ -2238,34 +2264,419 @@
         <p class="sub" style="margin:0 0 10px">Verde é o que a montagem escolheu sozinha. O insumo vem da lista da família; preço, origem e data vêm do cadastro, e a quantidade vem da estrutura do item (Engenharia → Estruturas). Só nos componentes adicionais você informa a quantidade. Se o insumo não existe ou está sem preço, use "pedir cadastro".</p>
         ${nComp ? `<div class="tw"><table class="t comp"><thead><tr><th>Item / família</th><th>Insumo</th><th>Qtd</th><th>Custo unit.</th><th>Preço atualizado em</th><th>Custo total</th><th>% do item</th><th></th></tr></thead><tbody>${comp}<tr class="tot"><td colspan="5">Custo do item</td><td class="n">${brl(val(S, 'H114'))}</td><td class="n">100%</td><td></td></tr></tbody></table></div>` : '<p class="sub">Os componentes aparecem quando o equipamento estiver escolhido.</p>'}
         <div class="docbar" style="margin-top:10px"><button class="btn sm" data-addrow>+ Adicionar componente do cadastro</button><button class="btn sm" data-pedir="${esc(JSON.stringify({ linha: { rotulo: S + ' · novo componente' } }))}">Pedir cadastro de insumo</button></div></details>
-      <details class="card"${keep('cod')}><summary>Código e descrição <span class="sub">${lenTag(txt(S, 'C27').length, 60)} ${lenTag(txt(S, 'C28').length, 120)}</span></summary>
-        <div class="stack">
-          <div><div class="lbl">Código ${lenTag(txt(S, 'C27').length, 60)}</div><div class="codebox">${esc(txt(S, 'C27') || 'o código sai aqui')}</div></div>
-          <div><div class="lbl">Descrição breve ${lenTag(txt(S, 'C28').length, 120)}</div><p class="txtv">${esc(txt(S, 'C28')) || '—'}</p></div>
-          <div><div class="lbl">Descrição completa</div><p class="txtv">${esc(txt(S, 'C29')) || '—'}</p></div>
-          <div><div class="lbl">Ponto operacional</div><p class="txtv">${esc(txt(S, 'C30')) || '—'}</p></div>
-          <div class="fields">${fs('J21', 'Marca')}${fs('G7', 'NCM (do cadastro Fiscal)')}${fs('H21', 'Unidade (do cadastro Fiscal)')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div>
-        </div></details>
+      ${itemCodHtml(S)}
       ${itemPropCard(S)}
-      <details class="card"${keep('fci')}><summary>FCI <span class="sub">conteúdo importado ${pct(val(S, 'C172'), 2)} · ${esc(txt(S, 'E172'))} · ${/^OK/.test(fciSt) ? 'pronta' : 'com pendência'}</span></summary>
-        <div class="stack">
-          ${fciSt && !/^OK/.test(fciSt) ? `<div class="banner warn">${esc(fciSt)}</div>` : ''}
-          <div class="kpis">
-            <div class="kpi"><span>Conteúdo importado</span><b>${pct(val(S, 'C172'), 2)}</b><em>${esc(txt(S, 'E172'))} (limite ${pct(val('PARÂMETROS', 'C9'), 0)})</em></div>
-            <div class="kpi"><span>Valor da saída</span><b>${brl(val(S, 'H170'))}</b><em>sem ICMS e IPI</em></div>
-            <div class="kpi"><span>ICMS na nota</span><b>${pct(val(S, 'C181'), 2)}</b><em>CST ${esc(txt(S, 'C183'))}</em></div>
-          </div>
-          <div class="fields">${fs('C193', 'Unidade p/ transmissão')}${fs('C194', 'Finalidade', { list: ['ATIVO IMOBILIZADO', 'USO E CONSUMO'] })}</div>
-          ${imp.length ? `<div class="tw"><table class="t"><thead><tr><th>Componente importado</th><th>Qtd</th><th>Parcela importada</th></tr></thead><tbody>${imp.map((x) => `<tr><td>${esc(x.d)}</td><td class="n">${esc(x.q)}</td><td class="n">${fmtNum(x.t, '#,##0.00')}</td></tr>`).join('')}<tr class="tot"><td colspan="2">Total importado</td><td class="n">${show(S, 'H166')}</td></tr></tbody></table></div>` : '<p class="sub" style="margin:0">Nenhum componente importado.</p>'}
-          <p class="sub" style="margin:0">${nNac} componente(s) nacional(is): entram na FCI com parcela importada zero.</p>
-          <div class="docbar"><button class="btn sm pri" data-doc="fcipdf" data-docitem="${S}">FCI em PDF</button><button class="btn sm" data-doc="fcixlsx" data-docitem="${S}">FCI em Excel (template)</button></div>
-        </div></details>
+      ${itemFciHtml(S)}
       `}
       <div class="flowbar"><button class="btn" data-step="2">← Itens da proposta</button><span style="display:flex;gap:6px">${!txt(S, 'C17') && ok && c.code && !(c.d && c.e) ? '<button class="btn" data-savemodel>Salvar como modelo pronto</button>' : ''}<button class="btn" data-dup="${ui.item}">Duplicar</button><button class="btn" data-rmitem="${ui.item}">Remover</button></span></div>
-      <p class="sub" style="text-align:right;margin:0">Precisa da planilha célula por célula? <button class="restore" data-itemfull>abrir a visão completa</button></p>
+      <p class="sub" style="text-align:right;margin:0"><button class="restore" data-cfgassistido>voltar ao configurador assistido</button> · Precisa da planilha célula por célula? <button class="restore" data-itemfull>abrir a visão completa</button></p>
       ${datalists()}
     </div>`;
   }
+  // ===================== configurador assistido do equipamento: Configurar → Compor → Conferir =====================
+  // Não há motor paralelo: as escolhas vão para as mesmas células do item (família C21, modelo pronto C17, arranjo E17,
+  // bomba D19, motor C19/H19/F19 e I19/L19, jockey J19, vazão G17, pressão H17, norma I17, opcionais BC, escopo 68–112) e a
+  // planilha monta os componentes pela estrutura (MONTADOR), kits e tabelas por porte, e calcula custo, preço e margem.
+  // Aqui só se lê o resultado, se explica de onde cada componente veio e se confere antes de incluir na proposta.
+  const CFG_ETAPAS = [[1, 'Configurar', 'sliders-horizontal'], [2, 'Compor', 'layers'], [3, 'Conferir', 'clipboard-check']];
+  const CFG_PARAMS = ['C21', 'C17', 'E17', 'D19', 'BA19', 'C19', 'H19', 'F19', 'I19', 'L19', 'J19', 'G17', 'H17', 'I17'];
+  const cfgAll = () => (pcGet().cfg || {});
+  const cfgDe = (S) => cfgAll()[S] || {};
+  function cfgPut(S, fn) { const all = JSON.parse(JSON.stringify(cfgAll())); all[S] = all[S] || {}; fn(all[S]); if (!Object.keys(all[S]).length) delete all[S]; pcSet('cfg', Object.keys(all).length ? all : undefined); }
+  // etapa aberta de cada item (preferência da tela): item novo começa em Configurar; item já montado abre em Conferir
+  const cfgEtapa = (S) => { ui.cfgEt = ui.cfgEt || {}; if (!ui.cfgEt[S]) ui.cfgEt[S] = filled(S) ? 3 : 1; return ui.cfgEt[S]; };
+  // abrir o item pela lista: item preenchido vai para Conferir, item novo para Configurar
+  const cfgEtRestart = (i) => { const k = ITEMS[i]; if (ui.cfgEt && k in ui.cfgEt) { ui.cfgEt = Object.assign({}, ui.cfgEt); delete ui.cfgEt[k]; } };
+  const cfgIr = (S, n, sel, campo) => { ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: n }); if (n === 1 && campo && !['C17', 'C6', 'C21'].includes(campo)) ui.cfgModo = Object.assign({}, ui.cfgModo, { [S]: 'carac' }); if (sel !== undefined) ui.cfgSel = sel ? { S, k: sel } : null; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
+  // grava várias células do item de uma vez (uma só renderização); null = volta ao automático
+  function cfgSet(S, cells) {
+    const tg = target(S); tg[S] = tg[S] || {}; const sh = wb.sheet(S);
+    for (const [a, v] of Object.entries(cells)) {
+      if (v === undefined) { delete tg[S][a]; const b = baseRaw(S, a); if (b === undefined) sh.cells.delete(a); else sh.cells.set(a, b); }
+      else { tg[S][a] = v; sh.cells.set(a, v); }
+    }
+    if (!Object.keys(tg[S]).length) delete tg[S];
+    wb.invalidate(); listCache = new Map(); dirty = true; persist(); render();
+  }
+  const kitDe = (lista, d) => !!d && (lista || []).some((k) => k.desc === d);
+  // componentes do item como a planilha montou, com a linha da estrutura que gerou cada um e a classificação
+  function cfgComps(S) {
+    const lines = recLines(); const byR = new Map(lines.map((x) => [x.r, x])); const H2 = heads(); const out = []; const usados = new Set();
+    const c = arrCounts(S); const est = String(val(S, 'AR2') || 'CMB'); const has = { DIESEL: c.d > 0, ELETRICA: c.e > 0, JOCKEY: c.j, TODOS: true };
+    const motorD = txt(S, 'AR6') || txt(S, 'C20'), bomba = txt(S, 'AR7'); const kitM = kitDe(REG.kitMotor, motorD), kitB = kitDe(REG.kitBomba, bomba);
+    const classe = (ln) => !ln ? 'obrig' : ln.regra === 'OPCIONAL' ? 'opc' : ['MOTOR', 'BOMBA', 'JOCKEY'].includes(ln.tipo) ? 'princ' : ln.regra || ['FAIXA', 'CV', 'VAZAO', 'TAMANHO', 'SPLIT'].includes(ln.tipo) ? 'cond' : 'obrig';
+    const base = (r, ln, extra) => { const d = txt(S, 'D' + r); const ins = d ? insPorProduto(d) : null; const unit = val(S, 'G' + r), tot = val(S, 'H' + r);
+      return Object.assign({ k: 'r' + r, r, ln, rot: ln ? ln.rot : txt(S, 'B' + r), acion: ln ? (['DIESEL', 'ELETRICA', 'JOCKEY'].includes(ln.acion) ? ln.acion : 'TODOS') : 'TODOS', bloco: ln ? ln.bloco : '', desc: d, ins, fam: txt(S, 'C' + r) || (ins && ins.fam) || (ln && ln.fam) || '',
+        qtd: val(S, 'F' + r), unit, tot, obs: txt(S, 'L' + r), cls: classe(ln), on: true, origem: ln ? origemTxt(ln, H2) : '', semCad: !!d && !ins, semPreco: !!d && !(typeof unit === 'number' && unit > 0),
+        trocado: overridden(S, 'D' + r), qtdAlt: overridden(S, 'F' + r) }, extra || {}); };
+    for (const x of montLines(S)) { const k = val(S, 'AE' + x.r); const ln = typeof k === 'number' ? byR.get(91 + k) : null; if (ln) usados.add(ln.r); out.push(base(x.r, ln, { tipo: 'est' })); }
+    for (const x of hiddenLines(S)) { const ln = byR.get(91 + (x.r - 67)); if (ln) usados.add(ln.r); const ins = insPorProduto(x.desc);
+      out.push({ k: 'h' + x.r, r: x.r, ln, tipo: 'hid', rot: x.rot, acion: x.acion, bloco: ln ? ln.bloco : '', desc: x.desc, ins, fam: x.fam, qtd: x.qtd, unit: x.unit, tot: x.tot, cls: classe(ln), on: true, origem: ln ? origemTxt(ln, H2) : '', semCad: !!x.desc && !ins, semPreco: !(x.unit > 0) }); }
+    for (let r = 68; r <= 112; r++) if (txt(S, 'D' + r) || txt(S, 'C' + r) || txt(S, 'B' + r)) out.push(base(r, null, { k: 'm' + r, tipo: 'man', cls: 'man', rot: txt(S, 'B' + r) || 'Componente adicional', acion: 'ESC' }));
+    // da estrutura e não entrou: opcional desmarcado (para marcar), incluído no kit do fornecedor, ou fora por regra
+    const fora = [];
+    for (const ln of lines) {
+      if (!estrOf(ln).includes(est) || usados.has(ln.r)) continue; const ac = ['DIESEL', 'ELETRICA', 'JOCKEY'].includes(ln.acion) ? ln.acion : 'TODOS';
+      if (!has[ac]) { fora.push({ ln, porque: 'o arranjo ' + (c.code || '—') + ' não tem ' + (ACIONS.find((a) => a[0] === ac) || [0, ac])[1].toLowerCase() }); continue; }
+      if (ln.regra === 'OPCIONAL') { const row = 67 + (ln.r - 91); out.push({ k: 'o' + ln.r, ln, tipo: 'opc', row, rot: ln.rot, acion: ac, bloco: ln.bloco, desc: ['FIXO', 'SPLIT'].includes(ln.tipo) ? ln.campo : '', ins: ['FIXO', 'SPLIT'].includes(ln.tipo) ? insPorProduto(ln.campo) : null, qtd: null, unit: null, tot: 0, cls: 'opc', on: false, origem: origemTxt(ln, H2) }); continue; }
+      if ((ln.regra === 'SEM KIT MOTOR' && kitM) || (ln.regra === 'SEM KIT BOMBA' && kitB)) { out.push({ k: 'k' + ln.r, ln, tipo: 'kit', rot: ln.rot, acion: ac, bloco: ln.bloco, desc: '', cls: 'forn', on: true, tot: 0, origem: origemTxt(ln, H2), porque: 'já vem no kit do ' + (ln.regra === 'SEM KIT MOTOR' ? 'motor (' + motorD + ')' : 'bomba (' + bomba + ')') }); continue; }
+      fora.push({ ln, porque: ln.regra ? 'condição "' + regraTxt(ln.regra) + '" não atendida' : 'a origem não devolveu insumo (' + origemTxt(ln, H2) + ')' });
+    }
+    // marcados: os opcionais que entraram têm a caixa BC da linha
+    for (const x of out) if (x.cls === 'opc' && x.tipo !== 'opc' && x.ln) x.row = 67 + (x.ln.r - 91);
+    return { comps: out, fora, c, est, kitM, kitB };
+  }
+  const CLS_LB = { princ: ['Obrigatório', 'ok', 'escolhido na etapa Configurar'], obrig: ['Obrigatório', 'ok', 'sempre entra nesta estrutura'], cond: ['Condicional', 'warn', 'entra conforme as características'], opc: ['Opcional', 'mute', 'marcado no item'], forn: ['Incluído pelo fornecedor', 'mute', 'faz parte de um kit comprado pronto'], man: ['Adicionado na proposta', 'info', 'incluído à mão nesta proposta'] };
+  // o que acionou a linha da estrutura: a característica do item e a faixa da tabela usada
+  function cfgGatilho(S, ln) {
+    if (!ln) return '';
+    const n = (v) => (typeof v === 'number' ? v : parseFloat(String(v || '').replace(',', '.')));
+    const hp = n(val(S, 'C19')) || n((txt(S, 'C20').match(/(\d+(?:[.,]\d+)?)\s*HP/i) || [])[1]); const cv = n(val(S, 'I19')); const vz = n(val(S, 'AR4'));
+    const faixa = (r1, r2, x) => { for (let r = r1; r <= r2; r++) { const a = n(val(MO, 'B' + r)), b = n(val(MO, 'C' + r)); if (isFinite(a) && isFinite(b) && x >= a && x <= b) return [a, b, r]; } return null; };
+    const H2 = heads(); const col = (k) => (H2[k] || [])[(+ln.campo || 1) - 1] || '';
+    switch (ln.tipo) {
+      case 'MOTOR': return ln.acion === 'ELETRICA' ? 'Motor elétrico escolhido: ' + (txt(S, 'H20') || txt(S, 'AR19') || '—') : 'Motor diesel escolhido: ' + (txt(S, 'C20') || txt(S, 'AR6') || '—');
+      case 'BOMBA': return 'Bomba escolhida: ' + (txt(S, 'AR7') || txt(S, 'D19') || '—');
+      case 'JOCKEY': return 'Bomba jockey escolhida: ' + (txt(S, 'AR8') || txt(S, 'J19') || '—');
+      case 'FAIXA': case 'TAMANHO': { const f = isFinite(hp) ? faixa(157, 166, hp) : null; return isFinite(hp) ? 'Motor diesel de ' + fmtNum(hp) + ' HP' + (f ? ' → faixa de ' + fmtNum(f[0]) + ' a ' + fmtNum(f[1]) + ' HP' + (ln.tipo === 'TAMANHO' ? ' (porte ' + fmtPlain(val(MO, 'D' + f[2])) + ')' : ' · coluna "' + col('FAIXA') + '"') : ' (fora das faixas da tabela)') : 'Potência do motor diesel não informada'; }
+      case 'CV': { const f = isFinite(cv) ? faixa(172, 187, cv) : null; return isFinite(cv) ? 'Motor elétrico de ' + fmtNum(cv) + ' CV' + (f ? ' → faixa de ' + fmtNum(f[0]) + ' a ' + fmtNum(f[1]) + ' CV · coluna "' + col('CV') + '"' : ' (fora das faixas)') : 'Potência do motor elétrico não informada'; }
+      case 'VAZAO': return isFinite(vz) ? 'Vazão nominal de ' + fmtNum(vz) + ' USgpm → tabela hidráulica, coluna "' + col('VAZAO') + '"' : 'Vazão nominal não informada';
+      case 'SPLIT': return 'Bomba split case' + (txt(S, 'AR7') ? ' (' + txt(S, 'AR7') + ')' : '');
+      case 'FIXO': return 'Sempre o mesmo insumo nesta estrutura';
+      default: return '';
+    }
+  }
+  // última versão publicada da linha da estrutura (histórico do MONTADOR)
+  function cfgVersao(ln) {
+    if (!ln) return null; const re = new RegExp('^[A-Z]+' + ln.r + '$');
+    const h = REG.historico.find((x) => x.ref === MO && (x.mudancas || []).some((m) => re.test(String(m.campo || ''))));
+    return h ? { at: h.at, by: h.by, desc: h.desc } : null;
+  }
+  // conferência automática do item: impeditivo (bloqueia incluir), atenção e informativo, cada um com o lugar para corrigir
+  function cfgValida(S, M) {
+    M = M || cfgComps(S); const out = []; const add = (lvl, msg, go, extra) => { if (!out.some((x) => x.msg === msg)) out.push(Object.assign({ lvl, msg, go: go || { et: 3 }, bloq: lvl === 'imped' }, extra || {})); };
+    const c = M.c;
+    // item montado linha a linha (só componentes adicionais, sem acionamento): não pede bomba nem motor
+    const linhaALinha = !c.code && M.comps.some((x) => x.tipo === 'man') && !M.comps.some((x) => x.tipo === 'est');
+    if (linhaALinha) add('info', 'Item montado linha a linha (componentes adicionais), sem a estrutura da família: o preço vem dessas linhas.', { et: 2 });
+    else if (!txt(S, 'C21')) add('imped', 'Escolha a família do equipamento.', { et: 1, campo: 'C21' });
+    else if (!c.code) add('imped', 'Escolha o acionamento (diesel, elétrico, jockey) ou um modelo pronto.', { et: 1 });
+    if (c.code && (c.d || c.e) && !txt(S, 'AR7') && !txt(S, 'D19')) add('imped', 'Escolha a bomba.', { et: 1, campo: 'D19' });
+    if (c.d && !txt(S, 'C20') && !txt(S, 'AR6')) add('imped', 'Escolha o motor diesel (potência, rotação e arrefecimento).', { et: 1, campo: 'C19' });
+    if (c.e && !txt(S, 'H20') && !txt(S, 'AR19')) add('imped', 'Escolha o motor elétrico (potência e tensão).', { et: 1, campo: 'I19' });
+    // o que a planilha e as regras já apontam (alertas do item)
+    const NV = { bad: 'imped', warn: 'aviso', info: 'info' };
+    for (const a of alertsFor(S)) { const go = a.fix && a.fix.act === 'foco' ? { et: 1, campo: a.fix.data } : a.fix && a.fix.act === 'pedir' ? { et: 2 } : { et: 3 };
+      // política comercial (margem, piso) não bloqueia incluir: segue para aprovação
+      add(a.ack ? 'info' : NV[a.lvl] || 'info', a.msg, go, { bloq: a.lvl === 'bad' && !a.ack && !a.aprov && !/margem|piso|fator/i.test(a.msg), al: a }); }
+    const vistos = new Map();
+    for (const x of M.comps) {
+      if (x.tipo === 'opc' || x.tipo === 'kit') continue; const go = { et: 2, sel: x.k };
+      if (x.semCad) add('imped', (x.rot ? x.rot + ': ' : '') + '"' + x.desc + '" não está no cadastro.', go);
+      else if (x.desc && x.semPreco) add('imped', (x.rot ? x.rot + ': ' : '') + x.desc + ' sem preço no cadastro (entra com custo zero).', go);
+      if (x.ins && foraDeUso(x.ins)) add('aviso', x.desc + ' está ' + situ(x.ins) + ' no cadastro' + (x.ins.substituto ? ' (substituto: ' + x.ins.substituto + ')' : '') + '.', go);
+      const d = x.ins ? precoData(x.desc) : null; if (d && (Date.now() - d.getTime()) / 864e5 > 180) add('aviso', 'Preço de ' + x.desc + ' atualizado há mais de 180 dias (' + d.toLocaleDateString('pt-BR') + ').', go);
+      if (x.tipo === 'man') { const q = qtdNum(x.qtd); if (x.desc && !(q > 0)) add('imped', 'Quantidade inválida em ' + x.desc + '.', go); if (!x.desc) add('aviso', 'Linha adicional sem insumo escolhido.', go); }
+      if (x.desc) { const k = x.desc; if (vistos.has(k) && (x.tipo === 'man' || vistos.get(k).tipo === 'man')) add('aviso', x.desc + ' aparece na estrutura e também como componente adicional: confira se não está em dobro.', go); else vistos.set(k, x); }
+      if (x.trocado) add('info', (x.rot || 'Componente') + ': insumo trocado nesta proposta (' + x.desc + ').', go);
+      if (x.qtdAlt) add('info', (x.rot || 'Componente') + ': quantidade alterada nesta proposta (' + fmtNum(x.qtd) + ').', go);
+    }
+    // composição registrada ao incluir na proposta x composição atual (a estrutura mestre ou as escolhas mudaram depois)
+    const cf = cfgDe(S); if (cf.snap && cf.snap.sig !== cfgSig(S, M)) { const env = ['enviada', 'aprovada', 'ganha'].includes(String(state.status || '')); const dif = cfgDifSnap(S, M);
+      add(env ? 'aviso' : 'info', (env ? 'A proposta já foi enviada e a ' : 'A ') + 'composição mudou desde que o equipamento foi incluído (' + fmtAt(cf.snap.at) + ')' + (dif.length ? ': ' + dif.slice(0, 3).join('; ') + (dif.length > 3 ? '…' : '') : '') + '.', { et: 3 }, { snap: true }); }
+    const ord = { imped: 0, aviso: 1, info: 2 }; return out.sort((a, b) => ord[a.lvl] - ord[b.lvl]);
+  }
+  // assinatura da configuração (escolhas + componentes e quantidades): muda quando algo relevante muda
+  function cfgSig(S, M) { M = M || cfgComps(S); return JSON.stringify([CFG_PARAMS.map((a) => fmtPlain(val(S, a))), M.comps.filter((x) => x.tipo !== 'opc' && x.tipo !== 'kit').map((x) => [x.desc, fmtPlain(x.qtd)]).sort()]); }
+  function cfgSnapDe(S, M) { M = M || cfgComps(S); return { at: new Date().toISOString(), by: REG.me || null, sig: cfgSig(S, M), params: Object.fromEntries(CFG_PARAMS.map((a) => [a, fmtPlain(val(S, a))])),
+    comps: M.comps.filter((x) => x.tipo === 'est' || x.tipo === 'man' || x.tipo === 'hid').map((x) => ({ k: x.k, r: x.r, tipo: x.tipo, rot: x.rot, desc: x.desc, fam: x.fam, qtd: x.qtd, unit: x.unit, tot: x.tot })), custo: val(S, 'H114'), preco: val(S, 'B15'), total: val(S, 'D15'), margem: val(S, 'J15'), desc: txt(S, 'C28') }; }
+  function cfgDifSnap(S, M) {
+    const sn = cfgDe(S).snap; if (!sn) return []; M = M || cfgComps(S); const cur = new Map(); for (const x of M.comps) if (x.desc && x.tipo !== 'opc' && x.tipo !== 'kit') cur.set(x.desc, (cur.get(x.desc) || 0) + qtdNum(x.qtd));
+    const ant = new Map(); for (const x of sn.comps || []) if (x.desc) ant.set(x.desc, (ant.get(x.desc) || 0) + qtdNum(x.qtd)); const L = [];
+    for (const [d, q] of cur) if (!ant.has(d)) L.push('entrou ' + d); else if (Math.abs(ant.get(d) - q) > 1e-9) L.push(d + ': ' + fmtNum(ant.get(d)) + ' → ' + fmtNum(q));
+    for (const d of ant.keys()) if (!cur.has(d)) L.push('saiu ' + d);
+    for (const a of CFG_PARAMS) if ((sn.params || {})[a] !== undefined && sn.params[a] !== fmtPlain(val(S, a))) L.push(a + ': ' + (sn.params[a] || '—') + ' → ' + (fmtPlain(val(S, a)) || '—'));
+    return L;
+  }
+  // volta a composição do item à registrada na inclusão (proposta enviada): fixa insumo e quantidade das linhas da estrutura
+  // (passam a valer como alteração da proposta) e põe de volta como adicional o que a estrutura nova tirou
+  function cfgFixar(S) {
+    const sn = cfgDe(S).snap; if (!sn) return; const M = cfgComps(S); const ch = {}; const porR = new Map(M.comps.filter((x) => x.tipo === 'est').map((x) => [x.r, x]));
+    const snEst = (sn.comps || []).filter((x) => x.tipo === 'est'); const snR = new Set(snEst.map((x) => x.r));
+    for (const x of snEst) { const cur = porR.get(x.r); if (!cur) continue; if (cur.desc !== x.desc) ch['D' + x.r] = x.desc; if (fmtPlain(cur.qtd) !== fmtPlain(x.qtd)) ch['F' + x.r] = x.qtd; }
+    for (const x of porR.values()) if (!snR.has(x.r)) ch['F' + x.r] = 0;
+    const faltam = snEst.filter((x) => !porR.has(x.r)); let r = 68;
+    for (const x of faltam) { while (r <= 112 && (txt(S, 'D' + r) || txt(S, 'C' + r) || txt(S, 'B' + r) || ch['D' + r])) r++; if (r > 112) break; ch['C' + r] = x.fam || ''; ch['D' + r] = x.desc; ch['F' + r] = x.qtd; ch['B' + r] = x.rot || ''; r++; }
+    if (!Object.keys(ch).length) { toast('A composição já é a registrada'); return; }
+    cfgSet(S, ch); logEv({ tipo: 'Configuração fixada', ref: docTitle(), desc: S + ': composição voltou à registrada em ' + fmtAt(sn.at), mudancas: Object.entries(ch).map(([campo, para]) => ({ campo: S + '!' + campo, de: null, para })) });
+    toast('Composição fixada como registrada em ' + fmtAt(sn.at));
+  }
+  // ---------- tela ----------
+  function vConfig() {
+    const S = ITEMS[ui.item]; const et = cfgEtapa(S); const M = cfgComps(S); const V = cfgValida(S, M);
+    const prob = { 1: V.some((x) => x.go.et === 1 && x.lvl === 'imped'), 2: V.some((x) => x.go.et === 2 && x.lvl === 'imped'), 3: V.some((x) => x.lvl === 'imped' && x.bloq) };
+    const feito = { 1: !!M.c.code && !V.some((x) => x.go.et === 1 && x.lvl === 'imped'), 2: filled(S), 3: !!cfgDe(S).incl && cfgDe(S).incl.sig === cfgSig(S, M) };
+    const equip = txt(S, 'C28') || (txt(S, 'C21') ? famLabel(String(val(S, 'AR2') || 'CMB')) : 'equipamento não escolhido');
+    const salvo = dirty ? '<span class="pill warn">alterações não salvas</span>' : state.id ? '<span class="pill ok">salvo</span>' : '<span class="pill mute">proposta ainda não salva</span>';
+    const passos = CFG_ETAPAS.map(([n, lb, ic]) => `<li><button type="button" class="cfgstep${n === et ? ' on' : ''}${feito[n] ? ' done' : ''}${prob[n] ? ' prob' : ''}" data-cfget="${n}"${n === et ? ' aria-current="step"' : ''} data-ico="${prob[n] ? 'triangle-alert' : feito[n] && n !== et ? 'circle-check' : ic}"><span>${n}. ${lb}</span></button></li>`).join('');
+    const corpo = et === 1 ? cfgEt1(S, M) : et === 2 ? cfgEt2(S, M) : cfgEt3(S, M, V);
+    const nav = `<div class="flowbar cfgnav">${et > 1 ? `<button class="btn" data-cfget="${et - 1}" data-ico="arrow-left">Voltar</button>` : `<button class="btn" data-step="2" data-ico="arrow-left">Itens da proposta</button>`}
+      <span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-savebtn data-ico="save">Salvar rascunho</button>${et < 3 ? `<button class="btn pri" data-cfget="${et + 1}" data-ico="arrow-right">Continuar</button>` : ''}</span></div>`;
+    return `<div class="stack cfg">
+      <div class="cfghead"><div style="min-width:0"><small class="sub">Proposta ${esc(txt('PROPOSTA', 'C5') || 'sem número')} · ${esc(txt('PROPOSTA', 'F5') || 'cliente não informado')} · ${S}</small><h1 style="margin:2px 0 0">${esc(equip)}</h1></div>
+        <div class="sumbar"><div><span>Custo</span><b>${brl(val(S, 'H114'))}</b></div><div><span>Unitário c/ IPI</span><b>${brl(val(S, 'B15'))}</b></div><div><span>Margem</span><b class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</b></div><div>${salvo}</div></div></div>
+      <nav aria-label="Etapas do configurador"><ol class="cfgsteps">${passos}</ol></nav>
+      ${corpo}
+      ${nav}
+      <p class="sub" style="text-align:right;margin:0">Prefere a tela anterior do item? <button class="restore" data-cfgclassico>abrir a tela clássica</button> · <button class="restore" data-itemfull>visão completa da planilha</button></p>
+      ${datalists()}
+    </div>`;
+  }
+  // ---- etapa 1: família, ponto de partida (modelo pronto, configuração salva ou características) e escopo ----
+  function cfgEt1(S, M) {
+    const c = M.c; const fam = txt(S, 'C21'); const key = String(val(S, 'AR2') || 'CMB'); const cf = cfgDe(S);
+    const fams = famsEquip().filter((f) => f[2] !== 'FABRICANTES');
+    const famCards = fams.map(([k, lb, nome]) => { const reg = estrList().includes(k); const n = modelos().filter((m) => m.estr === k).length; const on = fam === nome || (!fam && false);
+      return `<button type="button" class="famcard${on ? ' on' : ''}${reg ? '' : ' off'}" data-fam="${esc(nome)}" aria-pressed="${on}"><b>${esc(FAM_SEQ_LB[nome] || lb)}</b><small>${reg ? (n ? n + ' modelo(s) pronto(s)' : 'estrutura cadastrada, sem modelos') : 'sem estrutura cadastrada'}</small></button>`; }).join('');
+    if (!famChosen(S, c)) return `<section class="card"><h2>1. Família do equipamento</h2><div class="famgrid">${famCards}<button type="button" class="famcard" data-factsnew><b>FAC · FACTS — teste automático de bombas</b><small>configurador MECON (formação própria)</small></button></div><p class="sub" style="margin:10px 0 0">A família define a estrutura padrão, os modelos prontos e as listas de bomba e motor que o app mostra.</p></section>${cfgSalvasHtml(S)}`;
+    const modo = ui.cfgModo && ui.cfgModo[S] ? ui.cfgModo[S] : txt(S, 'C17') || modelos().some((m) => m.estr === key) ? 'modelo' : 'carac';
+    const segModo = `<div class="seg" role="radiogroup" aria-label="Ponto de partida"><label class="${modo === 'modelo' ? 'on' : ''}"><input type="radio" name="cfgModo_${S.replace(/\W/g, '')}" data-cfgmodo="modelo"${modo === 'modelo' ? ' checked' : ''}>Modelo pronto</label><label class="${modo === 'carac' ? 'on' : ''}"><input type="radio" name="cfgModo_${S.replace(/\W/g, '')}" data-cfgmodo="carac"${modo === 'carac' ? ' checked' : ''}>Montar por características</label></div>`;
+    const blocoModo = modo === 'modelo' ? cfgModelos(S, key) : cfgCarac(S, c);
+    const especial = cf.especial === true;
+    return `<div class="cfggrid"><div class="stack">
+      <section class="card"><h2>1. Família <span class="sub">${esc(FAM_SEQ_LB[fam] || famLabel(key))} · <button class="restore" data-famreset>trocar a família</button></span></h2>
+        ${!estrList().includes(key) ? `<div class="banner warn" style="margin:0">Ainda não há estrutura cadastrada para ${esc(famLabel(key))}: o item monta só com os componentes comuns. <button class="restore" data-goestr="${key}">Cadastrar a estrutura</button></div>` : ''}
+        <div class="fields"><div class="f span2"><label>Ponto de partida</label>${segModo}</div>${field(S, 'C6', 'Quantidade', { step: 1, ph: '1' })}</div></section>
+      ${blocoModo}
+      ${cfgCaracTab(S, c)}
+      <section class="card"><h2>Escopo da configuração</h2>
+        <div class="seg" role="radiogroup" aria-label="Escopo"><label class="${especial ? '' : 'on'}"><input type="radio" name="cfgEsp_${S.replace(/\W/g, '')}" data-cfgesp="0"${especial ? '' : ' checked'}>Padrão da estrutura</label><label class="${especial ? 'on' : ''}"><input type="radio" name="cfgEsp_${S.replace(/\W/g, '')}" data-cfgesp="1"${especial ? ' checked' : ''}>Configuração especial</label></div>
+        <p class="sub" style="margin:8px 0 0">${especial ? 'Especial: na etapa Compor dá para trocar o insumo e a quantidade de qualquer componente da estrutura e acrescentar componentes de qualquer família. Tudo fica marcado como alteração desta proposta; a estrutura mestre não muda.' : 'Padrão: a estrutura da família decide os componentes e as quantidades; você marca os opcionais e acrescenta o que faltar.'} A estrutura tem kits de fornecedor (motor e bomba que já vêm com painel, base ou manômetros) e tabelas por porte, aplicados sozinhos.</p></section>
+    </div>${cfgPrevia(S, M)}</div>`;
+  }
+  function cfgSalvasHtml(S) {
+    ensureModelos(); if (!modelosItem.length) return '';
+    return `<section class="card"><h2>Ou parta de uma configuração salva <span class="sub">modelos de item da equipe</span></h2><div class="mlist">${modelosItem.slice(0, 12).map((x) => `<div class="mcard"><div style="min-width:0"><b>${esc(x.nome)}</b><small class="sub">${esc(x.desc || '')}</small></div><button class="btn sm" data-cfgsalva="${esc(x.id)}" data-ico="copy">Usar neste item</button></div>`).join('')}</div></section>`;
+  }
+  function cfgModelos(S, key) {
+    const q = String((ui.cfgQ || {})[S] || '').toUpperCase(); const ac = (ui.cfgAc || {})[S] || '';
+    const L = modelos().filter((m) => m.estr === key).filter((m) => !ac || m.ac === ac).filter((m) => !q || [m.nome, m.bomba, m.motor, m.code, m.jockey].join(' ').toUpperCase().includes(q));
+    const sel = txt(S, 'C17'); const mm = modelMatch(S);
+    const chip = (k, lb) => `<label class="chip"><input type="radio" name="cfgAc_${S.replace(/\W/g, '')}" data-cfgac="${k}"${ac === k ? ' checked' : ''}> ${lb}</label>`;
+    const card = (x) => `<div class="mcard${x.nome === sel ? ' on' : ''}"><div style="min-width:0"><b>${esc(x.nome)}</b><small class="sub">${esc([x.code, typeof x.vazao === 'number' ? fmtNum(x.vazao) + ' USgpm' : null, typeof x.pressao === 'number' ? fmtNum(x.pressao) + ' mca' : null, x.bomba, x.motor].filter(Boolean).join(' · '))}</small></div>${x.nome === sel ? '<span class="pill ok">em uso</span>' : mm.exact.includes(x) ? '<span class="pill ok">bate com a configuração</span>' : ''}${x.nome === sel ? '' : `<button class="btn sm" data-usemodel="${esc(x.nome)}">Usar este</button>`}</div>`;
+    return `<section class="card"><h2>2. Modelo pronto <span class="sub">${modelos().filter((m) => m.estr === key).length} cadastrado(s) para ${esc(famLabel(key))}</span></h2>
+      <div class="fields"><div class="f span2"><label for="cfgQ_${S.replace(/\W/g, '')}">Pesquisar (nome, bomba, motor, arranjo)</label><input id="cfgQ_${S.replace(/\W/g, '')}" type="search" data-cfgq value="${esc((ui.cfgQ || {})[S] || '')}" placeholder="ex.: 1500, SCE 250, 6M16"></div>
+        <div class="f span2"><label>Acionamento</label><div style="display:flex;gap:6px;flex-wrap:wrap">${chip('', 'Todos')}${chip('DIESEL', 'Diesel')}${chip('ELETRICA', 'Elétrico')}</div></div></div>
+      <div class="mlist cfgmods">${L.slice(0, 40).map(card).join('') || '<p class="sub">Nenhum modelo com esse filtro.</p>'}</div>${L.length > 40 ? `<p class="sub">Mostrando 40 de ${L.length}: refine a pesquisa.</p>` : ''}
+      ${sel ? `<p class="sub" style="margin:8px 0 0">Modelo em uso: <b>${esc(sel)}</b>. As características vêm dele; para mudar uma, use "alterar" abaixo (fica marcado como alteração).</p>` : ''}</section>`;
+  }
+  // fabricante e modelo da bomba: lista da planilha (cadastro e kits) filtrada pelo fabricante do cadastro
+  const fabDe = (p) => { const i = insPorProduto(p); if (i && i.fab) return String(i.fab).toUpperCase(); const k = (REG.kitBomba || []).find((x) => x.desc === p) || (REG.kitMotor || []).find((x) => x.desc === p); return k && k.marca ? String(k.marca).toUpperCase() : ''; };
+  function cfgSelFab(S, a, label) {
+    const L = listFor(S, a) || []; const fabs = [...new Set(L.map(fabDe).filter(Boolean))].sort(); const fk = S + '|' + a; const fs0 = (ui.cfgFab || {})[fk] || (txt(S, a) ? fabDe(txt(S, a)) : '');
+    const lista = fs0 ? L.filter((p) => fabDe(p) === fs0) : L;
+    return `${fabs.length > 1 ? `<div class="f"><label for="cfgFab_${a}">Fabricante</label><select id="cfgFab_${a}" data-cfgfab="${esc(fk)}"><option value="">todos (${L.length})</option>${fabs.map((f) => `<option${f === fs0 ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></div>` : ''}${field(S, a, label + (fs0 ? ' · ' + fs0 : ''), { cls: 'span2', list: lista })}`;
+  }
+  function cfgCarac(S, c) {
+    const f = (a, lb, o) => field(S, a, lb, o); const fs = (a, lb, o) => fieldS(S, a, lb, o);
+    const cmb = isCMB(S); const cmbOne = c.d + c.e + (c.j ? 1 : 0) === 1;
+    const chip = (k, lb, on) => `<label class="chip"><input type="radio" name="cmbAc" data-cmb="${k}"${on ? ' checked' : ''}> ${lb}</label>`;
+    const step = (k, lb, n) => `<div class="stp"><span>${lb}</span><button type="button" class="btn sm" data-arr="${k}-" aria-label="Menos ${lb}"${n ? '' : ' disabled'}>−</button><b>${n}</b><button type="button" class="btn sm" data-arr="${k}+" aria-label="Mais ${lb}"${c.d + c.e >= 4 ? ' disabled' : ''}>+</button></div>`;
+    const arr = cmb ? `${chip('D', 'Diesel', cmbOne && c.d === 1)}${chip('E', 'Elétrico', cmbOne && c.e === 1)}${chip('J', 'Só jockey', cmbOne && c.j)}` : `${step('D', 'Diesel', c.d)}${step('E', 'Elétrica', c.e)}<label class="chk"><input type="checkbox" data-arrj${c.j ? ' checked' : ''}> Bomba jockey</label>`;
+    const sets = [];
+    if (c.d) sets.push(`<div class="set"><h3>Conjunto diesel${c.d > 1 ? ' × ' + c.d : ''}</h3><div class="fields">${cfgSelFab(S, 'D19', 'Bomba')}${f('C19', 'Potência (HP)')}${f('H19', 'Rotação (RPM)')}${f('F19', 'Arrefecimento')}${field(S, 'C20', 'Motor (da tabela)', { ro: true, cls: 'span2' })}</div></div>`);
+    if (c.e) sets.push(`<div class="set"><h3>Conjunto elétrico${c.e > 1 ? ' × ' + c.e : ''}</h3><div class="fields">${c.d ? f('BA19', 'Bomba (em branco = a do diesel)', { cls: 'span2' }) : cfgSelFab(S, 'D19', 'Bomba') + f('H19', 'Rotação (RPM)')}${f('I19', 'Potência (CV)')}${f('L19', 'Tensão do painel')}${field(S, 'H20', 'Motor (da tabela)', { ro: true, cls: 'span2' })}</div></div>`);
+    if (c.j) sets.push(`<div class="set"><h3>Bomba jockey</h3><div class="fields">${cfgSelFab(S, 'J19', 'Bomba jockey')}</div></div>`);
+    return `<section class="card"><h2>2. Características <span class="sub">listas do cadastro; o motor sai da tabela pela potência</span></h2>
+      <div class="arrbox"><span class="stp"><span>Acionamento</span></span>${arr}<span class="arrcode">Arranjo <b class="code">${esc(c.code || '—')}</b></span></div>
+      <div class="fields">${fs('G17', 'Vazão (USgpm)')}${fs('H17', 'Pressão (mca)')}${fs('I17', 'Norma')}</div>
+      ${sets.join('')}</section>`;
+  }
+  // de onde veio cada valor: do modelo pronto, calculado, informado, alterado na proposta ou pendente
+  function cfgOrigem(S, a, tem) {
+    if (!tem) return ['pendente', 'warn'];
+    // escolha feita aqui (família, modelo, acionamento, características) x valor do modelo pronto mudado à mão
+    if (overridden(S, a)) return txt(S, 'C17') && !['C21', 'C17', 'C6'].includes(a) ? ['alterado do modelo pronto', 'warn'] : ['escolhido nesta proposta', 'ok'];
+    const digitado = !!(state.doc && state.doc[S] && state.doc[S][a] !== undefined);
+    if (isFormulaBase(S, a) || (!digitado && txt(S, 'C17'))) return [txt(S, 'C17') ? 'do modelo pronto' : 'calculado pela planilha', 'mute'];
+    return [digitado ? 'informado' : 'padrão', 'mute'];
+  }
+  function cfgCaracTab(S, c) {
+    const L = [['C21', 'Família', txt(S, 'C21')], ['C17', 'Modelo pronto', txt(S, 'C17')], ['E17', 'Arranjo', c.code], ['G17', 'Vazão nominal', val(S, 'AR4') ? fmtNum(val(S, 'AR4')) + ' USgpm' : ''], ['H17', 'Pressão', show(S, 'H17') ? show(S, 'H17') + ' mca' : ''], ['I17', 'Norma', txt(S, 'I17')]];
+    if (c.d || c.e) L.push(['D19', 'Bomba', txt(S, 'AR7') || txt(S, 'D19')]);
+    if (c.d) L.push(['C19', 'Motor diesel', txt(S, 'C20') || txt(S, 'AR6')], ['H19', 'Rotação', show(S, 'H19') ? show(S, 'H19') + ' rpm' : ''], ['F19', 'Arrefecimento', txt(S, 'F19')]);
+    if (c.e) L.push(['I19', 'Motor elétrico', txt(S, 'H20') || txt(S, 'AR19')], ['L19', 'Tensão do painel', txt(S, 'L19')]);
+    if (c.j) L.push(['J19', 'Bomba jockey', txt(S, 'AR8') || txt(S, 'J19')]);
+    const pts = []; for (let b = 23; b <= 26; b++) { const vz = val(S, 'K' + b), pr = val(S, 'L' + b); if (txt(S, 'C' + b) && typeof vz === 'number' && vz > 0) pts.push(txt(S, 'C' + b).toLowerCase() + ' ' + fmtNum(vz) + ' m³/h × ' + fmtNum(pr) + ' mca'); }
+    const bomba = insPorProduto(txt(S, 'AR7') || txt(S, 'D19')); const ce = certLinha(bomba && bomba.cert, 'pt');
+    const rows = L.map(([a, lb, v]) => { const [o, cl] = cfgOrigem(S, a, !!v); return `<tr><td>${esc(lb)}</td><td><b>${esc(v || '—')}</b></td><td><span class="pill ${cl}" title="Origem do valor">${esc(o)}</span>${overridden(S, a) ? ` <button class="restore" data-restore="${esc(S)}|${a}">↺ automático</button>` : ''}</td></tr>`; }).join('');
+    return `<section class="card"><h2>Características do equipamento <span class="sub">o que o app já sabe e de onde veio</span></h2><div class="tw"><table class="t"><tbody>${rows}
+      ${pts.length ? `<tr><td>Ponto(s) de trabalho</td><td><b>${esc(pts.join(' · '))}</b></td><td><span class="pill mute">calculado pela planilha</span></td></tr>` : ''}
+      <tr><td>Certificação da bomba</td><td><b>${esc(ce || 'não listada')}</b></td><td><span class="pill mute">do cadastro</span></td></tr></tbody></table></div></section>`;
+  }
+  function cfgPrevia(S, M) {
+    const n = M.comps.filter((x) => x.tipo !== 'opc' && x.tipo !== 'kit').length;
+    return `<aside class="card side cfgprev" aria-label="Prévia da configuração"><h2>Prévia</h2>
+      <div class="codebox" style="margin:0 0 8px">${esc(txt(S, 'C27') || 'o código sai aqui')}</div>
+      <p class="txtv" style="margin:0 0 8px">${esc(txt(S, 'C28')) || '—'}</p>
+      <div class="kv"><div>Componentes</div><div>${n}</div><div>Custo</div><div>${brl(val(S, 'H114'))}</div><div>Unitário c/ IPI</div><div>${brl(val(S, 'B15'))}</div><div>Margem</div><div>${pct(val(S, 'J15'))}</div></div></aside>`;
+  }
+  // ---- etapa 2: composição pela estrutura, opcionais, quantidades, adicionais e painel do componente ----
+  function cfgEt2(S, M) {
+    const especial = cfgDe(S).especial === true; const sel = ui.cfgSel && ui.cfgSel.S === S ? M.comps.find((x) => x.k === ui.cfgSel.k) : null;
+    const grupos = ACIONS.map(([k, lb]) => [k, lb]).concat([['ESC', 'Adicionados nesta proposta']]);
+    const gl = { DIESEL: 'Conjunto diesel', ELETRICA: 'Conjunto elétrico', JOCKEY: 'Bomba jockey', TODOS: ['SKID', 'CONTAINER'].includes(M.est) ? 'Equipamentos e acessórios gerais' : 'Comuns ao equipamento', ESC: 'Adicionados nesta proposta' };
+    const tot = num0(val(S, 'H114'));
+    const linha = (x) => {
+      const [clb, cpl] = CLS_LB[x.cls] || CLS_LB.obrig; const off = x.tipo === 'opc'; const ctl = x.cls === 'opc' && x.row ? `<input type="checkbox" data-opt="${x.row}"${val(S, 'BC' + x.row) === 1 || (!off && x.tipo !== 'opc') ? ' checked' : ''} aria-label="Incluir ${esc(x.rot)}">` : x.tipo === 'man' ? '' : `<span class="cfglock" data-ico="lock" title="${esc(clb + ': ' + (CLS_LB[x.cls] || [])[2])}"></span>`;
+      const qtd = x.tipo === 'man' ? cfgQtdCtl(S, x.r, x.qtd) : x.tipo === 'est' && especial ? cfgQtdCtl(S, x.r, x.qtd, true) : `<span title="Quantidade da estrutura">${x.qtd === null || x.qtd === undefined ? '—' : fmtNum(x.qtd)}</span>${x.qtdAlt ? ` <button class="restore" data-restore="${esc(S)}|F${x.r}" title="Voltar à quantidade da estrutura">↺</button>` : ''}`;
+      const tag = `<span class="pill ${cpl}">${clb}</span>${x.trocado ? ' <span class="pill warn">insumo trocado</span>' : ''}${x.qtdAlt ? ' <span class="pill warn">qtd alterada</span>' : ''}${x.semCad ? ' <span class="pill bad">sem cadastro</span>' : x.semPreco && x.desc ? ' <span class="pill bad">sem preço</span>' : ''}${x.ins && foraDeUso(x.ins) ? ' <span class="pill bad">' + esc(situ(x.ins)) + '</span>' : ''}`;
+      // adicionados: o insumo é o nome; da estrutura: o componente é o nome e o insumo vem embaixo
+      const nome = x.tipo === 'man' ? (x.desc || 'Componente adicional') : (x.rot || '—'); const sub = x.tipo === 'man' ? (x.fam || '') : (x.desc || (x.tipo === 'kit' ? x.porque : x.tipo === 'opc' ? 'não incluído' : '—'));
+      return `<tr class="${off ? 'cfgoff' : ''}${sel && sel.k === x.k ? ' cfgsel' : ''}" id="cfgc_${x.k}"><td class="cfgchk">${ctl}</td><td><b>${esc(nome)}</b><br><small class="sub">${esc(sub)}</small><div class="cfgtags">${tag}</div></td><td class="n">${qtd}</td><td class="n">${typeof x.unit === 'number' ? brl(x.unit) : '—'}</td><td class="n">${off ? '—' : brl(x.tot)}</td><td><button class="btn sm cfgwhy" data-cfgsel="${esc(x.k)}" data-ico="circle-help" title="Por que entrou e detalhes" aria-label="Por que ${esc(nome)} foi selecionado e detalhes">Por quê?</button></td></tr>`; };
+    const corpo = grupos.map(([k]) => { const L = M.comps.filter((x) => x.acion === k); if (!L.length) return ''; const gt = L.reduce((t, x) => t + (x.tipo === 'opc' ? 0 : num0(x.tot)), 0); const opcs = L.filter((x) => x.cls === 'opc' && x.row);
+      return `<tr class="grp"><td colspan="4">${esc(gl[k])}${opcs.length > 1 ? ` <button class="restore" data-cfgopcall="${opcs.map((x) => x.row).join(',')}">marcar todos os opcionais</button>` : ''}</td><td class="n">${brl(gt)}${tot ? ' <small class="sub">' + pct(gt / tot, 0) + '</small>' : ''}</td><td></td></tr>${L.map(linha).join('')}`; }).join('');
+    const fora = M.fora.length ? `<details class="card"${keep('cfgfora')}><summary>Componentes da estrutura que não entraram <span class="sub">${M.fora.length}</span></summary><ul class="uso">${M.fora.map((n) => `<li><b>${esc(n.ln.rot)}</b> — ${esc(n.porque)}</li>`).join('')}</ul></details>` : '';
+    return `<div class="cfggrid"><div class="stack">
+      <section class="card"><h2>Composição <span class="sub">montada pela estrutura ${esc(famLabel(M.est))}${txt(S, 'C17') ? ' e pelo modelo ' + esc(txt(S, 'C17')) : ''}${especial ? ' · <span class="pill warn">configuração especial</span>' : ''}</span></h2>
+        <div class="cfglegenda">${Object.values(CLS_LB).map(([lb, cl, d]) => `<span><span class="pill ${cl}">${esc(lb)}</span> <small class="sub">${esc(d)}</small></span>`).join('')}</div>
+        ${M.comps.length ? `<div class="tw"><table class="t comp cfgcomp"><thead><tr><th><span class="sr">Incluir</span></th><th>Componente</th><th>Qtd</th><th>Unit.</th><th>Total</th><th><span class="sr">Detalhes</span></th></tr></thead><tbody>${corpo}<tr class="tot"><td colspan="4">Custo do item</td><td class="n">${brl(val(S, 'H114'))}</td><td></td></tr></tbody></table></div>` : '<div class="banner info" style="margin:0">Os componentes aparecem quando o equipamento estiver escolhido na etapa Configurar.</div>'}
+        <div class="docbar" style="margin-top:10px"><button class="btn sm" data-cfgadd data-ico="plus">Adicionar componente</button>${M.comps.some((x) => x.trocado || x.qtdAlt) || Object.keys((state.doc || {})[S] || {}).some((a) => /^BC\d+$/.test(a)) ? '<button class="btn sm" data-cfgpadrao data-ico="rotate-ccw">Restaurar padrão</button>' : ''}</div></section>
+      ${ui.cfgAdd === S ? cfgAddHtml(S, especial) : ''}
+      ${fora}
+    </div>${cfgPainel(S, M, sel, especial)}</div>`;
+  }
+  function cfgQtdCtl(S, r, q, est) {
+    const v = qtdNum(q); return `<span class="cfgqtd"><button type="button" class="btn sm" data-cfgq1="${r}|-1" aria-label="Diminuir a quantidade"${v <= 0 ? ' disabled' : ''} data-ico="minus"></button><input inputmode="decimal" data-cfgqtd="${r}" value="${esc(fmtPlain(q))}" aria-label="Quantidade" size="4"><button type="button" class="btn sm" data-cfgq1="${r}|1" aria-label="Aumentar a quantidade" data-ico="plus"></button>${est && overridden(S, 'F' + r) ? ` <button class="restore" data-restore="${esc(S)}|F${r}" title="Voltar à quantidade da estrutura">↺</button>` : ''}</span>`;
+  }
+  function cfgAddHtml(S, especial) {
+    const q = String(ui.cfgAddQ || '').toUpperCase(); const L = q.length >= 2 ? REG.insumos.filter((i) => !foraDeUso(i) && [i.id, i.produto, i.fab, i.codFab, i.fam].join(' ').toUpperCase().includes(q)).slice(0, 30) : [];
+    return `<section class="card" id="cfgAddBox"><h2>Adicionar componente <span class="sub">do cadastro de insumos; não muda a estrutura mestre</span></h2>
+      <div class="fields"><div class="f spanall"><label for="cfgAddQ">Pesquisar por código, descrição, fabricante ou família</label><input id="cfgAddQ" type="search" data-cfgaddq value="${esc(ui.cfgAddQ || '')}" placeholder="ex.: válvula, 23-, BERMAD" autocomplete="off"></div></div>
+      ${q.length >= 2 ? (L.length ? `<div class="tw"><table class="t"><tbody>${L.map((i) => `<tr><td><b>${esc(i.produto)}</b><br><small class="sub">${esc(i.id)} · ${esc(i.fam)}${i.fab ? ' · ' + esc(i.fab) : ''}</small></td><td class="n">${typeof i.valor === 'number' ? brl(i.valor) : '<span class="pill warn">sem preço</span>'}</td><td><button class="btn sm" data-cfgaddins="${esc(i.id)}" data-ico="plus">Adicionar</button></td></tr>`).join('')}</tbody></table></div>`
+        : `<div class="banner warn" style="margin:0">Nada encontrado no cadastro com "${esc(ui.cfgAddQ)}". <button class="restore" data-pedir="${esc(JSON.stringify({ produto: ui.cfgAddQ, linha: { rotulo: S + ' · componente adicional' } }))}">pedir cadastro</button>${REG.areaOk('cadastro') || REG.areaOk('custos') ? ' · <button class="restore" data-cfgnovoins>cadastrar agora</button>' : ''}</div>`) : '<p class="sub" style="margin:0">Digite ao menos 2 letras.</p>'}
+      <div class="docbar" style="margin-top:8px"><button class="btn sm" data-cfgaddfim>Fechar</button></div></section>`;
+  }
+  // painel do componente: por que entrou (dados reais da estrutura), cadastro, preço e ações
+  function cfgPainel(S, M, x, especial) {
+    if (!x) return `<aside class="card side cfgpainel" aria-live="polite"><h2>Detalhes</h2><p class="sub" style="margin:0">Clique em "Por quê?" num componente para ver de onde ele veio, o cadastro, o preço e as alternativas.</p></aside>`;
+    const ln = x.ln; const i = x.ins; const v = cfgVersao(ln); const H2 = heads(); void H2;
+    const motivo = x.tipo === 'man' ? 'Incluído à mão nesta proposta.' : x.tipo === 'kit' ? 'Não entra separado: ' + x.porque + '.' : x.tipo === 'opc' ? 'Opcional da estrutura, desmarcado: marque para incluir.' : '';
+    const alts = i ? [].concat(i.substituto ? [i.substituto] : [], (i.equiv || []).map((e) => (typeof e === 'string' ? e : e.id || e.produto || '')).filter(Boolean)) : [];
+    const lista = x.fam && (x.tipo === 'man' || (x.tipo === 'est' && especial)) ? famProdutos(x.fam) : [];
+    const kv = (k, vv) => (vv === undefined || vv === null || vv === '' ? '' : `<div>${esc(k)}</div><div>${vv}</div>`);
+    return `<aside class="card side cfgpainel" aria-live="polite" id="cfgPainel"><h2>${esc(x.rot || 'Componente')} <button class="restore" data-cfgsel="" aria-label="Fechar detalhes">fechar</button></h2>
+      <h3 style="margin:0 0 4px">Por que este componente?</h3>
+      ${motivo ? `<p style="margin:0 0 6px">${esc(motivo)}</p>` : ''}
+      ${ln ? `<div class="kv">${kv('Estrutura', esc(famLabel(M.est)) + ' · linha ' + ln.r)}${kv('Bloco', esc(ln.bloco || ''))}${kv('Regra de seleção', esc(origemTxt(ln, heads())))}${kv('Condição', esc(regraTxt(ln.regra)))}${kv('O que acionou', esc(cfgGatilho(S, ln)))}${kv('Quantidade', esc(qtdTxt(ln.qtd)) + (x.qtd !== null && x.qtd !== undefined ? ' → ' + esc(fmtNum(x.qtd)) : ''))}${kv('Versão da regra', v ? esc(fmtAt(v.at)) + ' · ' + who(v.by) : 'versão original da planilha')}</div>` : ''}
+      ${x.trocado ? '<p class="sub" style="margin:6px 0 0">O insumo foi trocado nesta proposta. <button class="restore" data-restore="' + esc(S) + '|D' + x.r + '">↺ voltar ao da estrutura</button></p>' : ''}
+      ${x.desc ? `<h3 style="margin:10px 0 4px">Cadastro</h3><div class="kv">${kv('Código', i ? esc(i.id) + (i.codFab ? ' · fab. ' + esc(i.codFab) : '') : '<span class="pill bad">não cadastrado</span>')}${kv('Descrição', esc(x.desc))}${kv('Fabricante', esc((i && i.fab) || ''))}${kv('Família', esc(x.fam))}${kv('Quantidade', esc(fmtNum(x.qtd)))}${kv('Custo unitário', typeof x.unit === 'number' ? brl(x.unit) : '—')}${kv('Total', brl(x.tot))}${kv('Origem do preço', i ? esc([i.fonte || '', precoData(x.desc) ? 'atualizado em ' + precoData(x.desc).toLocaleDateString('pt-BR') : 'sem data'].filter(Boolean).join(' · ')) : '')}${kv('Situação', i ? esc(situ(i)) : '')}${kv('Certificação', esc(certLinha(i && i.cert, 'pt')))}</div>` : ''}
+      ${alts.length ? `<h3 style="margin:10px 0 4px">Alternativas aprovadas</h3><ul class="uso">${alts.map((a) => `<li>${esc((REG.insumos.find((y) => y.id === a) || {}).produto || a)}</li>`).join('')}</ul>` : ''}
+      <div class="docbar" style="margin-top:10px;flex-wrap:wrap">
+        ${lista.length ? `<div class="f" style="width:100%"><label for="cfgTroca">Trocar o insumo (${esc(x.fam)})</label><select id="cfgTroca" data-cfgtroca="${x.r}"><option value="">—</option>${lista.map((p) => `<option${p === x.desc ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select></div>` : ''}
+        ${x.tipo === 'man' ? `<button class="btn sm" data-rmrow="${x.r}" data-ico="trash-2">Remover</button>` : ''}
+        ${i ? `<button class="btn sm" data-insabre="${esc(i.id)}" data-ico="external-link">Abrir no cadastro</button>` : x.desc ? `<button class="btn sm" data-pedir="${esc(JSON.stringify(x.r && x.r < 113 ? pedidoDaLinha(S, x.r) : { produto: x.desc, linha: { rotulo: S } }))}">Pedir cadastro</button>` : ''}
+        ${ln ? `<button class="btn sm" data-qrec="${ln.r}" data-ico="layers">Ver na estrutura</button>` : ''}</div></aside>`;
+  }
+  // ---- etapa 3: resumo, custos e preço da planilha, conferência, checagens e inclusão ----
+  function cfgEt3(S, M, V) {
+    const cf = cfgDe(S); const sig = cfgSig(S, M); const conf = cf.conf || {};
+    const grp = ACIONS.concat([['ESC', 'Adicionados nesta proposta']]).map(([k, lb]) => { const L = M.comps.filter((x) => x.acion === k && x.tipo !== 'opc' && x.tipo !== 'kit'); if (!L.length) return ''; const gt = L.reduce((t, x) => t + num0(x.tot), 0);
+      return `<details class="cfgcusto"><summary><span>${esc(k === 'TODOS' && ['SKID', 'CONTAINER'].includes(M.est) ? 'Equipamentos e acessórios gerais' : lb)}</span><b>${brl(gt)}</b></summary><div class="tw"><table class="t"><tbody>${L.map((x) => `<tr><td>${esc(x.rot)}<br><small class="sub">${esc(x.desc || '—')}</small></td><td class="n">${fmtNum(x.qtd)}</td><td class="n">${brl(x.tot)}</td></tr>`).join('')}</tbody></table></div></details>`; }).join('');
+    const nv = { imped: ['Impeditivo', 'bad'], aviso: ['Atenção', 'warn'], info: ['Informativo', 'info'] };
+    const alertas = V.length ? `<ul class="alerts cfgalerts">${V.map((a, i) => `<li class="${a.al && a.al.ack ? 'ack' : nv[a.lvl][1]}"><span><b>${nv[a.lvl][0]}${a.lvl === 'imped' && !a.bloq ? ' (vai para aprovação)' : ''}:</b> ${esc(a.msg)}${a.al ? aprovLinha(a.al) : ''}${a.al && a.al.ack ? `<br><small class="sub">Seguindo assim: ${esc(a.al.ack.motivo)} · ${esc(new Date(a.al.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span><span class="alact" style="display:flex;gap:6px;flex-wrap:wrap">${a.al ? alAcoes(a.al) : ''}${a.snap && cf.snap && ['enviada', 'aprovada', 'ganha'].includes(String(state.status || '')) ? '<button class="btn sm" data-cfgfixar>Manter a composição registrada</button>' : ''}<button class="btn sm" data-cfgalert="${i}">Ir para o ${a.go.et === 1 ? 'campo' : a.go.et === 2 ? 'componente' : 'item'}</button></span></li>`).join('')}</ul>` : '<div class="banner ok" style="margin:0">Nenhuma pendência: a configuração está consistente.</div>';
+    const chk = (k, lb) => { const c0 = conf[k]; const ok = c0 && c0.sig === sig; return `<label class="chk"><input type="checkbox" data-cfgconf="${k}"${ok ? ' checked' : ''}> ${esc(lb)}${c0 ? ` <small class="sub">${ok ? '' : '(antes de mudanças: refaça) '}${esc(fmtAt(c0.at))} · ${who(c0.by)}</small>` : ''}</label>`; };
+    const nImp = V.filter((x) => x.lvl === 'imped' && x.bloq).length; const incl = cf.incl; const inclOk = incl && incl.sig === sig;
+    const alt = M.comps.filter((x) => x.tipo === 'man' || x.trocado || x.qtdAlt); const opc = M.comps.filter((x) => x.cls === 'opc');
+    return `<div class="stack">
+      <section class="card"><h2>Equipamento</h2><div class="split2"><div>
+        <div class="lbl">Código</div><div class="codebox">${esc(txt(S, 'C27') || '—')}</div>
+        <div class="lbl" style="margin-top:8px">Descrição</div><p class="txtv">${esc(txt(S, 'C28')) || '—'}</p><p class="sub" style="margin:0">${esc(txt(S, 'C30'))}</p></div>
+        <div class="kv"><div>Família / estrutura</div><div>${esc(famLabel(M.est))}</div><div>Modelo pronto</div><div>${esc(txt(S, 'C17') || 'montado por características')}</div><div>Arranjo</div><div>${esc(M.c.code || '—')}</div><div>Bomba</div><div>${esc(txt(S, 'AR7') || txt(S, 'D19') || '—')}</div>${M.c.d ? `<div>Motor diesel</div><div>${esc(txt(S, 'C20') || '—')}</div>` : ''}${M.c.e ? `<div>Motor elétrico</div><div>${esc(txt(S, 'H20') || '—')}</div>` : ''}<div>Vazão</div><div>${val(S, 'AR4') ? fmtNum(val(S, 'AR4')) + ' USgpm' : '—'}</div><div>Quantidade</div><div>${show(S, 'P17') || '1'}</div><div>Componentes</div><div>${M.comps.filter((x) => x.tipo !== 'opc' && x.tipo !== 'kit').length} · ${opc.filter((x) => x.tipo !== 'opc').length} opcional(is) marcado(s) · ${alt.length} alteração(ões) da proposta</div></div></div>
+        <div class="docbar" style="margin-top:8px"><button class="btn sm" data-cfget="1" data-ico="pencil">Editar configuração</button><button class="btn sm" data-cfget="2" data-ico="layers">Ver componentes</button><button class="btn sm" data-dup="${ui.item}" data-ico="copy">Duplicar</button><button class="btn sm" data-modsave="${ui.item}" data-ico="save">Salvar como modelo de item</button></div></section>
+      <section class="card"><h2>Custo e preço <span class="sub">calculados pela planilha (formação oficial)</span></h2>
+        <div class="kpis"><div class="kpi"><span>Custo do item</span><b>${brl(val(S, 'H114'))}</b><em>custo direto dos componentes</em></div><div class="kpi"><span>${esc(txt(S, 'F14') || 'Fator')}</span><b>${fmtNum(val(S, 'F15'), '0.0000')}</b><em>markup aplicado sobre o custo</em></div><div class="kpi"><span>${esc(txt(S, 'H14') || 'Fator mínimo')}</span><b>${fmtNum(val(S, 'H15'), '0.0000')}</b></div><div class="kpi lead"><span>${esc(txt(S, 'B14') || 'Preço unitário')}</span><b>${brl(val(S, 'B15'))}</b><em>preço de venda c/ impostos</em></div><div class="kpi"><span>${esc(txt(S, 'D14') || 'Total')}</span><b>${brl(val(S, 'D15'))}</b></div><div class="kpi"><span>Margem</span><b class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</b><em>sobre a venda</em></div></div>
+        <div class="cfgcustos">${grp}</div>
+        <p class="sub" style="margin:8px 0 0">Nacional ${brl(val(S, 'H115'))} · Importado ${brl(val(S, 'H116'))} · Serviços ${brl(val(S, 'H117'))} · Materiais ${brl(val(S, 'H118'))}</p>
+        <details style="margin-top:8px"${keep('cfgmemo')}><summary class="sub">Memória de cálculo (impostos, comissões, frete, margem)</summary><div class="memo">${memoCalc(S)}</div></details></section>
+      <section class="card"><h2>Conferência <span class="sub">${V.filter((x) => x.lvl === 'imped').length} impeditivo(s) · ${V.filter((x) => x.lvl === 'aviso').length} atenção · ${V.filter((x) => x.lvl === 'info').length} informativo(s)</span></h2>${alertas}
+        <div class="chks" style="margin-top:10px;display:flex;flex-direction:column;gap:6px">${chk('tec', 'Configuração técnica revisada')}${chk('custos', 'Custos conferidos')}${chk('escopo', 'Escopo validado')}</div>
+        <p class="sub" style="margin:6px 0 0">As confirmações ficam registradas com nome e data e valem para esta configuração: se ela mudar, precisam ser refeitas. Elas não substituem as verificações automáticas.</p></section>
+      ${cfgExtras(S)}
+      ${espItemCard(S)}
+      ${itemPropCard(S)}
+      <section class="card cfgincl"><h2>Incluir na proposta</h2>
+        ${inclOk ? `<div class="banner ok" style="margin:0">Incluído na proposta em ${esc(fmtAt(incl.at))} · ${who(incl.by)}. A composição, as quantidades e os parâmetros ficaram registrados com a proposta.</div>` : incl ? `<div class="banner warn" style="margin:0">Incluído em ${esc(fmtAt(incl.at))}, mas a configuração mudou depois: atualize na proposta.</div>` : ''}
+        ${nImp ? `<div class="banner bad" style="margin:8px 0 0">${nImp} impeditivo(s) acima: corrija antes de incluir.</div>` : ''}
+        <div class="docbar" style="margin-top:10px"><button class="btn pri" data-cfgincluir${nImp || ui.cfgSaving ? ' disabled' : ''} data-ico="${ui.cfgSaving ? 'loader-circle' : 'circle-check'}">${ui.cfgSaving ? 'Gravando…' : incl ? 'Atualizar na proposta' : 'Adicionar à proposta'}</button><button class="btn" data-step="2" data-ico="list">Itens da proposta</button></div>
+        <p class="sub" style="margin:6px 0 0">Valida, grava a proposta e registra a configuração. Clicar de novo atualiza o mesmo item; não cria outro.</p></section>
+    </div>`;
+  }
+  // condições comerciais do item, código/descrição/fiscal e FCI (os mesmos campos da tela clássica)
+  function cfgExtras(S) {
+    const f = (a, lb, o) => field(S, a, lb, o); const fs = (a, lb, o) => fieldS(S, a, lb, o);
+    const cond = `Desconto ${pct(val(S, 'C8') || 0, 1)} · margem alvo ${pct(val(S, 'P89'))} · start-up ${val(S, 'K12') ? brl(val(S, 'K12')) + '/un.' : 'não'}`;
+    return `<details class="card"${keep('cond')}><summary>Condições deste item <span class="sub">${esc(cond)}</span></summary>
+        <div class="fields">${f('C8', 'Desconto de negociação')}${fs('L17', 'Margem alvo')}${fs('J17', 'Modo de preço')}${fs('K7', 'Folga de negociação')}${f('C12', 'Start-up — distância (km)')}${f('F12', 'Start-up — diárias')}${f('I12', 'Start-up — valor fechado')}</div></details>
+      ${itemCodHtml(S)}
+      ${itemFciHtml(S)}`;
+  }
+  // incluir/atualizar: valida, registra a composição, grava a proposta e só então confirma
+  async function cfgIncluir(S) {
+    if (ui.cfgSaving) return; const M = cfgComps(S); const V = cfgValida(S, M); const bl = V.filter((x) => x.lvl === 'imped' && x.bloq);
+    if (bl.length) { toast('Corrija antes: ' + bl[0].msg); return; }
+    ui.cfgSaving = true; render();
+    try {
+      const snap = cfgSnapDe(S, M); const novo = !cfgDe(S).incl;
+      cfgPut(S, (c) => { c.incl = { at: snap.at, by: snap.by, sig: snap.sig }; c.snap = snap; });
+      logEv({ tipo: novo ? 'Equipamento incluído na proposta' : 'Equipamento atualizado na proposta', ref: docTitle(), desc: S + ' · ' + (snap.desc || '') + ' · ' + brl(snap.total), mudancas: [] });
+      await $('#bSave').onclick();
+      if (dirty) throw new Error('a proposta não foi gravada (veja o aviso acima)');
+      toast((novo ? 'Equipamento incluído na proposta' : 'Equipamento atualizado na proposta') + ' e gravado');
+    } catch (e) { toast('Não consegui gravar: ' + errMsg(e)); }
+    finally { ui.cfgSaving = false; render(); }
+  }
+  // ---- eventos do configurador ----
+  document.addEventListener('click', async (e) => {
+    if (ui.view !== 'item') return; const S = ITEMS[ui.item]; const t = e.target;
+    const go = t.closest('[data-cfget]'); if (go) { cfgIr(S, +go.dataset.cfget); return; }
+    if (t.closest('[data-cfgclassico]')) { ui.cfgClassico = true; store.set(SK.view, ui); render(); return; }
+    if (t.closest('[data-cfgassistido]')) { ui.cfgClassico = false; store.set(SK.view, ui); render(); return; }
+    const sl = t.closest('[data-cfgsel]'); if (sl) { ui.cfgSel = sl.dataset.cfgsel ? { S, k: sl.dataset.cfgsel } : null; render(); if (sl.dataset.cfgsel && window.innerWidth < 1000) setTimeout(() => { const p = document.getElementById('cfgPainel'); if (p) p.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30); return; }
+    const q1 = t.closest('[data-cfgq1]'); if (q1) { const [r, d] = q1.dataset.cfgq1.split('|'); const v = Math.max(0, qtdNum(val(S, 'F' + r)) + +d); commit(S, 'F' + r, v); return; }
+    const oa = t.closest('[data-cfgopcall]'); if (oa) { const ch = {}; for (const r of oa.dataset.cfgopcall.split(',')) ch['BC' + r] = 1; cfgSet(S, ch); return; }
+    if (t.closest('[data-cfgadd]')) { ui.cfgAdd = S; ui.cfgAddQ = ''; render(); setTimeout(() => { const el = document.getElementById('cfgAddQ'); if (el) el.focus(); }, 30); return; }
+    if (t.closest('[data-cfgaddfim]')) { ui.cfgAdd = null; render(); return; }
+    const ai = t.closest('[data-cfgaddins]'); if (ai) { const i = REG.insumos.find((x) => x.id === ai.dataset.cfgaddins); if (!i) return; let r = 0; for (let q = 68; q <= 112; q++) if (!txt(S, 'D' + q) && !txt(S, 'C' + q) && !txt(S, 'B' + q)) { r = q; break; }
+      if (!r) { toast('O item já tem 45 componentes adicionais'); return; } cfgSet(S, { ['C' + r]: i.fam, ['D' + r]: i.produto, ['F' + r]: 1 }); ui.cfgSel = { S, k: 'm' + r }; toast(i.produto + ' adicionado'); return; }
+    if (t.closest('[data-cfgnovoins]')) { ui.cad = 'insumos'; insumoModal(null); return; }
+    if (t.closest('[data-cfgpadrao]')) { if (!await DLG.confirmar('Voltar a composição ao padrão da estrutura? Trocas de insumo e de quantidade da estrutura e os opcionais marcados voltam ao automático (os componentes adicionados ficam).')) return;
+      const ch = {}; for (let r = 34; r <= 63; r++) for (const col of ['D', 'F', 'G', 'I']) if (overridden(S, col + r)) ch[col + r] = undefined; for (const a of Object.keys((state.doc || {})[S] || {})) if (/^BC\d+$/.test(a)) ch[a] = undefined; cfgSet(S, ch); toast('Composição no padrão da estrutura'); return; }
+    if (t.closest('[data-cfgincluir]')) { await cfgIncluir(S); return; }
+    if (t.closest('[data-cfgfixar]')) { if (await DLG.confirmar('Fixar a composição registrada quando o equipamento foi incluído? As linhas da estrutura passam a valer como alteração desta proposta.')) cfgFixar(S); return; }
+    const al = t.closest('[data-cfgalert]'); if (al) { const a = cfgValida(S)[+al.dataset.cfgalert]; if (!a) return; cfgIr(S, a.go.et, a.go.sel, a.go.campo);
+      setTimeout(() => { if (a.go.campo) { const el = document.getElementById(id(S, a.go.campo)); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } } else if (a.go.sel) { const el = document.getElementById('cfgc_' + a.go.sel); if (el) el.scrollIntoView({ block: 'center' }); } }, 60); return; }
+    const sv = t.closest('[data-cfgsalva]'); if (sv) { ensureModelos(); const x = modelosItem.find((y) => y.id === sv.dataset.cfgsalva); if (!x) return; if (Object.keys((state.doc || {})[S] || {}).length && !await DLG.confirmar('Substituir a configuração deste item por "' + x.nome + '"?')) return;
+      state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.cells)); build(); persist(); dirty = true; listCache = new Map(); logEv({ tipo: 'Modelo de item usado', ref: docTitle(), desc: S + ' ← ' + x.nome, mudancas: [] }); toast('Configuração aplicada: ' + x.nome); render(); return; }
+  });
+  document.addEventListener('change', (e) => {
+    if (ui.view !== 'item') return; const S = ITEMS[ui.item]; const t = e.target; const ds = t.dataset || {};
+    if (ds.cfgmodo) { ui.cfgModo = Object.assign({}, ui.cfgModo, { [S]: ds.cfgmodo }); render(); return; }
+    if (ds.cfgesp !== undefined) { cfgPut(S, (c) => { if (ds.cfgesp === '1') c.especial = true; else delete c.especial; }); render(); return; }
+    if (ds.cfgac !== undefined) { ui.cfgAc = Object.assign({}, ui.cfgAc, { [S]: ds.cfgac }); render(); return; }
+    if (ds.cfgfab) { ui.cfgFab = Object.assign({}, ui.cfgFab, { [ds.cfgfab]: t.value }); render(); return; }
+    if (ds.cfgqtd) { const v = parseInput(t.value, 'num'); if (typeof v !== 'number' || v < 0) { toast('Quantidade inválida'); render(); return; } commit(S, 'F' + ds.cfgqtd, v); return; }
+    if (ds.cfgtroca) { if (!t.value) return; commit(S, 'D' + ds.cfgtroca, t.value); toast('Insumo trocado nesta proposta'); return; }
+    if (ds.cfgconf) { const k = ds.cfgconf; const sig = cfgSig(S); cfgPut(S, (c) => { c.conf = c.conf || {}; if (t.checked) c.conf[k] = { at: new Date().toISOString(), by: REG.me || null, sig }; else delete c.conf[k]; if (!Object.keys(c.conf).length) delete c.conf; });
+      logEv({ tipo: 'Conferência do equipamento', ref: docTitle(), desc: S + ': ' + ({ tec: 'configuração técnica revisada', custos: 'custos conferidos', escopo: 'escopo validado' })[k] + (t.checked ? '' : ' (desmarcada)'), mudancas: [] }); render(); return; }
+  });
+  // pesquisa: atualiza ao digitar, sem perder o foco
+  document.addEventListener('input', (e) => {
+    if (ui.view !== 'item') return; const S = ITEMS[ui.item]; const t = e.target;
+    const refoca = (sel) => { const pos = t.selectionStart; render(); const el = document.querySelector(sel); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (er) { /* campo sem seleção */ } } };
+    if (t.matches('[data-cfgq]')) { ui.cfgQ = Object.assign({}, ui.cfgQ, { [S]: t.value }); refoca('[data-cfgq]'); return; }
+    if (t.matches('[data-cfgaddq]')) { ui.cfgAddQ = t.value; refoca('[data-cfgaddq]'); }
+  });
   // ---- novo item: família → estrutura cadastrada → modelo cadastrado (ou os mais próximos) ----
   const famChosen = (S, c) => overridden(S, 'C21') || !!txt(S, 'C17') || filled(S) || overridden(S, 'E17');
   function modelos() {
@@ -2357,7 +2768,7 @@
     if (ed) { uiEdit.add(ed.dataset.edit); render(); const [s, a] = ed.dataset.edit.split('|'); const el = document.getElementById(id(s, a)); if (el) el.focus(); return; }
     const sp = e.target.closest('[data-step]');
     if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; if (!ui.simple && sp.closest('.ptabs, .flowbar, #app')) { ui.simple = true; store.set(SK.view, ui); } setView('proposta'); return; }
-    if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; setView('item'); return; }
+    if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; cfgEtRestart(j); setView('item'); return; }
     const dp = e.target.closest('[data-dup]'); if (dp) { dupItem(+dp.dataset.dup); return; }
     const rm = e.target.closest('[data-rmitem]');
     if (rm) { if (!rm.dataset.sure) { rm.dataset.sure = 1; rm.textContent = 'Confirmar remoção'; rm.classList.add('pri'); return; } rmItem(+rm.dataset.rmitem); ui.step = 2; setView('proposta'); return; }

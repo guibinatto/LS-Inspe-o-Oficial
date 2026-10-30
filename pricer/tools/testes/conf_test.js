@@ -8,7 +8,7 @@ const L = __dirname + '/libs/';
   await p.goto('file://' + require('path').resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1200);
   await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(800); await p.click('#bSave'); await p.waitForTimeout(400);
   const itens = [];
-  for (const i of [0, 1, 2]) { await p.click('[data-view="proposta"]'); await p.click('[data-step="2"]'); await p.click(`[data-goitem="${i}"]`); await p.waitForTimeout(400); await p.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; })); const t = await p.$$eval('.txtv', (x) => x.map((e) => e.innerText)); itens.push({ d: t[0], ponto: t[2] }); }
+  for (const i of [0, 1, 2]) { await p.click('[data-view="proposta"]'); await p.click('[data-step="2"]'); await p.click(`[data-goitem="${i}"]`); await p.waitForTimeout(400); await p.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; })); const t = await p.$$eval('details[data-keep="cod"] .txtv', (x) => x.map((e) => e.innerText)); itens.push({ d: t[0], ponto: t[2] }); }
   await p.click('[data-view="proposta"]'); await p.click('[data-step="4"]'); await p.waitForTimeout(400);
   const precos = await p.$$eval('#app table.t tbody tr', (x) => x.filter((r) => r.querySelector('[data-goitem]')).map((r) => [...r.querySelectorAll('td')].map((td) => td.innerText)));
   console.log('home etapa:', 'ok'); console.log('preços:', precos.map((r) => r.slice(2, 5).join(' | ')));

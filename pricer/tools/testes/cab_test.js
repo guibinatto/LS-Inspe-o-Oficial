@@ -26,6 +26,6 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   await p.click('label:has(' + 'input[data-ppcell="L8"]' + ')'); await p.waitForTimeout(250);
   const miss = await p.$eval('.flowbar .sub', (x) => x.innerText); if (miss) console.log('ainda falta:', miss);
   await p.click('[data-cabnext]'); await p.waitForTimeout(500);
-  console.log('depois:', await p.$eval('#nav [aria-current="page"]', (x) => x.textContent), '| família:', await p.$eval('[id$="ITEM01_C21"]', (x) => x.value || x.innerText).catch(() => '?'));
+  console.log('depois:', await p.$eval('#nav [aria-current="page"]', (x) => x.textContent), '| família:', await p.$eval('[id$="ITEM01_C21"]', (x) => x.value || x.innerText).catch(() => p.$eval('#app .cfg section.card h2', (x) => x.innerText.replace(/\s+/g, ' ')).catch(() => '?')));
   console.log('erros', errs); await b.close();
 })();
