@@ -1248,7 +1248,8 @@
       const condicao = [...new Set(bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => nBR(b.vz) + ' m³/h x ' + nBR(b.pr) + ' mca'))].join(' · ');
       const acion = { DIESEL: '#diesel', ELETRICA: '#eletrica', ELETRICO: '#eletrica', JOCKEY: '#jockeyA' };
       itens.push({ key: S, codigo: (pcGet().codigos || {})[S] || '', qtd: num0(val(P, 'F' + r)) || 1, unitSemImp: val(P, 'J' + r), totalSemImp: val(P, 'K' + r), totalSemIpi: val(P, 'M' + r), ipiValor: val(P, 'N' + r), pis: val(P, 'S' + r), cofins: val(P, 'T' + r), un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
-        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S), cad: cadastroDoItem(S), escopoG: escopoDoItem(S),
+        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, bombaDesc: bombaDesc(S),
+        pontos: bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => ({ acion: acion[b.ac] || b.ac.toLowerCase(), jockey: b.ac === 'JOCKEY', mod: b.mod, vz: b.vz, pr: typeof b.pr === 'number' ? b.pr : null, pot: typeof b.pot === 'number' && b.pot > 0 ? b.pot : null, rpm: typeof b.rpm === 'number' && b.rpm > 0 ? b.rpm : null })), vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S), cad: cadastroDoItem(S), escopoG: escopoDoItem(S),
         folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ n: k + 1, acion: acion[b.ac] || b.ac.toLowerCase(), cfg: b.cfg ? TIPO_BOMBA[upNoAc(b.cfg)] || b.cfg.toLowerCase() : '',
           dados: [['modelo', b.mod], ['vazaoNom', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['vazaoProj', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['pressao', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['rotacao', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['potencia', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
     });
@@ -1358,7 +1359,9 @@
   const logoCurva = () => (window.PRICER_PROPOSTA_ASSETS || { img: {} }).img['logo-cab'];
   // pontos de trabalho da formação do item (m³/h × mca de cada bomba): a curva usa o que cai sobre ela quando a folha não diz
   const trabItem = (S) => { const L = []; for (let b = 23; b <= 26; b++) { const vz = val(S, 'K' + b), pr = val(S, 'L' + b); if (txt(S, 'C' + b) && typeof vz === 'number' && vz > 0 && typeof pr === 'number' && pr > 0) L.push({ q: vz, h: pr, uq: 'm³/h', uh: 'mca' }); } return L; };
-  const optCurva = (S, lang) => ({ lang, logo: logoCurva(), trabalho: trabItem(S) });
+  // descrição da bomba do item (título da curva): a escolhida no item; sem ela, a da primeira bomba principal da formação
+  const bombaDesc = (S) => { if (txt(S, 'AR7') || txt(S, 'D19')) return txt(S, 'AR7') || txt(S, 'D19'); for (let b = 23; b <= 26; b++) if (txt(S, 'C' + b) && txt(S, 'C' + b) !== 'JOCKEY' && txt(S, 'D' + b)) return txt(S, 'D' + b); return ''; };
+  const optCurva = (S, lang) => ({ lang, logo: logoCurva(), trabalho: trabItem(S), titulo: bombaDesc(S) });
   const fonteCurva = (d) => (d.pontos.ocr ? 'lida do gráfico da página ' + d.pontos.pag + ' com os números dos eixos reconhecidos na imagem (o PDF não tem texto): confira os valores na prévia (' : '') + (d.pontos.vetor ? (d.pontos.ocr ? '' : 'lida do gráfico da página ' + d.pontos.pag + ' (') + d.pontos.pts.length + ' pontos, com ' + ['eff', 'p', 'npsh'].filter((k) => d.pontos.pts.some((p) => typeof p[k] === 'number')).map((k) => ({ eff: 'rendimento', p: 'potência', npsh: 'NPSH' })[k]).concat(d.pontos.outros && d.pontos.outros.length ? [d.pontos.outros.length + ' outros diâmetros de rotor'] : []).join(', ') + ')'
     : d.pontos.chave ? 'pelos pontos informados na folha (shutoff, mínima, trabalho, nominal e máxima): só a curva de altura' : 'com os ' + d.pontos.pts.length + ' pontos da tabela da página ' + d.pontos.pag);
   const SEM_CURVA = 'Não consegui ler a curva deste arquivo (o PDF não traz o gráfico em vetor nem a tabela de pontos, ou é uma imagem/escaneado). A curva não entra na proposta: peça ao fabricante o PDF original da seleção.';
@@ -1594,13 +1597,13 @@
     const D = propostaDados(); if (!D.itens.length) { toast('Nenhum item com preço para a proposta'); return; }
     const M = PRP.modelo(REG, lang); toast('Montando a proposta…');
     const img = {}; for (const [k, c] of Object.entries(M.imagens || {})) if (c && c.docId) { const b = await docBlob(c.docId); if (b) img[k] = await blobURL(b); }
-    const curvas = {};
+    const curvas = {}, nfpa = {};
     // curva sempre no padrão LS Fire: redesenhada com os pontos lidos; sem pontos legíveis, fica de fora (o item já avisa)
     const semCurva = [];
     if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; let dc = curvaDados(cv.dados, cv.pag || 1);
       // curva anexada antes da leitura do gráfico (ou lida sem resultado): lê o arquivo de novo agora
       if (!curvaOk(dc)) { const d2 = await relerCurva(it.key, 'curva'); if (d2) { dc = curvaDados(d2, cv.pag || 1) || curvaDados(d2, null); if (curvaOk(dc)) { const x = Object.assign({}, cv, { dados: d2 }); fdPut(it.key, 'curva', x); } } }
-      try { if (curvaOk(dc)) curvas[it.key] = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); else semCurva.push(it.key); } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
+      try { if (curvaOk(dc)) { curvas[it.key] = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); nfpa[it.key] = window.PricerCurva.nfpa(dc, optCurva(it.key, lang)); } else semCurva.push(it.key); } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
     let tr = (s) => s, aviso = ''; const fd = pc.estilo === 'fd';
     if (lang !== 'pt' || (fd && textosFabTodos(D, pcGet(), lang).length)) ({ tr, aviso } = await tradutor(D, pcGet(), lang));
     // padrão Folha de dados: curva recortada e páginas escolhidas da folha do fabricante, como imagem
@@ -1613,7 +1616,7 @@
           if (!curvaOk(dc)) { const d2 = await relerCurva(it.key, 'fab'); if (d2) { dc = curvaDados(d2, d2.pontos && d2.pontos.pag); if (curvaOk(dc)) fabMut(it.key, (G) => { G.dados.pontos = d2.pontos; G.dados.pontosPag = d2.pontosPag; G.curvaPag = d2.pontos.pag || G.curvaPag; });
             // folha guardada sem nada lido (leitura antiga ou que falhou): usa a leitura nova inteira
             if (!(F0.dados.secoes || []).length && (d2.secoes || []).length) { for (const g of d2.escopo || []) g.on = false; out.dados = d2; fabMut(it.key, (G) => { G.dados = d2; G.curvaPag = (d2.pontos && d2.pontos.pag) || G.curvaPag; }); } } }
-          if (curvaOk(dc)) out.curva = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
+          if (curvaOk(dc)) { out.curva = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); nfpa[it.key] = window.PricerCurva.nfpa(dc, optCurva(it.key, lang)); } else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
         if (!fd) { if (out.curva) curvas[it.key] = out.curva; continue; }
         for (const q of F0.dados.paginas) if ((F0.pags || {})[q.n]) out.paginas[q.n] = { url: await L.recorte(file, q.n, null, 2.2), w: q.w, h: q.h };
         fab[it.key] = out; } catch (er) { toast('Não consegui preparar a folha do fabricante de ' + it.key + ': ' + errMsg(er)); } }
@@ -1625,7 +1628,7 @@
       try { const b = await docBlob(dz.id); if (!b) continue; const file = new File([b], dz.nome || 'desenho', { type: b.type || (/\.pdf$/i.test(dz.nome || '') ? 'application/pdf' : 'image/png') });
         if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) { const n = (await window.PricerLeitor.paginaImagem(file, 1, 0.2)).paginas; for (let k = 1; k <= Math.min(n, 4); k++) (desenhos[it.key] = desenhos[it.key] || []).push(await window.PricerLeitor.recorte(file, k, null, 2.2)); }
         else (desenhos[it.key] = desenhos[it.key] || []).push(await blobURL(b)); } catch (er) { toast('Não consegui preparar o desenho ' + (dz.nome || '') + ': ' + errMsg(er)); } }
-    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, fab, trFab: tr, desenhos }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos });
+    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, nfpa, tr, fab, trFab: tr, desenhos }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos });
     const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
     logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
     const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });

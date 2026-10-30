@@ -4954,12 +4954,18 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const fx = ajusta(rx.map((i) => [snap(i.x + i.w / 2, vt, 3.5), nr(i.s)])); const passoX = Math.abs(nr(rx[1].s) - nr(rx[0].s)); if (!(fx.a > 0) || fx.err > passoX * 0.06) return null;
     const textoLinha = (y0, y1) => its.filter((i) => i.y >= y0 && i.y <= y1 && i.x >= xEixo - 2 && i.x < xEixo + 160 && /[A-Za-z%η]/.test(i.s)).sort((a, b) => a.y - b.y || a.x - b.x);
     const paineis = [];
-    for (const g of grupos) {
-      if (g.length < 3) continue; const f = ajusta(g.map((t) => [t.y, t.v])); const passo = Math.abs(g[0].v - g[1].v); if (!(f.a < 0) || f.err > passo * 0.08) continue;
-      const yTop = g[0].y, yBot = g[g.length - 1].y; const tt = textoLinha(yTop - 16, yTop + 14); const rot = tt.length ? tt.filter((i) => Math.abs(i.y - tt[0].y) < 3).map((i) => i.s).join(' ') : '';
+    // só dois números num eixo (no OCR os de um dígito se perdem, ex.: NPSH 12, 10, …): vale quando os dois caem em linhas
+    // da grade e a grade continua para baixo com o mesmo espaçamento
+    const naGrade = (y) => hz.some((z) => Math.abs(z - y) < 1.2);
+    const gradeOk = (g) => { const dy = g[1].y - g[0].y; return dy > 2 && naGrade(g[0].y) && naGrade(g[1].y) && naGrade(g[1].y + dy) && naGrade(g[1].y + 2 * dy); };
+    const yX = Math.min(...rx.map((i) => i.y - (i.h || 8)));
+    grupos.forEach((g, gi) => {
+      if (g.length < 3 && !(g.length === 2 && gradeOk(g))) return; const f = ajusta(g.map((t) => [t.y, t.v])); const passo = Math.abs(g[0].v - g[1].v); if (!(f.a < 0) || f.err > passo * 0.08) return;
+      // o painel vai até o zero do eixo (o "0" às vezes não é lido), sem passar do painel de baixo nem do eixo de vazão
+      const prox = grupos.slice(gi + 1).find((q) => q.length >= 2); const y0 = -f.b / f.a; const yTop = g[0].y, yBot = Math.max(g[g.length - 1].y, Math.min(y0, (prox ? prox[0].y : yX) - 2)); const tt = textoLinha(yTop - 16, yTop + 14); const rot = tt.length ? tt.filter((i) => Math.abs(i.y - tt[0].y) < 3).map((i) => i.s).join(' ') : '';
       const k = /npsh/i.test(rot) ? 'npsh' : /%|eff|rend|η/i.test(rot) || /^h\b/.test(rot) ? 'eff' : /^H\b|head|altura|tdh|förder/i.test(rot) ? 'h' : /^P\b|power|pot|kw|hp\b/i.test(rot) ? 'p' : null;
       paineis.push({ k, rot, u: (rot.match(/[\[(]\s*([^\])]+?)\s*[\])]/) || [])[1] || '', yTop, yBot, f });
-    }
+    });
     if (!paineis.length) return null;
     paineis.forEach((p, i) => { if (!p.k) p.k = ['h', 'eff', 'p', 'npsh'][i] || null; });
     const ph = paineis.find((p) => p.k === 'h'); if (!ph) return null;
@@ -5229,9 +5235,9 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   'use strict';
   const LAR = '#E4650E', ESC = '#2F2F2F', TXT = '#3A3A3A', MUTED = '#7A7A7A', GRID = '#E6E6E6', EIXO = '#BDBDBD';
   const L = {
-    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)', vetor: 'Curvas traçadas pela LS Fire a partir do gráfico da folha de dados do fabricante', npsh: 'NPSH requerido', diam: 'Ø', form: '(formação LS Fire)' },
-    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)', vetor: 'Curves plotted by LS Fire from the manufacturer datasheet chart', npsh: 'NPSH required', diam: 'Ø', form: '(LS Fire selection)' },
-    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)', vetor: 'Curvas trazadas por LS Fire a partir del gráfico de la hoja de datos del fabricante', npsh: 'NPSH requerido', diam: 'Ø', form: '(selección LS Fire)' },
+    pt: { h: 'Altura manométrica', eff: 'Rendimento', p: 'Potência absorvida', q: 'Vazão', trab: 'Ponto de trabalho', nfpa: 'Nominal NFPA 20', shut: 'Shutoff', p150: '150% da vazão', lim: 'limite', max140: 'máx. 140%', min65: 'mín. 65%', fim: 'Final da curva', fora: 'a curva do fabricante não chega a 150%', rotor: 'rotor', fonte: 'Curva traçada pela LS Fire com os pontos da folha de dados do fabricante', chave: 'Curva de altura traçada pela LS Fire pelos pontos informados na folha do fabricante (shutoff, mínima, trabalho, nominal e máxima)', vetor: 'Curvas traçadas pela LS Fire a partir do gráfico da folha de dados do fabricante', npsh: 'NPSH requerido', diam: 'Ø', form: '(formação LS Fire)' },
+    en: { h: 'Total head', eff: 'Efficiency', p: 'Power absorbed', q: 'Flow', trab: 'Duty point', nfpa: 'NFPA 20 rated', shut: 'Shutoff', p150: '150% flow', lim: 'limit', max140: 'max. 140%', min65: 'min. 65%', fim: 'End of curve', fora: 'the manufacturer curve does not reach 150%', rotor: 'impeller', fonte: 'Curve plotted by LS Fire from the manufacturer datasheet points', chave: 'Head curve plotted by LS Fire through the points given in the manufacturer datasheet (shutoff, minimum, duty, rated and maximum)', vetor: 'Curves plotted by LS Fire from the manufacturer datasheet chart', npsh: 'NPSH required', diam: 'Ø', form: '(LS Fire selection)' },
+    es: { h: 'Altura manométrica', eff: 'Rendimiento', p: 'Potencia absorbida', q: 'Caudal', trab: 'Punto de trabajo', nfpa: 'Nominal NFPA 20', shut: 'Válvula cerrada', p150: '150% del caudal', lim: 'límite', max140: 'máx. 140%', min65: 'mín. 65%', fim: 'Final de la curva', fora: 'la curva del fabricante no llega al 150%', rotor: 'impulsor', fonte: 'Curva trazada por LS Fire con los puntos de la hoja de datos del fabricante', chave: 'Curva de altura trazada por LS Fire por los puntos indicados en la hoja del fabricante (válvula cerrada, mínimo, trabajo, nominal y máximo)', vetor: 'Curvas trazadas por LS Fire a partir del gráfico de la hoja de datos del fabricante', npsh: 'NPSH requerido', diam: 'Ø', form: '(selección LS Fire)' },
   };
   const LOC = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' };
   let fonteOk = null;
@@ -5256,6 +5262,35 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   const passo = (max, alvo) => { const bruto = max / alvo; const p = Math.pow(10, Math.floor(Math.log10(bruto))); const r = bruto / p; return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * p; };
 
   function temPontos(dados) { return !!(dados && dados.pontos && (dados.pontos.pts || []).length >= 4); }
+  // NFPA 20 a partir da folha e da curva do fabricante: nominal (100%), 150% da vazão (altura mínima 65% da nominal) e
+  // shutoff (altura máxima 140% da nominal). O que a folha informa vale; o resto é lido na curva entre os pontos do
+  // fabricante (sem extrapolar). Sem nominal na folha, a base é o ponto de trabalho. Potências no nominal, a 150% e no fim da curva.
+  function nfpa(dados, o = {}) {
+    if (!temPontos(dados)) return null;
+    const P = dados.pontos; const pts = P.pts; const U = Object.assign({ q: 'USgpm', h: 'm', eff: '%', p: 'hp', npsh: 'm' }, P.unid || {});
+    const serie = (k) => pts.filter((p) => typeof p[k] === 'number').filter((p, i, A) => !i || p.q > A[i - 1].q);
+    const em = (k, q) => { const ps = serie(k); if (ps.length < 2 || !(q >= ps[0].q - 1e-9 && q <= ps[ps.length - 1].q * 1.001)) return null; return monotona(ps.map((p) => p.q), ps.map((p) => p[k]))(Math.min(q, ps[ps.length - 1].q)); };
+    let qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0] || nums(campo(dados, /Operat/i, /^Flow$/))[0]; let hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0] || nums(campo(dados, /Operat/i, /^Head$/))[0];
+    // sem o ponto de trabalho na folha: o da formação que cai sobre a curva (até 10% de diferença na altura), na unidade da curva
+    let trabForm = false;
+    if (!(qT && hT) && (o.trabalho || []).length) { const fq = /gpm/i.test(U.q) ? 4.402868 : /l\/s/i.test(U.q) ? 1 / 3.6 : 1;
+      let best = null; for (const t of o.trabalho) { const q = t.q * fq; const hc = em('h', q); if (hc === null) continue; const d = Math.abs(hc - t.h) / t.h; if (d <= 0.1 && (!best || d < best.d)) best = { q, h: t.h, d }; }
+      if (best) { qT = best.q; hT = best.h; trabForm = true; } }
+    const qNf = nums(campo(dados, /NFPA/i, /^Flow, rated$/))[0], hNf = nums(campo(dados, /NFPA/i, /^Head, rated$/))[0];
+    const base = qNf && hNf ? 'nominal' : qT && hT ? 'trabalho' : ''; const qN = qNf && hNf ? qNf : qT, hN = qNf && hNf ? hNf : hT;
+    const shF = nums(campo(dados, /NFPA/i, /^Head at shutoff/)), h150F = nums(campo(dados, /NFPA/i, /^Head at 150%/)), q150F = nums(campo(dados, /NFPA/i, /^Flow at 150%/))[0];
+    const q150 = q150F || (qN ? 1.5 * qN : null);
+    const h150 = h150F[0] || (q150 ? em('h', q150) : null), h150Lim = h150F[1] || (hN ? 0.65 * hN : null);
+    const sh = shF[0] || em('h', 0), shLim = shF[1] || (hN ? 1.4 * hN : null);
+    const fol = nums(campo(dados, null, /^(Shaft Power|Power, rated)$/))[0]; const pc = qN ? em('p', qN) : null;
+    const pN = fol && pc !== null && Math.abs(fol - pc) <= Math.max(0.08 * pc, 0.5) ? fol : pc !== null ? pc : null;
+    const ps = serie('p'); const fim = ps.length ? ps[ps.length - 1] : null;
+    const hFim = fim ? em('h', fim.q) : null;
+    return { U, qT, hT, trabForm, base, qN, hN, q150, h150, h150Lim, sh, shLim, pN, p150: q150 ? em('p', q150) : null, pSh: em('p', 0), hN0: qN ? em('h', qN) : null,
+      qFim: fim ? fim.q : null, pFim: fim ? fim.p : null, hFim, pMax: ps.length ? Math.max(...ps.map((p) => p.p)) : null,
+      ok150: h150 !== null && h150Lim ? h150 >= h150Lim - 1e-9 : null, okSh: sh !== null && shLim ? sh <= shLim + 1e-9 : null };
+  }
+
   async function desenhar(dados, o = {}) {
     if (!temPontos(dados)) return null;
     const lang = L[o.lang] ? o.lang : 'pt'; const t = L[lang]; await fontes();
@@ -5264,24 +5299,17 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const W = 2400, H = 1760; const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     const FT = (w, sz) => `${w} ${sz}px MontLS, Montserrat, Arial, sans-serif`;
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
-    const qMax = Math.max(...pts.map((p) => p.q), ...outros.map((o) => Math.max(...o.pts.map((p) => p.q)))); const xStep = passo(qMax * 1.06, 10); const xMax = Math.ceil((qMax * 1.04) / xStep) * xStep;
+    const N = nfpa(dados, o); const qMax = Math.max(...pts.map((p) => p.q), ...outros.map((o) => Math.max(...o.pts.map((p) => p.q))), N.q150 && N.q150 <= 1.35 * Math.max(...pts.map((p) => p.q)) ? N.q150 : 0); const xStep = passo(qMax * 1.06, 10); const xMax = Math.ceil((qMax * 1.04) / xStep) * xStep;
     const X0 = 190, X1 = W - 70; const sx = (q) => X0 + (q / xMax) * (X1 - X0);
     // painéis: altura (grande), rendimento e potência; cada um com o seu eixo
     const series = [['h', t.h, 0.52], ['eff', t.eff, 0.19], ['p', t.p, 0.19], ['npsh', t.npsh, 0.17]].filter(([k]) => pts.filter((p) => typeof p[k] === 'number').length >= 2);
     const topo = 190, base = H - 190, gap = series.length > 3 ? 58 : 64; const alt = base - topo - gap * (series.length - 1); const soma = series.reduce((a, s) => a + s[2], 0);
     let y = topo; const paineis = series.map(([k, nome, f]) => { const h = alt * f / soma; const p = { k, nome, y0: y, y1: y + h }; y += h + gap; return p; });
-    // dados do ponto de trabalho e da NFPA 20 (só o que estiver na folha)
-    let qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0] || nums(campo(dados, /Operat/i, /^Flow$/))[0]; let hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0] || nums(campo(dados, /Operat/i, /^Head$/))[0];
-    // sem o ponto de trabalho na folha: o da formação que cai sobre a curva (até 10% de diferença na altura), na unidade da curva
-    let trabForm = false;
-    if (!(qT && hT) && (o.trabalho || []).length) { const fq = /gpm/i.test(U.q) ? 4.402868 : /l\/s/i.test(U.q) ? 1 / 3.6 : 1; const ph = pts.filter((p) => typeof p.h === 'number'); const fh = monotona(ph.map((p) => p.q), ph.map((p) => p.h));
-      let best = null; for (const t of o.trabalho) { const q = t.q * fq; if (q < ph[0].q || q > ph[ph.length - 1].q) continue; const d = Math.abs(fh(q) - t.h) / t.h; if (d <= 0.1 && (!best || d < best.d)) best = { q, h: t.h, d }; }
-      if (best) { qT = best.q; hT = best.h; trabForm = true; } }
-    const qN = nums(campo(dados, /NFPA/i, /^Flow, rated$/))[0], hN = nums(campo(dados, /NFPA/i, /^Head, rated$/))[0];
-    const sh = nums(campo(dados, /NFPA/i, /^Head at shutoff/)), h150 = nums(campo(dados, /NFPA/i, /^Head at 150%/)), q150 = nums(campo(dados, /NFPA/i, /^Flow at 150%/))[0];
+    // ponto de trabalho, nominal e pontos da NFPA 20 (150% da vazão e shutoff), com as potências
+    const { qT, hT, trabForm, qN, hN, q150 } = N; const sh = [N.sh, N.shLim], h150 = [N.h150, N.h150Lim];
     for (const pn of paineis) {
       const vals = pts.map((p) => p[pn.k]).filter((v) => typeof v === 'number'); let vmax = Math.max(...vals);
-      if (pn.k === 'h') vmax = Math.max(vmax, hT || 0, hN || 0, sh[1] || 0, ...outros.map((o) => Math.max(...o.pts.map((p) => p.h))));
+      if (pn.k === 'h') vmax = Math.max(vmax, hT || 0, hN || 0, sh[1] || 0, sh[0] || 0, ...outros.map((o) => Math.max(...o.pts.map((p) => p.h))));
       const ys = passo(vmax * 1.08, pn.k === 'h' ? 8 : 3); const ymax = Math.ceil((vmax * 1.06) / ys) * ys; const syy = (v) => pn.y1 - (v / ymax) * (pn.y1 - pn.y0); pn.sy = syy;
       // grade e eixo y (recessivos)
       g.lineWidth = 2; g.font = FT(400, 30); g.textAlign = 'right'; g.textBaseline = 'middle';
@@ -5307,13 +5335,21 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const tri = (xx, yy, baixo) => { g.fillStyle = ESC; g.beginPath(); if (baixo) { g.moveTo(xx - 15, yy - 13); g.lineTo(xx + 15, yy - 13); g.lineTo(xx, yy + 13); } else { g.moveTo(xx - 15, yy + 13); g.lineTo(xx + 15, yy + 13); g.lineTo(xx, yy - 13); } g.closePath(); g.fill(); };
     const fq = (q) => nf(0).format(q) + ' ' + U.q, fh = (h) => nf(1).format(h) + ' ' + U.h;
     if (ph) {
-      if (sh[1]) { const yy = ph.sy(sh[1]); g.setLineDash([14, 12]); g.strokeStyle = MUTED; g.lineWidth = 3; g.beginPath(); g.moveTo(sx(0), yy); g.lineTo(sx(xMax * 0.16), yy); g.stroke(); g.setLineDash([]); tri(sx(0) + 6, yy, true); rotulo(t.shut + ' ' + t.lim + ' ' + fh(sh[1]), sx(xMax * 0.16), yy, 'd', MUTED); }
-      if (h150[1] && q150) { const xx = sx(q150), yy = ph.sy(h150[1]); g.setLineDash([14, 12]); g.strokeStyle = MUTED; g.lineWidth = 3; g.beginPath(); g.moveTo(xx - 90, yy); g.lineTo(xx + 90, yy); g.stroke(); g.setLineDash([]); tri(xx, yy, false); rotulo(t.lim + ' 150%: ' + fh(h150[1]), xx, yy + 48, 'd', MUTED); }
-      if (h150[0] && q150) { ponto(sx(q150), ph.sy(h150[0]), false); rotulo(t.p150 + ': ' + fq(q150) + ' · ' + fh(h150[0]), sx(q150), ph.sy(h150[0]) + 104, 'e'); }
-      if (sh[0]) { ponto(sx(0), ph.sy(sh[0]), false); }
       if (qN && hN && Math.abs(qN - (qT || 0)) / qN > 0.01) { ponto(sx(qN), ph.sy(hN), false); rotulo(t.nfpa + ': ' + fq(qN) + ' · ' + fh(hN), sx(qN), ph.sy(hN) + 52, 'e'); }
       if (P.chave) for (const p of pts) { g.fillStyle = LAR; g.beginPath(); g.arc(sx(p.q), ph.sy(p.h), 9, 0, Math.PI * 2); g.fill(); }
-      if (qT && hT) { const xx = sx(qT), yy = ph.sy(hT); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, ph.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true); rotulo(t.trab + ': ' + fq(qT) + ' · ' + fh(hT) + (trabForm ? ' ' + t.form : ''), xx, yy + 54, P.chave ? 'e' : 'd'); }
+      if (qT && hT) { const xx = sx(qT), yy = ph.sy(hT); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, ph.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true); const tt = t.trab + ': ' + fq(qT) + ' · ' + fh(hT) + (trabForm ? ' ' + t.form : ''); g.font = FT(600, 30); const wt = g.measureText(tt).width;
+        // o rótulo vai para cima da curva quando passaria por cima do ponto de 150% da vazão
+        const sobre150 = !P.chave && q150 && h150[0] && sx(q150) > xx && sx(q150) < xx + 60 + wt; rotulo(tt, xx, yy + (sobre150 ? -54 : 54), P.chave ? 'e' : 'd'); }
+      // NFPA 20 com linhas tracejadas: limite de 140% no shutoff, vertical em 150% da vazão e limite de 65% nela
+      const tracejado = (x1, y1, x2, y2) => { g.setLineDash([14, 12]); g.strokeStyle = MUTED; g.lineWidth = 3; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.setLineDash([]); };
+      if (sh[1]) { const yy = ph.sy(sh[1]); tracejado(sx(0), yy, sx(xMax * 0.18), yy); tri(sx(0) + 6, yy, true); rotulo(t.shut + (sh[0] ? ': ' + fh(sh[0]) : '') + ' (' + t.max140 + ': ' + fh(sh[1]) + ')', sx(xMax * 0.18), yy, 'd', sh[0] && sh[0] > sh[1] ? LAR : TXT); }
+      if (sh[0]) ponto(sx(0), ph.sy(sh[0]), false);
+      if (q150 && q150 <= xMax) { const xx = sx(q150); const lim = h150[1]; const yv = h150[0] ? ph.sy(h150[0]) : ph.sy(lim || 0);
+        tracejado(xx, ph.y1, xx, Math.min(yv, lim ? ph.sy(lim) : yv) - 20);
+        if (lim) { const yy = ph.sy(lim); tracejado(xx - 90, yy, xx + 90, yy); tri(xx, yy, false); }
+        const txt = t.p150 + ': ' + fq(q150) + (h150[0] ? ' · ' + fh(h150[0]) : '') + (lim ? ' (' + t.min65 + ': ' + fh(lim) + ')' : '') + (h150[0] ? '' : ' — ' + t.fora);
+        rotulo(txt, xx, (lim ? ph.sy(lim) : yv) + 75, 'd', h150[0] && lim && h150[0] < lim ? LAR : TXT); }
+      if (q150 && q150 <= xMax && h150[0]) ponto(sx(q150), ph.sy(h150[0]), false);
     }
     // ponto de trabalho também nos outros painéis (valor lido na curva do fabricante)
     if (qT) for (const pn of paineis) { if (pn.k === 'h' || !pn.f) continue; const ps = pts.filter((p) => typeof p[pn.k] === 'number'); if (!ps.length || qT < ps[0].q || qT > ps[ps.length - 1].q) continue;
@@ -5321,6 +5357,12 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       const fol = { eff: nums(campo(dados, null, /^Efficiency(, rated)?$/))[0], p: nums(campo(dados, null, /^(Shaft Power|Power, rated)$/))[0], npsh: nums(campo(dados, null, /^NPSH\s?r(equired)?$/i))[0] }[pn.k];
       const v0 = pn.f(qT); const v = fol && Math.abs(fol - v0) <= Math.max(0.08 * Math.abs(v0), 0.5) ? fol : v0; const xx = sx(qT), yy = pn.sy(v0); g.setLineDash([6, 10]); g.strokeStyle = ESC; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, pn.y0); g.lineTo(xx, pn.y1); g.stroke(); g.setLineDash([]); ponto(xx, yy, true);
       rotulo(nf(pn.k === 'p' ? 1 : pn.k === 'eff' ? 1 : 2).format(v) + ' ' + U[pn.k], xx, yy - 40, 'd'); }
+    // potência a 150% da vazão e no fim da curva (tracejadas, como os pontos da NFPA 20)
+    const pp = paineis.find((p) => p.k === 'p');
+    if (pp) { const fp = (v) => nf(1).format(v) + ' ' + U.p;
+      const marca = (q, v, txt, dy) => { const xx = sx(q), yy = pp.sy(v); g.setLineDash([14, 12]); g.strokeStyle = MUTED; g.lineWidth = 3; g.beginPath(); g.moveTo(xx, pp.y1); g.lineTo(xx, yy); g.stroke(); g.setLineDash([]); ponto(xx, yy, false); rotulo(txt, xx, yy + dy, 'e'); };
+      if (q150 && N.p150 !== null) marca(q150, N.p150, '150%: ' + fp(N.p150), 44);
+      if (N.pFim !== null && (!q150 || Math.abs(N.qFim - q150) / q150 > 0.03)) marca(N.qFim, N.pFim, t.fim + ': ' + fp(N.pFim), -40); }
     // eixo x (vazão) com equivalente em m³/h quando a vazão vem em galões
     const yb = paineis[paineis.length - 1].y1; g.textAlign = 'center'; g.textBaseline = 'top';
     for (let q = 0; q <= xMax + 1e-9; q += xStep) { const xx = sx(q); g.fillStyle = MUTED; g.font = FT(400, 30); g.fillText(nf(0).format(q), xx, yb + 16); if (/gpm/i.test(U.q)) { g.font = FT(400, 24); g.fillText(nf(0).format(q * 0.2271247), xx, yb + 54); } }
@@ -5328,15 +5370,20 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     // cabeçalho: modelo, rotor e rotação (como vieram da folha) e o logo
     let mod = campo(dados, /Project/i, /Model$|^Model \//); const rot = campo(dados, /NFPA|Construction/i, /^Impeller diameter, rated$|^Impeller Diameter$/) || campo(dados, null, /^Impeller D(iameter)?\b.*(Designed|rated)/i); const rpm = campo(dados, /NFPA|Operating/i, /^Speed, rated$/) || campo(dados, null, /^Speed$/);
     if (!mod) { const pj = ((dados.secoes || []).find((x) => x.t === 'Project') || { campos: [] }).campos.map((c) => c.k + ' ' + c.v).join(' '); mod = (pj.match(/\b([A-Z]{2,6}\s?\d{2,4}[-/]\d{2,4}[A-Z]?)\b/) || [])[1] || ''; }
-    g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = ESC; g.font = FT(600, 40);
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = ESC;
     const dec = (v) => (lang === 'en' ? v : String(v).replace(/(\d),(\d{3})/g, '$1\u0000$2').replace(/(\d)\.(\d)/g, '$1,$2').replace(/\u0000/g, '.'));
-    g.fillText([dados.fabricante, mod].filter(Boolean).join(' ') + (rot ? ' · ' + t.rotor + ' ' + dec(rot) : '') + (rpm ? ' · ' + rpm : ''), X0, 58);
+    const linha = [dados.fabricante, mod].filter(Boolean).join(' ') + (rot ? ' · ' + t.rotor + ' ' + dec(rot) : '') + (rpm ? ' · ' + rpm : '');
+    // título: a descrição da bomba do item; embaixo, fabricante, modelo, rotor e rotação como vieram da folha
+    const cabe = (txt, sz, max) => { let s = String(txt), z = sz; g.font = FT(600, z); while (g.measureText(s).width > max && z > 28) { z -= 2; g.font = FT(600, z); } while (g.measureText(s).width > max && s.length > 8) s = s.slice(0, -2).trimEnd() + '…'; if (s.endsWith('……')) s = s.slice(0, -1); return s; };
+    const larg = X1 - X0 - 270; const tit = String(o.titulo || '').trim();
+    if (tit) { g.fillText(cabe(tit, 40, larg), X0, 58); if (linha.trim()) { g.fillStyle = MUTED; g.font = FT(400, 28); g.fillText(linha, X0, 128); } }
+    else { g.fillText(cabe(linha, 40, larg), X0, 58); }
     if (o.logo) { try { const im = new Image(); im.src = o.logo; await im.decode(); const w = 230, h = w * im.height / im.width; g.drawImage(im, W - 70 - w, 18, w, h); } catch (e) { /* sem logo */ } }
     g.fillStyle = LAR; g.fillRect(X0, 80, 120, 6);
     g.fillStyle = MUTED; g.font = FT(400, 26); g.textAlign = 'right'; g.fillText((P.chave ? t.chave : P.vetor ? t.vetor : t.fonte) + (dados.pontos.pag ? ' (p. ' + dados.pontos.pag + ')' : '') + '.', X1, H - 22);
     return cv.toDataURL('image/png');
   }
-  window.PricerCurva = { desenhar, temPontos };
+  window.PricerCurva = { desenhar, temPontos, nfpa };
 })();
 
 </script>
@@ -5353,17 +5400,17 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
   const P = window.PricerProposta; const I = P._i; const FB = () => window.PricerFabricante || null;
   const ESC = [47, 47, 47], LAR = [228, 101, 14], LAR0 = [199, 56, 21], BANDA = [236, 236, 236], LINHA = [214, 214, 214], CINZA = [110, 110, 110], CLARO = [247, 247, 247];
   const X = {
-    pt: { cadTit: 'Folha de dados da bomba e do acionador', cadFonte: 'Dados do cadastro LS Fire (folhas de dados dos fabricantes).', componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descrição', unitSem: 'Unitário sem impostos', totSem: 'Total sem impostos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totais', notaImp: 'ICMS, PIS e COFINS estão incluídos no preço (por dentro); o IPI é somado ao preço com impostos. Alíquotas e NCM conforme a formação desta proposta.', doc_tc: 'Proposta técnica e comercial', doc_com: 'Proposta comercial', doc_tec: 'Proposta técnica', resumo: 'Resumo da proposta', dadosProp: 'Dados da proposta', fornec: 'Resumo do fornecimento', valorTotal: 'Valor total', sobre: 'Sobre a LS Fire', ident: 'Identificação do item', desemp: 'Folha de dados de desempenho', constr: 'Folha de dados construtiva',
+    pt: { fonteSem: 'Dados da folha do fabricante, conferidos pela LS Fire.', pontosT: 'Pontos de trabalho', minW: 'mín. ', maxW: 'máx. ', nfpaT: 'Critérios da NFPA 20', bombaN: 'Bomba', acionC: 'Acionamento', vazao: 'Vazão', pressao: 'Pressão', potNom: 'Potência nominal do acionador', rotacao: 'Rotação', ptoC: 'Ponto', hExig: 'Altura exigida (NFPA 20)', hCurva: 'Altura na curva', potAbs: 'Potência absorvida', res: 'Resultado', nom100: 'Nominal (100%)', trab100: 'Ponto de trabalho (100%)', v150: '150% da vazão', shutC: 'Shutoff (vazão zero)', fimC: 'Final da curva', atende: 'Atende', naoAtende: 'Não atende', potMax: 'Potência máxima absorvida na curva', notaN: 'NFPA 20: a 150% da vazão nominal, altura de no mínimo 65% da nominal; em shutoff, no máximo 140% da nominal. Valores da curva lidos entre os pontos do fabricante, sem extrapolação.', notaTrab: 'A folha do fabricante não informa o ponto nominal NFPA 20: a base é o ponto de trabalho.', notaFora: 'O ponto de trabalho não cai sobre a curva do fabricante anexada (diferença de altura acima de 10%): limites calculados a partir do ponto de trabalho. Confira a folha do fabricante.', notaSem: 'Sem curva do fabricante: limites calculados a partir do ponto de trabalho; os valores reais vêm da curva do fabricante.', cadTit: 'Folha de dados da bomba e do acionador', cadFonte: 'Dados do cadastro LS Fire (folhas de dados dos fabricantes).', componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descrição', unitSem: 'Unitário sem impostos', totSem: 'Total sem impostos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totais', notaImp: 'ICMS, PIS e COFINS estão incluídos no preço (por dentro); o IPI é somado ao preço com impostos. Alíquotas e NCM conforme a formação desta proposta.', doc_tc: 'Proposta técnica e comercial', doc_com: 'Proposta comercial', doc_tec: 'Proposta técnica', resumo: 'Resumo da proposta', dadosProp: 'Dados da proposta', fornec: 'Resumo do fornecimento', valorTotal: 'Valor total', sobre: 'Sobre a LS Fire', ident: 'Identificação do item', desemp: 'Folha de dados de desempenho', constr: 'Folha de dados construtiva',
       adic: 'Dados adicionais de desempenho', curva: 'Curva de desempenho', curvas: 'Curvas em várias rotações', arranjo: 'Arranjo geral', desenho: 'Desenho', escopo: 'Escopo de fornecimento', lsfire: 'Itens da formação LS Fire', especs: 'Especificações',
       hidr: 'Dados hidráulicos', fdB: 'Bomba (folha de dados)', fdM: 'Acionador (folha de dados)', planilha: 'Planilha de preços', cond: 'Condições comerciais', notas: 'Notas, desvios e exclusões', termos: 'Termos e condições', contatos: 'Contatos', comiss: 'Comissionamento e start-up', prazos: 'Prazos', docs: 'Escopo de documentos',
       qtd: 'Qtd', descr: 'Descrição', item: 'Item', codigo: 'Código', un: 'Un.', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unitário c/ impostos', tot: 'Total c/ impostos', ponto: 'Ponto de trabalho', equip: 'Equipamento', fonte: 'Dados do fabricante ({f}), conferidos pela LS Fire.', semFab: 'Dados da formação LS Fire.',
       proposta: 'Proposta', rev: 'Revisão', data: 'Data', validade: 'Validade', vendedor: 'Contato comercial', norma: 'Norma', pagamento: 'Pagamento', frete: 'Frete', prazo: 'Prazo', obs: 'Observações', quantidade: 'Quantidade', tag: 'Tag', modelo: 'Modelo', fabr: 'Fabricante' },
-    en: { cadTit: 'Pump and driver datasheet', cadFonte: 'LS Fire records (manufacturer datasheets).', componente: 'Component', marca: 'Brand', modeloDesc: 'Model / description', unitSem: 'Unit price excl. taxes', totSem: 'Total excl. taxes', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totals', notaImp: 'ICMS, PIS and COFINS are included in the price; IPI is added on top. Tax rates and NCM as per this proposal.', doc_tc: 'Technical and commercial proposal', doc_com: 'Commercial proposal', doc_tec: 'Technical proposal', resumo: 'Proposal summary', dadosProp: 'Proposal data', fornec: 'Scope summary', valorTotal: 'Total amount', sobre: 'About LS Fire', ident: 'Item identification', desemp: 'Performance datasheet', constr: 'Construction datasheet',
+    en: { fonteSem: 'Manufacturer datasheet data, checked by LS Fire.', pontosT: 'Duty points', minW: 'min. ', maxW: 'max. ', nfpaT: 'NFPA 20 criteria', bombaN: 'Pump', acionC: 'Driver', vazao: 'Flow', pressao: 'Pressure', potNom: 'Driver rated power', rotacao: 'Speed', ptoC: 'Point', hExig: 'Required head (NFPA 20)', hCurva: 'Head on curve', potAbs: 'Power absorbed', res: 'Result', nom100: 'Rated (100%)', trab100: 'Duty point (100%)', v150: '150% flow', shutC: 'Shutoff (zero flow)', fimC: 'End of curve', atende: 'Complies', naoAtende: 'Does not comply', potMax: 'Maximum power absorbed on the curve', notaN: 'NFPA 20: at 150% of rated flow, head of at least 65% of rated; at shutoff, at most 140% of rated. Curve values read between the manufacturer points, without extrapolation.', notaTrab: 'The manufacturer datasheet does not give the NFPA 20 rated point: the duty point is used as the base.', notaFora: 'The duty point does not fall on the attached manufacturer curve (head difference above 10%): limits calculated from the duty point. Check the manufacturer datasheet.', notaSem: 'No manufacturer curve: limits calculated from the duty point; actual values come from the manufacturer curve.', cadTit: 'Pump and driver datasheet', cadFonte: 'LS Fire records (manufacturer datasheets).', componente: 'Component', marca: 'Brand', modeloDesc: 'Model / description', unitSem: 'Unit price excl. taxes', totSem: 'Total excl. taxes', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totals', notaImp: 'ICMS, PIS and COFINS are included in the price; IPI is added on top. Tax rates and NCM as per this proposal.', doc_tc: 'Technical and commercial proposal', doc_com: 'Commercial proposal', doc_tec: 'Technical proposal', resumo: 'Proposal summary', dadosProp: 'Proposal data', fornec: 'Scope summary', valorTotal: 'Total amount', sobre: 'About LS Fire', ident: 'Item identification', desemp: 'Performance datasheet', constr: 'Construction datasheet',
       adic: 'Additional performance data', curva: 'Performance curve', curvas: 'Multi-speed curves', arranjo: 'General arrangement', desenho: 'Drawing', escopo: 'Scope of supply', lsfire: 'LS Fire package items', especs: 'Specifications',
       hidr: 'Hydraulic data', fdB: 'Pump (datasheet)', fdM: 'Driver (datasheet)', planilha: 'Price schedule', cond: 'Commercial conditions', notas: 'Notes, deviations and exclusions', termos: 'Terms and conditions', contatos: 'Contacts', comiss: 'Commissioning and start-up', prazos: 'Lead times', docs: 'Documentation scope',
       qtd: 'Qty', descr: 'Description', item: 'Item', codigo: 'Code', un: 'Unit', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unit price incl. taxes', tot: 'Total incl. taxes', ponto: 'Duty point', equip: 'Equipment', fonte: 'Manufacturer data ({f}), checked by LS Fire.', semFab: 'LS Fire package data.',
       proposta: 'Proposal', rev: 'Revision', data: 'Date', validade: 'Validity', vendedor: 'Sales contact', norma: 'Standard', pagamento: 'Payment', frete: 'Freight', prazo: 'Lead time', obs: 'Remarks', quantidade: 'Quantity', tag: 'Tag', modelo: 'Model', fabr: 'Manufacturer' },
-    es: { cadTit: 'Hoja de datos de la bomba y del accionador', cadFonte: 'Registro LS Fire (hojas de datos de los fabricantes).', componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descripción', unitSem: 'Unitario sin impuestos', totSem: 'Total sin impuestos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totales', notaImp: 'ICMS, PIS y COFINS están incluidos en el precio; el IPI se suma al precio con impuestos. Alícuotas y NCM según esta propuesta.', doc_tc: 'Propuesta técnica y comercial', doc_com: 'Propuesta comercial', doc_tec: 'Propuesta técnica', resumo: 'Resumen de la propuesta', dadosProp: 'Datos de la propuesta', fornec: 'Resumen del suministro', valorTotal: 'Valor total', sobre: 'Sobre LS Fire', ident: 'Identificación del ítem', desemp: 'Hoja de datos de desempeño', constr: 'Hoja de datos constructiva',
+    es: { fonteSem: 'Datos de la hoja del fabricante, verificados por LS Fire.', pontosT: 'Puntos de trabajo', minW: 'mín. ', maxW: 'máx. ', nfpaT: 'Criterios de la NFPA 20', bombaN: 'Bomba', acionC: 'Accionamiento', vazao: 'Caudal', pressao: 'Presión', potNom: 'Potencia nominal del accionador', rotacao: 'Velocidad', ptoC: 'Punto', hExig: 'Altura exigida (NFPA 20)', hCurva: 'Altura en la curva', potAbs: 'Potencia absorbida', res: 'Resultado', nom100: 'Nominal (100%)', trab100: 'Punto de trabajo (100%)', v150: '150% del caudal', shutC: 'Válvula cerrada (caudal cero)', fimC: 'Final de la curva', atende: 'Cumple', naoAtende: 'No cumple', potMax: 'Potencia máxima absorbida en la curva', notaN: 'NFPA 20: al 150% del caudal nominal, altura de al menos 65% de la nominal; a válvula cerrada, como máximo 140% de la nominal. Valores de la curva leídos entre los puntos del fabricante, sin extrapolación.', notaTrab: 'La hoja del fabricante no indica el punto nominal NFPA 20: la base es el punto de trabajo.', notaFora: 'El punto de trabajo no cae sobre la curva del fabricante adjunta (diferencia de altura superior al 10%): límites calculados a partir del punto de trabajo. Verifique la hoja del fabricante.', notaSem: 'Sin curva del fabricante: límites calculados a partir del punto de trabajo; los valores reales vienen de la curva del fabricante.', cadTit: 'Hoja de datos de la bomba y del accionador', cadFonte: 'Registro LS Fire (hojas de datos de los fabricantes).', componente: 'Componente', marca: 'Marca', modeloDesc: 'Modelo / descripción', unitSem: 'Unitario sin impuestos', totSem: 'Total sin impuestos', pisCof: 'PIS + COFINS', impR: 'ICMS + PIS + COFINS (R$)', ipiR: 'IPI (R$)', totais: 'Totales', notaImp: 'ICMS, PIS y COFINS están incluidos en el precio; el IPI se suma al precio con impuestos. Alícuotas y NCM según esta propuesta.', doc_tc: 'Propuesta técnica y comercial', doc_com: 'Propuesta comercial', doc_tec: 'Propuesta técnica', resumo: 'Resumen de la propuesta', dadosProp: 'Datos de la propuesta', fornec: 'Resumen del suministro', valorTotal: 'Valor total', sobre: 'Sobre LS Fire', ident: 'Identificación del ítem', desemp: 'Hoja de datos de desempeño', constr: 'Hoja de datos constructiva',
       adic: 'Datos adicionales de desempeño', curva: 'Curva de desempeño', curvas: 'Curvas a varias velocidades', arranjo: 'Disposición general', desenho: 'Plano', escopo: 'Alcance del suministro', lsfire: 'Ítems del conjunto LS Fire', especs: 'Especificaciones',
       hidr: 'Datos hidráulicos', fdB: 'Bomba (hoja de datos)', fdM: 'Accionador (hoja de datos)', planilha: 'Planilla de precios', cond: 'Condiciones comerciales', notas: 'Notas, desvíos y exclusiones', termos: 'Términos y condiciones', contatos: 'Contactos', comiss: 'Puesta en marcha', prazos: 'Plazos', docs: 'Alcance de documentos',
       qtd: 'Cant.', descr: 'Descripción', item: 'Ítem', codigo: 'Código', un: 'Unid.', ncm: 'NCM', ipi: 'IPI', icms: 'ICMS', unit: 'Unitario c/ impuestos', tot: 'Total c/ impuestos', ponto: 'Punto de trabajo', equip: 'Equipo', fonte: 'Datos del fabricante ({f}), verificados por LS Fire.', semFab: 'Datos del conjunto LS Fire.',
@@ -5522,6 +5569,40 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       const selos = (O.img && O.img.selos) || AS.img.selos; if (selos && y < LIM - 26) { const p = doc.getImageProperties(selos); const w = 56, h = w * p.height / p.width; doc.addImage(selos, fmtImg(selos), X1 - w, LIM - h - 1, w, h, 'selos', 'FAST'); }
     }
     function prazoTxt() { const fab = Number(E.prazoFab) || 0, ent = Number(E.prazoEnt) || 0; const L = []; if (fab) L.push(r.fab.replace('{n}', fab)); if (ent) L.push(r.ent.replace('{n}', ent)); if (fab || ent) L.push(r.tot.replace('{n}', fab + ent)); for (const l of I.linhasDe(E.prazoTexto)) L.push(tr(l)); return L; }
+    // pontos de trabalho (um por bomba) e critérios da NFPA 20 (nominal, 150% da vazão, shutoff e fim da curva, com potências)
+    function pontosNfpa(it) {
+      const nv = (v, d) => (v === null || v === undefined || Number.isNaN(v) ? '—' : nf(d === undefined ? (Math.abs(v - Math.round(v)) < 1e-9 ? 0 : 1) : d).format(v));
+      const pts = it.pontos || [];
+      if (pts.length) { y += 1.5; precisa(22); faixa(x.pontosT, X0, LW);
+        tabela([x.bombaN, x.acionC, x.modelo, x.vazao + ' (m³/h)', x.pressao + ' (mca)', x.potNom + ' (HP)', x.rotacao + ' (rpm)'],
+          pts.map((b, k) => [String(k + 1), fdV(b.acion), b.mod || '—', nv(b.vz), nv(b.pr), nv(b.pot), nv(b.rpm, 0)]), [12, 30, 62, 22, 20, 22, 18], { esq: [1, 2] }); y += 2; }
+      const N = (O.nfpa || {})[it.key]; const res = (v) => (v === null || v === undefined ? '—' : v ? x.atende : x.naoAtende);
+      const linhas = []; const notas = [];
+      if (N && N.qN && N.hN) {
+        const U = N.U; const gpm = /gpm/i.test(U.q);
+        const fq = (v) => (v === null || v === undefined ? '—' : nv(v, 0) + ' ' + U.q + (gpm ? ' (' + nv(v * 0.2271247, 0) + ' m³/h)' : ''));
+        const fh = (v) => (v === null || v === undefined ? '—' : nv(v, 1) + ' ' + U.h), fp = (v) => (v === null || v === undefined ? '—' : nv(v, 1) + ' ' + U.p);
+        linhas.push([N.base === 'nominal' ? x.nom100 : x.trab100, fq(N.qN), fh(N.hN), fh(N.hN0), fp(N.pN), '']);
+        linhas.push([x.v150, fq(N.q150), N.h150Lim ? x.minW + fh(N.h150Lim) + ' (65%)' : '—', fh(N.h150), fp(N.p150), res(N.ok150)]);
+        linhas.push([x.shutC, fq(0), N.shLim ? x.maxW + fh(N.shLim) + ' (140%)' : '—', fh(N.sh), fp(N.pSh), res(N.okSh)]);
+        if (N.qFim) linhas.push([x.fimC, fq(N.qFim), '—', fh(N.hFim), fp(N.pFim), '']);
+        if (N.pMax) notas.push(x.potMax + ': ' + fp(N.pMax) + '.'); if (N.base !== 'nominal') notas.push(x.notaTrab); notas.push(x.notaN);
+      } else {
+        // sem curva (ou com o ponto de trabalho fora dela): os limites a partir do ponto de trabalho de cada bomba principal
+        // (a jockey não entra na NFPA 20)
+        const vistos = new Set(); const princ = pts.filter((b) => !b.jockey && b.pr > 0 && !vistos.has(b.vz + '|' + b.pr) && vistos.add(b.vz + '|' + b.pr));
+        princ.forEach((b) => { const sfx = princ.length > 1 ? ' — ' + x.bombaN + ' ' + (pts.indexOf(b) + 1) : '';
+          linhas.push([x.trab100 + sfx, nv(b.vz) + ' m³/h', nv(b.pr) + ' mca', '—', '—', '']);
+          linhas.push([x.v150 + sfx, nv(b.vz * 1.5) + ' m³/h', x.minW + nv(b.pr * 0.65, 1) + ' mca (65%)', '—', '—', '—']);
+          linhas.push([x.shutC + sfx, '0 m³/h', x.maxW + nv(b.pr * 1.4, 1) + ' mca (140%)', '—', '—', '—']); });
+        if (N && N.qFim) { const U = N.U; linhas.push([x.fimC, nv(N.qFim, 0) + ' ' + U.q, '—', N.hFim === null ? '—' : nv(N.hFim, 1) + ' ' + U.h, N.pFim === null ? '—' : nv(N.pFim, 1) + ' ' + U.p, '']); if (N.pMax) notas.push(x.potMax + ': ' + nv(N.pMax, 1) + ' ' + U.p + '.'); }
+        if (linhas.length) notas.push(N ? x.notaFora : x.notaSem, x.notaN.split('. ')[0] + '.');
+      }
+      if (!linhas.length) return;
+      y += 1.5; precisa(30); faixa(x.nfpaT, X0, LW);
+      tabela([x.ptoC, x.vazao, x.hExig, x.hCurva, x.potAbs, x.res], linhas, [42, 36, 34, 24, 28, 22], { negrito: [5] });
+      F('italic', 6.2, CINZA); for (const n of notas) for (const q of quebra(n, LW)) { precisa(4); T(q, X0, y + 2.6); y += 3; } y += 2;
+    }
     function itens() {
       D.itens.forEach((it, i) => {
         const fd = it.folha || {}; const dfd = it.fd || {}; const FA = fabDe(it); const dados = FA && FA.dados; const nItem = r.item.replace('{n}', i + 1);
@@ -5529,7 +5610,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         const camposOn = (s) => (s.campos || []).filter((c) => c.on !== false && String(c.v || '').trim()).map((c) => [trF(c.k, 'rot'), fb && fb.ehMedida(c.v) ? medida(c.v) : swap(trF(c.v, 'val'))]);
         const secsDe = (pag) => (dados ? dados.secoes.filter((s) => s.pag === pag && s.t !== 'Project') : []).map((s) => ({ t: trF(s.t, 'sec'), pares: camposOn(s) }));
         const pags = dados ? dados.paginas.filter((p) => p.tipo === 'dados') : [];
-        const ident = [[x.item, String(i + 1)], [x.codigo, cod], [x.quantidade, qtdTxt(it.qtd) + (it.un ? ' ' + it.un : '')], [x.ponto, numL(it.condicao || '')]].filter((p) => p[1]);
+        const ident = [[x.item, String(i + 1)], [x.codigo, cod], [x.quantidade, qtdTxt(it.qtd) + (it.un ? ' ' + it.un : '')], [x.ponto, (it.pontos || []).length ? '' : numL(it.condicao || '')]].filter((p) => p[1]);
         const descEq = D.tipo === 'SEQ' ? tr(it.completa) || it.breve : tr(it.breve);
         if (dados) { const pj = (dados.secoes.find((s) => s.t === 'Project') || { campos: [] }).campos; const v = (re) => (pj.find((c) => re.test(c.k)) || {}).v; const tg = v(/^Tag/); const md = v(/Model$|^Model \//); if (md) ident.push([x.modelo, md]); if (tg) ident.push([x.tag, tg]); if (dados.fabricante) ident.push([x.fabr, dados.fabricante]); }
         // 1) desempenho: identificação + seções da primeira folha + curva
@@ -5544,7 +5625,8 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
           if ((dfd.motor || []).length) sec1.push({ t: x.fdM, pares: dfd.motor.map((d) => [fdT('@' + d[0]), fdV(d[1])]) });
         }
         colunas(sec1);
-        F('italic', 6.2, CINZA); T(dados ? x.fonte.replace('{f}', dados.fabricante || '—') : x.semFab, X0, y + 1.5); y += 4;
+        F('italic', 6.2, CINZA); T(dados ? (dados.fabricante ? x.fonte.replace('{f}', dados.fabricante) : x.fonteSem) : x.semFab, X0, y + 1.5); y += 4;
+        pontosNfpa(it);
         const curva = (FA && FA.curva) || O.curvas[it.key];
         if (curva) { if (LIM - y < 95) pagina(x.curva + ' — ' + nItem); else subtitulo(x.curva); imagem(curva, Math.min(LIM - y - 4, 170)); }
         // 2) demais folhas de dados do fabricante (construtiva, dados adicionais), com as tabelas dessas páginas
@@ -8594,7 +8676,8 @@ window.PRICER_ESCOPO_PADRAO = {
       const condicao = [...new Set(bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => nBR(b.vz) + ' m³/h x ' + nBR(b.pr) + ' mca'))].join(' · ');
       const acion = { DIESEL: '#diesel', ELETRICA: '#eletrica', ELETRICO: '#eletrica', JOCKEY: '#jockeyA' };
       itens.push({ key: S, codigo: (pcGet().codigos || {})[S] || '', qtd: num0(val(P, 'F' + r)) || 1, unitSemImp: val(P, 'J' + r), totalSemImp: val(P, 'K' + r), totalSemIpi: val(P, 'M' + r), ipiValor: val(P, 'N' + r), pis: val(P, 'S' + r), cofins: val(P, 'T' + r), un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
-        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S), cad: cadastroDoItem(S), escopoG: escopoDoItem(S),
+        unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, bombaDesc: bombaDesc(S),
+        pontos: bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => ({ acion: acion[b.ac] || b.ac.toLowerCase(), jockey: b.ac === 'JOCKEY', mod: b.mod, vz: b.vz, pr: typeof b.pr === 'number' ? b.pr : null, pot: typeof b.pot === 'number' && b.pot > 0 ? b.pot : null, rpm: typeof b.rpm === 'number' && b.rpm > 0 ? b.rpm : null })), vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S), cad: cadastroDoItem(S), escopoG: escopoDoItem(S),
         folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ n: k + 1, acion: acion[b.ac] || b.ac.toLowerCase(), cfg: b.cfg ? TIPO_BOMBA[upNoAc(b.cfg)] || b.cfg.toLowerCase() : '',
           dados: [['modelo', b.mod], ['vazaoNom', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['vazaoProj', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['pressao', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['rotacao', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['potencia', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
     });
@@ -8704,7 +8787,9 @@ window.PRICER_ESCOPO_PADRAO = {
   const logoCurva = () => (window.PRICER_PROPOSTA_ASSETS || { img: {} }).img['logo-cab'];
   // pontos de trabalho da formação do item (m³/h × mca de cada bomba): a curva usa o que cai sobre ela quando a folha não diz
   const trabItem = (S) => { const L = []; for (let b = 23; b <= 26; b++) { const vz = val(S, 'K' + b), pr = val(S, 'L' + b); if (txt(S, 'C' + b) && typeof vz === 'number' && vz > 0 && typeof pr === 'number' && pr > 0) L.push({ q: vz, h: pr, uq: 'm³/h', uh: 'mca' }); } return L; };
-  const optCurva = (S, lang) => ({ lang, logo: logoCurva(), trabalho: trabItem(S) });
+  // descrição da bomba do item (título da curva): a escolhida no item; sem ela, a da primeira bomba principal da formação
+  const bombaDesc = (S) => { if (txt(S, 'AR7') || txt(S, 'D19')) return txt(S, 'AR7') || txt(S, 'D19'); for (let b = 23; b <= 26; b++) if (txt(S, 'C' + b) && txt(S, 'C' + b) !== 'JOCKEY' && txt(S, 'D' + b)) return txt(S, 'D' + b); return ''; };
+  const optCurva = (S, lang) => ({ lang, logo: logoCurva(), trabalho: trabItem(S), titulo: bombaDesc(S) });
   const fonteCurva = (d) => (d.pontos.ocr ? 'lida do gráfico da página ' + d.pontos.pag + ' com os números dos eixos reconhecidos na imagem (o PDF não tem texto): confira os valores na prévia (' : '') + (d.pontos.vetor ? (d.pontos.ocr ? '' : 'lida do gráfico da página ' + d.pontos.pag + ' (') + d.pontos.pts.length + ' pontos, com ' + ['eff', 'p', 'npsh'].filter((k) => d.pontos.pts.some((p) => typeof p[k] === 'number')).map((k) => ({ eff: 'rendimento', p: 'potência', npsh: 'NPSH' })[k]).concat(d.pontos.outros && d.pontos.outros.length ? [d.pontos.outros.length + ' outros diâmetros de rotor'] : []).join(', ') + ')'
     : d.pontos.chave ? 'pelos pontos informados na folha (shutoff, mínima, trabalho, nominal e máxima): só a curva de altura' : 'com os ' + d.pontos.pts.length + ' pontos da tabela da página ' + d.pontos.pag);
   const SEM_CURVA = 'Não consegui ler a curva deste arquivo (o PDF não traz o gráfico em vetor nem a tabela de pontos, ou é uma imagem/escaneado). A curva não entra na proposta: peça ao fabricante o PDF original da seleção.';
@@ -8940,13 +9025,13 @@ window.PRICER_ESCOPO_PADRAO = {
     const D = propostaDados(); if (!D.itens.length) { toast('Nenhum item com preço para a proposta'); return; }
     const M = PRP.modelo(REG, lang); toast('Montando a proposta…');
     const img = {}; for (const [k, c] of Object.entries(M.imagens || {})) if (c && c.docId) { const b = await docBlob(c.docId); if (b) img[k] = await blobURL(b); }
-    const curvas = {};
+    const curvas = {}, nfpa = {};
     // curva sempre no padrão LS Fire: redesenhada com os pontos lidos; sem pontos legíveis, fica de fora (o item já avisa)
     const semCurva = [];
     if (D.tipo === 'SEQ') for (const it of D.itens) { const cv = (((pc.fd || {})[it.key]) || {}).curva; if (!cv) continue; let dc = curvaDados(cv.dados, cv.pag || 1);
       // curva anexada antes da leitura do gráfico (ou lida sem resultado): lê o arquivo de novo agora
       if (!curvaOk(dc)) { const d2 = await relerCurva(it.key, 'curva'); if (d2) { dc = curvaDados(d2, cv.pag || 1) || curvaDados(d2, null); if (curvaOk(dc)) { const x = Object.assign({}, cv, { dados: d2 }); fdPut(it.key, 'curva', x); } } }
-      try { if (curvaOk(dc)) curvas[it.key] = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); else semCurva.push(it.key); } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
+      try { if (curvaOk(dc)) { curvas[it.key] = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); nfpa[it.key] = window.PricerCurva.nfpa(dc, optCurva(it.key, lang)); } else semCurva.push(it.key); } catch (er) { toast('Não consegui preparar a curva de ' + it.key + ': ' + errMsg(er)); } }
     let tr = (s) => s, aviso = ''; const fd = pc.estilo === 'fd';
     if (lang !== 'pt' || (fd && textosFabTodos(D, pcGet(), lang).length)) ({ tr, aviso } = await tradutor(D, pcGet(), lang));
     // padrão Folha de dados: curva recortada e páginas escolhidas da folha do fabricante, como imagem
@@ -8959,7 +9044,7 @@ window.PRICER_ESCOPO_PADRAO = {
           if (!curvaOk(dc)) { const d2 = await relerCurva(it.key, 'fab'); if (d2) { dc = curvaDados(d2, d2.pontos && d2.pontos.pag); if (curvaOk(dc)) fabMut(it.key, (G) => { G.dados.pontos = d2.pontos; G.dados.pontosPag = d2.pontosPag; G.curvaPag = d2.pontos.pag || G.curvaPag; });
             // folha guardada sem nada lido (leitura antiga ou que falhou): usa a leitura nova inteira
             if (!(F0.dados.secoes || []).length && (d2.secoes || []).length) { for (const g of d2.escopo || []) g.on = false; out.dados = d2; fabMut(it.key, (G) => { G.dados = d2; G.curvaPag = (d2.pontos && d2.pontos.pag) || G.curvaPag; }); } } }
-          if (curvaOk(dc)) out.curva = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
+          if (curvaOk(dc)) { out.curva = await window.PricerCurva.desenhar(dc, optCurva(it.key, lang)); nfpa[it.key] = window.PricerCurva.nfpa(dc, optCurva(it.key, lang)); } else if (!semCurva.includes(it.key)) semCurva.push(it.key); }
         if (!fd) { if (out.curva) curvas[it.key] = out.curva; continue; }
         for (const q of F0.dados.paginas) if ((F0.pags || {})[q.n]) out.paginas[q.n] = { url: await L.recorte(file, q.n, null, 2.2), w: q.w, h: q.h };
         fab[it.key] = out; } catch (er) { toast('Não consegui preparar a folha do fabricante de ' + it.key + ': ' + errMsg(er)); } }
@@ -8971,7 +9056,7 @@ window.PRICER_ESCOPO_PADRAO = {
       try { const b = await docBlob(dz.id); if (!b) continue; const file = new File([b], dz.nome || 'desenho', { type: b.type || (/\.pdf$/i.test(dz.nome || '') ? 'application/pdf' : 'image/png') });
         if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) { const n = (await window.PricerLeitor.paginaImagem(file, 1, 0.2)).paginas; for (let k = 1; k <= Math.min(n, 4); k++) (desenhos[it.key] = desenhos[it.key] || []).push(await window.PricerLeitor.recorte(file, k, null, 2.2)); }
         else (desenhos[it.key] = desenhos[it.key] || []).push(await blobURL(b)); } catch (er) { toast('Não consegui preparar o desenho ' + (dz.nome || '') + ': ' + errMsg(er)); } }
-    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, fab, trFab: tr, desenhos }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos });
+    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, nfpa, tr, fab, trFab: tr, desenhos }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos });
     const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
     logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
     const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });

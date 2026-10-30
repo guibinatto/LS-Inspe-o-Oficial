@@ -115,12 +115,18 @@
     const fx = ajusta(rx.map((i) => [snap(i.x + i.w / 2, vt, 3.5), nr(i.s)])); const passoX = Math.abs(nr(rx[1].s) - nr(rx[0].s)); if (!(fx.a > 0) || fx.err > passoX * 0.06) return null;
     const textoLinha = (y0, y1) => its.filter((i) => i.y >= y0 && i.y <= y1 && i.x >= xEixo - 2 && i.x < xEixo + 160 && /[A-Za-z%η]/.test(i.s)).sort((a, b) => a.y - b.y || a.x - b.x);
     const paineis = [];
-    for (const g of grupos) {
-      if (g.length < 3) continue; const f = ajusta(g.map((t) => [t.y, t.v])); const passo = Math.abs(g[0].v - g[1].v); if (!(f.a < 0) || f.err > passo * 0.08) continue;
-      const yTop = g[0].y, yBot = g[g.length - 1].y; const tt = textoLinha(yTop - 16, yTop + 14); const rot = tt.length ? tt.filter((i) => Math.abs(i.y - tt[0].y) < 3).map((i) => i.s).join(' ') : '';
+    // só dois números num eixo (no OCR os de um dígito se perdem, ex.: NPSH 12, 10, …): vale quando os dois caem em linhas
+    // da grade e a grade continua para baixo com o mesmo espaçamento
+    const naGrade = (y) => hz.some((z) => Math.abs(z - y) < 1.2);
+    const gradeOk = (g) => { const dy = g[1].y - g[0].y; return dy > 2 && naGrade(g[0].y) && naGrade(g[1].y) && naGrade(g[1].y + dy) && naGrade(g[1].y + 2 * dy); };
+    const yX = Math.min(...rx.map((i) => i.y - (i.h || 8)));
+    grupos.forEach((g, gi) => {
+      if (g.length < 3 && !(g.length === 2 && gradeOk(g))) return; const f = ajusta(g.map((t) => [t.y, t.v])); const passo = Math.abs(g[0].v - g[1].v); if (!(f.a < 0) || f.err > passo * 0.08) return;
+      // o painel vai até o zero do eixo (o "0" às vezes não é lido), sem passar do painel de baixo nem do eixo de vazão
+      const prox = grupos.slice(gi + 1).find((q) => q.length >= 2); const y0 = -f.b / f.a; const yTop = g[0].y, yBot = Math.max(g[g.length - 1].y, Math.min(y0, (prox ? prox[0].y : yX) - 2)); const tt = textoLinha(yTop - 16, yTop + 14); const rot = tt.length ? tt.filter((i) => Math.abs(i.y - tt[0].y) < 3).map((i) => i.s).join(' ') : '';
       const k = /npsh/i.test(rot) ? 'npsh' : /%|eff|rend|η/i.test(rot) || /^h\b/.test(rot) ? 'eff' : /^H\b|head|altura|tdh|förder/i.test(rot) ? 'h' : /^P\b|power|pot|kw|hp\b/i.test(rot) ? 'p' : null;
       paineis.push({ k, rot, u: (rot.match(/[\[(]\s*([^\])]+?)\s*[\])]/) || [])[1] || '', yTop, yBot, f });
-    }
+    });
     if (!paineis.length) return null;
     paineis.forEach((p, i) => { if (!p.k) p.k = ['h', 'eff', 'p', 'npsh'][i] || null; });
     const ph = paineis.find((p) => p.k === 'h'); if (!ph) return null;
