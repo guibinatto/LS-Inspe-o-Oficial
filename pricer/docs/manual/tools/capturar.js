@@ -17,7 +17,7 @@ const APP = 'file://' + path.join(RAIZ, 'dist/ls-pricer.html');
 const MAN = path.resolve(__dirname, '..');
 const OUT = { o: path.join(MAN, 'prints/original'), a: path.join(MAN, 'prints/anotado') };
 const FC = process.env.FONTES_CACHE;
-const VP = { desktop: { width: 1440, height: 900 }, celular: { width: 390, height: 844 } };
+const VP = { desktop: { width: 1440, height: 900 }, celular: { width: 390, height: 844 }, tablet: { width: 768, height: 1024 } };
 const LARANJA = '#FF6600';
 
 function fontes() {
@@ -32,9 +32,9 @@ function ajudantes(p, vp) {
     vp,
     esperar: (ms) => p.waitForTimeout(ms || 400),
     clicar: async (sel, ms) => { await p.click(sel); await p.waitForTimeout(ms || 400); },
-    exemplo: async () => { await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(900); },
+    exemplo: async () => { if (await p.isVisible('#bNew')) await p.click('#bNew'); else { await p.click('#bMore'); await p.waitForTimeout(250); await p.click('[data-msid="bNew"]'); } await p.click('#mExample'); await p.waitForTimeout(900); },
     salvar: async () => { await p.click('#bSave'); await p.waitForTimeout(700); },
-    menu: async () => { if (vp === 'celular') { await p.click('#bMenu'); await p.waitForTimeout(300); } },
+    menu: async () => { if (vp === 'celular') { await p.click('.bnav [data-bmais]'); await p.waitForTimeout(300); } },
     nav: async (v) => {
       // telas fora do menu lateral (ex.: Documentos) abrem pelos atalhos da tela Início
       if (!(await p.$(`#nav [data-view="${v}"]`))) { await h.menu(); await p.click('#nav [data-view="inicio"]'); await p.waitForTimeout(500); await p.click(`#app [data-view="${v}"]`); await p.waitForTimeout(600); return; }

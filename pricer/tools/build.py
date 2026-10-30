@@ -15,5 +15,7 @@ out = ('<!doctype html>\n<html lang="pt-BR">\n<head>\n<meta charset="utf-8">\n'
        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
        + page[:head_end] + "\n</head>\n<body>\n" + page[head_end:] + "\n</body>\n</html>\n")
 os.makedirs(os.path.join(root, "dist"), exist_ok=True)
-open(os.path.join(root, "dist", "ls-pricer.html"), "w", encoding="utf-8").write(out)
+tmp = os.path.join(root, "dist", ".ls-pricer.html.tmp")
+open(tmp, "w", encoding="utf-8").write(out)
+os.replace(tmp, os.path.join(root, "dist", "ls-pricer.html"))  # troca atômica: quem estiver lendo nunca pega o arquivo pela metade
 print("dist/ls-pricer.html", len(out) // 1024, "KB")

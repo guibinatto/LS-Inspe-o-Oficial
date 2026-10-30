@@ -6,7 +6,7 @@
   "titulo": "Tela inicial e menu lateral",
   "vp": "desktop",
   "arquivo": "02-01-navegacao-tela-inicial.png",
-  "data": "2026-10-29T14:36:23.304Z",
+  "data": "2026-10-30T02:02:45.854Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -73,7 +73,7 @@
   "titulo": "Barra superior com a proposta aberta",
   "vp": "desktop",
   "arquivo": "02-02-navegacao-barra-superior.png",
-  "data": "2026-10-29T14:36:24.551Z",
+  "data": "2026-10-30T02:02:46.757Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -122,7 +122,7 @@
   "titulo": "Menu lateral recolhido (só ícones)",
   "vp": "desktop",
   "arquivo": "02-03-navegacao-menu-recolhido.png",
-  "data": "2026-10-29T14:36:26.631Z",
+  "data": "2026-10-30T02:02:48.796Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -144,23 +144,122 @@
   "id": "02-04",
   "cap": 2,
   "nome": "navegacao-celular",
-  "titulo": "No celular: menu pelo botão ☰",
+  "titulo": "No celular: barra de navegação embaixo e barra superior compacta",
   "vp": "celular",
   "arquivo": "02-04-navegacao-celular.png",
-  "data": "2026-10-29T14:36:32.567Z",
+  "data": "2026-10-30T02:02:53.685Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Início.",
+    "sel": ".bnav [data-view=\"inicio\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Propostas: a proposta aberta.",
+    "sel": ".bnav [data-view=\"proposta\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Pendências, com o número das que esperam por você.",
+    "sel": ".bnav [data-view=\"pendencias\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Cadastros.",
+    "sel": ".bnav [data-view=\"cadastro\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Mais: abre o menu completo (Margens, Configurações, Ajuda).",
+    "sel": ".bnav [data-bmais]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Salvar fica sempre à vista.",
+    "sel": "#bSave",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Mais ações: Nova, Abrir, Cancelar, Tema e Modo detalhado.",
+    "sel": "#bMore",
+    "ok": true
+   }
+  ]
+ },
+ "02-05": {
+  "id": "02-05",
+  "cap": 2,
+  "nome": "navegacao-celular-mais-acoes",
+  "titulo": "No celular: painel Mais ações",
+  "vp": "celular",
+  "arquivo": "02-05-navegacao-celular-mais-acoes.png",
+  "data": "2026-10-30T02:02:56.493Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "As ações da barra superior do computador, com área de toque grande.",
+    "sel": ".msheet [data-msid=\"bNew\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Fechar (ou toque fora, ou Esc).",
+    "sel": ".msheet .msfechar",
+    "ok": true
+   }
+  ]
+ },
+ "02-06": {
+  "id": "02-06",
+  "cap": 2,
+  "nome": "navegacao-celular-menu",
+  "titulo": "No celular: menu completo pelo botão Mais",
+  "vp": "celular",
+  "arquivo": "02-06-navegacao-celular-menu.png",
+  "data": "2026-10-30T02:02:57.622Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
     "txt": "O menu abre por cima da tela; toque fora dele ou em ✕ para fechar.",
-    "sel": "#nav [data-view=\"proposta\"]",
+    "sel": "#nav [data-view=\"margens\"]",
     "ok": true
    },
    {
     "n": 2,
     "txt": "Fechar o menu.",
     "sel": "#bSideX",
+    "ok": true
+   }
+  ]
+ },
+ "02-07": {
+  "id": "02-07",
+  "cap": 2,
+  "nome": "navegacao-tablet",
+  "titulo": "No tablet: menu lateral em coluna de ícones com o nome",
+  "vp": "tablet",
+  "arquivo": "02-07-navegacao-tablet.png",
+  "data": "2026-10-30T02:03:01.220Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Mesmas entradas do computador, em coluna estreita, com o nome embaixo do ícone.",
+    "sel": "#nav [data-view=\"proposta\"]",
     "ok": true
    }
   ]

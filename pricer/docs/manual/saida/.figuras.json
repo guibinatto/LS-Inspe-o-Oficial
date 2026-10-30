@@ -47,8 +47,35 @@
  {
   "num": "2.4",
   "id": "02-04",
-  "titulo": "No celular: menu pelo botão ☰",
+  "titulo": "No celular: barra de navegação embaixo e barra superior compacta",
   "arquivo": "02-04-navegacao-celular.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ },
+ {
+  "num": "2.5",
+  "id": "02-06",
+  "titulo": "No celular: menu completo pelo botão Mais",
+  "arquivo": "02-06-navegacao-celular-menu.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ },
+ {
+  "num": "2.6",
+  "id": "02-05",
+  "titulo": "No celular: painel Mais ações",
+  "arquivo": "02-05-navegacao-celular-mais-acoes.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ },
+ {
+  "num": "2.7",
+  "id": "02-07",
+  "titulo": "No tablet: menu lateral em coluna de ícones com o nome",
+  "arquivo": "02-07-navegacao-tablet.png",
   "ok": true,
   "problemas": [],
   "cap": 2
@@ -173,7 +200,7 @@
  {
   "num": "4.2",
   "id": "04-02",
-  "titulo": "Item 02 aberto: resumo do item e alerta de margem",
+  "titulo": "Item 02 aberto no configurador: resumo do item e as três etapas",
   "arquivo": "04-02-precificacao-item-alerta.png",
   "ok": true,
   "problemas": [],
@@ -181,36 +208,36 @@
  },
  {
   "num": "4.3",
-  "id": "04-06",
-  "titulo": "Item novo: escolha da família",
-  "arquivo": "04-06-precificacao-item-familia.png",
+  "id": "04-14",
+  "titulo": "Etapa Conferir do item 02: alerta de margem com as ações e as confirmações",
+  "arquivo": "04-14-precificacao-item-conferir-alerta.png",
   "ok": true,
   "problemas": [],
   "cap": 4
  },
  {
   "num": "4.4",
-  "id": "04-07",
-  "titulo": "Cartão Equipamento: modelo pronto ou montagem",
-  "arquivo": "04-07-precificacao-item-equipamento.png",
+  "id": "04-06",
+  "titulo": "Item novo: etapa Configurar, escolha da família",
+  "arquivo": "04-06-precificacao-item-familia.png",
   "ok": true,
   "problemas": [],
   "cap": 4
  },
  {
   "num": "4.5",
-  "id": "04-08",
-  "titulo": "Modelo pronto aplicado: preço calculado e avisos de código e descrição",
-  "arquivo": "04-08-precificacao-item-modelo-alertas.png",
+  "id": "04-07",
+  "titulo": "Etapa Configurar: ponto de partida e lista de modelos prontos com pesquisa e filtro",
+  "arquivo": "04-07-precificacao-item-equipamento.png",
   "ok": true,
   "problemas": [],
   "cap": 4
  },
  {
   "num": "4.6",
-  "id": "04-09",
-  "titulo": "Condições deste item",
-  "arquivo": "04-09-precificacao-item-condicoes.png",
+  "id": "04-08",
+  "titulo": "Modelo pronto aplicado: características do equipamento e a origem de cada valor",
+  "arquivo": "04-08-precificacao-item-modelo-alertas.png",
   "ok": true,
   "problemas": [],
   "cap": 4
@@ -218,7 +245,7 @@
  {
   "num": "4.7",
   "id": "04-10",
-  "titulo": "Componentes do item (do modelo pronto)",
+  "titulo": "Etapa Compor: componentes classificados e o painel \"Por que este componente?\"",
   "arquivo": "04-10-precificacao-item-componentes.png",
   "ok": true,
   "problemas": [],
@@ -226,6 +253,33 @@
  },
  {
   "num": "4.8",
+  "id": "04-15",
+  "titulo": "Etapa Conferir: resumo, custo e preço da planilha e as verificações",
+  "arquivo": "04-15-precificacao-item-conferir.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 4
+ },
+ {
+  "num": "4.9",
+  "id": "04-16",
+  "titulo": "Incluir na proposta: gravado e registrado, sem duplicar o item",
+  "arquivo": "04-16-precificacao-item-incluir.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 4
+ },
+ {
+  "num": "4.10",
+  "id": "04-09",
+  "titulo": "Etapa Conferir: Condições deste item",
+  "arquivo": "04-09-precificacao-item-condicoes.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 4
+ },
+ {
+  "num": "4.11",
   "id": "04-11",
   "titulo": "Aba Custos com o item novo (linhas com informação de cotação)",
   "arquivo": "04-11-precificacao-custos.png",
@@ -234,7 +288,7 @@
   "cap": 4
  },
  {
-  "num": "4.9",
+  "num": "4.12",
   "id": "04-13",
   "titulo": "Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro",
   "arquivo": "04-13-precificacao-preco-vencido.png",
@@ -243,7 +297,7 @@
   "cap": 4
  },
  {
-  "num": "4.10",
+  "num": "4.13",
   "id": "04-03",
   "titulo": "Aba Formação: resumo, condições comerciais e preço por item",
   "arquivo": "04-03-precificacao-formacao.png",
@@ -252,7 +306,7 @@
   "cap": 4
  },
  {
-  "num": "4.11",
+  "num": "4.14",
   "id": "04-04",
   "titulo": "Simulador de negociação com valor final de R$ 4.000.000,00",
   "arquivo": "04-04-precificacao-simulador.png",
@@ -261,7 +315,7 @@
   "cap": 4
  },
  {
-  "num": "4.12",
+  "num": "4.15",
   "id": "04-05",
   "titulo": "Aba Conferência: conferência central e pedido de aprovação",
   "arquivo": "04-05-precificacao-conferencia.png",
@@ -270,7 +324,7 @@
   "cap": 4
  },
  {
-  "num": "4.13",
+  "num": "4.16",
   "id": "04-12",
   "titulo": "Botão Planilha completa: visão com todas as colunas da proposta",
   "arquivo": "04-12-precificacao-planilha-completa.png",

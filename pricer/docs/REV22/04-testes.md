@@ -66,3 +66,25 @@ Todos terminaram com código 0 e **sem erro de JavaScript na página**.
 - App compartilhado com várias pessoas reais: assinaturas de aprovação, regra do dono em `meta/acessos`, perfis por pessoa. A lógica foi revisada, mas o banco do claude.ai não está disponível neste ambiente. Ver o roteiro em `06-implantacao-migracao-rollback.md`, "Verificação depois de implantar".
 - Envio pelo Outlook (conector Microsoft 365).
 - Telas de celular: o layout foi ajustado por CSS, mas os testes rodaram em 1440 × 900.
+
+## Configurador assistido (`cfg_test`, 30/10/2026)
+
+| # | Verificação | Resultado |
+|---|---|---|
+| 1 | Item novo abre em 1. Configurar, com as famílias com estrutura | ✓ 6 famílias |
+| 2 | Modelos prontos com pesquisa e filtro por acionamento | ✓ busca "1500" → 2 |
+| 3 | Modelo aplicado; características com a origem de cada valor | ✓ "do modelo pronto" |
+| 4 | Composição classificada pela estrutura | ✓ 26 componentes: 7 obrigatórios, 14 condicionais, 5 incluídos pelo fornecedor |
+| 5 | "Por que este componente?" com dados reais da estrutura | ✓ linha 98, regra "Potência do diesel → TANQUE", "Motor diesel de 217 HP → faixa de 181 a 265 HP" |
+| 7–8 | Configuração especial: quantidade da estrutura +1 e Restaurar padrão | ✓ R$ 316.071,95 → R$ 408.771,95 → R$ 316.071,95 |
+| 9 | Adicionar componente do cadastro; não encontrado oferece pedido de cadastro | ✓ |
+| 10–11 | Conferência em três níveis, com as ações dos alertas; confirmação com data e responsável | ✓ |
+| 12–15 | Adicionar à proposta: grava, confirma só depois de gravar, não duplica, continua depois de recarregar | ✓ 4 itens → 4 itens; "Salvo" |
+| 16 | Configurador × testador de estruturas (fluxo anterior) | ✓ 8 de 8 modelos iguais em custo e componentes |
+| 17–18 | Celular e tablet sem rolagem lateral; etapas como botões com `aria-current` | ✓ |
+
+Capturas reais: `interface/configurador/cfg_1_familia.jpg` a `cfg_6_escuro.jpg`.
+
+## Celular e tablet (`mobile_test` e `mobile_audit`, 30/10/2026)
+
+Detalhes, tabela por resolução e limitações em `11-celular-e-tablet.md`. Todos os 31 scripts de interface foram rodados de novo com a versão para celular: os 31 terminaram com código 0 e sem erro de página. A regressão do motor (80 cenários, 6.216 valores) e a de SPV/FACTS (11 cenários) continuam com 0 diferença.

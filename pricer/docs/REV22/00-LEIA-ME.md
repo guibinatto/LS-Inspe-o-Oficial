@@ -23,4 +23,6 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
 7. [Limitações conhecidas](07-limitacoes.md).
 8. [Cadastros, padronização, estruturas e kits](08-cadastro.md): o que foi reaproveitado, cada requisito dos complementos e o que não foi feito, com o motivo.
 9. [Navegação e interface](09-interface.md): menu lateral, abas da proposta, modernização visual, preenchimento inteligente, capturas antes e depois.
-10. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).
+10. [Configurador assistido do item](10-configurador.md): alterações, funções reaproveitadas, comparação com a tela anterior, uso e manutenção.
+11. [Celular e tablet](11-celular-e-tablet.md): auditoria, mudanças, resultado por resolução, testes no celular e limitações.
+12. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).

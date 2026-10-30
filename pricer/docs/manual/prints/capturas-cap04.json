@@ -6,7 +6,7 @@
   "titulo": "Aba Itens da proposta de exemplo",
   "vp": "desktop",
   "arquivo": "04-01-precificacao-itens-lista.png",
-  "data": "2026-10-29T14:37:05.640Z",
+  "data": "2026-10-30T02:05:23.682Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -46,41 +46,35 @@
   "id": "04-02",
   "cap": 4,
   "nome": "precificacao-item-alerta",
-  "titulo": "Item 02 aberto: resumo do item e alerta de margem",
+  "titulo": "Item 02 aberto no configurador: resumo do item e as três etapas",
   "vp": "desktop",
   "arquivo": "04-02-precificacao-item-alerta.png",
-  "data": "2026-10-29T14:37:07.262Z",
+  "data": "2026-10-30T02:05:25.024Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "← Itens da proposta: volta à lista.",
-    "sel": ".flowhead > div > [data-step=\"2\"]",
+    "txt": "Equipamento do item (descrição gerada pela configuração).",
+    "sel": "#app .cfghead h1",
     "ok": true
    },
    {
     "n": 2,
-    "txt": "Unitário com IPI, total e margem do item, sempre visíveis.",
-    "sel": ".flowhead .sumbar",
+    "txt": "Custo, unitário com IPI e margem do item, sempre visíveis, e se há alterações não salvas.",
+    "sel": "#app .cfghead .sumbar",
     "ok": true
    },
    {
     "n": 3,
-    "txt": "Alerta: margem do item abaixo do mínimo da política.",
-    "sel": "#app ul.alerts li",
+    "txt": "Etapas: 1. Configurar, 2. Compor, 3. Conferir. Clique para ir a qualquer uma.",
+    "sel": "#app .cfgsteps li:nth-child(1) .cfgstep",
     "ok": true
    },
    {
     "n": 4,
-    "txt": "Pedir aprovação: leva o pedido à Diretoria e ao Financeiro.",
-    "sel": "#app ul.alerts [data-alaprov]",
-    "ok": true
-   },
-   {
-    "n": 5,
-    "txt": "Corrigir na hora: aqui, Ajustar à margem mínima.",
-    "sel": "#app ul.alerts [data-alfix]",
+    "txt": "Etapa aberta. Item já preenchido abre em Conferir; item novo, em Configurar.",
+    "sel": "#app .cfgsteps .cfgstep[aria-current]",
     "ok": true
    }
   ]
@@ -92,7 +86,7 @@
   "titulo": "Aba Formação: resumo, condições comerciais e preço por item",
   "vp": "desktop",
   "arquivo": "04-03-precificacao-formacao.png",
-  "data": "2026-10-29T14:37:08.793Z",
+  "data": "2026-10-30T02:05:27.507Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -147,7 +141,7 @@
   "titulo": "Simulador de negociação com valor final de R$ 4.000.000,00",
   "vp": "desktop",
   "arquivo": "04-04-precificacao-simulador.png",
-  "data": "2026-10-29T14:37:10.348Z",
+  "data": "2026-10-30T02:05:28.823Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -196,7 +190,7 @@
   "titulo": "Aba Conferência: conferência central e pedido de aprovação",
   "vp": "desktop",
   "arquivo": "04-05-precificacao-conferencia.png",
-  "data": "2026-10-29T14:37:14.631Z",
+  "data": "2026-10-30T02:05:32.980Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -242,22 +236,22 @@
   "id": "04-06",
   "cap": 4,
   "nome": "precificacao-item-familia",
-  "titulo": "Item novo: escolha da família",
+  "titulo": "Item novo: etapa Configurar, escolha da família",
   "vp": "desktop",
   "arquivo": "04-06-precificacao-item-familia.png",
-  "data": "2026-10-29T14:37:16.593Z",
+  "data": "2026-10-30T02:05:34.774Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Família com estrutura cadastrada: mostra quantos modelos prontos existem (Skid: 3; Conjunto motobomba: 60).",
+    "txt": "Família com estrutura cadastrada: mostra quantos modelos prontos existem.",
     "sel": ".famgrid [data-fam=\"SKID\"] small",
     "ok": true
    },
    {
     "n": 2,
-    "txt": "Container: 9 modelos prontos neste cadastro.",
+    "txt": "Container: modelos prontos deste cadastro.",
     "sel": ".famgrid [data-fam=\"CONTAINER\"] small",
     "ok": true
    },
@@ -279,17 +273,17 @@
   "id": "04-07",
   "cap": 4,
   "nome": "precificacao-item-equipamento",
-  "titulo": "Cartão Equipamento: modelo pronto ou montagem",
+  "titulo": "Etapa Configurar: ponto de partida e lista de modelos prontos com pesquisa e filtro",
   "vp": "desktop",
   "arquivo": "04-07-precificacao-item-equipamento.png",
-  "data": "2026-10-29T14:37:18.708Z",
+  "data": "2026-10-30T02:05:36.879Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Modelo pronto: escolha e o item se monta sozinho.",
-    "sel": "label[for=\"c_ITEM04_C17\"] > span",
+    "txt": "Ponto de partida: modelo pronto ou montar por características.",
+    "sel": "#app label:has([data-cfgmodo=\"modelo\"])",
     "ok": true
    },
    {
@@ -300,26 +294,20 @@
    },
    {
     "n": 3,
-    "txt": "Ou monte: família…",
-    "sel": "label[for=\"c_ITEM04_C21\"] > span",
+    "txt": "Pesquisa por nome, bomba, motor ou arranjo.",
+    "sel": "#app [data-cfgq]",
     "ok": true
    },
    {
     "n": 4,
-    "txt": "…vazão (USgpm), pressão (mca) e norma.",
-    "sel": "label[for=\"c_ITEM04_G17\"] > span",
+    "txt": "Filtro por acionamento.",
+    "sel": "#app label.chip:has([data-cfgac=\"DIESEL\"])",
     "ok": true
    },
    {
     "n": 5,
-    "txt": "Acionamento (Diesel, Elétrica, Jockey) e o arranjo que sai dele (D, E, J…).",
-    "sel": "#app .arrbox .arrcode",
-    "ok": true
-   },
-   {
-    "n": 6,
-    "txt": "Conjunto diesel: bomba, potência, rotação e arrefecimento; o motor é escolhido pelo app.",
-    "sel": "#app .set h3",
+    "txt": "Usar este: aplica o modelo e o item se monta sozinho.",
+    "sel": "#app .cfgmods .mcard:first-child [data-usemodel]",
     "ok": true
    }
   ]
@@ -328,41 +316,29 @@
   "id": "04-08",
   "cap": 4,
   "nome": "precificacao-item-modelo-alertas",
-  "titulo": "Modelo pronto aplicado: preço calculado e avisos de código e descrição",
+  "titulo": "Modelo pronto aplicado: características do equipamento e a origem de cada valor",
   "vp": "desktop",
   "arquivo": "04-08-precificacao-item-modelo-alertas.png",
-  "data": "2026-10-29T14:37:20.515Z",
+  "data": "2026-10-30T02:05:39.207Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Descrição gerada pela configuração.",
-    "sel": ".flowhead h1 + .sub",
+    "txt": "Modelo pronto em uso.",
+    "sel": "#app section.card:has(.pill[title=\"Origem do valor\"]) tr:nth-child(2) td:nth-child(2)",
     "ok": true
    },
    {
     "n": 2,
-    "txt": "Preço e margem calculados pelo motor da planilha.",
-    "sel": ".flowhead .sumbar",
+    "txt": "Origem: \"do modelo pronto\", \"escolhido nesta proposta\", \"alterado do modelo pronto\", \"calculado pela planilha\" ou \"pendente\".",
+    "sel": "#app section.card:has(.pill[title=\"Origem do valor\"]) tr:nth-child(5) .pill",
     "ok": true
    },
    {
     "n": 3,
-    "txt": "Aviso: código acima de 60 caracteres (limite do ERP).",
-    "sel": "#app ul.alerts li:first-child > span",
-    "ok": true
-   },
-   {
-    "n": 4,
-    "txt": "Ver o código: abre o bloco Código e descrição.",
-    "sel": "#app ul.alerts li:first-child [data-alfix]",
-    "ok": true
-   },
-   {
-    "n": 5,
-    "txt": "Seguir assim: aceita o aviso com uma justificativa (fica no histórico).",
-    "sel": "#app ul.alerts li:first-child [data-alack]",
+    "txt": "Certificação da bomba, do cadastro (UL, FM).",
+    "sel": "#app section.card:has(.pill[title=\"Origem do valor\"]) tr:last-child td:nth-child(2)",
     "ok": true
    }
   ]
@@ -371,10 +347,10 @@
   "id": "04-09",
   "cap": 4,
   "nome": "precificacao-item-condicoes",
-  "titulo": "Condições deste item",
+  "titulo": "Etapa Conferir: Condições deste item",
   "vp": "desktop",
   "arquivo": "04-09-precificacao-item-condicoes.png",
-  "data": "2026-10-29T14:37:22.811Z",
+  "data": "2026-10-30T02:05:45.670Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -414,59 +390,47 @@
   "id": "04-10",
   "cap": 4,
   "nome": "precificacao-item-componentes",
-  "titulo": "Componentes do item (do modelo pronto)",
+  "titulo": "Etapa Compor: componentes classificados e o painel \"Por que este componente?\"",
   "vp": "desktop",
   "arquivo": "04-10-precificacao-item-componentes.png",
-  "data": "2026-10-29T14:37:23.612Z",
+  "data": "2026-10-30T02:05:41.455Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Grupo (Conjunto diesel, Bomba jockey, Comuns ao equipamento) com subtotal e % do item.",
-    "sel": "#app table.comp tr.grp",
+    "txt": "Classificação: obrigatório, condicional, opcional, incluído pelo fornecedor, adicionado na proposta.",
+    "sel": "#app .cfglegenda",
     "ok": true
    },
    {
     "n": 2,
-    "txt": "Insumo: em verde, o que a montagem escolheu; a lista é da família.",
-    "sel": "#app table.comp tbody tr:nth-child(2) td:nth-child(2)",
+    "txt": "Grupo (Conjunto diesel, Comuns ao equipamento…) com subtotal e % do item.",
+    "sel": "#app .cfgcomp tr.grp",
     "ok": true
    },
    {
     "n": 3,
-    "txt": "\"do modelo\", \"do padrão\", \"alterado na proposta\" ou \"acrescentado na proposta\".",
-    "sel": "#app table.comp tbody tr:nth-child(2) .pill",
+    "txt": "Cadeado: entra pela regra da estrutura; opcional tem caixa de marcar.",
+    "sel": "#app .cfgcomp tbody tr:nth-child(2) .cfglock",
     "ok": true
    },
    {
     "n": 4,
-    "txt": "Custo unitário: sempre do cadastro (só leitura).",
-    "sel": "#app table.comp tbody tr:nth-child(2) td:nth-child(4)",
+    "txt": "Classificação e situação (sem preço, trocado, qtd alterada).",
+    "sel": "#app .cfgcomp tbody tr:nth-child(2) .cfgtags",
     "ok": true
    },
    {
     "n": 5,
-    "txt": "\"antigo\": preço do cadastro com mais de 180 dias.",
-    "sel": "#app table.comp .pill.warn",
+    "txt": "Por quê?: abre o painel do componente.",
+    "sel": "#app .cfgcomp tr.cfgsel [data-cfgsel]",
     "ok": true
    },
    {
     "n": 6,
-    "txt": "Custo do item (uma unidade).",
-    "sel": "#app table.comp tr.tot",
-    "ok": true
-   },
-   {
-    "n": 7,
-    "txt": "+ Adicionar componente do cadastro (linha extra, com quantidade).",
-    "sel": "#app [data-addrow]",
-    "ok": true
-   },
-   {
-    "n": 8,
-    "txt": "Pedir cadastro de insumo que não existe ou está sem preço.",
-    "sel": "#app details[data-keep=\"comp\"] .docbar [data-pedir]",
+    "txt": "Linha da estrutura, regra, condição, o que acionou (ex.: faixa de potência), quantidade e versão da regra.",
+    "sel": "#cfgPainel .kv",
     "ok": true
    }
   ]
@@ -478,7 +442,7 @@
   "titulo": "Aba Custos com o item novo (linhas com informação de cotação)",
   "vp": "desktop",
   "arquivo": "04-11-precificacao-custos.png",
-  "data": "2026-10-29T14:37:25.211Z",
+  "data": "2026-10-30T02:05:49.480Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -539,7 +503,7 @@
   "titulo": "Botão Planilha completa: visão com todas as colunas da proposta",
   "vp": "desktop",
   "arquivo": "04-12-precificacao-planilha-completa.png",
-  "data": "2026-10-29T14:37:26.645Z",
+  "data": "2026-10-30T02:05:50.651Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -582,7 +546,7 @@
   "titulo": "Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro",
   "vp": "desktop",
   "arquivo": "04-13-precificacao-preco-vencido.png",
-  "data": "2026-10-29T14:37:33.423Z",
+  "data": "2026-10-30T02:05:57.385Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -596,6 +560,123 @@
     "n": 2,
     "txt": "Atualizar no cadastro: abre os insumos e preços filtrados só nestes insumos.",
     "sel": "[data-irvenc]",
+    "ok": true
+   }
+  ]
+ },
+ "04-14": {
+  "id": "04-14",
+  "cap": 4,
+  "nome": "precificacao-item-conferir-alerta",
+  "titulo": "Etapa Conferir do item 02: alerta de margem com as ações e as confirmações",
+  "vp": "desktop",
+  "arquivo": "04-14-precificacao-item-conferir-alerta.png",
+  "data": "2026-10-30T02:05:26.527Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Alerta: margem do item abaixo do mínimo da política. Política comercial não impede incluir: segue para aprovação.",
+    "sel": "#app .cfgalerts li:first-child > span:first-child",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Pedir aprovação: leva o pedido à Diretoria e ao Financeiro.",
+    "sel": "#app .cfgalerts [data-alaprov]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Corrigir na hora: aqui, Ajustar à margem mínima.",
+    "sel": "#app .cfgalerts [data-alfix]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Ir para: abre a etapa e o lugar onde se corrige.",
+    "sel": "#app .cfgalerts [data-cfgalert]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Confirmações manuais: ficam registradas com quem e quando.",
+    "sel": "#app label.chk:has([data-cfgconf=\"tec\"])",
+    "ok": true
+   }
+  ]
+ },
+ "04-15": {
+  "id": "04-15",
+  "cap": 4,
+  "nome": "precificacao-item-conferir",
+  "titulo": "Etapa Conferir: resumo, custo e preço da planilha e as verificações",
+  "vp": "desktop",
+  "arquivo": "04-15-precificacao-item-conferir.png",
+  "data": "2026-10-30T02:05:43.895Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Código e descrição gerados pela configuração.",
+    "sel": "#app .cfg .codebox",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Editar configuração, Ver componentes, Duplicar e Salvar como modelo de item.",
+    "sel": "#app .cfg [data-cfget=\"1\"].btn",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Preço unitário calculado pelo motor da planilha, com os mesmos rótulos dela.",
+    "sel": "#app .cfg .kpis .kpi.lead",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Custo por conjunto; abra para ver os componentes.",
+    "sel": "#app .cfgcustos",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Verificações em três níveis: Impeditivo, Atenção e Informativo. Aqui, código acima de 60 caracteres (limite do ERP).",
+    "sel": "#app .cfgalerts li:first-child > span:first-child",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Seguir assim: aceita o aviso com uma justificativa (fica no histórico).",
+    "sel": "#app .cfgalerts li:first-child [data-alack]",
+    "ok": true
+   }
+  ]
+ },
+ "04-16": {
+  "id": "04-16",
+  "cap": 4,
+  "nome": "precificacao-item-incluir",
+  "titulo": "Incluir na proposta: gravado e registrado, sem duplicar o item",
+  "vp": "desktop",
+  "arquivo": "04-16-precificacao-item-incluir.png",
+  "data": "2026-10-30T02:05:46.411Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Confirmação só depois de gravar a proposta: quem, quando e a composição registrada.",
+    "sel": "#app .cfgincl .banner",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Clicar de novo atualiza o mesmo item (Atualizar na proposta); não cria outro.",
+    "sel": "#app [data-cfgincluir]",
     "ok": true
    }
   ]

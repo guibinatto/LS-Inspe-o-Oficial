@@ -26,8 +26,9 @@
       const cab = t.tHead && t.tHead.rows.length ? t.tHead.rows[t.tHead.rows.length - 1] : null;
       const caixa = t.parentElement;
       const largura = caixa ? caixa.clientWidth : window.innerWidth;
-      if (!cab || t.scrollWidth <= largura + 2) { t.dataset.mob = 'cabe'; continue; }
-      const rot = []; for (const c of cab.cells) { const tx = fmt(c.innerText || c.textContent); for (let k = 0; k < (c.colSpan || 1); k++) rot.push(tx); }
+      if (t.scrollWidth <= largura + 2) { t.dataset.mob = 'cabe'; continue; }
+      // sem cabeçalho: as células empilham no cartão, sem rótulo
+      const rot = []; if (cab) for (const c of cab.cells) { const tx = fmt(c.innerText || c.textContent); for (let k = 0; k < (c.colSpan || 1); k++) rot.push(tx); }
       for (const corpo of t.tBodies) for (const r of corpo.rows) {
         let i = 0; let titulo = false; const n = r.cells.length;
         if (n === 1 || [...r.cells].some((c) => c.colSpan >= rot.length - 1 && rot.length > 2)) r.classList.add('mobfull');
