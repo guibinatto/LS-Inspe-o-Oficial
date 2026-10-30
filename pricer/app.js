@@ -275,6 +275,7 @@
       const seen = new Set();
       for (const o of list) { if (seen.has(o)) continue; seen.add(o); opts += `<option value="${esc(o)}"${(over || !fb) && o === cur ? ' selected' : ''}>${esc(LB(o))}</option>`; }
       if ((over || !fb) && cur !== '' && !seen.has(cur)) opts += `<option value="${esc(cur)}" selected>${esc(LB(cur))}</option>`;
+      if (opt.novoIns !== undefined) opts += `<option value="__novoins__" data-fam="${esc(opt.novoIns || '')}">＋ Cadastrar novo insumo…</option>`;
       return `<select ${data}>${opts}</select>`;
     }
     const dl = opt.datalist ? ` list="${opt.datalist}"` : '';
@@ -290,6 +291,7 @@
 
   document.addEventListener('change', (e) => {
     const el = e.target; if (!el.dataset || !el.dataset.addr) return;
+    if (el.value === '__novoins__') { const fam = (el.selectedOptions[0] && el.selectedOptions[0].dataset.fam) || ''; render(); novoInsumo('', fam); return; }
     const { sheet, addr: a, kind } = el.dataset;
     if (el.type === 'radio') { if (el.value === '\u0000auto') return commit(sheet, a, null, true); if (/^-?\d+([.,]\d+)?$/.test(el.value.trim())) return commit(sheet, a, parseFloat(el.value.replace(',', '.'))); return commit(sheet, a, el.value); }
     if (el.tagName === 'SELECT') {
@@ -2104,7 +2106,7 @@
         <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
         ${(() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })()}
         <section class="card"><h2>Vendedor e comissões</h2><div class="fields">
-            <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor</label>${chips(vs, 'C8', 'Nenhum vendedor cadastrado: cadastre em Cadastros → Precificação → Vendedores e agentes.')}</div>
+            <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor${REG.areaOk('precificacao') ? ' <button type="button" class="restore" data-novovend>+ novo vendedor ou AN</button>' : ''}</label>${chips(vs, 'C8', REG.areaOk('precificacao') ? 'Nenhum vendedor cadastrado: use "+ novo vendedor ou AN".' : 'Nenhum vendedor cadastrado: peça a quem cuida de Precificação.')}</div>
             <div class="f spanall"><label>Comissões <span class="sub">taxa da divisão (Precificação)</span></label><div class="seg"><label class="${comV ? 'on' : ''}"><input type="checkbox" data-pcom="J7"${comV ? ' checked' : ''}>Vendedor</label><label class="${comA ? 'on' : ''}"><input type="checkbox" data-pcom="J8"${comA ? ' checked' : ''}>Agente de negócio (AN)</label></div></div>
             ${comA ? `<div class="f spanall req${falta.has('L8') ? ' miss' : ''}"><label>Agente de negócio</label>${chips(ans, 'L8', 'Nenhum AN cadastrado: cadastre em Cadastros → Precificação → Vendedores e agentes.')}</div>` : ''}</div></section>
         <section class="card"><h2>Frete</h2><div class="fields">${rq('B13', 'Modalidade', 'span2')}${cif ? rq('D13', 'Distância (km)') + fieldS(P, 'F13', 'Valor fechado (opcional)') : ''}${field(P, 'H13', 'Frete total', { ro: true, fmt: brl })}</div></section>
@@ -2235,7 +2237,7 @@
       const first = x.esc ? `${cellIn(S, 'C' + r).replace(/<\/td>$/, ori + '</td>')}` : `<td class="sub">${esc(x.rot)}${ori}</td>`;
       // sempre do cadastro: o insumo vem da lista da família e o custo unitário é o cadastrado
       const lista = fam ? famProdutos(fam) : [];
-      const insumo = fam ? cellIn(S, 'D' + r, { list: lista }) : '<td class="sub">escolha a família</td>';
+      const insumo = fam ? cellIn(S, 'D' + r, { list: lista, novoIns: fam }) : '<td class="sub">escolha a família</td>';
       const custo = `<td class="n">${show(S, 'G' + r)}${overridden(S, 'G' + r) ? ` <button class="restore" data-restore="${esc(S)}|G${r}" title="Custo digitado à mão numa versão antiga">↺ usar o do cadastro</button>` : ''}</td>`;
       return `<tr>${first}${insumo}${x.esc ? cellIn(S, 'F' + r) : qtdRO(S, r)}${custo}${updCell(S, r)}<td class="n">${show(S, 'H' + r)}</td><td class="n sub">${pItem(num(val(S, 'H' + r)))}</td><td>${obs(r)}${x.esc ? ` <button class="restore" data-rmrow="${r}">remover</button>` : ''}</td></tr>`;
     };
@@ -2575,7 +2577,7 @@
       ${x.desc ? `<h3 style="margin:10px 0 4px">Cadastro</h3><div class="kv">${kv('Código', i ? esc(i.id) + (i.codFab ? ' · fab. ' + esc(i.codFab) : '') : '<span class="pill bad">não cadastrado</span>')}${kv('Descrição', esc(x.desc))}${kv('Fabricante', esc((i && i.fab) || ''))}${kv('Família', esc(famNome(x.fam)))}${kv('Quantidade', esc(fmtNum(x.qtd)))}${kv('Custo unitário', typeof x.unit === 'number' ? brl(x.unit) : '—')}${kv('Total', brl(x.tot))}${kv('Origem do preço', i ? esc([i.fonte || '', precoData(x.desc) ? 'atualizado em ' + precoData(x.desc).toLocaleDateString('pt-BR') : 'sem data'].filter(Boolean).join(' · ')) : '')}${kv('Situação', i ? esc(situ(i)) : '')}${kv('Certificação', esc(certLinha(i && i.cert, 'pt')))}</div>` : ''}
       ${alts.length ? `<h3 style="margin:10px 0 4px">Alternativas aprovadas</h3><ul class="uso">${alts.map((a) => `<li>${esc((REG.insumos.find((y) => y.id === a) || {}).produto || a)}</li>`).join('')}</ul>` : ''}
       <div class="docbar" style="margin-top:10px;flex-wrap:wrap">
-        ${lista.length ? `<div class="f" style="width:100%"><label for="cfgTroca">Trocar o insumo (${esc(famNome(x.fam))})</label><select id="cfgTroca" data-cfgtroca="${x.r}"><option value="">—</option>${lista.map((p) => `<option${p === x.desc ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select></div>` : ''}
+        ${lista.length ? `<div class="f" style="width:100%"><label for="cfgTroca">Trocar o insumo (${esc(famNome(x.fam))})</label><select id="cfgTroca" data-cfgtroca="${x.r}"><option value="">—</option>${lista.map((p) => `<option${p === x.desc ? ' selected' : ''}>${esc(p)}</option>`).join('')}<option value="__novoins__" data-fam="${esc(x.fam)}">＋ Cadastrar novo insumo…</option></select></div>` : ''}
         ${x.tipo === 'man' ? `<button class="btn sm" data-rmrow="${x.r}" data-ico="trash-2">Remover</button>` : ''}
         ${i ? `<button class="btn sm" data-insabre="${esc(i.id)}" data-ico="external-link">Abrir no cadastro</button>` : x.desc ? `<button class="btn sm" data-pedir="${esc(JSON.stringify(x.r && x.r < 113 ? pedidoDaLinha(S, x.r) : { produto: x.desc, linha: { rotulo: S } }))}">Pedir cadastro</button>` : ''}
         ${ln ? `<button class="btn sm" data-qrec="${ln.r}" data-ico="layers">Ver na estrutura</button>` : ''}</div></aside>`;
@@ -3351,6 +3353,23 @@
     let des = mod ? desenhosDe((d) => d.modelo === mod) : []; if (!des.length) des = desenhosDe((d) => d.equip === eq);
     return { fds, faltam, desenhos: des.map((d) => ({ id: d.id, nome: d.nome })) };
   }
+  // "cadastrar novo" a partir de uma lista: abre a ficha (quem edita o cadastro) ou o pedido de cadastro (os demais)
+  function novoInsumo(nome, fam) {
+    const famOk = fam && /^\d+\./.test(fam) ? fam : undefined;
+    if (!(REG.areaOk('cadastro') || REG.areaOk('custos'))) { PD.pedir(Object.assign({ produto: nome || '', propUid: state.uid, propNome: docTitle() }, famOk ? { fam: famOk } : {})); return; }
+    ui.cad = 'insumos'; insumoModal(null, famOk);
+    if (nome) setTimeout(() => { const o = $('#overlay'); if (!o) return; const gr = $('#fGerar', o); if (gr && gr.checked) { gr.checked = false; gr.dispatchEvent(new Event('change')); } const pr = $('#fProd', o); if (pr) { pr.value = nome; pr.dispatchEvent(new Event('input')); } }, 40);
+  }
+  async function novoVendedor() {
+    if (!REG.areaOk('precificacao')) { toast('Sem permissão para cadastrar vendedores: peça a quem cuida de Precificação.'); return; }
+    modal(`<h2>Novo vendedor ou agente de negócio</h2><div class="fields"><div class="f span2"><label for="nvNome">Nome</label><input id="nvNome" placeholder="ex.: THIAGO SILVA" autocomplete="off"></div><div class="f"><label>Papel</label><div class="seg"><label class="on"><input type="radio" name="nvPapel" value="vendedor" checked>Vendedor</label><label><input type="radio" name="nvPapel" value="an">AN</label></div></div><div class="f span2"><label for="nvMail">E-mail (opcional)</label><input id="nvMail" type="email" inputmode="email" autocomplete="email"></div></div>
+      <p class="sub" style="margin:0">Fica na lista de Cadastros → Precificação → Vendedores e agentes, para todas as propostas.</p><div class="docbar"><button class="btn pri" id="nvOk">Cadastrar</button><button class="btn" data-close>Cancelar</button></div>`,
+    (o, close) => { const n = $('#nvNome', o); if (n) n.focus(); $('#nvOk', o).onclick = () => { const nome = ($('#nvNome', o).value || '').trim().toUpperCase().replace(/\s+/g, ' '); const papel = (o.querySelector('input[name="nvPapel"]:checked') || {}).value || 'vendedor'; const email = ($('#nvMail', o).value || '').trim();
+      if (!nome) { toast('Escreva o nome'); return; } const L = equipeCom(); if (L.some((x) => x.nome === nome && x.papel === papel)) { toast('Já cadastrado'); return; }
+      close(); salvaEquipe(L.concat([{ nome, papel, email }]), (papel === 'an' ? 'AN' : 'Vendedor') + ' incluído: ' + nome, [{ campo: nome, de: null, para: papel }]); toast((papel === 'an' ? 'AN' : 'Vendedor') + ' cadastrado: ' + nome + '. Escolha na lista.'); }; });
+  }
+  window.LSNovo = { insumo: novoInsumo, vendedor: novoVendedor };
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-novovend]')) { e.preventDefault(); novoVendedor(); } });
   // correção de cadastro aberta pelo configurador (administrador): ao gravar, a linha acrescentada na proposta usa o nome gravado
   let cfgCadAlvo = null;
   function aposSalvarInsumo(rec, isNew) {
