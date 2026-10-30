@@ -26,6 +26,10 @@ Ele grava as mesmas células do item que a tela clássica: família `C21`, model
 
 A assinatura (`cfgSig`) junta os parâmetros e a lista de componentes com quantidades. Se a configuração muda depois de uma confirmação ou da inclusão, a tela pede para refazer.
 
+### Correção de cadastro pelo configurador (administrador)
+
+Na etapa Compor, cada linha tem **Cadastrar** (insumo sem cadastro) ou **Corrigir cadastro**, só para o administrador (`REG.ehAdmin()`: dono do app no modo compartilhado; no modo local, quem abre o arquivo). A ficha usada é a mesma de Cadastros (`insumoModal`), com as mesmas validações. A gravação passa por `REG.saveInsumo`, que continua exigindo permissão de edição do cadastro no banco. Se o nome mudar numa linha acrescentada na proposta, a célula `D` dessa linha é atualizada.
+
 ## 2. Funções reaproveitadas (nenhuma regra ou cálculo novo)
 
 | Função | Uso no configurador |

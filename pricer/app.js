@@ -2533,7 +2533,9 @@
       const tag = `<span class="pill ${cpl}">${clb}</span>${x.trocado ? ' <span class="pill warn">insumo trocado</span>' : ''}${x.qtdAlt ? ' <span class="pill warn">qtd alterada</span>' : ''}${x.semCad ? ' <span class="pill bad">sem cadastro</span>' : x.semPreco && x.desc ? ' <span class="pill bad">sem preço</span>' : ''}${x.ins && foraDeUso(x.ins) ? ' <span class="pill bad">' + esc(situ(x.ins)) + '</span>' : ''}`;
       // adicionados: o insumo é o nome; da estrutura: o componente é o nome e o insumo vem embaixo
       const nome = x.tipo === 'man' ? (x.desc || 'Componente adicional') : (x.rot || '—'); const sub = x.tipo === 'man' ? famNome(x.fam || '') : (x.desc || (x.tipo === 'kit' ? x.porque : x.tipo === 'opc' ? 'não incluído' : '—'));
-      return `<tr class="${off ? 'cfgoff' : ''}${sel && sel.k === x.k ? ' cfgsel' : ''}" id="cfgc_${x.k}"><td class="cfgchk">${ctl}</td><td><b>${esc(nome)}</b><br><small class="sub">${esc(sub)}</small><div class="cfgtags">${tag}</div></td><td class="n">${qtd}</td><td class="n">${typeof x.unit === 'number' ? brl(x.unit) : '—'}</td><td class="n">${off ? '—' : brl(x.tot)}</td><td><button class="btn sm cfgwhy" data-cfgsel="${esc(x.k)}" data-ico="circle-help" title="Por que entrou e detalhes" aria-label="Por que ${esc(nome)} foi selecionado e detalhes">Por quê?</button></td></tr>`; };
+      return `<tr class="${off ? 'cfgoff' : ''}${sel && sel.k === x.k ? ' cfgsel' : ''}" id="cfgc_${x.k}"><td class="cfgchk">${ctl}</td><td><b>${esc(nome)}</b><br><small class="sub">${esc(sub)}</small><div class="cfgtags">${tag}</div></td><td class="n">${qtd}</td><td class="n">${typeof x.unit === 'number' ? brl(x.unit) : '—'}</td><td class="n">${off ? '—' : brl(x.tot)}</td><td><span class="cfgacts"><button class="btn sm cfgwhy" data-cfgsel="${esc(x.k)}" data-ico="circle-help" title="Por que entrou e detalhes" aria-label="Por que ${esc(nome)} foi selecionado e detalhes">Por quê?</button>${cadBtn(x)}</span></td></tr>`; };
+    // só o administrador corrige o cadastro daqui (a gravação do insumo continua sujeita às regras de acesso do cadastro)
+    const cadBtn = (x) => !REG.ehAdmin() || !x.desc || x.tipo === 'opc' || x.tipo === 'kit' ? '' : `<button class="btn sm cfgcad" data-cfgcad="${esc(x.k)}" data-ico="${x.semCad ? 'plus' : 'pencil'}" title="${x.semCad ? 'Cadastrar este insumo (administrador)' : 'Corrigir o cadastro deste insumo (administrador)'}" aria-label="${x.semCad ? 'Cadastrar ' : 'Corrigir o cadastro de '}${esc(x.desc)}">${x.semCad ? 'Cadastrar' : 'Corrigir cadastro'}</button>`;
     const corpo = grupos.map(([k]) => { const L = M.comps.filter((x) => x.acion === k); if (!L.length) return ''; const gt = L.reduce((t, x) => t + (x.tipo === 'opc' ? 0 : num0(x.tot)), 0); const opcs = L.filter((x) => x.cls === 'opc' && x.row);
       return `<tr class="grp"><td colspan="4">${esc(gl[k])}${opcs.length > 1 ? ` <button class="restore" data-cfgopcall="${opcs.map((x) => x.row).join(',')}">marcar todos os opcionais</button>` : ''}</td><td class="n">${brl(gt)}${tot ? ' <small class="sub">' + pct(gt / tot, 0) + '</small>' : ''}</td><td></td></tr>${L.map(linha).join('')}`; }).join('');
     const fora = M.fora.length ? `<details class="card"${keep('cfgfora')}><summary>Componentes da estrutura que não entraram <span class="sub">${M.fora.length}</span></summary><ul class="uso">${M.fora.map((n) => `<li><b>${esc(n.ln.rot)}</b> — ${esc(n.porque)}</li>`).join('')}</ul></details>` : '';
@@ -2650,6 +2652,17 @@
     const ai = t.closest('[data-cfgaddins]'); if (ai) { const i = REG.insumos.find((x) => x.id === ai.dataset.cfgaddins); if (!i) return; let r = 0; for (let q = 68; q <= 112; q++) if (!txt(S, 'D' + q) && !txt(S, 'C' + q) && !txt(S, 'B' + q)) { r = q; break; }
       if (!r) { toast('O item já tem 45 componentes adicionais'); return; } cfgSet(S, { ['C' + r]: i.fam, ['D' + r]: i.produto, ['F' + r]: 1 }); ui.cfgSel = { S, k: 'm' + r }; toast(i.produto + ' adicionado'); return; }
     if (t.closest('[data-cfgnovoins]')) { ui.cad = 'insumos'; insumoModal(null); return; }
+    const cc = t.closest('[data-cfgcad]'); if (cc) { if (!REG.ehAdmin()) { toast('Só o administrador corrige o cadastro por aqui. Use "Pedir cadastro".'); return; }
+      const x = cfgComps(S).comps.find((y) => y.k === cc.dataset.cfgcad); if (!x) return;
+      // depois de gravar: a linha acrescentada na proposta passa a usar o nome corrigido; as da estrutura continuam pela estrutura
+      cfgCadAlvo = { S, r: x.r, tipo: x.tipo, desc: x.desc, id: x.ins ? x.ins.id : null, at: Date.now() };
+      // fechou a ficha sem gravar: esquece o alvo (para não mexer na linha ao gravar outro insumo depois)
+      const vigia = setInterval(() => { if (!document.querySelector('#overlay #fProd')) { clearInterval(vigia); cfgCadAlvo = null; } }, 500);
+      if (x.ins) { insumoModal(x.ins.id); return; }
+      insumoModal(null, x.fam && /^\d+\./.test(x.fam) ? x.fam : undefined);
+      setTimeout(() => { const o = $('#overlay'); if (!o) return; const gr = $('#fGerar', o); if (gr && gr.checked) { gr.checked = false; gr.dispatchEvent(new Event('change')); }
+        const pr = $('#fProd', o); if (pr) { pr.value = x.desc; pr.dispatchEvent(new Event('input')); } toast('Confira família, preço e fabricante e clique em Cadastrar'); }, 40);
+      return; }
     if (t.closest('[data-cfgpadrao]')) { if (!await DLG.confirmar('Voltar a composição ao padrão da estrutura? Trocas de insumo e de quantidade da estrutura e os opcionais marcados voltam ao automático (os componentes adicionados ficam).')) return;
       const ch = {}; for (let r = 34; r <= 63; r++) for (const col of ['D', 'F', 'G', 'I']) if (overridden(S, col + r)) ch[col + r] = undefined; for (const a of Object.keys((state.doc || {})[S] || {})) if (/^BC\d+$/.test(a)) ch[a] = undefined; cfgSet(S, ch); toast('Composição no padrão da estrutura'); return; }
     if (t.closest('[data-cfgincluir]')) { await cfgIncluir(S); return; }
@@ -3338,6 +3351,14 @@
     let des = mod ? desenhosDe((d) => d.modelo === mod) : []; if (!des.length) des = desenhosDe((d) => d.equip === eq);
     return { fds, faltam, desenhos: des.map((d) => ({ id: d.id, nome: d.nome })) };
   }
+  // correção de cadastro aberta pelo configurador (administrador): ao gravar, a linha acrescentada na proposta usa o nome gravado
+  let cfgCadAlvo = null;
+  function aposSalvarInsumo(rec, isNew) {
+    const a = cfgCadAlvo; cfgCadAlvo = null; if (!a || Date.now() - a.at > 30 * 60 * 1000) return;
+    if (isNew ? !!a.id : a.id !== rec.id) return;
+    if (a.tipo === 'man' && rec.produto && rec.produto !== a.desc && ITEMS.includes(a.S)) { commit(a.S, 'D' + a.r, rec.produto); toast('Linha da proposta atualizada para "' + rec.produto + '"'); }
+    else render();
+  }
   function insumoModal(id, presetFam) {
     const isNew = !id; const rec = isNew ? { fam: presetFam || ui.insFam || famList()[0], origem: 'NAC', situacao: 'ativo' } : JSON.parse(JSON.stringify(REG.insumos.find((x) => x.id === id) || null));
     if (!rec) return;
@@ -3512,7 +3533,7 @@
         sv.disabled = true; sv.textContent = 'Salvando…';
         try {
           if (!isNew && produto !== rec.produto) await aplicarRenome(rec, produto);
-          const ch = await REG.saveInsumo(out, isNew); close(); toast(ch === false ? 'Nada mudou' : (isNew ? 'Cadastrado: ' + nid : 'Salvo: ' + nid));
+          const ch = await REG.saveInsumo(out, isNew); aposSalvarInsumo(out, isNew); close(); toast(ch === false ? 'Nada mudou' : (isNew ? 'Cadastrado: ' + nid : 'Salvo: ' + nid));
         } catch (er) { sv.disabled = false; sv.textContent = isNew ? 'Cadastrar' : 'Salvar'; err(errMsg(er)); }
       };
       const dp = g('#fDup2'); if (dp) dp.onclick = () => { const cp = JSON.parse(JSON.stringify(rec)); close(); insumoModalCopia(cp); };
