@@ -67,7 +67,7 @@
       const campos = Object.assign({}, pre.campos || {});
       modal(`<h2>Pedir cadastro de insumo</h2>
         <p class="sub" style="margin:0">Preencha o básico. A descrição sai no padrão da família, e o pedido vai para a área de Custos cadastrar o preço. Você acompanha em Cadastros → Custos → Pedidos de cadastro.</p>
-        <div class="fields"><div class="f span2"><label for="pdFam">Família</label><select id="pdFam">${fams.map((f) => `<option${f === fam ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></div>
+        <div class="fields"><div class="f span2"><label for="pdFam">Família</label><select id="pdFam">${fams.map((f) => `<option value="${esc(f)}"${f === fam ? ' selected' : ''}>${esc(window.LSFamNome ? window.LSFamNome(f) : f)}</option>`).join('')}</select></div>
           <div class="f"><label for="pdFab">Fabricante</label><input id="pdFab" list="dl_pdfab" value="${esc(pre.fab || '')}"><datalist id="dl_pdfab">${[...new Set(REG.insumos.map((i) => i.fab).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist></div>
           <div class="f"><label for="pdOri">Origem</label><select id="pdOri"><option value="NAC"${pre.origem === 'IMP' ? '' : ' selected'}>Nacional</option><option value="IMP"${pre.origem === 'IMP' ? ' selected' : ''}>Importado</option></select></div></div>
         <div id="pdCampos"></div>
@@ -110,7 +110,7 @@
       const exist = x.insumoId && REG.insumos.find((i) => i.id === x.insumoId);
       modal(`<h2>Cadastrar: ${esc(x.produto)}</h2>
         <p class="sub" style="margin:0">Pedido de <span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'alguém da equipe'}</span> em ${esc(new Date(x.at).toLocaleDateString('pt-BR'))}${x.propNome ? ' · ' + esc(x.propNome) : ''}${x.obs ? ' · ' + esc(x.obs) : ''}</p>
-        <div class="fields"><div class="f span2"><label>Família</label><input value="${esc(x.fam)}" disabled></div>
+        <div class="fields"><div class="f span2"><label>Família</label><input value="${esc(window.LSFamNome ? window.LSFamNome(x.fam) : x.fam)}" disabled></div>
           <div class="f spanall"><label for="atDesc">Descrição (padrão da família)</label><input id="atDesc" value="${esc(exist ? exist.produto : x.produto)}"${exist ? ' disabled' : ''}><small class="sub" id="atChk"></small></div>
           <div class="f"><label for="atFab">Fabricante</label><input id="atFab" value="${esc((exist && exist.fab) || x.fab || '')}"></div>
           <div class="f"><label for="atTipo">Tipo / configuração</label><input id="atTipo" value="${esc((exist && exist.tipo) || '')}"></div>
@@ -158,7 +158,7 @@
       ensure(); const ed = REG.areaOk('custos'); const f = ui.pdSt || 'aberto';
       const pill = { aberto: 'warn', atendido: 'ok', recusado: 'bad', 'aguardando preço': 'warn', 'aguardando validação': 'warn' };
       const rows = lista.filter((x) => f === 'todos' || x.status === f || (f === 'andamento' && /^aguardando/.test(x.status))).map((x) => `<tr><td>${esc(new Date(x.at).toLocaleDateString('pt-BR'))}<br><small class="sub"><span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'neste navegador'}</span></small></td>
-        <td><b>${esc(x.produtoFinal || x.produto)}</b><br><small class="sub">${esc(x.fam)}${x.fab ? ' · ' + esc(x.fab) : ''} · ${esc(x.origem || '')}${x.propNome ? ' · ' + esc(x.propNome) : ''}</small>${x.padrao && x.padrao !== 'ok' ? `<br><small class="bad-t">${esc(x.padrao)}</small>` : ''}${x.obs ? `<br><small class="sub">${esc(x.obs)}</small>` : ''}</td>
+        <td><b>${esc(x.produtoFinal || x.produto)}</b><br><small class="sub">${esc(window.LSFamNome ? window.LSFamNome(x.fam) : x.fam)}${x.fab ? ' · ' + esc(x.fab) : ''} · ${esc(x.origem || '')}${x.propNome ? ' · ' + esc(x.propNome) : ''}</small>${x.padrao && x.padrao !== 'ok' ? `<br><small class="bad-t">${esc(x.padrao)}</small>` : ''}${x.obs ? `<br><small class="sub">${esc(x.obs)}</small>` : ''}</td>
         <td><span class="pill ${pill[x.status] || 'mute'}">${esc(x.status)}</span>${/urgente/.test(x.urgencia || '') ? ' <span class="pill bad">urgente</span>' : ''}${x.status === 'atendido' ? `<br><small class="sub">${brl(x.valor)} · ${esc(x.insumoId || '')}</small>` : x.status === 'recusado' ? `<br><small class="sub">${esc(x.motivo || '')}</small>` : ''}</td>
         <td>${x.status === 'aberto' && ed ? `<button class="btn sm pri" data-pdat="${esc(x.id)}">Cadastrar</button>` : ''}</td></tr>`).join('');
       return `<div class="stack"><section class="card"><h2>Pedidos de cadastro <span class="sub">${abertos().length} em aberto</span></h2>
