@@ -2462,14 +2462,36 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
   }
   // tudo do mesmo CDN (as páginas publicadas só carregam de CDNs conhecidos)
   const tessOpts = (lang) => ({ workerPath: CDN.tessWorker, corePath: CDN.tessCore, langPath: CDN.tessLang + lang + '@1.0.0/4.0.0_best_int' });
+  // No app publicado (claude.ai) a página não pode baixar arquivos de CDN para o leitor de imagem: os arquivos do OCR
+  // (tesseract.js 5.1.1, núcleo e idioma inglês) ficam guardados no próprio app, na mesma origem. No arquivo aberto
+  // direto no computador, vale o CDN. Cada tentativa tem limite de tempo, para a tela não ficar presa em "lendo".
+  const OCR_APP = { main: '/_blob/18f67841b54010abc1d2679955837384', worker: '/_blob/7eb9c54f37001ae424904db44952b1b1', coreSimd: '/_blob/6f9522af1df250662c1e3bdb0f8b34c6', core: '/_blob/e9505f7aac5cb3c77699558cad14e146', eng: '/_blob/eb282e29a39f5b75a262db78535a7ed7' };
+  const comTempo = (p, ms, msg) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
+  const temSimd = () => { try { return WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11])); } catch (e) { return false; } };
+  async function workerDoApp() {
+    const abs = (u) => new URL(u, location.href).href;
+    if (!window.Tesseract) await comTempo(load(abs(OCR_APP.main)), 30000, 'o leitor de imagem não carregou');
+    if (!self.__LSTESS_ENG) await comTempo(load(abs(OCR_APP.eng)), 60000, 'o idioma do leitor de imagem não carregou');
+    const bin = atob(self.__LSTESS_ENG); const data = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+    const core = abs(temSimd() ? OCR_APP.coreSimd : OCR_APP.core) + '#nucleo.js'; let ult = null;
+    for (const blob of [false, true]) {
+      try { return await comTempo(window.Tesseract.createWorker([{ code: 'eng', data }], 1, { workerPath: abs(OCR_APP.worker), corePath: core, workerBlobURL: blob, cacheMethod: 'none', gzip: true }), 90000, 'o leitor de imagem não iniciou em 90 s'); } catch (e) { ult = e; }
+    }
+    throw ult || new Error('o leitor de imagem não iniciou');
+  }
+  async function workerDoCdn() { await comTempo(load(CDN.tesseract), 30000, 'o leitor de imagem não carregou do CDN'); return comTempo(window.Tesseract.createWorker('eng', 1, tessOpts('eng')), 90000, 'o leitor de imagem não iniciou em 90 s'); }
   let tessW = null;
-  const tessWorker = () => (tessW || (tessW = (async () => { await load(CDN.tesseract); return window.Tesseract.createWorker('eng', 1, tessOpts('eng')); })().catch((e) => { tessW = null; throw e; })));
+  const tessWorker = () => (tessW || (tessW = (async () => {
+    const erros = []; const ordem = /^https?:$/.test(location.protocol) ? [['app', workerDoApp], ['cdn', workerDoCdn]] : [['cdn', workerDoCdn]];
+    for (const [nome, fn] of ordem) { try { return await fn(); } catch (e) { erros.push(nome + ': ' + String((e && e.message) || e)); } }
+    throw new Error('reconhecimento de imagem indisponível (' + erros.join(' · ') + ')');
+  })().catch((e) => { tessW = null; throw e; })));
   // página sem texto (PDF "editado" com o texto virado desenho, ou escaneado): lê a imagem da página e devolve as palavras
   // com a posição, no mesmo formato do texto do PDF (pontos a partir do topo); palavras próximas na linha formam um pedaço
   async function itensOcr(pg) {
     const E = 3; const vp = pg.getViewport({ scale: E }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise;
     // modo "texto esparso": acha as palavras soltas (números dos eixos, rótulos) sem se confundir com a grade das tabelas e gráficos
-    const w = await tessWorker(); await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' }); const r = await w.recognize(c);
+    const w = await tessWorker(); await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' }); const r = await comTempo(w.recognize(c), 180000, 'a leitura da imagem passou de 3 minutos');
     const ws = ((r.data && r.data.words) || []).filter((x) => String(x.text || '').trim() && (x.confidence == null || x.confidence > 30)).map((x) => ({ s: x.text, x0: x.bbox.x0, x1: x.bbox.x1, y0: x.bbox.y0, y1: x.bbox.y1 }));
     // linhas: palavras com a base na mesma altura; pedaços: palavras vizinhas na linha (espaço pequeno)
     ws.sort((a, b) => a.y1 - b.y1 || a.x0 - b.x0); const linhas = [];
@@ -2574,7 +2596,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     return (await file.text()).split(/\r?\n/);
   }
   // folha de dados: cada linha do PDF como lista de pedaços (na ordem da página), para separar rótulo e valor
-  async function partes(file) {
+  async function partes(file, onStatus) {
     if (!/pdf$/i.test(file.type || '') && !/\.pdf$/i.test(file.name || '')) return (await linhas(file)).map((l) => [l]);
     await load(CDN.pdfjs); const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = CDN.pdfworker;
     const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; const out = [];
@@ -2584,6 +2606,15 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
       rows.sort((a, b) => b.y - a.y).forEach((r) => { const ps = r.parts.sort((a, b) => a.x - b.x); const L = []; let fim = -1e9;
         for (const q of ps) { if (L.length && q.x - fim < 6) L[L.length - 1] += ' ' + q.s; else L.push(q.s); fim = q.x + q.w; }
         out.push(L.map((x) => x.replace(/\s+/g, ' ').trim())); });
+    }
+    // PDF sem texto (texto virado desenho ou escaneado): as mesmas linhas, lidas da imagem das páginas
+    if (out.join('').length < 20) {
+      const pgs = await itensPdf(file, 6, onStatus); const ocrOut = []; let erro = '';
+      for (const P of pgs) { if (P.ocrErro) erro = P.ocrErro; const rows = [];
+        for (const it of (P.itens || []).slice().sort((a, b) => a.y - b.y || a.x - b.x)) { let r = rows.find((z) => Math.abs(z.y - it.y) < Math.max(3, (it.h || 8) * 0.5)); if (!r) { r = { y: it.y, parts: [] }; rows.push(r); } r.parts.push(it); }
+        rows.sort((a, b) => a.y - b.y).forEach((r) => ocrOut.push(r.parts.sort((a, b) => a.x - b.x).map((q) => q.s))); }
+      if (ocrOut.length) { ocrOut.ocr = true; return ocrOut; }
+      if (erro) { const e = new Error('O PDF não tem texto e o reconhecimento de imagem não funcionou aqui: ' + erro); e.semTexto = true; throw e; }
     }
     return out;
   }
@@ -8757,11 +8788,16 @@ window.PRICER_ESCOPO_PADRAO = {
     if (comClaude) {
       const sample = await sampleFn(); if (!sample) throw new Error('A leitura com Claude não está disponível aqui.');
       toast('Lendo com Claude…'); let texto = '';
-      try { texto = (await window.PricerLeitor.partes(file)).map((r) => r.join(' | ')).join('\n'); } catch (e) { texto = ''; }
-      const res = await sample.json(`Extraia da folha de dados (datasheet) de ${k === 'bomba' ? 'uma bomba de incêndio' : 'um motor (diesel ou elétrico)'} os campos técnicos que estiverem no texto. Use rótulos curtos em português (ex.: Fabricante, Modelo, Vazão, Altura manométrica, Rotação, Diâmetro do rotor, Potência, Rendimento, NPSH requerido, Sucção, Recalque, Vedação, Material da carcaça, Tensão, Frequência, Número de polos, Grau de proteção). Copie os valores como estão, com as unidades; não invente nada que não esteja no texto. Responda só JSON: {"campos": [{"campo": "...", "valor": "..."}]}.\n\nTEXTO:\n${texto.slice(0, 24000)}`);
+      try { texto = (await window.PricerLeitor.partes(file, toast)).map((r) => r.join(' | ')).join('\n'); } catch (e) { texto = ''; }
+      // sem texto aproveitável: manda a imagem das páginas (onde o Claude desta tela aceita imagens)
+      let imagens; if (texto.replace(/\W/g, '').length < 60) { const lim = sample.limits ? await sample.limits().catch(() => null) : null;
+        if (!lim || !lim.images) throw new Error('O PDF não tem texto e a leitura de imagem com Claude não está disponível aqui.');
+        const pgs = await window.PricerLeitor.paginasImagem(file, Math.min(lim.images.maxCount || 4, 4), 1.6);
+        imagens = pgs.map((q) => { const [cab, b64] = q.url.split(','); const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: (/data:([^;]+)/.exec(cab) || [0, 'image/jpeg'])[1] }); }); }
+      const res = await sample.json(`Extraia da folha de dados (datasheet) de ${k === 'bomba' ? 'uma bomba de incêndio' : 'um motor (diesel ou elétrico)'} os campos técnicos que estiverem no texto. Use rótulos curtos em português (ex.: Fabricante, Modelo, Vazão, Altura manométrica, Rotação, Diâmetro do rotor, Potência, Rendimento, NPSH requerido, Sucção, Recalque, Vedação, Material da carcaça, Tensão, Frequência, Número de polos, Grau de proteção). Copie os valores como estão, com as unidades; não invente nada que não esteja no texto. Responda só JSON: {"campos": [{"campo": "...", "valor": "..."}]}.${imagens ? '\n\nO PDF não tem texto selecionável: leia os campos das imagens das páginas anexadas (uma imagem por página).' : ''}\n\nTEXTO:\n${texto.slice(0, 24000) || '(sem texto)'}`, imagens ? { images: imagens } : undefined);
       campos = ((res && res.campos) || []).filter((c) => c && c.campo && c.valor).slice(0, 40).map((c) => ({ k: String(c.campo).slice(0, 40), v: String(c.valor).slice(0, 80), on: true }));
     } else {
-      const rows = await window.PricerLeitor.partes(file); campos = PRP.lerFolhaDados(rows, k);
+      const rows = await window.PricerLeitor.partes(file, toast); campos = PRP.lerFolhaDados(rows, k);
     }
     return campos;
   }

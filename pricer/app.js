@@ -1442,11 +1442,16 @@
     if (comClaude) {
       const sample = await sampleFn(); if (!sample) throw new Error('A leitura com Claude não está disponível aqui.');
       toast('Lendo com Claude…'); let texto = '';
-      try { texto = (await window.PricerLeitor.partes(file)).map((r) => r.join(' | ')).join('\n'); } catch (e) { texto = ''; }
-      const res = await sample.json(`Extraia da folha de dados (datasheet) de ${k === 'bomba' ? 'uma bomba de incêndio' : 'um motor (diesel ou elétrico)'} os campos técnicos que estiverem no texto. Use rótulos curtos em português (ex.: Fabricante, Modelo, Vazão, Altura manométrica, Rotação, Diâmetro do rotor, Potência, Rendimento, NPSH requerido, Sucção, Recalque, Vedação, Material da carcaça, Tensão, Frequência, Número de polos, Grau de proteção). Copie os valores como estão, com as unidades; não invente nada que não esteja no texto. Responda só JSON: {"campos": [{"campo": "...", "valor": "..."}]}.\n\nTEXTO:\n${texto.slice(0, 24000)}`);
+      try { texto = (await window.PricerLeitor.partes(file, toast)).map((r) => r.join(' | ')).join('\n'); } catch (e) { texto = ''; }
+      // sem texto aproveitável: manda a imagem das páginas (onde o Claude desta tela aceita imagens)
+      let imagens; if (texto.replace(/\W/g, '').length < 60) { const lim = sample.limits ? await sample.limits().catch(() => null) : null;
+        if (!lim || !lim.images) throw new Error('O PDF não tem texto e a leitura de imagem com Claude não está disponível aqui.');
+        const pgs = await window.PricerLeitor.paginasImagem(file, Math.min(lim.images.maxCount || 4, 4), 1.6);
+        imagens = pgs.map((q) => { const [cab, b64] = q.url.split(','); const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: (/data:([^;]+)/.exec(cab) || [0, 'image/jpeg'])[1] }); }); }
+      const res = await sample.json(`Extraia da folha de dados (datasheet) de ${k === 'bomba' ? 'uma bomba de incêndio' : 'um motor (diesel ou elétrico)'} os campos técnicos que estiverem no texto. Use rótulos curtos em português (ex.: Fabricante, Modelo, Vazão, Altura manométrica, Rotação, Diâmetro do rotor, Potência, Rendimento, NPSH requerido, Sucção, Recalque, Vedação, Material da carcaça, Tensão, Frequência, Número de polos, Grau de proteção). Copie os valores como estão, com as unidades; não invente nada que não esteja no texto. Responda só JSON: {"campos": [{"campo": "...", "valor": "..."}]}.${imagens ? '\n\nO PDF não tem texto selecionável: leia os campos das imagens das páginas anexadas (uma imagem por página).' : ''}\n\nTEXTO:\n${texto.slice(0, 24000) || '(sem texto)'}`, imagens ? { images: imagens } : undefined);
       campos = ((res && res.campos) || []).filter((c) => c && c.campo && c.valor).slice(0, 40).map((c) => ({ k: String(c.campo).slice(0, 40), v: String(c.valor).slice(0, 80), on: true }));
     } else {
-      const rows = await window.PricerLeitor.partes(file); campos = PRP.lerFolhaDados(rows, k);
+      const rows = await window.PricerLeitor.partes(file, toast); campos = PRP.lerFolhaDados(rows, k);
     }
     return campos;
   }
