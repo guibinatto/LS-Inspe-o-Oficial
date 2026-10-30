@@ -43,10 +43,13 @@
     const em = (k, q) => { const ps = serie(k); if (ps.length < 2 || !(q >= ps[0].q - 1e-9 && q <= ps[ps.length - 1].q * 1.001)) return null; return monotona(ps.map((p) => p.q), ps.map((p) => p[k]))(Math.min(q, ps[ps.length - 1].q)); };
     let qT = nums(campo(dados, /Operating/i, /^Flow, rated$/))[0] || nums(campo(dados, /Operat/i, /^Flow$/))[0]; let hT = nums(campo(dados, /Operating/i, /^Differential head.*\((actual)\)$/))[0] || nums(campo(dados, /Operating/i, /^Differential head/))[0] || nums(campo(dados, /Operat/i, /^Head$/))[0];
     // sem o ponto de trabalho na folha: o da formação que cai sobre a curva (até 10% de diferença na altura), na unidade da curva
-    let trabForm = false;
+    let trabForm = false, man = false, desvio = null;
+    // ponto informado na tela (vazão em m³/h, altura em mca): vale sobre o da folha e o da formação, mesmo fora da curva
+    if (o.ponto && o.ponto.q > 0 && o.ponto.h > 0) { const fq = /gpm/i.test(U.q) ? 4.402868 : /l\/s/i.test(U.q) ? 1 / 3.6 : 1; qT = o.ponto.q * fq; hT = o.ponto.h; man = true; }
     if (!(qT && hT) && (o.trabalho || []).length) { const fq = /gpm/i.test(U.q) ? 4.402868 : /l\/s/i.test(U.q) ? 1 / 3.6 : 1;
       let best = null; for (const t of o.trabalho) { const q = t.q * fq; const hc = em('h', q); if (hc === null) continue; const d = Math.abs(hc - t.h) / t.h; if (d <= 0.1 && (!best || d < best.d)) best = { q, h: t.h, d }; }
       if (best) { qT = best.q; hT = best.h; trabForm = true; } }
+    if (qT && hT) { const hc = em('h', qT); desvio = hc === null ? null : (hc - hT) / hT; }
     const qNf = nums(campo(dados, /NFPA/i, /^Flow, rated$/))[0], hNf = nums(campo(dados, /NFPA/i, /^Head, rated$/))[0];
     const base = qNf && hNf ? 'nominal' : qT && hT ? 'trabalho' : ''; const qN = qNf && hNf ? qNf : qT, hN = qNf && hNf ? hNf : hT;
     const shF = nums(campo(dados, /NFPA/i, /^Head at shutoff/)), h150F = nums(campo(dados, /NFPA/i, /^Head at 150%/)), q150F = nums(campo(dados, /NFPA/i, /^Flow at 150%/))[0];
@@ -57,7 +60,7 @@
     const pN = fol && pc !== null && Math.abs(fol - pc) <= Math.max(0.08 * pc, 0.5) ? fol : pc !== null ? pc : null;
     const ps = serie('p'); const fim = ps.length ? ps[ps.length - 1] : null;
     const hFim = fim ? em('h', fim.q) : null;
-    return { U, qT, hT, trabForm, base, qN, hN, q150, h150, h150Lim, sh, shLim, pN, p150: q150 ? em('p', q150) : null, pSh: em('p', 0), hN0: qN ? em('h', qN) : null,
+    return { U, qT, hT, trabForm, man, desvio, base, qN, hN, q150, h150, h150Lim, sh, shLim, pN, p150: q150 ? em('p', q150) : null, pSh: em('p', 0), hN0: qN ? em('h', qN) : null,
       qFim: fim ? fim.q : null, pFim: fim ? fim.p : null, hFim, pMax: ps.length ? Math.max(...ps.map((p) => p.p)) : null,
       ok150: h150 !== null && h150Lim ? h150 >= h150Lim - 1e-9 : null, okSh: sh !== null && shLim ? sh <= shLim + 1e-9 : null };
   }

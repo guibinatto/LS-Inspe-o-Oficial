@@ -1361,7 +1361,39 @@
   const trabItem = (S) => { const L = []; for (let b = 23; b <= 26; b++) { const vz = val(S, 'K' + b), pr = val(S, 'L' + b); if (txt(S, 'C' + b) && typeof vz === 'number' && vz > 0 && typeof pr === 'number' && pr > 0) L.push({ q: vz, h: pr, uq: 'm³/h', uh: 'mca' }); } return L; };
   // descrição da bomba do item (título da curva): a escolhida no item; sem ela, a da primeira bomba principal da formação
   const bombaDesc = (S) => { if (txt(S, 'AR7') || txt(S, 'D19')) return txt(S, 'AR7') || txt(S, 'D19'); for (let b = 23; b <= 26; b++) if (txt(S, 'C' + b) && txt(S, 'C' + b) !== 'JOCKEY' && txt(S, 'D' + b)) return txt(S, 'D' + b); return ''; };
-  const optCurva = (S, lang) => ({ lang, logo: logoCurva(), trabalho: trabItem(S), titulo: bombaDesc(S) });
+  // ponto informado ao lado da prévia da curva (m³/h × mca): marca a curva e é a base da NFPA 20 quando a folha não traz o nominal
+  const pontoCurva = (S) => { const x = (((pcGet().fd || {})[S]) || {}).ponto; return x && x.q > 0 && x.h > 0 ? x : null; };
+  const optCurva = (S, lang) => ({ lang, logo: logoCurva(), trabalho: trabItem(S), titulo: bombaDesc(S), ponto: pontoCurva(S) });
+  const numTela = (v) => { const s = String(v || '').trim().replace(/\s/g, ''); if (!s) return null; const n = Number(/,/.test(s) ? s.replace(/\./g, '').replace(',', '.') : /^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, '') : s); return isFinite(n) && n > 0 ? n : null; };
+  // campos do ponto e tabela da NFPA 20 ao lado da prévia (atualiza a curva ao mudar)
+  function curvaPontoHtml(S, k, d) {
+    const C = window.PricerCurva; if (!C || !C.nfpa) return ''; const N = C.nfpa(d, optCurva(S, 'pt')); if (!N) return '';
+    const ro = state.verRev ? ' disabled' : ''; const man = pontoCurva(S); const U = N.U;
+    const fq = /gpm/i.test(U.q) ? 4.402868 : /l\/s/i.test(U.q) ? 1 / 3.6 : 1; // m³/h → unidade da curva
+    const q0 = man ? man.q : N.qT ? N.qT / fq : (trabItem(S)[0] || {}).q, h0 = man ? man.h : N.hT || (trabItem(S)[0] || {}).h;
+    const v = (x, dd) => (x === null || x === undefined || !isFinite(x) ? '—' : NF[dd].format(x));
+    const vq = (q) => (q === null || q === undefined ? '—' : v(q / fq, 0) + ' m³/h' + (fq !== 1 ? ' <span class="sub">(' + v(q, 0) + ' ' + esc(U.q) + ')</span>' : ''));
+    const vh = (h) => (h === null || h === undefined ? '—' : v(h, 1) + ' ' + esc(U.h)), vp = (x) => (x === null || x === undefined ? '—' : v(x, 1) + ' ' + esc(U.p));
+    const res = (ok) => (ok === null || ok === undefined ? '' : ok ? '<span class="pill ok">atende</span>' : '<span class="pill bad">não atende</span>');
+    const orig = man ? 'informado aqui' : N.trabForm ? 'da formação do item (cai sobre a curva)' : N.qT ? 'da folha do fabricante' : '';
+    const fora = N.qT && N.desvio !== null && Math.abs(N.desvio) > 0.1 ? `<div class="banner warn" style="margin:8px 0 0">O ponto fica ${v(Math.abs(N.desvio) * 100, 0)}% ${N.desvio > 0 ? 'abaixo' : 'acima'} da curva do fabricante nessa vazão: confira a vazão, a altura e o rotor.</div>` : '';
+    const semPonto = !N.qT ? `<div class="banner warn" style="margin:8px 0 0">O ponto de trabalho do item não cai sobre esta curva${trabItem(S).length ? ' (' + trabItem(S).map((t) => nBR(t.q) + ' m³/h × ' + nBR(t.h) + ' mca').join(' · ') + ')' : ''}. Informe o ponto para marcar a curva e conferir a NFPA 20.</div>` : '';
+    // ponto (vazão · potência) | altura na curva | exigido pela NFPA 20
+    const lin = (nome, q, p, hc, ex, ok) => [`<b>${esc(nome)}</b><br><small class="sub">${vq(q)} · ${vp(p)}</small>`, vh(hc) + (ok === null || ok === undefined ? '' : '<br>' + res(ok)), ex];
+    const linhas = N.qN ? [lin(N.base === 'nominal' ? 'Nominal (100%)' : 'Ponto de trabalho (100%)', N.qN, N.pN, N.hN0, vh(N.hN)),
+      lin('150% da vazão', N.q150, N.p150, N.h150, N.h150Lim ? 'mín. ' + vh(N.h150Lim) + '<br><small class="sub">65%</small>' : '—', N.ok150),
+      lin('Shutoff', 0, N.pSh, N.sh, N.shLim ? 'máx. ' + vh(N.shLim) + '<br><small class="sub">140%</small>' : '—', N.okSh)] : [];
+    if (N.qFim) linhas.push(lin('Final da curva', N.qFim, N.pFim, N.hFim, '—'));
+    const id0 = 'cvp_' + S.replace(/\W/g, '') + '_' + k;
+    return `<div class="cvponto" data-cvbox="${esc(S)}" data-cvq="${q0 ? Math.round(q0 * 10) / 10 : ''}" data-cvh="${h0 ? Math.round(h0 * 10) / 10 : ''}"><div class="lbl"><b>Ponto na curva e NFPA 20</b></div>
+      <p class="sub" style="margin:2px 0 8px">Base para marcar a curva e conferir a NFPA 20${orig ? ' · ponto ' + orig : ''}.</p>
+      <div class="fields" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="f"><label for="${id0}_q">Vazão (m³/h)</label><input id="${id0}_q" type="text" inputmode="decimal" data-cvponto="${esc(S)}|q" value="${q0 ? esc(nBR(Math.round(q0 * 10) / 10)) : ''}"${ro}></div>
+        <div class="f"><label for="${id0}_h">Altura (mca)</label><input id="${id0}_h" type="text" inputmode="decimal" data-cvponto="${esc(S)}|h" value="${h0 ? esc(nBR(Math.round(h0 * 10) / 10)) : ''}"${ro}></div></div>
+      ${man && !ro ? `<button type="button" class="linkbtn" data-cvpontolimpa="${esc(S)}">voltar ao ponto do item</button>` : ''}${semPonto}${fora}
+      ${linhas.length ? `<div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>Ponto</th><th>Na curva</th><th>NFPA 20</th></tr></thead><tbody>${linhas.map((l) => '<tr>' + l.map((c, i) => `<td${i ? ' class="num"' : ''}>${c}</td>`).join('') + '</tr>').join('')}</tbody></table></div>` : ''}
+      ${N.pMax ? `<p class="sub" style="margin:6px 0 0">Potência máxima absorvida na curva: <b>${vp(N.pMax)}</b>.</p>` : ''}
+      <p class="sub" style="margin:6px 0 0">NFPA 20: a 150% da vazão, altura de no mínimo 65% da nominal; em shutoff, no máximo 140%. Valores lidos entre os pontos do fabricante, sem extrapolar.</p></div>`;
+  }
   const fonteCurva = (d) => (d.pontos.ocr ? 'lida do gráfico da página ' + d.pontos.pag + ' com os números dos eixos reconhecidos na imagem (o PDF não tem texto): confira os valores na prévia (' : '') + (d.pontos.vetor ? (d.pontos.ocr ? '' : 'lida do gráfico da página ' + d.pontos.pag + ' (') + d.pontos.pts.length + ' pontos, com ' + ['eff', 'p', 'npsh'].filter((k) => d.pontos.pts.some((p) => typeof p[k] === 'number')).map((k) => ({ eff: 'rendimento', p: 'potência', npsh: 'NPSH' })[k]).concat(d.pontos.outros && d.pontos.outros.length ? [d.pontos.outros.length + ' outros diâmetros de rotor'] : []).join(', ') + ')'
     : d.pontos.chave ? 'pelos pontos informados na folha (shutoff, mínima, trabalho, nominal e máxima): só a curva de altura' : 'com os ' + d.pontos.pts.length + ' pontos da tabela da página ' + d.pontos.pag);
   const SEM_CURVA = 'Não consegui ler a curva deste arquivo (o PDF não traz o gráfico em vetor nem a tabela de pontos, ou é uma imagem/escaneado). A curva não entra na proposta: peça ao fabricante o PDF original da seleção.';
@@ -1370,7 +1402,7 @@
     const d = curvaDados(x.dados, x.pag || 1); if (!curvaOk(d) && (x.dados.lv || 0) < LEIT_V && !state.verRev && /\.pdf$/i.test(x.nome || '')) { queueMicrotask(() => curvaSlotLer(S)); return '<p class="sub" style="margin:8px 0 0">Lendo a curva de novo, agora com o leitor de imagem…</p>'; }
     if (!curvaOk(d)) return `<div class="banner warn" style="margin:8px 0 0">${esc(SEM_CURVA)}${Object.keys(x.dados.pontosPag || {}).length ? ' Páginas com curva legível: ' + Object.keys(x.dados.pontosPag).join(', ') + '.' : ''}</div>`;
     queueMicrotask(() => curvaPrevia(S, 'curva', d));
-    return `<small class="sub" style="display:block;margin-top:8px">Curva redesenhada no padrão LS Fire, ${esc(fonteCurva(d))}.</small><img data-cvprev="${esc(S)}|curva" alt="Prévia da curva redesenhada" style="width:100%;max-width:760px;margin-top:6px;border:1px solid var(--line);border-radius:8px;background:#fff">`;
+    return `<small class="sub" style="display:block;margin-top:8px">Curva redesenhada no padrão LS Fire, ${esc(fonteCurva(d))}.</small><div class="cvlado"><img data-cvprev="${esc(S)}|curva" alt="Prévia da curva redesenhada" style="width:100%;max-width:760px;margin-top:6px;border:1px solid var(--line);border-radius:8px;background:#fff">${curvaPontoHtml(S, 'curva', d)}</div>`;
   }
   // versão da leitura: 2 = leitor de imagem (OCR) funcionando no app publicado. Resultados vazios de antes são lidos de novo, uma vez.
   const LEIT_V = 2; const relendoFd = {};
@@ -1402,7 +1434,7 @@
   }
   const prevCv = {};
   async function curvaPrevia(S, k, d) {
-    const lang = pcGet().idioma || 'pt'; const ch = lang + '|' + JSON.stringify(d.pontos) + '|' + (d.secoes || []).length; const id = S + '|' + k;
+    const lang = pcGet().idioma || 'pt'; const ch = lang + '|' + JSON.stringify(d.pontos) + '|' + (d.secoes || []).length + '|' + JSON.stringify(optCurva(S, lang).ponto || trabItem(S)); const id = S + '|' + k;
     if (!prevCv[id] || prevCv[id].ch !== ch) prevCv[id] = { ch, url: await window.PricerCurva.desenhar(d, optCurva(S, lang)) };
     const el = document.querySelector(`img[data-cvprev="${CSS.escape(id)}"]`); if (el) el.src = prevCv[id].url;
   }
@@ -1424,8 +1456,8 @@
         if (!ro && ((!curvaOk(dc) && !d.pontosPag) || ((d.lv || 0) < LEIT_V && (!(d.secoes || []).length || !curvaOk(dc))))) { queueMicrotask(() => fabRelerCurva(S)); return '<p class="sub" style="margin:8px 0 0">Lendo a folha de novo, agora com o leitor de imagem…</p>'; }
         if (!curvaOk(dc)) return `<div class="banner warn" style="margin:8px 0">${esc(SEM_CURVA)}</div>${sel}`;
         queueMicrotask(() => curvaPrevia(S, 'fab', dc));
-        return `<div class="f spanall" style="margin-top:8px"><label>Curva na proposta</label><small class="sub">Redesenhada no padrão LS Fire, ${esc(fonteCurva(dc))}, com o ponto de trabalho e os pontos da NFPA 20 que vieram na folha.</small>${sel}
-          <img data-cvprev="${esc(S)}|fab" alt="Prévia da curva redesenhada" style="width:100%;max-width:760px;margin-top:8px;border:1px solid var(--line);border-radius:8px;background:#fff"></div>`; })()}
+        return `<div class="f spanall" style="margin-top:8px"><label>Curva na proposta</label><small class="sub">Redesenhada no padrão LS Fire, ${esc(fonteCurva(dc))}, com o ponto de trabalho e os pontos da NFPA 20 (ao lado: o ponto usado e a conferência).</small>${sel}
+          <div class="cvlado"><img data-cvprev="${esc(S)}|fab" alt="Prévia da curva redesenhada" style="width:100%;max-width:760px;margin-top:8px;border:1px solid var(--line);border-radius:8px;background:#fff">${curvaPontoHtml(S, 'fab', dc)}</div></div>`; })()}
       <div class="fields" style="margin-top:8px">
         <div class="f span2"><label>Páginas que entram como imagem</label><div class="chks" style="display:flex;flex-direction:column;gap:4px">${pags.map((q) => `<label class="chk"><input type="checkbox" data-fabpag="${esc(S)}|${q.n}"${(F0.pags || {})[q.n] ? ' checked' : ''}${ro}> página ${q.n}: ${esc(q.titulo)} <small class="sub">${TIPO_PAG[q.tipo]}</small></label>`).join('') || '<span class="sub">nenhuma</span>'}</div></div>
         <div class="f span2"><label>Escopo da proposta</label><div class="chks" style="display:flex;flex-direction:column;gap:4px"><label class="chk"><input type="checkbox" data-fabls="${esc(S)}"${F0.semLs ? '' : ' checked'}${ro}> Incluir também os itens da formação LS Fire</label></div><small class="sub">desmarque se o escopo do fabricante já cobre tudo</small></div></div>
@@ -1502,6 +1534,17 @@
     if (ds.fabcurva !== undefined) { fabMut(ds.fabcurva, (F0) => { F0.curvaPag = t.value ? +t.value : null; }); render(); return; }
     if (ds.fabls !== undefined) { fabMut(ds.fabls, (F0) => { F0.semLs = !t.checked; }); return; }
   });
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-cvpontolimpa]'); if (!b || state.verRev) return; fdPut(b.dataset.cvpontolimpa, 'ponto', undefined); render(); });
+  // ponto informado: grava quando o foco sai dos dois campos (Tab da vazão para a altura não redesenha no meio da digitação) ou com Enter
+  const cvPontoGrava = (box) => { const S = box.dataset.cvbox; const lerC = (cc) => (box.querySelector(`[data-cvponto="${CSS.escape(S + '|' + cc)}"]`) || {}).value || '';
+    const tq = lerC('q'), th = lerC('h'); if ((tq.trim() && !numTela(tq)) || (th.trim() && !numTela(th))) { toast('Valor inválido: use números (ex.: 568 ou 105,5).'); return; }
+    const q = numTela(tq), h = numTela(th); const atual = pontoCurva(S); const ref = atual || (box.dataset.cvq ? { q: +box.dataset.cvq, h: +box.dataset.cvh } : null);
+    if (q && h && ref && Math.abs(ref.q - q) < 0.05 && Math.abs(ref.h - h) < 0.05) return; if (!(q && h) && !atual) return;
+    fdPut(S, 'ponto', q && h ? { q, h } : undefined); render(); };
+  document.addEventListener('focusout', (e) => { const t = e.target; if (!t.dataset || !t.dataset.cvponto || state.verRev) return; const box = t.closest('.cvponto'); if (!box) return;
+    const noPar = (el) => !!(el && el.matches && el.matches('[data-cvponto]') && box.contains(el)); if (noPar(e.relatedTarget)) return;
+    setTimeout(() => { if (box.isConnected && !noPar(document.activeElement)) cvPontoGrava(box); }, 0); });
+  document.addEventListener('keydown', (e) => { const t = e.target; if (e.key !== 'Enter' || !t.dataset || !t.dataset.cvponto || state.verRev) return; e.preventDefault(); const box = t.closest('.cvponto'); if (box) cvPontoGrava(box); });
   // do cartão da proposta direto para o bloco da folha do fabricante no item
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-insabre]'); if (b) { ui.cad = 'insumos'; insumoModal(b.dataset.insabre); } });
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-fdir]'); if (!b) return; const i = ITEMS.indexOf(b.dataset.fdir); if (i < 0) return;

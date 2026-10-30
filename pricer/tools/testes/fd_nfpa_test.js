@@ -1,4 +1,5 @@
-// Folha de dados (padrão FD) com o PDF sem texto lido por OCR: curva LS (título, NFPA 20 tracejada, NPSH) e tabelas no PDF
+// Folha de dados (padrão FD) com o PDF sem texto lido por OCR: curva LS (título, NFPA 20 tracejada, NPSH), campos do ponto ao
+// lado da prévia (informar o ponto redesenha a curva e a conferência da NFPA 20) e as tabelas no PDF
 const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
 const T = __dirname + '/'; const L = T + 'libs/'; const fs = require('fs'); const OUT = process.argv[2] || __dirname; if (!fs.existsSync(T + 'sempa_sem_texto.pdf')) { console.log('Gere sempa_sem_texto.pdf com ocr_test.js.'); process.exit(0); }
 (async () => {
@@ -12,12 +13,17 @@ const T = __dirname + '/'; const L = T + 'libs/'; const fs = require('fs'); cons
   await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(800);
   const abre = async () => { await p.evaluate(() => { const d = document.querySelector('details[data-keep="fdprop"]'); if (d) d.open = true; }); await p.waitForTimeout(200); };
   await p.click('[data-view="proposta"]'); await p.click('[data-step="2"]'); await p.waitForTimeout(300); await p.click('[data-goitem="0"]'); await p.waitForTimeout(800); await abre();
-  // o item do exemplo (1.370 m³/h) não cai na curva da folha de teste (Sempa 568 m³/h × 106 m): o teste troca só o ponto
-  // de trabalho passado à curva e à tabela da NFPA 20 (o resto é a leitura e a montagem reais)
-  if (process.env.NOCURVA !== '1') await p.evaluate(() => { const C = window.PricerCurva; const tr = (o) => Object.assign({}, o, { trabalho: [{ q: 568, h: 106, uq: 'm³/h', uh: 'mca' }] });
-    const d0 = C.desenhar, n0 = C.nfpa; C.desenhar = (d, o) => d0(d, tr(o)); C.nfpa = (d, o) => n0(d, tr(o)); });
   await p.setInputFiles('[data-fdup="ITEM 01|fab"]', T + 'sempa_sem_texto.pdf');
   await p.waitForFunction(() => { const el = document.querySelector('[data-fabler="ITEM 01"]'); const t = el && el.closest('.fdslot') ? el.closest('.fdslot').innerText : ''; return el && !/Lendo a curva/.test(t); }, null, { timeout: 300000 }); await p.waitForTimeout(2500); await abre();
+  const painel = () => p.evaluate(() => { const b = document.querySelector('.cvponto'); return b ? b.innerText.replace(/\s+/g, ' ') : ''; });
+  console.log('painel ao lado da curva:', (await painel()).slice(0, 260));
+  // o item do exemplo (1.370 m³/h) não cai na curva da folha de teste (Sempa 568 m³/h × 106 m): informa o ponto nos campos
+  if (process.env.NOCURVA !== '1') {
+    const src0 = await p.$eval('img[data-cvprev="ITEM 01|fab"]', (x) => x.src).catch(() => '');
+    await p.fill('[data-cvponto="ITEM 01|q"]', '568'); await p.fill('[data-cvponto="ITEM 01|h"]', '106'); await p.press('[data-cvponto="ITEM 01|h"]', 'Tab'); if (process.env.DBG) console.log('dbg:', await p.evaluate(() => [document.activeElement && document.activeElement.outerHTML.slice(0, 100), [...document.querySelectorAll('[data-cvponto]')].map((x) => x.value + '/' + x.isConnected).join(' ')])); await p.waitForTimeout(2500); await abre(); await p.waitForTimeout(1500);
+    const src1 = await p.$eval('img[data-cvprev="ITEM 01|fab"]', (x) => x.src).catch(() => '');
+    console.log('ponto informado → curva redesenhada:', !!src1 && src1 !== src0, '| painel:', (await painel()).slice(0, 420)); }
+  if (process.env.DBG) { const el = await p.$('.cvlado'); if (el) { await el.scrollIntoViewIfNeeded(); await el.screenshot({ path: OUT + '/cvlado.png' }); } }
   const cv = await p.$eval('img[data-cvprev="ITEM 01|fab"]', (x) => x.src).catch(() => ''); if (cv) fs.writeFileSync(OUT + '/curva_nfpa.png', Buffer.from(cv.split(',')[1], 'base64'));
   console.log('prévia da curva:', !!cv);
   await p.click('#bSave'); await p.waitForTimeout(600); await p.click('[data-view="proposta"]'); await p.click('[data-step="6"]'); await p.waitForTimeout(500);
