@@ -2048,7 +2048,7 @@
         <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}</em></div>
         <div class="k x"><span>Custo</span><b>${brl(custo)}</b><em></em></div>
         <div class="k x"><span>Itens</span><b>${nItens}</b><em></em></div>
-        <div class="k"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>
+        <div class="k kpend" ${spv || fx ? 'data-view="pendencias"' : 'data-step="5"'} role="button" tabindex="0" title="Ver as pendências"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>
         <button class="btn sm ctx-more" data-ctxmore aria-expanded="${ui.ctxOpen ? 'true' : 'false'}" data-ico="${ui.ctxOpen ? 'chevron-down' : 'chevron-right'}">${ui.ctxOpen ? 'menos' : 'mais'}</button></div>
     </section>`;
   }
@@ -2642,7 +2642,7 @@
     const go = t.closest('[data-cfget]'); if (go) { cfgIr(S, +go.dataset.cfget); return; }
     if (t.closest('[data-cfgclassico]')) { ui.cfgClassico = true; store.set(SK.view, ui); render(); return; }
     if (t.closest('[data-cfgassistido]')) { ui.cfgClassico = false; store.set(SK.view, ui); render(); return; }
-    const sl = t.closest('[data-cfgsel]'); if (sl) { ui.cfgSel = sl.dataset.cfgsel ? { S, k: sl.dataset.cfgsel } : null; render(); if (sl.dataset.cfgsel && window.innerWidth < 1000) setTimeout(() => { const p = document.getElementById('cfgPainel'); if (p) p.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30); return; }
+    const sl = t.closest('[data-cfgsel]'); if (sl) { ui.cfgSel = sl.dataset.cfgsel ? { S, k: sl.dataset.cfgsel } : null; render(); if (sl.dataset.cfgsel && window.innerWidth >= 768 && window.innerWidth < 1000) setTimeout(() => { const p = document.getElementById('cfgPainel'); if (p) p.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30); return; }
     const q1 = t.closest('[data-cfgq1]'); if (q1) { const [r, d] = q1.dataset.cfgq1.split('|'); const v = Math.max(0, qtdNum(val(S, 'F' + r)) + +d); commit(S, 'F' + r, v); return; }
     const oa = t.closest('[data-cfgopcall]'); if (oa) { const ch = {}; for (const r of oa.dataset.cfgopcall.split(',')) ch['BC' + r] = 1; cfgSet(S, ch); return; }
     if (t.closest('[data-cfgadd]')) { ui.cfgAdd = S; ui.cfgAddQ = ''; render(); setTimeout(() => { const el = document.getElementById('cfgAddQ'); if (el) el.focus(); }, 30); return; }
@@ -2949,7 +2949,9 @@
       && (!grupos.length || FAMS_F.casa([x.id, x.produto, x.fab, x.tipo, x.obs, x.fam, x.codFab, x.descCom, x.descFab, Object.values(x.caract || {}).join(' ')].join(' '), grupos)));
     const cmp = { codigo: () => 0, produto: (a, b) => a.produto.localeCompare(b.produto), valor: (a, b) => (b.valor ?? -1) - (a.valor ?? -1), upd: (a, b) => (precoRef(a) || 0) - (precoRef(b) || 0) }[ord] || (() => 0);
     list = list.slice().sort((a, b) => (F.has(b.id) - F.has(a.id)) || cmp(a, b));
-    const shown = list.slice(0, 400); const ed = canEd();
+    // no celular os insumos aparecem em cartões, 80 por vez ("Mostrar mais"), para a tela não ficar pesada
+    const lim = window.matchMedia && window.matchMedia('(max-width: 767px)').matches ? Math.min(400, ui.insLim || 80) : 400;
+    const shown = list.slice(0, lim); const ed = canEd();
     const last = all.reduce((m, x) => (x.upd && x.upd > (m.upd || '') ? x : m), {});
     const th = (k, lb) => `<th><button class="thsort${ord === k ? ' on' : ''}" data-insord="${k}">${lb}${ord === k ? ' ▾' : ''}</button></th>`;
     const rows = shown.map((x) => `<tr class="click" data-ins="${esc(x.id)}">${ed ? `<td class="in"><input type="checkbox" data-inssel="${esc(x.id)}"${selIns.has(x.id) ? ' checked' : ''} aria-label="Selecionar ${esc(x.id)}"></td>` : ''}<td><button class="star${F.has(x.id) ? ' on' : ''}" data-insfav="${esc(x.id)}" aria-label="${F.has(x.id) ? 'Tirar dos favoritos' : 'Favoritar'}">${F.has(x.id) ? '★' : '☆'}</button></td><td class="code">${esc(x.id)}</td><td>${esc(x.fam)}</td>
@@ -2979,8 +2981,9 @@
           <button class="btn sm" id="insCsv">Exportar CSV</button>
           ${ed ? `<button class="btn sm" id="insLote"${selIns.size ? '' : ' disabled'}>Edição em massa (${selIns.size})</button><button class="btn sm pri" id="insNew">+ Novo insumo</button>` : ''}
         </div>
-        <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + '; refine a busca' : ''}. Clique numa linha para ver ou editar.${ed ? ' Marque as caixas para a edição em massa.' : ''}</p>
+        <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + (shown.length < 400 ? '' : '; refine a busca') : ''}. Clique numa linha para ver ou editar.${ed ? ' Marque as caixas para a edição em massa.' : ''}</p>
         <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr>${ed ? `<th><input type="checkbox" id="insSelAll" aria-label="Marcar os visíveis"></th>` : ''}<th></th>${th('codigo', 'Código')}<th>Família</th>${th('produto', 'Produto')}<th>Fabricante</th><th>Tipo/config.</th>${th('valor', 'Valor')}<th>Origem</th>${th('upd', 'Preço atualizado em')}</tr></thead><tbody>${rows || `<tr><td colspan="${ed ? 10 : 9}" class="sub">Nenhum insumo com esse filtro.</td></tr>`}</tbody></table></div>
+        ${list.length > shown.length && shown.length < 400 ? `<div class="docbar" style="margin-top:8px"><button class="btn" data-insmais>Mostrar mais ${Math.min(80, list.length - shown.length)}</button></div>` : ''}
       </section>`;
   }
   // edição em massa: escolhe o campo, vê a prévia e o impacto, confirma; fica no histórico e pode ser desfeita
@@ -3013,6 +3016,7 @@
   }
   document.addEventListener('click', (e) => {
     const fv = e.target.closest('[data-insfav]'); if (fv) { e.stopPropagation(); favToggle(fv.dataset.insfav); render(); return; }
+    if (e.target.closest('[data-insmais]')) { ui.insLim = Math.min(400, (ui.insLim || 80) + 80); render(); return; }
     const so = e.target.closest('[data-insord]'); if (so) { ui.insOrd = so.dataset.insord; render(); return; }
     if (e.target.closest('[data-inssemdata]')) { ui.insSit = 'semdata'; render(); return; }
     if (e.target.closest('[data-insvenc]')) { ui.insSit = 'vencido'; ui.insOrd = 'upd'; render(); return; }
@@ -4847,7 +4851,7 @@
     const row = (x, i) => `<tr><td><b>${esc(x.nome)}</b></td><td>${x.papel === 'an' ? 'Agente de negócio (AN)' : 'Vendedor'}</td><td>${esc(x.email || '')}</td><td>${ed ? `<button class="restore" data-vrm="${esc(x.nome)}|${x.papel}">remover</button>` : ''}</td></tr>`;
     return `<section class="card"><h2>Vendedores e agentes de negócio <span class="sub">a proposta escolhe daqui; a taxa de comissão está na tabela de comissões</span></h2>
       <div class="tw"><table class="t"><thead><tr><th>Nome</th><th>Papel</th><th>E-mail</th><th></th></tr></thead><tbody>${L.map(row).join('') || '<tr><td colspan="4" class="sub">Ninguém cadastrado ainda.</td></tr>'}</tbody></table></div>
-      ${ed ? `<div class="fields" style="margin-top:10px"><div class="f span2"><label for="vNome">Nome</label><input id="vNome" placeholder="ex.: THIAGO SILVA"></div><div class="f"><label>Papel</label><div class="seg"><label class="on"><input type="radio" name="vPapel" value="vendedor" checked>Vendedor</label><label><input type="radio" name="vPapel" value="an">AN</label></div></div><div class="f span2"><label for="vMail">E-mail (opcional)</label><input id="vMail"></div><div class="f" style="justify-content:end"><button class="btn pri" id="vAdd">Incluir</button></div></div>` : ''}</section>`;
+      ${ed ? `<div class="fields" style="margin-top:10px"><div class="f span2"><label for="vNome">Nome</label><input id="vNome" placeholder="ex.: THIAGO SILVA"></div><div class="f"><label>Papel</label><div class="seg"><label class="on"><input type="radio" name="vPapel" value="vendedor" checked>Vendedor</label><label><input type="radio" name="vPapel" value="an">AN</label></div></div><div class="f span2"><label for="vMail">E-mail (opcional)</label><input id="vMail" type="email" inputmode="email" autocomplete="email"></div><div class="f" style="justify-content:end"><button class="btn pri" id="vAdd">Incluir</button></div></div>` : ''}</section>`;
   }
   async function salvaEquipe(lista, desc, mud) { try { await REG.setTable('EQUIPE_COM', { lista }, desc, mud || []); render(); } catch (e) { toast(errMsg(e)); } }
   document.addEventListener('click', (e) => {

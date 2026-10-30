@@ -93,7 +93,7 @@ body.side-mini .nav .nbadge{position:absolute;top:2px;right:4px}
 .btn.sm{padding:4px 9px;font-size:12.5px;border-radius:7px}
 .btn.sm .ico{width:14px;height:14px}
 @media (max-width:1100px){.actions .btn:not(.pri){font-size:0;gap:0;padding:7px 9px}.actions .btn:not(.pri) .ico{width:18px;height:18px}}
-@media (max-width:860px){
+@media (max-width:767px){
   .sidenav{position:fixed;left:0;top:0;bottom:0;transform:translateX(-102%);transition:transform .2s ease;box-shadow:4px 0 24px rgba(0,0,0,.35)}
   body.side-open .sidenav{transform:none}
   body.side-open .side-scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:25}
@@ -134,7 +134,7 @@ body.side-mini .nav .nbadge{position:absolute;top:2px;right:4px}
   .ctx-tt h1{font-size:20px}
   .ptab span{display:none}.ptab.on span{display:inline}
 }
-@media (max-width:600px){.doc-name{display:none}.actions #bCancel{display:none}.actions{min-width:0;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}}
+
 /* acabamento moderno (só aparência; nada muda nos dados) */
 .card{border-radius:12px;border-color:var(--line)}
 .t th{background:var(--th-bg);color:var(--ink2);border-bottom:1px solid var(--line2);font-size:12px;padding:9px 10px}
@@ -570,6 +570,197 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
 .etp:not(:disabled):hover .etl{text-decoration:underline}
 .famtab td:first-child{font-family:var(--f-mono);font-size:12.5px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ===== celular e tablet: interface por toque (só aparência e disposição; dados e cálculo não mudam) =====
+   referências: até 480 px celular compacto · 481–767 celular maior · 768–1023 tablet · 1024+ computador */
+.bnav,#bMore,.mobtg,.cfgscrim{display:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.k.kpend{cursor:pointer}.k.kpend:hover b{text-decoration:underline}
+.msheet-wrap{position:fixed;inset:0;z-index:60}
+.mscrim{position:absolute;inset:0;background:rgba(10,10,10,.45);display:block}
+.msheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);color:var(--ink);border-radius:16px 16px 0 0;padding:6px max(12px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-right));display:grid;gap:2px;box-shadow:0 -8px 30px rgba(0,0,0,.25);animation:sheetIn .18s ease}
+.msgrip{width:40px;height:4px;border-radius:2px;background:var(--line2);margin:4px auto 6px}
+.msitem{display:flex;align-items:center;gap:14px;min-height:52px;padding:0 12px;border:0;background:none;border-radius:10px;font-size:16px;font-weight:600;text-align:left;cursor:pointer;color:var(--ink)}
+.msitem:hover,.msitem:focus-visible{background:var(--or-soft)}.msitem .ico{width:20px;height:20px;color:var(--or-ink)}
+.msitem.msfechar{color:var(--ink2);border-top:1px solid var(--line);border-radius:0;margin-top:4px}
+@keyframes sheetIn{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+/* toque: alvos de 44 px, campos de 48 px e fonte de 16 px nos campos (o iPhone não amplia a tela ao tocar) */
+@media (max-width:1023px),(pointer:coarse){
+  .btn{min-height:44px}.btn.sm{min-height:44px;padding:6px 12px;font-size:14px}.btn.sm .ico{width:16px;height:16px}
+  .iconbtn{width:44px;height:44px}
+  .f input,.f select,.f textarea,.cellin,.modal input:not([type=checkbox]):not([type=radio]):not([type=file]),.modal select,.modal textarea,input[type=search],.pnfil select,.pnfil input,.sheetbar select,.sheetbar input,.pctl input,.pctl select,.hsearch input,.dlgbox input,.dlgbox textarea,.dlgbox select{font-size:16px;min-height:48px}
+  .t td.in input,.t td.in select,.t td select,.t.reg td.in input,.t.reg td.in select,.cfgqtd input,.kv .in input,.mbc input,.t td input[type=text],.t td input:not([type]){font-size:16px;min-height:44px}
+  .f .ro,.fs .autov{min-height:48px}
+  .restore,.linkbtn{min-height:44px;display:inline-flex;align-items:center;padding:0 6px;font-size:14px}
+  .chip,.seg label,.hchip,.apselo,.rok{min-height:44px;display:inline-flex;align-items:center}
+  .chk{min-height:44px}
+  .chk input[type=checkbox],.chk input[type=radio],.cfgchk input,.t td input[type=checkbox],.modal input[type=checkbox]{width:22px;height:22px}
+  details>summary{min-height:44px;padding-block:10px;box-sizing:border-box}
+  .ptab,.subtabs button,.areatabs button,.cfgstep,.step,.tchip,.mchip,.famcard,.mcard,.sugrow{min-height:44px}
+  .ptab{min-width:44px;justify-content:center}
+  .stepper .btn,.stp .btn,.cfgqtd .btn{min-width:44px;width:44px}
+  .star{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  .thsort{display:inline-block;padding:12px 2px}
+  .etp{min-height:44px}
+  .nav button{min-height:48px}
+  .pedit{min-height:44px}
+}
+/* tablet: menu lateral como trilho de ícones com o nome embaixo */
+@media (min-width:768px) and (max-width:1023px){
+  .sidenav,body.side-mini .sidenav{flex:0 0 84px;width:84px}
+  .sidenav .bt,.logo-plate,.side-col{display:none}
+  .side-top{justify-content:center;padding:10px 6px}
+  .nav{padding:6px}
+  .nav button,body.side-mini .nav button{flex-direction:column;justify-content:center;gap:3px;padding:8px 2px;font-size:11px;letter-spacing:.02em;text-align:center}
+  .nav .nl,body.side-mini .sidenav .nl{display:block;white-space:normal;line-height:1.15;flex:0 0 auto}
+  .nav button[aria-current="page"]::before{left:-6px}
+  .nav .nbadge{position:absolute;top:2px;right:8px}
+  main{padding-inline:16px}
+}
+/* celular */
+@media (max-width:767px){
+  .iconbtn.menu-btn{display:none}
+  .bnav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;position:fixed;left:0;right:0;bottom:0;z-index:35;background:var(--bar);padding:4px max(4px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px));box-shadow:0 -1px 0 rgba(0,0,0,.3)}
+  .bnav button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;border:0;background:none;color:var(--bar-dim);font:600 11.5px/1.1 var(--f-body);border-radius:10px;cursor:pointer;padding:4px 2px}
+  .bnav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bnav button[aria-current="page"]{color:var(--bar-ink);background:rgba(255,255,255,.08)}
+  .bnav button[aria-current="page"] .ico{color:var(--or)}
+  .bnav .ico{width:22px;height:22px}
+  .bnav .nbadge{position:absolute;top:3px;left:calc(50% + 5px)}
+  body.kb-open .bnav{display:none}
+  main{padding:12px max(12px,env(safe-area-inset-right,0px)) calc(96px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+  .top-in{min-height:52px;padding:4px max(10px,env(safe-area-inset-right,0px)) 4px max(12px,env(safe-area-inset-left,0px));gap:8px}
+  .doc-name{display:block;font-size:13px}
+  .doc-name .divb{font-size:11px;padding:0 6px}
+  .actions{gap:6px;overflow:visible}
+  .actions .btn:not(.pri):not(#bMore){display:none}
+  #bMore{display:inline-flex;min-width:44px;padding:0}
+  .actions .btn.pri{padding:6px 14px}
+  .savest{max-width:34vw;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;padding:3px 8px}
+  .toast{bottom:calc(80px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 24px)}
+  body.side-open .sidenav{z-index:50}
+  h1{font-size:22px}
+  .home .hero h1{font-size:24px}
+  .card{padding:12px}
+  .stack{gap:12px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi{padding:10px 12px}
+  .kpi b{font-size:clamp(16px,5.2vw,21px);overflow-wrap:anywhere}
+  .sub{font-size:13px}
+  .fields,.fields.wide{grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:12px}
+  .hsearch{flex-wrap:wrap}
+  /* cabeçalho da proposta: o essencial em duas linhas; o resto em "mais" */
+  .ctxh{gap:6px;margin:0 0 8px}
+  .ctx-id{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 8px;align-items:center}
+  .ctx-tt h1{font-size:18px}
+  .ctx-tt .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+  .ctx-tags{grid-column:1/-1;gap:4px}
+  .ctx-tags .pill{font-size:11.5px}
+  .ctx-kpis{flex-wrap:nowrap;padding:0;align-items:stretch}
+  .ctx-kpis .k{flex:1 1 0;min-width:0;padding:6px 8px;gap:1px;border-left:1px solid var(--line)}
+  .ctx-kpis .k b{font-size:15.5px;overflow:hidden;text-overflow:ellipsis}
+  .ctx-kpis .k span{font-size:10px;letter-spacing:.04em}
+  .ctx-kpis .k em{display:none}
+  .ctxh.open .ctx-kpis{flex-wrap:wrap}.ctxh.open .ctx-kpis .k{flex:1 1 40%}.ctxh.open .ctx-kpis .k em{display:block;white-space:normal}
+  .ctx-more{font-size:0;gap:0;min-width:44px;padding:0;margin:4px}
+  .ptabs{margin:0 0 10px;gap:2px;scrollbar-width:none}
+  .ptab{padding:8px 10px}
+  /* tabelas largas em cartões; "Ver tabela completa" volta à tabela com rolagem */
+  .mobtg{display:inline-flex;margin:0 0 6px;justify-self:start}
+  body:not(.tab-completa) .tw.mobtw{border:0;overflow:visible!important;max-height:none!important;border-radius:0}
+  body:not(.tab-completa) table.mobcard,body:not(.tab-completa) table.mobcard tbody{display:block;width:100%;min-width:0!important}
+  body:not(.tab-completa) table.mobcard thead{display:none}
+  body:not(.tab-completa) table.mobcard.mobsort thead{display:block}
+  body:not(.tab-completa) table.mobcard.mobsort thead tr{display:flex;flex-wrap:wrap;gap:4px 10px;padding:0 0 6px}
+  body:not(.tab-completa) table.mobcard.mobsort thead th{display:none}
+  body:not(.tab-completa) table.mobcard.mobsort thead th:has(.thsort),body:not(.tab-completa) table.mobcard.mobsort thead th:has(input[type=checkbox]){display:flex;align-items:center;min-height:44px;position:static;background:var(--card);color:var(--ink2);border:1px solid var(--line2);border-radius:999px;padding:0 12px}
+  body:not(.tab-completa) table.mobcard tbody tr{display:block;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px 12px;margin:0 0 8px;box-shadow:var(--shadow)}
+  body:not(.tab-completa) table.mobcard tbody td{display:block;border:0;padding:4px 0 4px 42%;position:relative;text-align:left!important;white-space:normal;min-height:28px;overflow-wrap:anywhere;background:none}
+  body:not(.tab-completa) table.mobcard tbody td::before{content:attr(data-label);position:absolute;left:0;top:4px;width:40%;padding-right:8px;font-size:11.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink3);line-height:1.35;overflow-wrap:anywhere}
+  body:not(.tab-completa) table.mobcard tbody td:not([data-label]){padding-left:0}
+  body:not(.tab-completa) table.mobcard tbody td.mobtit{padding:2px 0 6px;font-weight:600;font-size:15px;border-bottom:1px solid var(--line);margin-bottom:4px}
+  body:not(.tab-completa) table.mobcard tbody td.mobtit::before{position:static;display:block;width:auto;padding:0}
+  body:not(.tab-completa) table.mobcard tbody td.mobsel{position:absolute;right:8px;top:6px;padding:0;min-height:0}
+  body:not(.tab-completa) table.mobcard tbody tr:has(td.mobsel){position:relative;padding-right:48px}
+  body:not(.tab-completa) table.mobcard tbody td:empty{display:none}
+  body:not(.tab-completa) table.mobcard tbody td.in input,body:not(.tab-completa) table.mobcard tbody td.in select,body:not(.tab-completa) table.mobcard tbody td select{width:100%;min-width:0}
+  body:not(.tab-completa) table.mobcard tbody tr.mobfull,body:not(.tab-completa) table.mobcard tbody tr.grp{border:0;box-shadow:none;background:none;padding:6px 2px 2px}
+  body:not(.tab-completa) table.mobcard tbody tr.mobfull td,body:not(.tab-completa) table.mobcard tbody tr.grp td{padding-left:0}
+  body:not(.tab-completa) table.mobcard tbody tr.mobfull td::before,body:not(.tab-completa) table.mobcard tbody tr.grp td::before{display:none}
+  body:not(.tab-completa) table.mobcard tbody tr.tot{background:var(--or-soft);border-color:var(--or-line)}
+  body:not(.tab-completa) table.mobcard tbody tr.click:hover td{background:none}
+  /* modais e confirmações como painéis inferiores */
+  .modal{place-items:end stretch;padding:0}
+  .modal .card{width:100%!important;max-width:none;max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px));border-radius:16px 16px 0 0;padding:14px max(14px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));animation:sheetIn .18s ease;overscroll-behavior:contain}
+  .dlgwrap{place-items:end stretch;padding:0}
+  .dlgbox{width:100%;border-radius:16px 16px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .dlgbox.larga{height:100dvh;max-height:100dvh;border-radius:0;padding-top:calc(12px + env(safe-area-inset-top,0px))}
+  .dlgbt{flex-direction:column-reverse}.dlgbt .btn{width:100%}
+  /* configurador: uma etapa por vez, barra de comandos fixa embaixo, componentes em lista */
+  .cfghead{gap:8px}
+  .cfghead h1{font-size:18px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .cfghead .sumbar{width:100%;padding:6px 10px;gap:2px 14px}
+  .sumbar b{font-size:17px}
+  .cfgnav{position:sticky;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:8;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:0 -4px 16px rgba(0,0,0,.10);flex-wrap:nowrap;gap:6px}
+  .cfgnav > .btn{flex:0 0 auto}
+  .cfgnav > span{flex:1 1 auto;flex-wrap:nowrap!important;justify-content:flex-end}
+  .cfgnav .btn{padding:6px 10px;min-width:0}
+  .cfgnav [data-savebtn]{font-size:0;gap:0;min-width:44px;padding:0 10px}
+  .cfgnav .btn.pri{flex:0 1 auto}
+  body.kb-open .cfgnav{position:static}
+  .cfgmods{max-height:none}
+  .famgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .famcard{padding:10px 12px}.famcard b{font-size:16px}
+  .cfggrid > .cfgpainel:not(#cfgPainel),.cfggrid > .cfgprev{display:none}
+  #cfgPainel{position:fixed;left:0;right:0;bottom:0;z-index:46;max-height:82dvh;overflow:auto;border-radius:16px 16px 0 0;margin:0;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.25);animation:sheetIn .18s ease;overscroll-behavior:contain}
+  body.cfg-sheet .cfgscrim{display:block;position:fixed;inset:0;z-index:45;background:rgba(10,10,10,.45)}
+  .cfgcomp,.cfgcomp tbody{display:block}
+  .cfgcomp thead{display:none}
+  .cfgcomp tr{display:grid;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"chk nome why" "chk qtd tot";align-items:center;gap:2px 8px;padding:8px 6px;border-bottom:1px solid var(--line)}
+  .cfgcomp td{border:0;padding:0}
+  .cfgcomp td:nth-child(1){grid-area:chk;width:auto}
+  .cfgcomp td:nth-child(2){grid-area:nome}
+  .cfgcomp td:nth-child(3){grid-area:qtd;text-align:left}
+  .cfgcomp td:nth-child(4){display:none}
+  .cfgcomp td:nth-child(5){grid-area:tot}
+  .cfgcomp td:nth-child(6){grid-area:why}
+  .cfgcomp tr.grp,.cfgcomp tr.tot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 6px}
+  .cfgcomp tr.grp td,.cfgcomp tr.tot td{display:block}
+  .cfgcomp tr.grp td:empty,.cfgcomp tr.tot td:empty{display:none}
+  .cfgwhy{font-size:0;gap:0;min-width:44px;padding:0}
+  .cfgalerts li{flex-direction:column;align-items:stretch}
+  .alerts li{flex-wrap:wrap}.alerts .alact{margin-left:0;justify-content:flex-start}
+  .icards{grid-template-columns:minmax(0,1fr)}
+  .areatabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;width:100%}
+  .areatabs button{white-space:nowrap;flex:0 0 auto}
+  .memo .r{grid-template-columns:minmax(0,1fr) auto}.memo .r .p{grid-column:2}
+  .split2,.split{gap:12px}
+  .flowbar{gap:8px}
+  .docbar{gap:8px}
+  .vz-tip{max-width:calc(100vw - 24px)}
+}
+@media (max-width:767px) and (max-height:700px){.sumbar.sticky{position:static;box-shadow:none}}
+@media (max-width:480px){
+  .fields,.fields.wide{grid-template-columns:minmax(0,1fr)}
+  .ifacts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tchip{width:calc(50% - 4px)}
+  .hsearch .btn{flex:1 1 auto}
+}
+@media (max-width:359px){
+  .famgrid{grid-template-columns:minmax(0,1fr)}
+  .bnav button{font-size:10.5px}
+  .kpis{grid-template-columns:minmax(0,1fr)}
+}
+/* celular deitado: barras mais baixas para sobrar conteúdo */
+@media (max-width:950px) and (max-height:500px) and (orientation:landscape){
+  .sumbar.sticky{position:static;box-shadow:none}
+  .cfgnav{position:static}
+  .top{position:static}
+}
+@media (max-width:767px) and (max-height:500px) and (orientation:landscape){
+  .bnav button{min-height:44px;flex-direction:row;gap:6px}
+  main{padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
+}
 </style>
 </head>
 <body>
@@ -606,10 +797,18 @@ tr.click:has(+ tr.etrow) td{border-bottom:0}
       <button class="btn ghost" id="bOpen" data-ico="folder-search" title="Abrir uma proposta salva">Abrir</button>
       <button class="btn ghost" id="bCancel" data-ico="x" title="Desistir do que não foi salvo" hidden>Cancelar</button>
       <button class="btn pri" id="bSave" data-ico="save" title="Salvar (Ctrl+S)">Salvar</button>
+      <button class="btn ghost ic-only" id="bMore" data-ico="ellipsis-vertical" title="Mais ações: nova, abrir, cancelar, tema, modo detalhado" aria-haspopup="true" aria-expanded="false"><span class="tl">Mais ações</span></button>
     </div>
   </div>
 </header>
 <main id="app"><div class="loading">Carregando a planilha…</div></main>
+<nav class="bnav" id="bnav" aria-label="Navegação principal">
+  <button data-view="inicio" data-ico="house"><span>Início</span></button>
+  <button data-view="proposta" data-ico="file-text"><span>Propostas</span></button>
+  <button data-view="pendencias" data-ico="clipboard-list"><span>Pendências</span></button>
+  <button data-view="cadastro" data-ico="database"><span>Cadastros</span></button>
+  <button data-bmais data-ico="menu" aria-haspopup="true"><span>Mais</span></button>
+</nav>
 </div>
 </div>
 <div id="overlay"></div>
@@ -5546,7 +5745,9 @@ window.PRICER_ESCOPO_PADRAO = {
 "minus": "<svg class=\"lucide lucide-minus\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M5 12h14\"/>",
 "file-spreadsheet": "<svg class=\"lucide lucide-file-spreadsheet\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z\"/> <path d=\"M14 2v4a2 2 0 0 0 2 2h4\"/> <path d=\"M8 13h2\"/> <path d=\"M14 13h2\"/> <path d=\"M8 17h2\"/> <path d=\"M14 17h2\"/>",
 "table-2": "<svg class=\"lucide lucide-table-2\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18\"/>",
-"cog": "<svg class=\"lucide lucide-cog\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z\"/> <path d=\"M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z\"/> <path d=\"M12 2v2\"/> <path d=\"M12 22v-2\"/> <path d=\"m17 20.66-1-1.73\"/> <path d=\"M11 10.27 7 3.34\"/> <path d=\"m20.66 17-1.73-1\"/> <path d=\"m3.34 7 1.73 1\"/> <path d=\"M14 12h8\"/> <path d=\"M2 12h2\"/> <path d=\"m20.66 7-1.73 1\"/> <path d=\"m3.34 17 1.73-1\"/> <path d=\"m17 3.34-1 1.73\"/> <path d=\"m11 13.73-4 6.93\"/>"
+"cog": "<svg class=\"lucide lucide-cog\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z\"/> <path d=\"M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z\"/> <path d=\"M12 2v2\"/> <path d=\"M12 22v-2\"/> <path d=\"m17 20.66-1-1.73\"/> <path d=\"M11 10.27 7 3.34\"/> <path d=\"m20.66 17-1.73-1\"/> <path d=\"m3.34 7 1.73 1\"/> <path d=\"M14 12h8\"/> <path d=\"M2 12h2\"/> <path d=\"m20.66 7-1.73 1\"/> <path d=\"m3.34 17 1.73-1\"/> <path d=\"m17 3.34-1 1.73\"/> <path d=\"m11 13.73-4 6.93\"/>",
+"ellipsis-vertical": "<svg class=\"lucide lucide-ellipsis-vertical\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <circle cx=\"12\" cy=\"12\" r=\"1\"/> <circle cx=\"12\" cy=\"5\" r=\"1\"/> <circle cx=\"12\" cy=\"19\" r=\"1\"/>",
+"layout-list": "<svg class=\"lucide lucide-layout-list\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <rect width=\"7\" height=\"7\" x=\"3\" y=\"3\" rx=\"1\"/> <rect width=\"7\" height=\"7\" x=\"3\" y=\"14\" rx=\"1\"/> <path d=\"M14 4h7\"/> <path d=\"M14 9h7\"/> <path d=\"M14 15h7\"/> <path d=\"M14 20h7\"/>"
 };
   window.ICO = (n, cls) => P[n] ? '<svg class="ico' + (cls ? ' ' + cls : '') + '" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + P[n] + '</svg>' : '';
   window.ICO.nomes = Object.keys(P);
@@ -6737,7 +6938,7 @@ window.PRICER_ESCOPO_PADRAO = {
     function emailModal(o) {
       modal(`<h2>${esc(o.titulo)}</h2>${o.intro ? `<p class="sub" style="margin:0">${esc(o.intro)}</p>` : ''}
         <div class="fields">
-          ${o.grupos.map((g) => `<div class="f span2"><label class="chk"><input type="checkbox" data-eg="${g.k}"${g.on ? ' checked' : ''}> ${esc(g.lb)}</label><input data-egto="${g.k}" value="${esc(g.emails || '')}" placeholder="e-mail ${esc(g.lb.toLowerCase())}"></div>`).join('')}
+          ${o.grupos.map((g) => `<div class="f span2"><label class="chk"><input type="checkbox" data-eg="${g.k}"${g.on ? ' checked' : ''}> ${esc(g.lb)}</label><input data-egto="${g.k}" inputmode="email" value="${esc(g.emails || '')}" placeholder="e-mail ${esc(g.lb.toLowerCase())}"></div>`).join('')}
           <div class="f spanall"><label for="emCc">Cópia</label><input id="emCc" value="${esc(o.cc || '')}" placeholder="opcional"></div>
           <div class="f spanall"><label for="emAss">Assunto</label><input id="emAss" value="${esc(o.assunto)}"></div>
           <div class="f spanall"><label for="emTxt">Mensagem</label><textarea id="emTxt" rows="12"></textarea></div>
@@ -7396,7 +7597,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const r = e.target.closest('[data-restore]');
     if (r) { const [s, a] = r.dataset.restore.split('|'); commit(s, a, null, true); return; }
     const go = e.target.closest('[data-goitem]');
-    if (go) { ui.item = +go.dataset.goitem; ui.itemFull = false; setView('item'); return; }
+    if (go) { ui.item = +go.dataset.goitem; ui.itemFull = false; cfgEtRestart(ui.item); setView('item'); return; }
     const nv = e.target.closest('[data-view]');
     if (nv) { if (ui.simple && nv.dataset.view === 'item' && !nv.closest('#app')) { ui.step = cabOk() ? 2 : 1; if (!cabOk()) ui.reqShow = true; ui.propFull = false; setView('proposta'); return; } if (nv.dataset.view === 'cadastro' && areaOfTab(ui.cad) === 'sistema') ui.cad = 'insumos'; setView(nv.dataset.view); return; }
   });
@@ -7916,10 +8117,13 @@ window.PRICER_ESCOPO_PADRAO = {
     return `<br><small class="sub">${esc(t).replace('\u0001', '<b>' + a.com + '</b>')} ${a.aplicar ? '<button class="btn sm pri" data-apaplica>Aplicar o valor aprovado na proposta</button> ' : ''}<button class="restore" data-apopen="${esc(a.id)}">ver aprovação</button></small>`;
   }
   // cada alerta: corrigir agora (quando dá) ou seguir assim, com a justificativa no histórico
-  const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => { const key = esc(JSON.stringify([x.S, x.msg]));
-    const ap = x.aprov && x.aprov.estado; const okAp = ap === 'aprovada'; const pedeAp = x.aprov && !x.ack && (!ap || ap === 'reprovada' || ap === 'vencida');
+  const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => {
+    const okAp = x.aprov && x.aprov.estado === 'aprovada';
     return `<li class="${x.ack || okAp ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${aprovLinha(x)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(new Date(x.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span>
-      <span class="alact">${pedeAp ? `<button class="btn sm${ap ? ' pri' : ''}" data-alaprov>${ap ? 'Pedir de novo' : 'Pedir aprovação'}</button>` : ''}${x.fix && !x.ack && !okAp ? `<button class="btn sm pri" data-alfix="${esc(JSON.stringify({ S: x.S, act: x.fix.act, data: x.fix.data }))}">${esc(x.fix.lb)}</button>` : ''}${x.ack ? `<button class="restore" data-alundo="${key}">desfazer</button>` : x.lvl !== 'info' && !x.aprov ? `<button class="btn sm" data-alack="${key}">Seguir assim</button>` : ''}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
+      <span class="alact">${alAcoes(x)}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
+  // ações de um alerta (as mesmas na tela clássica, na conferência e no configurador)
+  function alAcoes(x) { const key = esc(JSON.stringify([x.S, x.msg])); const ap = x.aprov && x.aprov.estado; const okAp = ap === 'aprovada'; const pedeAp = x.aprov && !x.ack && (!ap || ap === 'reprovada' || ap === 'vencida');
+    return `${pedeAp ? `<button class="btn sm${ap ? ' pri' : ''}" data-alaprov>${ap ? 'Pedir de novo' : 'Pedir aprovação'}</button>` : ''}${x.fix && !x.ack && !okAp ? `<button class="btn sm pri" data-alfix="${esc(JSON.stringify({ S: x.S, act: x.fix.act, data: x.fix.data }))}">${esc(x.fix.lb)}</button>` : ''}${x.ack ? `<button class="restore" data-alundo="${key}">desfazer</button>` : x.lvl !== 'info' && !x.aprov ? `<button class="btn sm" data-alack="${key}">Seguir assim</button>` : ''}`; }
   const countPills = (list) => { const n = (l) => list.filter((x) => x.lvl === l && !x.ack && !(x.aprov && x.aprov.estado === 'aprovada')).length; return list.length ? [['bad', 'alerta'], ['warn', 'aviso']].filter(([l]) => n(l)).map(([l, w]) => `<span class="pill ${l}">${n(l)} ${w}${n(l) > 1 ? 's' : ''}</span>`).join(' ') || '<span class="pill mute">só informação</span>' : '<span class="pill ok">sem alertas</span>'; };
 
   // ações dos alertas
@@ -7952,7 +8156,7 @@ window.PRICER_ESCOPO_PADRAO = {
       if (a.act === 'desconto') { const d0 = val(S, 'C8'); commit(S, 'C8', null, true); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': desconto retirado', mudancas: [{ campo: 'Desconto', de: d0, para: null }] }); toast('Desconto retirado'); return; }
       if (a.act === 'esp') { ui.item = i; ui.itemFull = false; ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: 3 }); if (ui.view !== 'item') setView('item'); else render();
         setTimeout(() => { const el = document.getElementById('esp_' + S.replace(/\W/g, '') + '_' + a.data); if (!el) return; el.scrollIntoView({ block: 'start' }); const vazio = [...el.querySelectorAll('[data-esp]')].find((x) => !x.value.trim()); if (vazio) vazio.focus(); }, 60); return; }
-      if (a.act === 'foco' || a.act === 'abrir') { ui.item = i; ui.itemFull = false; ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: a.act === 'foco' ? 1 : 3 }); if (ui.view !== 'item') setView('item'); else render();
+      if (a.act === 'foco' || a.act === 'abrir') { ui.item = i; ui.itemFull = false; ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: a.act === 'foco' ? 1 : 3 }); if (a.act === 'foco' && !['C17', 'C6', 'C21'].includes(a.data)) ui.cfgModo = Object.assign({}, ui.cfgModo, { [S]: 'carac' }); if (ui.view !== 'item') setView('item'); else render();
         setTimeout(() => { if (a.act === 'abrir') { const d = document.querySelector(`details[data-keep="${a.data}"]`); if (d) { d.open = true; d.scrollIntoView({ block: 'start' }); } return; }
           const el = document.getElementById(id(S, a.data)); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } else toast('Escolha a família e o equipamento primeiro'); }, 60); return; }
     }
@@ -8022,7 +8226,7 @@ window.PRICER_ESCOPO_PADRAO = {
     }
     if (e.target.closest('[data-cabnext]')) {
       if (!cabOk()) { ui.reqShow = true; render(); const m = document.querySelector('.f.miss'); if (m) m.scrollIntoView({ block: 'center' }); toast('Preencha os campos marcados'); return; }
-      ui.reqShow = false; if (ui.famPend && !filled(ITEMS[0])) { ui.item = 0; ui.itemFull = false; ui.famPend = null; setView('item'); return; }
+      ui.reqShow = false; if (ui.famPend && !filled(ITEMS[0])) { ui.item = 0; ui.itemFull = false; ui.famPend = null; cfgEtRestart(0); setView('item'); return; }
       ui.famPend = null; ui.step = 2; setView('proposta'); return;
     }
   });
@@ -8548,7 +8752,7 @@ window.PRICER_ESCOPO_PADRAO = {
   // do cartão da proposta direto para o bloco da folha do fabricante no item
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-insabre]'); if (b) { ui.cad = 'insumos'; insumoModal(b.dataset.insabre); } });
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-fdir]'); if (!b) return; const i = ITEMS.indexOf(b.dataset.fdir); if (i < 0) return;
-    ui.item = i; ui.itemFull = false; openSet.fdprop = true; if (ui.view !== 'item') setView('item'); else render();
+    ui.item = i; ui.itemFull = false; openSet.fdprop = true; ui.cfgEt = Object.assign({}, ui.cfgEt, { [ITEMS[i]]: 3 }); if (ui.view !== 'item') setView('item'); else render();
     setTimeout(() => { const d = document.querySelector('details[data-keep="fdprop"]'); if (d) { d.open = true; const alvo = d.querySelector('[data-fdup$="|fab"]') ? d.querySelector('[data-fdup$="|fab"]').closest('.fdslot') : d.querySelector('[data-fabler]')?.closest('.fdslot'); (alvo || d).scrollIntoView({ block: 'start' }); } }, 80); });
   document.addEventListener('click', async (e) => { const b = e.target.closest('[data-fabler]'); if (!b || state.verRev) return; const S = b.dataset.fabler;
     try { const F0 = (((pcGet().fd || {})[S]) || {}).fab; const file = await fdArquivo(S, 'fab'); if (!F0 || !file) { toast('Não encontrei o arquivo.'); return; } if (!await DLG.confirmar('Ler de novo? As marcações e correções feitas nesta folha voltam ao que o app lê.')) return; await fabLerArquivo(S, file, { docId: F0.docId, nome: F0.nome }); } catch (er) { toast(errMsg(er)); } });
@@ -8959,7 +9163,7 @@ window.PRICER_ESCOPO_PADRAO = {
       const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
       try { await gravarModelo(id, { nome, desc: txt(S, 'C28'), fam: txt(S, 'C21'), cells, at: new Date().toISOString(), by: REG.me || null }); logEv({ tipo: 'Modelo de item salvo', ref: id, desc: nome + ' · ' + txt(S, 'C28'), mudancas: [] }); toast('Modelo salvo'); render(); } catch (er) { toast(errMsg(er)); } return; }
     const us = e.target.closest('[data-moduse]'); if (us) { const x = modelosItem.find((y) => y.id === us.dataset.moduse); const j = firstFree(); if (!x || j < 0) return; const S = ITEMS[j];
-      state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.cells)); build(); persist(); dirty = true; listCache = new Map(); logEv({ tipo: 'Modelo de item usado', ref: docTitle(), desc: S + ' ← ' + x.nome, mudancas: [] }); ui.item = j; ui.itemFull = false; setView('item'); toast('Item criado a partir do modelo: confira e ajuste'); return; }
+      state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.cells)); build(); persist(); dirty = true; listCache = new Map(); logEv({ tipo: 'Modelo de item usado', ref: docTitle(), desc: S + ' ← ' + x.nome, mudancas: [] }); ui.item = j; ui.itemFull = false; cfgEtRestart(j); setView('item'); toast('Item criado a partir do modelo: confira e ajuste'); return; }
     const dl = e.target.closest('[data-moddel]'); if (dl) { if (!await DLG.confirmar('Excluir este modelo?')) return; try { await gravarModelo(dl.dataset.moddel, null); logEv({ tipo: 'Modelo de item excluído', ref: dl.dataset.moddel, desc: '', mudancas: [] }); render(); } catch (er) { toast(errMsg(er)); } }
   });
 
@@ -9065,7 +9269,7 @@ window.PRICER_ESCOPO_PADRAO = {
   document.addEventListener('click', (e) => {
     const g = e.target.closest('[data-confgo]'); if (!g) return; let go; try { go = JSON.parse(g.dataset.confgo); } catch (er) { return; }
     if (go.save) { $('#bSave').onclick(); return; }
-    if (typeof go.item === 'number') { ui.item = go.item; ui.itemFull = false; setView('item'); return; }
+    if (typeof go.item === 'number') { ui.item = go.item; ui.itemFull = false; cfgEtRestart(go.item); setView('item'); return; }
     ui.step = go.step || 1; setView('proposta'); if (go.sel) setTimeout(() => { const el = document.querySelector(go.sel); if (el) el.scrollIntoView({ block: 'center' }); }, 60);
   });
 
@@ -9111,7 +9315,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}</em></div>
         <div class="k x"><span>Custo</span><b>${brl(custo)}</b><em></em></div>
         <div class="k x"><span>Itens</span><b>${nItens}</b><em></em></div>
-        <div class="k"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>
+        <div class="k kpend" ${spv || fx ? 'data-view="pendencias"' : 'data-step="5"'} role="button" tabindex="0" title="Ver as pendências"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>
         <button class="btn sm ctx-more" data-ctxmore aria-expanded="${ui.ctxOpen ? 'true' : 'false'}" data-ico="${ui.ctxOpen ? 'chevron-down' : 'chevron-right'}">${ui.ctxOpen ? 'menos' : 'mais'}</button></div>
     </section>`;
   }
@@ -9226,6 +9430,35 @@ window.PRICER_ESCOPO_PADRAO = {
   }
 
 
+  // blocos do item usados na tela clássica e na etapa Conferir do configurador
+  const lenTag = (n, lim) => `<span class="pill ${n > lim ? 'bad' : 'ok'}">${n} de ${lim} caracteres</span>`;
+  function itemCodHtml(S) { const fs = (a, lb, o) => fieldS(S, a, lb, o);
+    return `<details class="card"${keep('cod')}><summary>Código e descrição <span class="sub">${lenTag(txt(S, 'C27').length, 60)} ${lenTag(txt(S, 'C28').length, 120)}</span></summary>
+        <div class="stack">
+          <div><div class="lbl">Código ${lenTag(txt(S, 'C27').length, 60)}</div><div class="codebox">${esc(txt(S, 'C27') || 'o código sai aqui')}</div></div>
+          <div><div class="lbl">Descrição breve ${lenTag(txt(S, 'C28').length, 120)}</div><p class="txtv">${esc(txt(S, 'C28')) || '—'}</p></div>
+          <div><div class="lbl">Descrição completa</div><p class="txtv">${esc(txt(S, 'C29')) || '—'}</p></div>
+          <div><div class="lbl">Ponto operacional</div><p class="txtv">${esc(txt(S, 'C30')) || '—'}</p></div>
+          <div class="fields">${fs('J21', 'Marca')}${fs('G7', 'NCM (do cadastro Fiscal)')}${fs('H21', 'Unidade (do cadastro Fiscal)')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div>
+        </div></details>`; }
+  function itemFciHtml(S) { const fs = (a, lb, o) => fieldS(S, a, lb, o); const num = (x) => (typeof x === 'number' ? x : 0);
+    const imp = []; let nNac = 0;
+    for (let r = 34; r <= 112; r++) { if ((r > 63 && r < 68) || val(S, 'AU' + r) !== 1) continue; if (txt(S, 'AB' + r) === 'IMP') imp.push({ d: txt(S, 'D' + r), q: show(S, 'F' + r), t: num(val(S, 'F' + r)) * num(val(S, 'AD' + r)) }); else nNac++; }
+    for (const x of fciHidden(S)) { if (x.ori === 'IMP') imp.push({ d: x.desc, q: fmtNum(x.qtd), t: x.tot }); else nNac++; }
+    const fciSt = txt(S, 'C196');
+    return `<details class="card"${keep('fci')}><summary>FCI <span class="sub">conteúdo importado ${pct(val(S, 'C172'), 2)} · ${esc(txt(S, 'E172'))} · ${/^OK/.test(fciSt) ? 'pronta' : 'com pendência'}</span></summary>
+        <div class="stack">
+          ${fciSt && !/^OK/.test(fciSt) ? `<div class="banner warn">${esc(fciSt)}</div>` : ''}
+          <div class="kpis">
+            <div class="kpi"><span>Conteúdo importado</span><b>${pct(val(S, 'C172'), 2)}</b><em>${esc(txt(S, 'E172'))} (limite ${pct(val('PARÂMETROS', 'C9'), 0)})</em></div>
+            <div class="kpi"><span>Valor da saída</span><b>${brl(val(S, 'H170'))}</b><em>sem ICMS e IPI</em></div>
+            <div class="kpi"><span>ICMS na nota</span><b>${pct(val(S, 'C181'), 2)}</b><em>CST ${esc(txt(S, 'C183'))}</em></div>
+          </div>
+          <div class="fields">${fs('C193', 'Unidade p/ transmissão')}${fs('C194', 'Finalidade', { list: ['ATIVO IMOBILIZADO', 'USO E CONSUMO'] })}</div>
+          ${imp.length ? `<div class="tw"><table class="t"><thead><tr><th>Componente importado</th><th>Qtd</th><th>Parcela importada</th></tr></thead><tbody>${imp.map((x) => `<tr><td>${esc(x.d)}</td><td class="n">${esc(x.q)}</td><td class="n">${fmtNum(x.t, '#,##0.00')}</td></tr>`).join('')}<tr class="tot"><td colspan="2">Total importado</td><td class="n">${show(S, 'H166')}</td></tr></tbody></table></div>` : '<p class="sub" style="margin:0">Nenhum componente importado.</p>'}
+          <p class="sub" style="margin:0">${nNac} componente(s) nacional(is): entram na FCI com parcela importada zero.</p>
+          <div class="docbar"><button class="btn sm pri" data-doc="fcipdf" data-docitem="${S}">FCI em PDF</button><button class="btn sm" data-doc="fcixlsx" data-docitem="${S}">FCI em Excel (template)</button></div>
+        </div></details>`; }
   function vItemS() {
     const S = ITEMS[ui.item]; const f = (a, lb, o) => field(S, a, lb, o); const fs = (a, lb, o) => fieldS(S, a, lb, o);
     const c = arrCounts(S); const ok = filled(S); const al = alertsFor(S);
@@ -9274,12 +9507,6 @@ window.PRICER_ESCOPO_PADRAO = {
       return `<tr>${first}${insumo}${x.esc ? cellIn(S, 'F' + r) : qtdRO(S, r)}${custo}${updCell(S, r)}<td class="n">${show(S, 'H' + r)}</td><td class="n sub">${pItem(num(val(S, 'H' + r)))}</td><td>${obs(r)}${x.esc ? ` <button class="restore" data-rmrow="${r}">remover</button>` : ''}</td></tr>`;
     };
     const comp = Object.entries(groups).filter(([, g]) => g.length).map(([k, g]) => { const gt = g.reduce((t, x) => t + x.tot, 0); return `<tr class="grp"><td colspan="5">${gl[k]}</td><td class="n">${fmtNum(gt, '#,##0.00')}</td><td class="n">${pItem(gt)}</td><td></td></tr>${g.map(rowC).join('')}`; }).join('');
-    // código e FCI
-    const lenTag = (n, lim) => `<span class="pill ${n > lim ? 'bad' : 'ok'}">${n} de ${lim} caracteres</span>`;
-    const imp = []; let nNac = 0;
-    for (let r = 34; r <= 112; r++) { if ((r > 63 && r < 68) || val(S, 'AU' + r) !== 1) continue; if (txt(S, 'AB' + r) === 'IMP') imp.push({ d: txt(S, 'D' + r), q: show(S, 'F' + r), t: num(val(S, 'F' + r)) * num(val(S, 'AD' + r)) }); else nNac++; }
-    for (const x of fciHidden(S)) { if (x.ori === 'IMP') imp.push({ d: x.desc, q: fmtNum(x.qtd), t: x.tot }); else nNac++; }
-    const fciSt = txt(S, 'C196');
     const cond = `Desconto ${pct(val(S, 'C8') || 0, 1)} · margem alvo ${pct(val(S, 'P89'))} · start-up ${val(S, 'K12') ? brl(val(S, 'K12')) + '/un.' : 'não'}`;
     return `<div class="stack">
       <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-step="2">← Itens da proposta</button><h1 style="margin-top:8px">${S}</h1><div class="sub">${esc(txt(S, 'C28')) || 'Escolha um modelo pronto ou monte o equipamento abaixo.'}</div></div>
@@ -9304,28 +9531,9 @@ window.PRICER_ESCOPO_PADRAO = {
         <p class="sub" style="margin:0 0 10px">Verde é o que a montagem escolheu sozinha. O insumo vem da lista da família; preço, origem e data vêm do cadastro, e a quantidade vem da estrutura do item (Engenharia → Estruturas). Só nos componentes adicionais você informa a quantidade. Se o insumo não existe ou está sem preço, use "pedir cadastro".</p>
         ${nComp ? `<div class="tw"><table class="t comp"><thead><tr><th>Item / família</th><th>Insumo</th><th>Qtd</th><th>Custo unit.</th><th>Preço atualizado em</th><th>Custo total</th><th>% do item</th><th></th></tr></thead><tbody>${comp}<tr class="tot"><td colspan="5">Custo do item</td><td class="n">${brl(val(S, 'H114'))}</td><td class="n">100%</td><td></td></tr></tbody></table></div>` : '<p class="sub">Os componentes aparecem quando o equipamento estiver escolhido.</p>'}
         <div class="docbar" style="margin-top:10px"><button class="btn sm" data-addrow>+ Adicionar componente do cadastro</button><button class="btn sm" data-pedir="${esc(JSON.stringify({ linha: { rotulo: S + ' · novo componente' } }))}">Pedir cadastro de insumo</button></div></details>
-      <details class="card"${keep('cod')}><summary>Código e descrição <span class="sub">${lenTag(txt(S, 'C27').length, 60)} ${lenTag(txt(S, 'C28').length, 120)}</span></summary>
-        <div class="stack">
-          <div><div class="lbl">Código ${lenTag(txt(S, 'C27').length, 60)}</div><div class="codebox">${esc(txt(S, 'C27') || 'o código sai aqui')}</div></div>
-          <div><div class="lbl">Descrição breve ${lenTag(txt(S, 'C28').length, 120)}</div><p class="txtv">${esc(txt(S, 'C28')) || '—'}</p></div>
-          <div><div class="lbl">Descrição completa</div><p class="txtv">${esc(txt(S, 'C29')) || '—'}</p></div>
-          <div><div class="lbl">Ponto operacional</div><p class="txtv">${esc(txt(S, 'C30')) || '—'}</p></div>
-          <div class="fields">${fs('J21', 'Marca')}${fs('G7', 'NCM (do cadastro Fiscal)')}${fs('H21', 'Unidade (do cadastro Fiscal)')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div>
-        </div></details>
+      ${itemCodHtml(S)}
       ${itemPropCard(S)}
-      <details class="card"${keep('fci')}><summary>FCI <span class="sub">conteúdo importado ${pct(val(S, 'C172'), 2)} · ${esc(txt(S, 'E172'))} · ${/^OK/.test(fciSt) ? 'pronta' : 'com pendência'}</span></summary>
-        <div class="stack">
-          ${fciSt && !/^OK/.test(fciSt) ? `<div class="banner warn">${esc(fciSt)}</div>` : ''}
-          <div class="kpis">
-            <div class="kpi"><span>Conteúdo importado</span><b>${pct(val(S, 'C172'), 2)}</b><em>${esc(txt(S, 'E172'))} (limite ${pct(val('PARÂMETROS', 'C9'), 0)})</em></div>
-            <div class="kpi"><span>Valor da saída</span><b>${brl(val(S, 'H170'))}</b><em>sem ICMS e IPI</em></div>
-            <div class="kpi"><span>ICMS na nota</span><b>${pct(val(S, 'C181'), 2)}</b><em>CST ${esc(txt(S, 'C183'))}</em></div>
-          </div>
-          <div class="fields">${fs('C193', 'Unidade p/ transmissão')}${fs('C194', 'Finalidade', { list: ['ATIVO IMOBILIZADO', 'USO E CONSUMO'] })}</div>
-          ${imp.length ? `<div class="tw"><table class="t"><thead><tr><th>Componente importado</th><th>Qtd</th><th>Parcela importada</th></tr></thead><tbody>${imp.map((x) => `<tr><td>${esc(x.d)}</td><td class="n">${esc(x.q)}</td><td class="n">${fmtNum(x.t, '#,##0.00')}</td></tr>`).join('')}<tr class="tot"><td colspan="2">Total importado</td><td class="n">${show(S, 'H166')}</td></tr></tbody></table></div>` : '<p class="sub" style="margin:0">Nenhum componente importado.</p>'}
-          <p class="sub" style="margin:0">${nNac} componente(s) nacional(is): entram na FCI com parcela importada zero.</p>
-          <div class="docbar"><button class="btn sm pri" data-doc="fcipdf" data-docitem="${S}">FCI em PDF</button><button class="btn sm" data-doc="fcixlsx" data-docitem="${S}">FCI em Excel (template)</button></div>
-        </div></details>
+      ${itemFciHtml(S)}
       `}
       <div class="flowbar"><button class="btn" data-step="2">← Itens da proposta</button><span style="display:flex;gap:6px">${!txt(S, 'C17') && ok && c.code && !(c.d && c.e) ? '<button class="btn" data-savemodel>Salvar como modelo pronto</button>' : ''}<button class="btn" data-dup="${ui.item}">Duplicar</button><button class="btn" data-rmitem="${ui.item}">Remover</button></span></div>
       <p class="sub" style="text-align:right;margin:0"><button class="restore" data-cfgassistido>voltar ao configurador assistido</button> · Precisa da planilha célula por célula? <button class="restore" data-itemfull>abrir a visão completa</button></p>
@@ -9344,7 +9552,9 @@ window.PRICER_ESCOPO_PADRAO = {
   function cfgPut(S, fn) { const all = JSON.parse(JSON.stringify(cfgAll())); all[S] = all[S] || {}; fn(all[S]); if (!Object.keys(all[S]).length) delete all[S]; pcSet('cfg', Object.keys(all).length ? all : undefined); }
   // etapa aberta de cada item (preferência da tela): item novo começa em Configurar; item já montado abre em Conferir
   const cfgEtapa = (S) => { ui.cfgEt = ui.cfgEt || {}; if (!ui.cfgEt[S]) ui.cfgEt[S] = filled(S) ? 3 : 1; return ui.cfgEt[S]; };
-  const cfgIr = (S, n, sel) => { ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: n }); if (sel !== undefined) ui.cfgSel = sel ? { S, k: sel } : null; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
+  // abrir o item pela lista: item preenchido vai para Conferir, item novo para Configurar
+  const cfgEtRestart = (i) => { const k = ITEMS[i]; if (ui.cfgEt && k in ui.cfgEt) { ui.cfgEt = Object.assign({}, ui.cfgEt); delete ui.cfgEt[k]; } };
+  const cfgIr = (S, n, sel, campo) => { ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: n }); if (n === 1 && campo && !['C17', 'C6', 'C21'].includes(campo)) ui.cfgModo = Object.assign({}, ui.cfgModo, { [S]: 'carac' }); if (sel !== undefined) ui.cfgSel = sel ? { S, k: sel } : null; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
   // grava várias células do item de uma vez (uma só renderização); null = volta ao automático
   function cfgSet(S, cells) {
     const tg = target(S); tg[S] = tg[S] || {}; const sh = wb.sheet(S);
@@ -9425,7 +9635,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const NV = { bad: 'imped', warn: 'aviso', info: 'info' };
     for (const a of alertsFor(S)) { const go = a.fix && a.fix.act === 'foco' ? { et: 1, campo: a.fix.data } : a.fix && a.fix.act === 'pedir' ? { et: 2 } : { et: 3 };
       // política comercial (margem, piso) não bloqueia incluir: segue para aprovação
-      add(NV[a.lvl] || 'info', a.msg, go, { bloq: a.lvl === 'bad' && !a.aprov && !/margem|piso|fator/i.test(a.msg), fix: a.fix, ack: a.ack }); }
+      add(a.ack ? 'info' : NV[a.lvl] || 'info', a.msg, go, { bloq: a.lvl === 'bad' && !a.ack && !a.aprov && !/margem|piso|fator/i.test(a.msg), al: a }); }
     const vistos = new Map();
     for (const x of M.comps) {
       if (x.tipo === 'opc' || x.tipo === 'kit') continue; const go = { et: 2, sel: x.k };
@@ -9641,7 +9851,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const grp = ACIONS.concat([['ESC', 'Adicionados nesta proposta']]).map(([k, lb]) => { const L = M.comps.filter((x) => x.acion === k && x.tipo !== 'opc' && x.tipo !== 'kit'); if (!L.length) return ''; const gt = L.reduce((t, x) => t + num0(x.tot), 0);
       return `<details class="cfgcusto"><summary><span>${esc(k === 'TODOS' && ['SKID', 'CONTAINER'].includes(M.est) ? 'Equipamentos e acessórios gerais' : lb)}</span><b>${brl(gt)}</b></summary><div class="tw"><table class="t"><tbody>${L.map((x) => `<tr><td>${esc(x.rot)}<br><small class="sub">${esc(x.desc || '—')}</small></td><td class="n">${fmtNum(x.qtd)}</td><td class="n">${brl(x.tot)}</td></tr>`).join('')}</tbody></table></div></details>`; }).join('');
     const nv = { imped: ['Impeditivo', 'bad'], aviso: ['Atenção', 'warn'], info: ['Informativo', 'info'] };
-    const alertas = V.length ? `<ul class="alerts cfgalerts">${V.map((a, i) => `<li class="${nv[a.lvl][1]}"><span><b>${nv[a.lvl][0]}${a.lvl === 'imped' && !a.bloq ? ' (vai para aprovação)' : ''}:</b> ${esc(a.msg)}</span><span style="display:flex;gap:6px;flex-wrap:wrap">${a.snap && cf.snap && ['enviada', 'aprovada', 'ganha'].includes(String(state.status || '')) ? '<button class="btn sm" data-cfgfixar>Manter a composição registrada</button>' : ''}<button class="btn sm" data-cfgalert="${i}">Ir para o ${a.go.et === 1 ? 'campo' : a.go.et === 2 ? 'componente' : 'item'}</button></span></li>`).join('')}</ul>` : '<div class="banner ok" style="margin:0">Nenhuma pendência: a configuração está consistente.</div>';
+    const alertas = V.length ? `<ul class="alerts cfgalerts">${V.map((a, i) => `<li class="${a.al && a.al.ack ? 'ack' : nv[a.lvl][1]}"><span><b>${nv[a.lvl][0]}${a.lvl === 'imped' && !a.bloq ? ' (vai para aprovação)' : ''}:</b> ${esc(a.msg)}${a.al ? aprovLinha(a.al) : ''}${a.al && a.al.ack ? `<br><small class="sub">Seguindo assim: ${esc(a.al.ack.motivo)} · ${esc(new Date(a.al.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span><span class="alact" style="display:flex;gap:6px;flex-wrap:wrap">${a.al ? alAcoes(a.al) : ''}${a.snap && cf.snap && ['enviada', 'aprovada', 'ganha'].includes(String(state.status || '')) ? '<button class="btn sm" data-cfgfixar>Manter a composição registrada</button>' : ''}<button class="btn sm" data-cfgalert="${i}">Ir para o ${a.go.et === 1 ? 'campo' : a.go.et === 2 ? 'componente' : 'item'}</button></span></li>`).join('')}</ul>` : '<div class="banner ok" style="margin:0">Nenhuma pendência: a configuração está consistente.</div>';
     const chk = (k, lb) => { const c0 = conf[k]; const ok = c0 && c0.sig === sig; return `<label class="chk"><input type="checkbox" data-cfgconf="${k}"${ok ? ' checked' : ''}> ${esc(lb)}${c0 ? ` <small class="sub">${ok ? '' : '(antes de mudanças: refaça) '}${esc(fmtAt(c0.at))} · ${who(c0.by)}</small>` : ''}</label>`; };
     const nImp = V.filter((x) => x.lvl === 'imped' && x.bloq).length; const incl = cf.incl; const inclOk = incl && incl.sig === sig;
     const alt = M.comps.filter((x) => x.tipo === 'man' || x.trocado || x.qtdAlt); const opc = M.comps.filter((x) => x.cls === 'opc');
@@ -9672,17 +9882,11 @@ window.PRICER_ESCOPO_PADRAO = {
   // condições comerciais do item, código/descrição/fiscal e FCI (os mesmos campos da tela clássica)
   function cfgExtras(S) {
     const f = (a, lb, o) => field(S, a, lb, o); const fs = (a, lb, o) => fieldS(S, a, lb, o);
-    const lenTag = (n, lim) => `<span class="pill ${n > lim ? 'bad' : 'ok'}">${n} de ${lim} caracteres</span>`; const fciSt = txt(S, 'C196');
     const cond = `Desconto ${pct(val(S, 'C8') || 0, 1)} · margem alvo ${pct(val(S, 'P89'))} · start-up ${val(S, 'K12') ? brl(val(S, 'K12')) + '/un.' : 'não'}`;
     return `<details class="card"${keep('cond')}><summary>Condições deste item <span class="sub">${esc(cond)}</span></summary>
         <div class="fields">${f('C8', 'Desconto de negociação')}${fs('L17', 'Margem alvo')}${fs('J17', 'Modo de preço')}${fs('K7', 'Folga de negociação')}${f('C12', 'Start-up — distância (km)')}${f('F12', 'Start-up — diárias')}${f('I12', 'Start-up — valor fechado')}</div></details>
-      <details class="card"${keep('cod')}><summary>Código, descrição e fiscal <span class="sub">${lenTag(txt(S, 'C27').length, 60)} ${lenTag(txt(S, 'C28').length, 120)}</span></summary>
-        <div class="stack"><div><div class="lbl">Descrição completa</div><p class="txtv">${esc(txt(S, 'C29')) || '—'}</p></div>
-        <div class="fields">${fs('J21', 'Marca')}${fs('G7', 'NCM (do cadastro Fiscal)')}${fs('H21', 'Unidade (do cadastro Fiscal)')}${fs('C4', 'Descrição do item na proposta', { cls: 'span2' })}</div></div></details>
-      <details class="card"${keep('fci')}><summary>FCI <span class="sub">conteúdo importado ${pct(val(S, 'C172'), 2)} · ${esc(txt(S, 'E172'))} · ${/^OK/.test(fciSt) ? 'pronta' : 'com pendência'}</span></summary>
-        <div class="stack">${fciSt && !/^OK/.test(fciSt) ? `<div class="banner warn">${esc(fciSt)}</div>` : ''}
-          <div class="fields">${fs('C193', 'Unidade p/ transmissão')}${fs('C194', 'Finalidade', { list: ['ATIVO IMOBILIZADO', 'USO E CONSUMO'] })}</div>
-          <div class="docbar"><button class="btn sm pri" data-doc="fcipdf" data-docitem="${S}">FCI em PDF</button><button class="btn sm" data-doc="fcixlsx" data-docitem="${S}">FCI em Excel (template)</button></div></div></details>`;
+      ${itemCodHtml(S)}
+      ${itemFciHtml(S)}`;
   }
   // incluir/atualizar: valida, registra a composição, grava a proposta e só então confirma
   async function cfgIncluir(S) {
@@ -9705,7 +9909,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const go = t.closest('[data-cfget]'); if (go) { cfgIr(S, +go.dataset.cfget); return; }
     if (t.closest('[data-cfgclassico]')) { ui.cfgClassico = true; store.set(SK.view, ui); render(); return; }
     if (t.closest('[data-cfgassistido]')) { ui.cfgClassico = false; store.set(SK.view, ui); render(); return; }
-    const sl = t.closest('[data-cfgsel]'); if (sl) { ui.cfgSel = sl.dataset.cfgsel ? { S, k: sl.dataset.cfgsel } : null; render(); if (sl.dataset.cfgsel && window.innerWidth < 1000) setTimeout(() => { const p = document.getElementById('cfgPainel'); if (p) p.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30); return; }
+    const sl = t.closest('[data-cfgsel]'); if (sl) { ui.cfgSel = sl.dataset.cfgsel ? { S, k: sl.dataset.cfgsel } : null; render(); if (sl.dataset.cfgsel && window.innerWidth >= 768 && window.innerWidth < 1000) setTimeout(() => { const p = document.getElementById('cfgPainel'); if (p) p.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30); return; }
     const q1 = t.closest('[data-cfgq1]'); if (q1) { const [r, d] = q1.dataset.cfgq1.split('|'); const v = Math.max(0, qtdNum(val(S, 'F' + r)) + +d); commit(S, 'F' + r, v); return; }
     const oa = t.closest('[data-cfgopcall]'); if (oa) { const ch = {}; for (const r of oa.dataset.cfgopcall.split(',')) ch['BC' + r] = 1; cfgSet(S, ch); return; }
     if (t.closest('[data-cfgadd]')) { ui.cfgAdd = S; ui.cfgAddQ = ''; render(); setTimeout(() => { const el = document.getElementById('cfgAddQ'); if (el) el.focus(); }, 30); return; }
@@ -9717,7 +9921,7 @@ window.PRICER_ESCOPO_PADRAO = {
       const ch = {}; for (let r = 34; r <= 63; r++) for (const col of ['D', 'F', 'G', 'I']) if (overridden(S, col + r)) ch[col + r] = undefined; for (const a of Object.keys((state.doc || {})[S] || {})) if (/^BC\d+$/.test(a)) ch[a] = undefined; cfgSet(S, ch); toast('Composição no padrão da estrutura'); return; }
     if (t.closest('[data-cfgincluir]')) { await cfgIncluir(S); return; }
     if (t.closest('[data-cfgfixar]')) { if (await DLG.confirmar('Fixar a composição registrada quando o equipamento foi incluído? As linhas da estrutura passam a valer como alteração desta proposta.')) cfgFixar(S); return; }
-    const al = t.closest('[data-cfgalert]'); if (al) { const a = cfgValida(S)[+al.dataset.cfgalert]; if (!a) return; cfgIr(S, a.go.et, a.go.sel);
+    const al = t.closest('[data-cfgalert]'); if (al) { const a = cfgValida(S)[+al.dataset.cfgalert]; if (!a) return; cfgIr(S, a.go.et, a.go.sel, a.go.campo);
       setTimeout(() => { if (a.go.campo) { const el = document.getElementById(id(S, a.go.campo)); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } } else if (a.go.sel) { const el = document.getElementById('cfgc_' + a.go.sel); if (el) el.scrollIntoView({ block: 'center' }); } }, 60); return; }
     const sv = t.closest('[data-cfgsalva]'); if (sv) { ensureModelos(); const x = modelosItem.find((y) => y.id === sv.dataset.cfgsalva); if (!x) return; if (Object.keys((state.doc || {})[S] || {}).length && !await DLG.confirmar('Substituir a configuração deste item por "' + x.nome + '"?')) return;
       state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.cells)); build(); persist(); dirty = true; listCache = new Map(); logEv({ tipo: 'Modelo de item usado', ref: docTitle(), desc: S + ' ← ' + x.nome, mudancas: [] }); toast('Configuração aplicada: ' + x.nome); render(); return; }
@@ -9831,7 +10035,7 @@ window.PRICER_ESCOPO_PADRAO = {
     if (ed) { uiEdit.add(ed.dataset.edit); render(); const [s, a] = ed.dataset.edit.split('|'); const el = document.getElementById(id(s, a)); if (el) el.focus(); return; }
     const sp = e.target.closest('[data-step]');
     if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; if (!ui.simple && sp.closest('.ptabs, .flowbar, #app')) { ui.simple = true; store.set(SK.view, ui); } setView('proposta'); return; }
-    if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; setView('item'); return; }
+    if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; cfgEtRestart(j); setView('item'); return; }
     const dp = e.target.closest('[data-dup]'); if (dp) { dupItem(+dp.dataset.dup); return; }
     const rm = e.target.closest('[data-rmitem]');
     if (rm) { if (!rm.dataset.sure) { rm.dataset.sure = 1; rm.textContent = 'Confirmar remoção'; rm.classList.add('pri'); return; } rmItem(+rm.dataset.rmitem); ui.step = 2; setView('proposta'); return; }
@@ -10012,7 +10216,9 @@ window.PRICER_ESCOPO_PADRAO = {
       && (!grupos.length || FAMS_F.casa([x.id, x.produto, x.fab, x.tipo, x.obs, x.fam, x.codFab, x.descCom, x.descFab, Object.values(x.caract || {}).join(' ')].join(' '), grupos)));
     const cmp = { codigo: () => 0, produto: (a, b) => a.produto.localeCompare(b.produto), valor: (a, b) => (b.valor ?? -1) - (a.valor ?? -1), upd: (a, b) => (precoRef(a) || 0) - (precoRef(b) || 0) }[ord] || (() => 0);
     list = list.slice().sort((a, b) => (F.has(b.id) - F.has(a.id)) || cmp(a, b));
-    const shown = list.slice(0, 400); const ed = canEd();
+    // no celular os insumos aparecem em cartões, 80 por vez ("Mostrar mais"), para a tela não ficar pesada
+    const lim = window.matchMedia && window.matchMedia('(max-width: 767px)').matches ? Math.min(400, ui.insLim || 80) : 400;
+    const shown = list.slice(0, lim); const ed = canEd();
     const last = all.reduce((m, x) => (x.upd && x.upd > (m.upd || '') ? x : m), {});
     const th = (k, lb) => `<th><button class="thsort${ord === k ? ' on' : ''}" data-insord="${k}">${lb}${ord === k ? ' ▾' : ''}</button></th>`;
     const rows = shown.map((x) => `<tr class="click" data-ins="${esc(x.id)}">${ed ? `<td class="in"><input type="checkbox" data-inssel="${esc(x.id)}"${selIns.has(x.id) ? ' checked' : ''} aria-label="Selecionar ${esc(x.id)}"></td>` : ''}<td><button class="star${F.has(x.id) ? ' on' : ''}" data-insfav="${esc(x.id)}" aria-label="${F.has(x.id) ? 'Tirar dos favoritos' : 'Favoritar'}">${F.has(x.id) ? '★' : '☆'}</button></td><td class="code">${esc(x.id)}</td><td>${esc(x.fam)}</td>
@@ -10042,8 +10248,9 @@ window.PRICER_ESCOPO_PADRAO = {
           <button class="btn sm" id="insCsv">Exportar CSV</button>
           ${ed ? `<button class="btn sm" id="insLote"${selIns.size ? '' : ' disabled'}>Edição em massa (${selIns.size})</button><button class="btn sm pri" id="insNew">+ Novo insumo</button>` : ''}
         </div>
-        <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + '; refine a busca' : ''}. Clique numa linha para ver ou editar.${ed ? ' Marque as caixas para a edição em massa.' : ''}</p>
+        <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + (shown.length < 400 ? '' : '; refine a busca') : ''}. Clique numa linha para ver ou editar.${ed ? ' Marque as caixas para a edição em massa.' : ''}</p>
         <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr>${ed ? `<th><input type="checkbox" id="insSelAll" aria-label="Marcar os visíveis"></th>` : ''}<th></th>${th('codigo', 'Código')}<th>Família</th>${th('produto', 'Produto')}<th>Fabricante</th><th>Tipo/config.</th>${th('valor', 'Valor')}<th>Origem</th>${th('upd', 'Preço atualizado em')}</tr></thead><tbody>${rows || `<tr><td colspan="${ed ? 10 : 9}" class="sub">Nenhum insumo com esse filtro.</td></tr>`}</tbody></table></div>
+        ${list.length > shown.length && shown.length < 400 ? `<div class="docbar" style="margin-top:8px"><button class="btn" data-insmais>Mostrar mais ${Math.min(80, list.length - shown.length)}</button></div>` : ''}
       </section>`;
   }
   // edição em massa: escolhe o campo, vê a prévia e o impacto, confirma; fica no histórico e pode ser desfeita
@@ -10076,6 +10283,7 @@ window.PRICER_ESCOPO_PADRAO = {
   }
   document.addEventListener('click', (e) => {
     const fv = e.target.closest('[data-insfav]'); if (fv) { e.stopPropagation(); favToggle(fv.dataset.insfav); render(); return; }
+    if (e.target.closest('[data-insmais]')) { ui.insLim = Math.min(400, (ui.insLim || 80) + 80); render(); return; }
     const so = e.target.closest('[data-insord]'); if (so) { ui.insOrd = so.dataset.insord; render(); return; }
     if (e.target.closest('[data-inssemdata]')) { ui.insSit = 'semdata'; render(); return; }
     if (e.target.closest('[data-insvenc]')) { ui.insSit = 'vencido'; ui.insOrd = 'upd'; render(); return; }
@@ -11910,7 +12118,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const row = (x, i) => `<tr><td><b>${esc(x.nome)}</b></td><td>${x.papel === 'an' ? 'Agente de negócio (AN)' : 'Vendedor'}</td><td>${esc(x.email || '')}</td><td>${ed ? `<button class="restore" data-vrm="${esc(x.nome)}|${x.papel}">remover</button>` : ''}</td></tr>`;
     return `<section class="card"><h2>Vendedores e agentes de negócio <span class="sub">a proposta escolhe daqui; a taxa de comissão está na tabela de comissões</span></h2>
       <div class="tw"><table class="t"><thead><tr><th>Nome</th><th>Papel</th><th>E-mail</th><th></th></tr></thead><tbody>${L.map(row).join('') || '<tr><td colspan="4" class="sub">Ninguém cadastrado ainda.</td></tr>'}</tbody></table></div>
-      ${ed ? `<div class="fields" style="margin-top:10px"><div class="f span2"><label for="vNome">Nome</label><input id="vNome" placeholder="ex.: THIAGO SILVA"></div><div class="f"><label>Papel</label><div class="seg"><label class="on"><input type="radio" name="vPapel" value="vendedor" checked>Vendedor</label><label><input type="radio" name="vPapel" value="an">AN</label></div></div><div class="f span2"><label for="vMail">E-mail (opcional)</label><input id="vMail"></div><div class="f" style="justify-content:end"><button class="btn pri" id="vAdd">Incluir</button></div></div>` : ''}</section>`;
+      ${ed ? `<div class="fields" style="margin-top:10px"><div class="f span2"><label for="vNome">Nome</label><input id="vNome" placeholder="ex.: THIAGO SILVA"></div><div class="f"><label>Papel</label><div class="seg"><label class="on"><input type="radio" name="vPapel" value="vendedor" checked>Vendedor</label><label><input type="radio" name="vPapel" value="an">AN</label></div></div><div class="f span2"><label for="vMail">E-mail (opcional)</label><input id="vMail" type="email" inputmode="email" autocomplete="email"></div><div class="f" style="justify-content:end"><button class="btn pri" id="vAdd">Incluir</button></div></div>` : ''}</section>`;
   }
   async function salvaEquipe(lista, desc, mud) { try { await REG.setTable('EQUIPE_COM', { lista }, desc, mud || []); render(); } catch (e) { toast(errMsg(e)); } }
   document.addEventListener('click', (e) => {
@@ -12314,6 +12522,145 @@ window.PRICER_ESCOPO_PADRAO = {
     if (b.dataset.doc === 'fcixlsx') DOCS.fciXlsx(it);
   });
   build(); render();
+})();
+
+</script>
+<script>/* mobile.js */
+/* LS Pricer — uso no celular e no tablet. Só interface: nada aqui muda dados, cálculo, regras ou permissões.
+   - tabelas largas viram cartões no celular (cada valor com o nome da coluna); "Ver tabela completa" volta à tabela;
+   - barra de navegação inferior (Início, Proposta, Pendências, Cadastros, Mais) com os mesmos selos do menu lateral;
+   - "Mais ações" da barra superior (Nova, Abrir, Cancelar, Tema, Modo detalhado) num painel inferior;
+   - teclado virtual: o campo ativo fica visível e as barras fixas saem da frente enquanto o teclado está aberto;
+   - painel "Por que este componente?" do configurador como painel inferior, com fundo para fechar. */
+(function () {
+  'use strict';
+  const cel = window.matchMedia('(max-width: 767px)');
+  const app = document.getElementById('app');
+  if (!app) return;
+  const fmt = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+
+  // ---- tabelas em cartões ----
+  // ficam como tabela: planilha completa, tabelas pequenas, o memorial (colunas por item) e as que já têm layout próprio
+  const FICA = 'table.grid, table.mini, table.cfgcomp, .memo table, [data-tabela], .dlgdoc table';
+  let completa = false; try { completa = localStorage.getItem('lspricer.tabelas') === 'completa'; } catch (e) { completa = false; }
+  document.body.classList.toggle('tab-completa', completa);
+  const rotuloBotao = () => (completa ? 'Ver em cartões' : 'Ver tabela completa');
+  function cartoes(root) {
+    if (!cel.matches) return;
+    for (const t of root.querySelectorAll('table.t')) {
+      if (t.dataset.mob) continue;
+      if (t.closest(FICA) || t.matches(FICA)) { t.dataset.mob = 'fica'; continue; }
+      if (!t.offsetParent) continue; // dentro de um bloco fechado: trata quando abrir
+      const cab = t.tHead && t.tHead.rows.length ? t.tHead.rows[t.tHead.rows.length - 1] : null;
+      const caixa = t.parentElement;
+      const largura = caixa ? caixa.clientWidth : window.innerWidth;
+      if (!cab || t.scrollWidth <= largura + 2) { t.dataset.mob = 'cabe'; continue; }
+      const rot = []; for (const c of cab.cells) { const tx = fmt(c.innerText || c.textContent); for (let k = 0; k < (c.colSpan || 1); k++) rot.push(tx); }
+      for (const corpo of t.tBodies) for (const r of corpo.rows) {
+        let i = 0; let titulo = false; const n = r.cells.length;
+        if (n === 1 || [...r.cells].some((c) => c.colSpan >= rot.length - 1 && rot.length > 2)) r.classList.add('mobfull');
+        for (const c of r.cells) {
+          const lb = rot[i] || ''; i += c.colSpan || 1;
+          const so = c.querySelector('input[type=checkbox], input[type=radio]') && !fmt(c.textContent);
+          if (!titulo && !so && fmt(c.textContent).length >= 3 && !c.querySelector('input:not([type=checkbox]):not([type=radio]), select, textarea')) { c.classList.add('mobtit'); titulo = true; if (lb) c.dataset.label = lb; continue; }
+          if (lb && c.colSpan <= 1) c.dataset.label = lb; else c.removeAttribute('data-label');
+          if (so) c.classList.add('mobsel');
+        }
+      }
+      t.classList.add('mobcard'); if (t.querySelector('thead .thsort')) t.classList.add('mobsort'); t.dataset.mob = 'card';
+      const alvo = caixa && caixa.classList.contains('tw') ? caixa : t;
+      if (!alvo.previousElementSibling || !alvo.previousElementSibling.hasAttribute('data-mobtg')) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm mobtg'; b.dataset.mobtg = ''; b.textContent = rotuloBotao();
+        b.setAttribute('aria-pressed', completa ? 'true' : 'false'); alvo.before(b);
+      }
+      if (caixa && caixa.classList.contains('tw')) caixa.classList.add('mobtw');
+    }
+  }
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-mobtg]')) return;
+    completa = !completa; try { localStorage.setItem('lspricer.tabelas', completa ? 'completa' : 'cartoes'); } catch (er) { /* só nesta visita */ }
+    document.body.classList.toggle('tab-completa', completa);
+    for (const b of document.querySelectorAll('[data-mobtg]')) { b.textContent = rotuloBotao(); b.setAttribute('aria-pressed', completa ? 'true' : 'false'); }
+  });
+  document.addEventListener('toggle', (e) => { if (e.target.tagName === 'DETAILS' && e.target.open) cartoes(e.target); }, true);
+
+  // ---- barra inferior: espelha o menu lateral (página atual e selos) ----
+  const bnav = document.getElementById('bnav');
+  function espelhaNav() {
+    if (!bnav) return; let algum = false;
+    for (const b of bnav.querySelectorAll('button[data-view]')) {
+      const o = document.querySelector('#nav [data-view="' + b.dataset.view + '"]'); if (!o) continue;
+      const at = o.getAttribute('aria-current') === 'page'; if (at) algum = true;
+      b.setAttribute('aria-current', at ? 'page' : 'false');
+      const so = o.querySelector('.nbadge'); let x = b.querySelector('.nbadge');
+      if (so) { if (!x) { x = document.createElement('span'); x.className = 'nbadge'; b.appendChild(x); } x.textContent = so.textContent; b.setAttribute('aria-label', fmt(b.querySelector('span').textContent) + ' — ' + (so.title || so.textContent)); }
+      else if (x) { x.remove(); b.removeAttribute('aria-label'); }
+    }
+    // Mais: Margens, Configurações e Ajuda (e os selos delas)
+    const mais = bnav.querySelector('[data-bmais]'); if (!mais) return;
+    mais.setAttribute('aria-current', !algum && document.querySelector('#nav button[aria-current="page"]') ? 'page' : 'false');
+    const n = [...document.querySelectorAll('#nav [data-view="margens"] .nbadge, #nav [data-view="config"] .nbadge')].reduce((t, x) => t + (+x.textContent || 0), 0);
+    let x = mais.querySelector('.nbadge'); if (n) { if (!x) { x = document.createElement('span'); x.className = 'nbadge'; mais.appendChild(x); } x.textContent = n; } else if (x) x.remove();
+  }
+  if (bnav) bnav.addEventListener('click', (e) => { if (e.target.closest('[data-bmais]')) { const m = document.getElementById('bMenu'); if (m) m.click(); } });
+
+  // ---- "Mais ações" da barra superior ----
+  const bMore = document.getElementById('bMore');
+  let folha = null;
+  function fechaFolha(volta) { if (!folha) return; folha.remove(); folha = null; if (bMore) { bMore.setAttribute('aria-expanded', 'false'); if (volta) bMore.focus(); } }
+  if (bMore) bMore.addEventListener('click', () => {
+    if (folha) { fechaFolha(true); return; }
+    const ids = ['bNew', 'bOpen', 'bCancel', 'bMode', 'bTheme'];
+    const itens = ids.map((id) => document.getElementById(id)).filter((b) => b && !b.hidden);
+    folha = document.createElement('div'); folha.className = 'msheet-wrap';
+    folha.innerHTML = '<div class="mscrim" data-msfecha></div><div class="msheet" role="menu" aria-label="Mais ações"><div class="msgrip" aria-hidden="true"></div>'
+      + itens.map((b) => '<button type="button" role="menuitem" class="msitem" data-msid="' + b.id + '">' + (window.ICO ? window.ICO(b.dataset.ico || 'chevron-right') : '') + '<span>' + fmt(b.querySelector('.tl') ? b.querySelector('.tl').textContent : b.textContent) + '</span></button>').join('')
+      + '<button type="button" class="msitem msfechar" data-msfecha>' + (window.ICO ? window.ICO('x') : '') + '<span>Fechar</span></button></div>';
+    document.body.appendChild(folha); bMore.setAttribute('aria-expanded', 'true');
+    const p = folha.querySelector('.msitem'); if (p) p.focus();
+  });
+  document.addEventListener('click', (e) => {
+    if (!folha) return; const it = e.target.closest('[data-msid]');
+    if (it) { const id = it.dataset.msid; fechaFolha(false); const b = document.getElementById(id); if (b) b.click(); return; }
+    if (e.target.closest('[data-msfecha]')) fechaFolha(true);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (folha) { e.preventDefault(); fechaFolha(true); return; }
+    const f = document.body.classList.contains('cfg-sheet') && document.querySelector('#cfgPainel [data-cfgsel=""]'); if (f) { e.preventDefault(); f.click(); }
+  }, true);
+
+  // ---- teclado virtual: campo visível e barras fixas fora da frente ----
+  const vv = window.visualViewport;
+  const tecladoAberto = () => vv && window.innerHeight - vv.height > 140;
+  if (vv) vv.addEventListener('resize', () => { document.body.classList.toggle('kb-open', cel.matches && tecladoAberto()); });
+  document.addEventListener('focusin', (e) => {
+    const el = e.target; if (!cel.matches || !el.matches || !el.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea')) return;
+    setTimeout(() => { if (document.activeElement === el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 320);
+  });
+  document.addEventListener('focusout', () => setTimeout(() => { if (!tecladoAberto()) document.body.classList.remove('kb-open'); }, 200));
+
+  // ---- painel do componente (configurador) como painel inferior ----
+  function painel() {
+    const p = document.getElementById('cfgPainel'); const ja = document.querySelector('.cfgscrim');
+    if (cel.matches && p) { if (!ja) { const s = document.createElement('div'); s.className = 'cfgscrim'; s.addEventListener('click', () => { const f = document.querySelector('#cfgPainel [data-cfgsel=""]'); if (f) f.click(); }); document.body.appendChild(s); } document.body.classList.add('cfg-sheet'); }
+    else { if (ja) ja.remove(); document.body.classList.remove('cfg-sheet'); }
+  }
+
+  // atalhos que não são <button> (ex.: Pendências no resumo da proposta): Enter e espaço também acionam
+  document.addEventListener('keydown', (e) => { const el = e.target; if ((e.key === 'Enter' || e.key === ' ') && el && el.matches && el.matches('[role=button][tabindex]:not(button)')) { e.preventDefault(); el.click(); } });
+
+  // ---- a cada nova renderização ----
+  let pend = 0;
+  function passada() { pend = 0; cartoes(app); const ov = document.getElementById('overlay'); if (ov) cartoes(ov); espelhaNav(); painel(); }
+  const agenda = () => { if (!pend) pend = requestAnimationFrame(passada); };
+  new MutationObserver(agenda).observe(app, { childList: true, subtree: true });
+  const ov = document.getElementById('overlay'); if (ov) new MutationObserver(agenda).observe(ov, { childList: true, subtree: true });
+  const nav = document.getElementById('nav'); if (nav) new MutationObserver(agenda).observe(nav, { attributes: true, subtree: true, childList: true, characterData: true });
+  const troca = () => { for (const t of document.querySelectorAll('table[data-mob]')) { if (t.dataset.mob === 'cabe') delete t.dataset.mob; } document.body.classList.toggle('kb-open', false); agenda(); };
+  if (cel.addEventListener) cel.addEventListener('change', troca); else if (cel.addListener) cel.addListener(troca);
+  window.addEventListener('orientationchange', troca);
+  agenda();
 })();
 
 </script>

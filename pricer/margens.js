@@ -665,7 +665,7 @@
     function emailModal(o) {
       modal(`<h2>${esc(o.titulo)}</h2>${o.intro ? `<p class="sub" style="margin:0">${esc(o.intro)}</p>` : ''}
         <div class="fields">
-          ${o.grupos.map((g) => `<div class="f span2"><label class="chk"><input type="checkbox" data-eg="${g.k}"${g.on ? ' checked' : ''}> ${esc(g.lb)}</label><input data-egto="${g.k}" value="${esc(g.emails || '')}" placeholder="e-mail ${esc(g.lb.toLowerCase())}"></div>`).join('')}
+          ${o.grupos.map((g) => `<div class="f span2"><label class="chk"><input type="checkbox" data-eg="${g.k}"${g.on ? ' checked' : ''}> ${esc(g.lb)}</label><input data-egto="${g.k}" inputmode="email" value="${esc(g.emails || '')}" placeholder="e-mail ${esc(g.lb.toLowerCase())}"></div>`).join('')}
           <div class="f spanall"><label for="emCc">Cópia</label><input id="emCc" value="${esc(o.cc || '')}" placeholder="opcional"></div>
           <div class="f spanall"><label for="emAss">Assunto</label><input id="emAss" value="${esc(o.assunto)}"></div>
           <div class="f spanall"><label for="emTxt">Mensagem</label><textarea id="emTxt" rows="12"></textarea></div>

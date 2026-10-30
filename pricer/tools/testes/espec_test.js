@@ -24,7 +24,7 @@ const L = __dirname + '/libs/'; const { execSync } = require('child_process');
   console.log('2 insumo criado:', ins.join(' | ') || '(ver no cadastro)');
   // 3. proposta exemplo, item 01: marca o opcional pintura especial
   await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(800); await p.click('#bSave'); await p.waitForTimeout(500);
-  await p.click('[data-view="proposta"]'); await p.click('[data-step="2"]'); await p.waitForTimeout(300); await p.click('[data-goitem="0"]'); await p.waitForTimeout(600);
+  await p.click('[data-view="proposta"]'); await p.click('[data-step="2"]'); await p.waitForTimeout(300); await p.click('[data-goitem="0"]'); await p.waitForTimeout(600); if (await p.$('[data-cfgclassico]')) { await p.click('[data-cfgclassico]'); await p.waitForTimeout(500); }
   await p.evaluate(() => { const d = document.querySelector('details[data-keep="comp"]'); if (d) d.open = true; });
   await p.click('[data-addrow]'); await p.waitForTimeout(400);
   const idC = await p.evaluate(() => document.activeElement && document.activeElement.id); const r = idC.replace(/^.*_C/, '');
@@ -48,7 +48,7 @@ const L = __dirname + '/libs/'; const { execSync } = require('child_process');
   // 4. salva, recarrega e gera a técnica e comercial
   await p.click('#bSave'); await p.waitForTimeout(600);
   await p.reload(); await p.waitForTimeout(1500);
-  await p.click('[data-view="proposta"]'); await p.click('[data-step="2"]'); await p.waitForTimeout(300); await p.click('[data-goitem="0"]'); await p.waitForTimeout(600);
+  await p.click('[data-view="proposta"]'); await p.click('[data-step="2"]'); await p.waitForTimeout(300); await p.click('[data-goitem="0"]'); await p.waitForTimeout(600); if (await p.$('[data-cfgclassico]')) { await p.click('[data-cfgclassico]'); await p.waitForTimeout(500); }
   console.log('8 após recarregar, cor:', await p.$eval('#espf_ITEM01_35_cor', (x) => x.value).catch(() => 'PERDEU'));
   await p.click('[data-view="proposta"]'); await p.click('[data-step="6"]'); await p.waitForTimeout(500);
   const dl = p.waitForEvent('download', { timeout: 40000 }); await p.click('[data-pcgerar]'); const d = await dl; await d.saveAs(__dirname + '/espec_ptc.pdf'); await p.waitForTimeout(2500);
