@@ -6,7 +6,7 @@
   "titulo": "Lista de insumos com busca, filtros, favorito e ordenação",
   "vp": "desktop",
   "arquivo": "07-01-cadastro-insumos-lista.png",
-  "data": "2026-10-31T00:49:52.917Z",
+  "data": "2026-10-31T00:54:35.430Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -67,7 +67,7 @@
   "titulo": "Aba Técnica: características técnicas da família",
   "vp": "desktop",
   "arquivo": "07-02-cadastro-ficha-identificacao.png",
-  "data": "2026-10-31T00:50:00.341Z",
+  "data": "2026-10-31T00:54:42.802Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -98,7 +98,7 @@
   "titulo": "Descrições do insumo e aviso de itens parecidos",
   "vp": "desktop",
   "arquivo": "07-03-cadastro-ficha-descricoes.png",
-  "data": "2026-10-31T00:50:02.753Z",
+  "data": "2026-10-31T00:54:45.107Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -153,7 +153,7 @@
   "titulo": "Fornecedores e cotações, com o custo total, e equivalentes",
   "vp": "desktop",
   "arquivo": "07-04-cadastro-ficha-fornecedores.png",
-  "data": "2026-10-31T00:50:05.426Z",
+  "data": "2026-10-31T00:54:47.785Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -196,7 +196,7 @@
   "titulo": "Mudança de preço: aviso e impacto na margem das propostas",
   "vp": "desktop",
   "arquivo": "07-05-cadastro-ficha-impacto-preco.png",
-  "data": "2026-10-31T00:50:15.320Z",
+  "data": "2026-10-31T00:54:57.664Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -245,7 +245,7 @@
   "titulo": "Aba Estruturas e utilização: onde o insumo é usado",
   "vp": "desktop",
   "arquivo": "07-06-cadastro-ficha-onde-usado.png",
-  "data": "2026-10-31T00:50:22.159Z",
+  "data": "2026-10-31T00:55:04.516Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -270,7 +270,7 @@
   "titulo": "Renomear um insumo usado em estrutura: o app mostra o impacto antes",
   "vp": "desktop",
   "arquivo": "07-07-cadastro-renomear.png",
-  "data": "2026-10-31T00:50:25.208Z",
+  "data": "2026-10-31T00:55:07.553Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -307,7 +307,7 @@
   "titulo": "Edição em massa: campo, novo valor e prévia",
   "vp": "desktop",
   "arquivo": "07-08-cadastro-edicao-massa.png",
-  "data": "2026-10-31T00:50:29.741Z",
+  "data": "2026-10-31T00:55:12.079Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -350,7 +350,7 @@
   "titulo": "Configurações → Histórico: desfazer um lote",
   "vp": "desktop",
   "arquivo": "07-09-cadastro-historico-desfazer.png",
-  "data": "2026-10-31T00:50:34.237Z",
+  "data": "2026-10-31T00:55:16.607Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -399,7 +399,7 @@
   "titulo": "Pedir cadastro de insumo",
   "vp": "desktop",
   "arquivo": "07-10-cadastro-pedir-cadastro.png",
-  "data": "2026-10-31T00:50:38.411Z",
+  "data": "2026-10-31T00:55:20.748Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -460,7 +460,7 @@
   "titulo": "Custos atende o pedido: preço e situação ao cadastrar",
   "vp": "desktop",
   "arquivo": "07-11-cadastro-atender-pedido.png",
-  "data": "2026-10-31T00:50:43.624Z",
+  "data": "2026-10-31T00:55:25.914Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -509,7 +509,7 @@
   "titulo": "Visão geral → Qualidade dos dados",
   "vp": "desktop",
   "arquivo": "07-12-cadastro-qualidade.png",
-  "data": "2026-10-31T00:50:45.137Z",
+  "data": "2026-10-31T00:55:27.461Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -558,7 +558,7 @@
   "titulo": "Importar preços: lista de preços colada",
   "vp": "desktop",
   "arquivo": "07-13-cadastro-importar-colar.png",
-  "data": "2026-10-31T00:50:52.248Z",
+  "data": "2026-10-31T00:55:34.563Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -589,7 +589,7 @@
   "titulo": "Importar preços: colunas, conferência e aplicação",
   "vp": "desktop",
   "arquivo": "07-14-cadastro-importar-conferir.png",
-  "data": "2026-10-31T00:50:54.562Z",
+  "data": "2026-10-31T00:55:37.004Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -632,7 +632,7 @@
   "titulo": "Custos → Validade e alertas",
   "vp": "desktop",
   "arquivo": "07-15-cadastro-validade-alertas.png",
-  "data": "2026-10-31T00:51:00.578Z",
+  "data": "2026-10-31T00:55:42.899Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -644,7 +644,7 @@
   "titulo": "Custos → Câmbio e importação (peças importadas da SPV)",
   "vp": "desktop",
   "arquivo": "07-16-cadastro-cambio.png",
-  "data": "2026-10-31T00:51:07.311Z",
+  "data": "2026-10-31T00:55:49.878Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -656,7 +656,7 @@
   "titulo": "Custos → Válvulas de alívio",
   "vp": "desktop",
   "arquivo": "07-17-cadastro-valvulas.png",
-  "data": "2026-10-31T00:51:14.123Z",
+  "data": "2026-10-31T00:55:56.817Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -668,7 +668,7 @@
   "titulo": "Custos → FACTS (MECON): lista de preços e custos de importação",
   "vp": "desktop",
   "arquivo": "07-18-cadastro-facts-mecon.png",
-  "data": "2026-10-31T00:51:21.106Z",
+  "data": "2026-10-31T00:56:04.349Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -680,7 +680,7 @@
   "titulo": "Insumos com preço vencido: indicador, aviso, filtro e coluna Preço atualizado em",
   "vp": "desktop",
   "arquivo": "07-19-cadastro-precos-vencidos.png",
-  "data": "2026-10-31T00:51:28.937Z",
+  "data": "2026-10-31T00:56:12.336Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -717,7 +717,7 @@
   "titulo": "Ficha do produto em abas: aba Geral de um novo insumo",
   "vp": "desktop",
   "arquivo": "07-20-cadastro-ficha-geral.png",
-  "data": "2026-10-31T00:49:57.377Z",
+  "data": "2026-10-31T00:54:39.883Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -772,7 +772,7 @@
   "titulo": "Aba Técnica: equivalentes técnicos e alternativas",
   "vp": "desktop",
   "arquivo": "07-21-cadastro-ficha-equivalentes.png",
-  "data": "2026-10-31T00:50:12.484Z",
+  "data": "2026-10-31T00:54:54.890Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -803,7 +803,7 @@
   "titulo": "Abas Compras e custos (histórico de preço), Documentos e Histórico",
   "vp": "desktop",
   "arquivo": "07-22-cadastro-ficha-historicos.png",
-  "data": "2026-10-31T00:50:24.274Z",
+  "data": "2026-10-31T00:55:06.609Z",
   "ok": true,
   "problemas": [],
   "marcas": [

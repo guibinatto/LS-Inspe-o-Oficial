@@ -22,9 +22,12 @@ async function pdfProposta(p, erro) {
   for (const i of [0, 1, 2]) {
     await p.click('#nav [data-view="proposta"]'); await p.waitForTimeout(200); await p.click('.ptab[data-step="2"]'); await p.waitForTimeout(200);
     await p.click(`[data-goitem="${i}"]`); await p.waitForTimeout(400);
+    // a descrição e o ponto de trabalho são lidos na tela clássica do item (o configurador assistido mostra em outra ordem)
+    if (await p.$('[data-cfgclassico]')) { await p.click('[data-cfgclassico]'); await p.waitForTimeout(400); }
     await p.evaluate(() => document.querySelectorAll('#app details').forEach((d) => { d.open = true; }));
     const t = await p.$$eval('.txtv', (x) => x.map((e) => e.innerText)); itens.push({ d: t[0], ponto: t[2] });
   }
+  if (await p.$('[data-cfgassistido]')) { await p.click('[data-cfgassistido]'); await p.waitForTimeout(300); }
   await p.click('#nav [data-view="proposta"]'); await p.waitForTimeout(200); await p.click('.ptab[data-step="4"]'); await p.waitForTimeout(400);
   const precos = await p.$$eval('#app table.t tbody tr', (x) => x.filter((r) => r.querySelector('[data-goitem]')).map((r) => [...r.querySelectorAll('td')].map((td) => td.innerText)));
   const total = await p.$eval('#app table.t tbody tr.tot td.n', (x) => x.innerText);
@@ -80,7 +83,7 @@ module.exports = {
     { id: '12-04', nome: 'documentos-ficha-insumo-fornecedores', titulo: 'Ficha do insumo: seção Fornecedores e cotações', clip: '.modal details.fsec', pad: 8,
       prep: async (p, h) => {
         await h.nav('cadastro'); await h.cad('insumos'); await h.clicar('#app tr.click[data-ins]', 700);
-        await p.evaluate(() => { const d = document.querySelector('.modal details.fsec'); if (d) d.open = true; });
+        await h.clicar('.modal [data-ftab="compras"]', 250); // ficha em abas: fornecedores ficam em Compras e custos
         await h.clicar('#foAdd', 300); await h.preencher('[data-fo="0|nome"]', 'FORNECEDOR EXEMPLO VALVULAS LTDA'); await h.preencher('[data-fo="0|preco"]', '1.850,00');
         await h.preencher('[data-fo="0|impostos"]', '3,25'); await h.preencher('[data-fo="0|frete"]', '60'); await h.preencher('[data-fo="0|prazo"]', '20'); await h.preencher('[data-fo="0|validade"]', '2026-12-31');
         await h.clicar('#foAdd', 300); await h.preencher('[data-fo="1|nome"]', 'OUTRO FORNECEDOR EXEMPLO'); await p.selectOption('[data-fo="1|moeda"]', 'USD'); await h.esperar(300);

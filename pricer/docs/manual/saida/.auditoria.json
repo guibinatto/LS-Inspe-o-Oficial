@@ -1,6 +1,14 @@
 {
  "naoAchados": [
   [
+   2,
+   "barra de navegação embaixo"
+  ],
+  [
+   2,
+   "Ver em cartões"
+  ],
+  [
    3,
    "SEQ — Soluções e equipamentos"
   ],
@@ -26,7 +34,39 @@
   ],
   [
    4,
+   "1. Configurar"
+  ],
+  [
+   4,
+   "1. Configurar"
+  ],
+  [
+   4,
+   "2. Compor"
+  ],
+  [
+   4,
+   "1. Configurar"
+  ],
+  [
+   4,
+   "2. Compor"
+  ],
+  [
+   4,
+   "Ir para o campo / componente / item"
+  ],
+  [
+   4,
    "Especificações do fornecimento"
+  ],
+  [
+   4,
+   "Proposta técnica e comercial deste item"
+  ],
+  [
+   4,
+   "usar o configurador assistido"
   ],
   [
    5,
@@ -39,6 +79,14 @@
   [
    5,
    "Qtd | Descrição"
+  ],
+  [
+   5,
+   "texto reconhecido na imagem: confira tudo"
+  ],
+  [
+   5,
+   "Folha de dados construtiva"
   ],
   [
    6,
@@ -285,6 +333,18 @@
    "Esconder um botão não é segurança"
   ],
   [
+   16,
+   "SEQ-2026-00001"
+  ],
+  [
+   16,
+   "desligadas"
+  ],
+  [
+   16,
+   "Número repetido: não deixa salvar"
+  ],
+  [
    17,
    "Tabelas por porte gravam direto"
   ],
@@ -306,8 +366,8 @@
   ]
  ],
  "faltaCad": [],
- "totFig": 154,
- "totOk": 154,
+ "totFig": 168,
+ "totOk": 168,
  "totTut": 88,
- "totNv": 31
+ "totNv": 32
 }

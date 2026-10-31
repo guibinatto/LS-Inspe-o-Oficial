@@ -6,7 +6,7 @@
   "titulo": "Aba Itens da proposta de exemplo",
   "vp": "desktop",
   "arquivo": "04-01-precificacao-itens-lista.png",
-  "data": "2026-10-31T00:52:39.935Z",
+  "data": "2026-10-31T01:05:01.510Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -49,7 +49,7 @@
   "titulo": "Item 02 aberto no configurador: resumo do item e as três etapas",
   "vp": "desktop",
   "arquivo": "04-02-precificacao-item-alerta.png",
-  "data": "2026-10-31T00:52:41.113Z",
+  "data": "2026-10-31T01:05:02.640Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -86,7 +86,7 @@
   "titulo": "Aba Formação: resumo, condições comerciais e preço por item",
   "vp": "desktop",
   "arquivo": "04-03-precificacao-formacao.png",
-  "data": "2026-10-31T00:52:43.396Z",
+  "data": "2026-10-31T01:05:04.852Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -141,7 +141,7 @@
   "titulo": "Simulador de negociação com valor final de R$ 4.000.000,00",
   "vp": "desktop",
   "arquivo": "04-04-precificacao-simulador.png",
-  "data": "2026-10-31T00:52:44.640Z",
+  "data": "2026-10-31T01:05:06.006Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -190,7 +190,7 @@
   "titulo": "Aba Conferência: conferência central e pedido de aprovação",
   "vp": "desktop",
   "arquivo": "04-05-precificacao-conferencia.png",
-  "data": "2026-10-31T00:52:48.755Z",
+  "data": "2026-10-31T01:05:09.999Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -239,7 +239,7 @@
   "titulo": "Item novo: etapa Configurar, escolha da família",
   "vp": "desktop",
   "arquivo": "04-06-precificacao-item-familia.png",
-  "data": "2026-10-31T00:52:50.527Z",
+  "data": "2026-10-31T01:05:11.628Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -276,7 +276,7 @@
   "titulo": "Etapa Configurar: ponto de partida e lista de modelos prontos com pesquisa e filtro",
   "vp": "desktop",
   "arquivo": "04-07-precificacao-item-equipamento.png",
-  "data": "2026-10-31T00:52:52.603Z",
+  "data": "2026-10-31T01:05:13.688Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -319,7 +319,7 @@
   "titulo": "Modelo pronto aplicado: características do equipamento e a origem de cada valor",
   "vp": "desktop",
   "arquivo": "04-08-precificacao-item-modelo-alertas.png",
-  "data": "2026-10-31T00:52:54.886Z",
+  "data": "2026-10-31T01:05:15.841Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -350,7 +350,7 @@
   "titulo": "Etapa Conferir: Condições deste item",
   "vp": "desktop",
   "arquivo": "04-09-precificacao-item-condicoes.png",
-  "data": "2026-10-31T00:53:01.070Z",
+  "data": "2026-10-31T01:05:21.997Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -393,7 +393,7 @@
   "titulo": "Etapa Compor: componentes classificados e o painel \"Por que este componente?\"",
   "vp": "desktop",
   "arquivo": "04-10-precificacao-item-componentes.png",
-  "data": "2026-10-31T00:52:57.068Z",
+  "data": "2026-10-31T01:05:18.027Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -442,7 +442,7 @@
   "titulo": "Aba Custos com o item novo (linhas com informação de cotação)",
   "vp": "desktop",
   "arquivo": "04-11-precificacao-custos.png",
-  "data": "2026-10-31T00:53:04.809Z",
+  "data": "2026-10-31T01:05:25.678Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -503,7 +503,7 @@
   "titulo": "Botão Planilha completa: visão com todas as colunas da proposta",
   "vp": "desktop",
   "arquivo": "04-12-precificacao-planilha-completa.png",
-  "data": "2026-10-31T00:53:05.967Z",
+  "data": "2026-10-31T01:05:26.760Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -546,10 +546,22 @@
   "titulo": "Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro",
   "vp": "desktop",
   "arquivo": "04-13-precificacao-preco-vencido.png",
-  "data": "2026-10-31T00:53:12.364Z",
-  "ok": false,
-  "problemas": [
-   "erro nos passos: page.fill: Timeout 30000ms exceeded."
+  "data": "2026-10-31T01:05:32.893Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Insumos da proposta com preço vencido (mais de 30 dias), com a data do último preço.",
+    "sel": "#app .banner.warn",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Atualizar no cadastro: abre os insumos e preços filtrados só nestes insumos.",
+    "sel": "[data-irvenc]",
+    "ok": true
+   }
   ]
  },
  "04-14": {
@@ -559,7 +571,7 @@
   "titulo": "Etapa Conferir do item 02: alerta de margem com as ações e as confirmações",
   "vp": "desktop",
   "arquivo": "04-14-precificacao-item-conferir-alerta.png",
-  "data": "2026-10-31T00:52:42.552Z",
+  "data": "2026-10-31T01:05:04.032Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -602,7 +614,7 @@
   "titulo": "Etapa Conferir: resumo, custo e preço da planilha e as verificações",
   "vp": "desktop",
   "arquivo": "04-15-precificacao-item-conferir.png",
-  "data": "2026-10-31T00:52:59.378Z",
+  "data": "2026-10-31T01:05:20.324Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -651,7 +663,7 @@
   "titulo": "Incluir na proposta: gravado e registrado, sem duplicar o item",
   "vp": "desktop",
   "arquivo": "04-16-precificacao-item-incluir.png",
-  "data": "2026-10-31T00:53:01.759Z",
+  "data": "2026-10-31T01:05:22.676Z",
   "ok": true,
   "problemas": [],
   "marcas": [

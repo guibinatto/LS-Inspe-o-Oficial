@@ -6,7 +6,7 @@
   "titulo": "Cadastro geral → Campos por família",
   "vp": "desktop",
   "arquivo": "08-01-cadastro-campos-por-familia.png",
-  "data": "2026-10-29T14:36:15.515Z",
+  "data": "2026-10-31T01:05:45.150Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -55,7 +55,7 @@
   "titulo": "Campos e modelo de uma família (motor elétrico)",
   "vp": "desktop",
   "arquivo": "08-02-cadastro-campos-modelo.png",
-  "data": "2026-10-29T14:36:19.096Z",
+  "data": "2026-10-31T01:05:47.573Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -113,10 +113,10 @@
   "id": "08-03",
   "cap": 8,
   "nome": "cadastro-descricao-gerada",
-  "titulo": "Descrição técnica e comercial geradas pelos campos da família",
+  "titulo": "Aba Técnica: campos da família que montam a descrição",
   "vp": "desktop",
   "arquivo": "08-03-cadastro-descricao-gerada.png",
-  "data": "2026-10-29T14:36:21.131Z",
+  "data": "2026-10-31T01:05:49.033Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -143,24 +143,6 @@
     "txt": "Montagem: MANCAL ou MONOBLOCO.",
     "sel": ".seg:has([data-carr=\"mont\"])",
     "ok": true
-   },
-   {
-    "n": 5,
-    "txt": "Descrição técnica montada pelo modelo.",
-    "sel": "#fProd",
-    "ok": true
-   },
-   {
-    "n": 6,
-    "txt": "\"Gerada pelo padrão da família.\"",
-    "sel": "#fPad",
-    "ok": true
-   },
-   {
-    "n": 7,
-    "txt": "Descrição comercial sugerida (botão Sugerir).",
-    "sel": "#fCom",
-    "ok": true
    }
   ]
  },
@@ -171,7 +153,7 @@
   "titulo": "Verificação de duplicidade: mesmo produto e semelhantes",
   "vp": "desktop",
   "arquivo": "08-04-cadastro-duplicidade.png",
-  "data": "2026-10-29T14:36:26.026Z",
+  "data": "2026-10-31T01:05:54.317Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -214,7 +196,7 @@
   "titulo": "Descrição fora do padrão: justificativa da exceção",
   "vp": "desktop",
   "arquivo": "08-05-cadastro-excecao-padrao.png",
-  "data": "2026-10-29T14:36:30.470Z",
+  "data": "2026-10-31T01:05:58.364Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -251,7 +233,7 @@
   "titulo": "Cadastro geral → Sinônimos e abreviações",
   "vp": "desktop",
   "arquivo": "08-06-cadastro-sinonimos.png",
-  "data": "2026-10-29T14:36:32.330Z",
+  "data": "2026-10-31T01:05:59.921Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -300,7 +282,7 @@
   "titulo": "Cadastro geral → Padronização de descrições",
   "vp": "desktop",
   "arquivo": "08-07-cadastro-padronizacao.png",
-  "data": "2026-10-29T14:36:34.187Z",
+  "data": "2026-10-31T01:06:01.469Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -350,6 +332,37 @@
     "n": 8,
     "txt": "Nome atual (riscado quando aplicado) → nome padronizado.",
     "sel": ".tw table tbody tr td:nth-child(3)",
+    "ok": true
+   }
+  ]
+ },
+ "08-08": {
+  "id": "08-08",
+  "cap": 8,
+  "nome": "cadastro-descricao-gerada-geral",
+  "titulo": "Aba Geral: descrição técnica gerada e descrição comercial sugerida",
+  "vp": "desktop",
+  "arquivo": "08-08-cadastro-descricao-gerada-geral.png",
+  "data": "2026-10-31T01:05:52.869Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Descrição técnica montada pelo modelo.",
+    "sel": "#fProd",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "\"Gerada pelo padrão da família.\"",
+    "sel": "#fPad",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Descrição comercial sugerida (botão Sugerir).",
+    "sel": "#fCom",
     "ok": true
    }
   ]

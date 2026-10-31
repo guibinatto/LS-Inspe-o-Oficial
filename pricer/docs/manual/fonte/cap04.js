@@ -339,7 +339,7 @@ module.exports = {
 module.exports.capturas.push(
   { id: '04-13', nome: 'precificacao-preco-vencido', titulo: 'Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro', novo: true,
     prep: async (p, h) => {
-      await h.nav('cadastro'); await p.fill('#insQ', '01-1020'); await h.esperar(500); await h.clicar('tr[data-ins="01-1020"]', 600); await p.fill('#fDataCot', '2026-08-15'); await h.clicar('#fSave', 900);
+      await h.nav('cadastro'); await p.fill('#insQ', '01-1020'); await h.esperar(500); await h.clicar('tr[data-ins="01-1020"]', 600); await h.clicar('.modal [data-ftab="compras"]', 250); await p.fill('#fDataCot', '2026-08-15'); await h.clicar('#fSave', 900);
       await h.exemplo(); await h.aba(2); await h.clicar('[data-additem]', 800); await h.clicar('.famgrid [data-fam="CONJUNTO MOTOBOMBA"]', 900);
       await h.clicar('#app [data-usemodel="CMB DIESEL 1000 USgpm — 1 BOMBA"]', 1600); await h.aba(4); await h.topo();
     },

@@ -30,13 +30,13 @@ module.exports = {
         { sel: '#cmOk', txt: 'Salvar.', pos: 'b' },
       ],
       depois: async (p, h) => { await h.esc(); } },
-    { id: '08-03', nome: 'cadastro-descricao-gerada', titulo: 'Descrição técnica e comercial geradas pelos campos da família', alto: 1500,
+    { id: '08-03', nome: 'cadastro-descricao-gerada', titulo: 'Aba Técnica: campos da família que montam a descrição', alto: 1500,
       prep: async (p, h) => {
         await h.cad('insumos'); await h.clicar('#insNew', 600);
-        await p.selectOption('#fFam', '10.MOTORELETRICO'); await h.esperar(400);
+        await p.selectOption('#fFam', '10.MOTORELETRICO'); await h.esperar(400); await p.fill('#fFab', 'WEG');
+        await h.clicar('.modal [data-ftab="tecnica"]', 250);
         await p.fill('[data-car="cv"]', '75'); await h.esperar(200);
         for (const [k, v] of [['polos', '4P'], ['tensao', '380/660V'], ['marca', 'WEG'], ['mont', 'MANCAL']]) { await p.check(`input[data-carr="${k}"][value="${v}"]`, { force: true }); await h.esperar(200); }
-        await p.fill('#fFab', 'WEG'); await h.clicar('#fComSug', 300);
         await centro(p, '#fCarSec');
       },
       clip: '#fCarSec',
@@ -45,6 +45,11 @@ module.exports = {
         { sel: '[data-car="cv"]', txt: 'Potência em CV, como o fabricante publica (nada é convertido).', pos: 'l' },
         { sel: '.seg:has([data-carr="freq"])', txt: 'Campo opcional: "—" deixa o trecho fora da descrição.', pos: 't' },
         { sel: '.seg:has([data-carr="mont"])', txt: 'Montagem: MANCAL ou MONOBLOCO.', pos: 'r' },
+      ] },
+    { id: '08-08', nome: 'cadastro-descricao-gerada-geral', titulo: 'Aba Geral: descrição técnica gerada e descrição comercial sugerida', alto: 1500,
+      prep: async (p, h) => { await h.clicar('.modal [data-ftab="geral"]', 250); await h.clicar('#fComSug', 300); await centro(p, '#fProd'); },
+      clip: '.modal section.fsec', clipNth: 0,
+      marcas: [
         { sel: '#fProd', txt: 'Descrição técnica montada pelo modelo.', pos: 'l' },
         { sel: '#fPad', txt: '"Gerada pelo padrão da família."', pos: 'r' },
         { sel: '#fCom', txt: 'Descrição comercial sugerida (botão Sugerir).', pos: 'l' },
@@ -54,10 +59,11 @@ module.exports = {
       prep: async (p, h) => {
         await h.clicar('#insNew', 600);
         await p.selectOption('#fFam', '01.MOTORDIESEL'); await h.esperar(400);
+        await h.clicar('.modal [data-ftab="tecnica"]', 250);
         await h.preencher('[data-car="modelo"]', '6M16G308/6'); await h.esperar(400);
         await p.check('input[data-carr="arref"][value="RADIADOR"]', { force: true }); await h.esperar(200);
         await p.check('input[data-carr="ctrl"][value="MEC"]', { force: true }); await h.esperar(200);
-        await h.clicar('#fSave', 400); await centro(p, '#fDup');
+        await h.clicar('.modal [data-ftab="geral"]', 250); await h.clicar('#fSave', 400); await centro(p, '#fDup');
       },
       clip: '#fDup',
       marcas: [
@@ -73,7 +79,7 @@ module.exports = {
         await p.fill('#fProd', 'MOTOR DIESEL BAUDOUIN 6M16G308/6 483HP'); await h.esperar(400);
         await centro(p, '#fProd');
       },
-      clip: '.modal section.fsec', clipNth: 1,
+      clip: '.modal section.fsec', clipNth: 0,
       marcas: [
         { sel: '#fGerWrap', txt: 'Desmarcado: a descrição é digitada à mão.', pos: 'r' },
         { sel: '#fProd', txt: 'Texto fora do modelo da família.', pos: 'l' },
@@ -149,7 +155,8 @@ module.exports = {
     ] },
     { t: 'tut', titulo: 'Cadastrar um insumo com a descrição gerada pelo padrão', objetivo: 'Obter a descrição técnica e a comercial a partir dos dados técnicos, sem digitar o nome.', quem: 'No modo compartilhado: **Editor** da área **Custos** (ou o dono). No modo local, quem abre o arquivo.', pre: ['Ficha técnica do item.', 'Família com modelo (01, 10, 11, 12 ou 13, ou outra configurada em Campos por família).'], passos: [
       'Em **Custos** → **Insumos e preços**, clique em **+ Novo insumo** e escolha a **Família**.',
-      { x: 'Preencha as **Características técnicas**. Campos opcionais com "—" ficam fora da descrição. Confira a **Descrição técnica padronizada** e a mensagem "Gerada pelo padrão da família.". Clique em **Sugerir** para a **Descrição comercial**.', fig: '08-03' },
+      { x: 'Na aba **Técnica**, preencha as **Características técnicas**. Campos opcionais com "—" ficam fora da descrição. Na aba **Geral**, confira a **Descrição técnica padronizada** e a mensagem "Gerada pelo padrão da família.". Clique em **Sugerir** para a **Descrição comercial**.', fig: '08-03' },
+      { x: 'Na aba **Geral**, a descrição técnica aparece montada e **Sugerir** preenche a descrição comercial.', fig: '08-08' },
       'Preencha o **Fabricante** (a marca não vai no nome, salvo nas famílias 10 e 12) e o preço.',
       'Clique em **Cadastrar**.',
     ], resultado: 'O item é gravado com a descrição no padrão e com as características guardadas no registro.', atencao: 'Enquanto faltar campo obrigatório, a mensagem mostra "Faltam: …" e a descrição não é montada.', dica: 'A descrição comercial usa minúsculas em arrefecimento, montagem e acionamento (por exemplo, "montagem mancal"); marcas e códigos ficam como estão.' },

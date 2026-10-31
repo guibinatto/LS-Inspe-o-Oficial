@@ -28,6 +28,24 @@
  },
  {
   "num": "2.2",
+  "id": "02-08",
+  "titulo": "Grupo Cadastros aberto, com os atalhos para cada cadastro",
+  "arquivo": "02-08-navegacao-submenu.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ },
+ {
+  "num": "2.3",
+  "id": "02-09",
+  "titulo": "Busca universal (Ctrl+K)",
+  "arquivo": "02-09-navegacao-busca.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 2
+ },
+ {
+  "num": "2.4",
   "id": "02-02",
   "titulo": "Barra superior com a proposta aberta",
   "arquivo": "02-02-navegacao-barra-superior.png",
@@ -36,7 +54,7 @@
   "cap": 2
  },
  {
-  "num": "2.3",
+  "num": "2.5",
   "id": "02-03",
   "titulo": "Menu lateral recolhido (só ícones)",
   "arquivo": "02-03-navegacao-menu-recolhido.png",
@@ -45,7 +63,7 @@
   "cap": 2
  },
  {
-  "num": "2.4",
+  "num": "2.6",
   "id": "02-04",
   "titulo": "No celular: barra de navegação embaixo e barra superior compacta",
   "arquivo": "02-04-navegacao-celular.png",
@@ -54,7 +72,7 @@
   "cap": 2
  },
  {
-  "num": "2.5",
+  "num": "2.7",
   "id": "02-06",
   "titulo": "No celular: menu completo pelo botão Mais",
   "arquivo": "02-06-navegacao-celular-menu.png",
@@ -63,7 +81,7 @@
   "cap": 2
  },
  {
-  "num": "2.6",
+  "num": "2.8",
   "id": "02-05",
   "titulo": "No celular: painel Mais ações",
   "arquivo": "02-05-navegacao-celular-mais-acoes.png",
@@ -72,7 +90,7 @@
   "cap": 2
  },
  {
-  "num": "2.7",
+  "num": "2.9",
   "id": "02-07",
   "titulo": "No tablet: menu lateral em coluna de ícones com o nome",
   "arquivo": "02-07-navegacao-tablet.png",
@@ -568,15 +586,24 @@
  },
  {
   "num": "7.2",
-  "id": "07-02",
-  "titulo": "Ficha guiada de um novo insumo: identificação e características técnicas",
-  "arquivo": "07-02-cadastro-ficha-identificacao.png",
+  "id": "07-20",
+  "titulo": "Ficha do produto em abas: aba Geral de um novo insumo",
+  "arquivo": "07-20-cadastro-ficha-geral.png",
   "ok": true,
   "problemas": [],
   "cap": 7
  },
  {
   "num": "7.3",
+  "id": "07-02",
+  "titulo": "Aba Técnica: características técnicas da família",
+  "arquivo": "07-02-cadastro-ficha-identificacao.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 7
+ },
+ {
+  "num": "7.4",
   "id": "07-03",
   "titulo": "Descrições do insumo e aviso de itens parecidos",
   "arquivo": "07-03-cadastro-ficha-descricoes.png",
@@ -585,7 +612,7 @@
   "cap": 7
  },
  {
-  "num": "7.4",
+  "num": "7.5",
   "id": "07-04",
   "titulo": "Fornecedores e cotações, com o custo total, e equivalentes",
   "arquivo": "07-04-cadastro-ficha-fornecedores.png",
@@ -594,7 +621,16 @@
   "cap": 7
  },
  {
-  "num": "7.5",
+  "num": "7.6",
+  "id": "07-21",
+  "titulo": "Aba Técnica: equivalentes técnicos e alternativas",
+  "arquivo": "07-21-cadastro-ficha-equivalentes.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 7
+ },
+ {
+  "num": "7.7",
   "id": "07-05",
   "titulo": "Mudança de preço: aviso e impacto na margem das propostas",
   "arquivo": "07-05-cadastro-ficha-impacto-preco.png",
@@ -603,16 +639,25 @@
   "cap": 7
  },
  {
-  "num": "7.6",
+  "num": "7.8",
   "id": "07-06",
-  "titulo": "Final da ficha: onde é usado e históricos",
+  "titulo": "Aba Estruturas e utilização: onde o insumo é usado",
   "arquivo": "07-06-cadastro-ficha-onde-usado.png",
   "ok": true,
   "problemas": [],
   "cap": 7
  },
  {
-  "num": "7.7",
+  "num": "7.9",
+  "id": "07-22",
+  "titulo": "Abas Compras e custos (histórico de preço), Documentos e Histórico",
+  "arquivo": "07-22-cadastro-ficha-historicos.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 7
+ },
+ {
+  "num": "7.10",
   "id": "07-07",
   "titulo": "Renomear um insumo usado em estrutura: o app mostra o impacto antes",
   "arquivo": "07-07-cadastro-renomear.png",
@@ -621,7 +666,7 @@
   "cap": 7
  },
  {
-  "num": "7.8",
+  "num": "7.11",
   "id": "07-08",
   "titulo": "Edição em massa: campo, novo valor e prévia",
   "arquivo": "07-08-cadastro-edicao-massa.png",
@@ -630,7 +675,7 @@
   "cap": 7
  },
  {
-  "num": "7.9",
+  "num": "7.12",
   "id": "07-09",
   "titulo": "Configurações → Histórico: desfazer um lote",
   "arquivo": "07-09-cadastro-historico-desfazer.png",
@@ -639,7 +684,7 @@
   "cap": 7
  },
  {
-  "num": "7.10",
+  "num": "7.13",
   "id": "07-10",
   "titulo": "Pedir cadastro de insumo",
   "arquivo": "07-10-cadastro-pedir-cadastro.png",
@@ -648,7 +693,7 @@
   "cap": 7
  },
  {
-  "num": "7.11",
+  "num": "7.14",
   "id": "07-11",
   "titulo": "Custos atende o pedido: preço e situação ao cadastrar",
   "arquivo": "07-11-cadastro-atender-pedido.png",
@@ -657,7 +702,7 @@
   "cap": 7
  },
  {
-  "num": "7.12",
+  "num": "7.15",
   "id": "07-12",
   "titulo": "Visão geral → Qualidade dos dados",
   "arquivo": "07-12-cadastro-qualidade.png",
@@ -666,7 +711,7 @@
   "cap": 7
  },
  {
-  "num": "7.13",
+  "num": "7.16",
   "id": "07-13",
   "titulo": "Importar preços: lista de preços colada",
   "arquivo": "07-13-cadastro-importar-colar.png",
@@ -675,7 +720,7 @@
   "cap": 7
  },
  {
-  "num": "7.14",
+  "num": "7.17",
   "id": "07-14",
   "titulo": "Importar preços: colunas, conferência e aplicação",
   "arquivo": "07-14-cadastro-importar-conferir.png",
@@ -684,7 +729,7 @@
   "cap": 7
  },
  {
-  "num": "7.15",
+  "num": "7.18",
   "id": "07-15",
   "titulo": "Custos → Validade e alertas",
   "arquivo": "07-15-cadastro-validade-alertas.png",
@@ -693,7 +738,7 @@
   "cap": 7
  },
  {
-  "num": "7.16",
+  "num": "7.19",
   "id": "07-16",
   "titulo": "Custos → Câmbio e importação (peças importadas da SPV)",
   "arquivo": "07-16-cadastro-cambio.png",
@@ -702,7 +747,7 @@
   "cap": 7
  },
  {
-  "num": "7.17",
+  "num": "7.20",
   "id": "07-17",
   "titulo": "Custos → Válvulas de alívio",
   "arquivo": "07-17-cadastro-valvulas.png",
@@ -711,7 +756,7 @@
   "cap": 7
  },
  {
-  "num": "7.18",
+  "num": "7.21",
   "id": "07-18",
   "titulo": "Custos → FACTS (MECON): lista de preços e custos de importação",
   "arquivo": "07-18-cadastro-facts-mecon.png",
@@ -720,7 +765,7 @@
   "cap": 7
  },
  {
-  "num": "7.19",
+  "num": "7.22",
   "id": "07-19",
   "titulo": "Insumos com preço vencido: indicador, aviso, filtro e coluna Preço atualizado em",
   "arquivo": "07-19-cadastro-precos-vencidos.png",
@@ -731,7 +776,7 @@
  {
   "num": "8.1",
   "id": "08-03",
-  "titulo": "Descrição técnica e comercial geradas pelos campos da família",
+  "titulo": "Aba Técnica: campos da família que montam a descrição",
   "arquivo": "08-03-cadastro-descricao-gerada.png",
   "ok": true,
   "problemas": [],
@@ -739,6 +784,15 @@
  },
  {
   "num": "8.2",
+  "id": "08-08",
+  "titulo": "Aba Geral: descrição técnica gerada e descrição comercial sugerida",
+  "arquivo": "08-08-cadastro-descricao-gerada-geral.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 8
+ },
+ {
+  "num": "8.3",
   "id": "08-04",
   "titulo": "Verificação de duplicidade: mesmo produto e semelhantes",
   "arquivo": "08-04-cadastro-duplicidade.png",
@@ -747,7 +801,7 @@
   "cap": 8
  },
  {
-  "num": "8.3",
+  "num": "8.4",
   "id": "08-05",
   "titulo": "Descrição fora do padrão: justificativa da exceção",
   "arquivo": "08-05-cadastro-excecao-padrao.png",
@@ -756,7 +810,7 @@
   "cap": 8
  },
  {
-  "num": "8.4",
+  "num": "8.5",
   "id": "08-01",
   "titulo": "Cadastro geral → Campos por família",
   "arquivo": "08-01-cadastro-campos-por-familia.png",
@@ -765,7 +819,7 @@
   "cap": 8
  },
  {
-  "num": "8.5",
+  "num": "8.6",
   "id": "08-02",
   "titulo": "Campos e modelo de uma família (motor elétrico)",
   "arquivo": "08-02-cadastro-campos-modelo.png",
@@ -774,7 +828,7 @@
   "cap": 8
  },
  {
-  "num": "8.6",
+  "num": "8.7",
   "id": "08-06",
   "titulo": "Cadastro geral → Sinônimos e abreviações",
   "arquivo": "08-06-cadastro-sinonimos.png",
@@ -783,7 +837,7 @@
   "cap": 8
  },
  {
-  "num": "8.7",
+  "num": "8.8",
   "id": "08-07",
   "titulo": "Cadastro geral → Padronização de descrições",
   "arquivo": "08-07-cadastro-padronizacao.png",
@@ -877,6 +931,15 @@
   "id": "09-10",
   "titulo": "Engenharia → Mão de obra e bases por porte",
   "arquivo": "09-10-estruturas-mao-de-obra-bases.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 9
+ },
+ {
+  "num": "9.11",
+  "id": "09-11",
+  "titulo": "Visão comercial da estrutura: em que grupo do escopo cada linha aparece",
+  "arquivo": "09-11-estruturas-visoes.png",
   "ok": true,
   "problemas": [],
   "cap": 9
@@ -1435,6 +1498,15 @@
   "id": "16-10",
   "titulo": "Cadastros → Fiscal → Cenários tributários (reforma)",
   "arquivo": "16-10-config-cenarios-tributarios.png",
+  "ok": true,
+  "problemas": [],
+  "cap": 16
+ },
+ {
+  "num": "16.11",
+  "id": "16-11",
+  "titulo": "Administração → Numeração e máscaras (série de propostas SEQ ligada)",
+  "arquivo": "16-11-config-numeracao.png",
   "ok": true,
   "problemas": [],
   "cap": 16

@@ -1,6 +1,6 @@
 # Relatório de cobertura — Manual de Utilização do LS Pricer
 
-Documento: MN · Revisão 00 · gerado em 29/10/2026 a partir de `docs/manual/fonte` e das capturas em `docs/manual/prints`.
+Documento: MN · Revisão 00 · gerado em 31/10/2026 a partir de `docs/manual/fonte` e das capturas em `docs/manual/prints`.
 
 Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construído do código em `pricer/`), executado no Chromium (Playwright), modo local, janela 1440×900 (computador) e 390×844 (celular), escala 1,5.
 
@@ -10,30 +10,30 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 |---|---|
 | Capítulos | 18 |
 | Tutoriais e exercícios (modelo padrão) | 88 |
-| Telas capturadas (cada uma com original e anotada) | 154 |
-| Capturas validadas (todos os marcadores encontrados no elemento real) | 154 de 154 |
-| Trechos marcados como "Não validado" | 31 |
+| Telas capturadas (cada uma com original e anotada) | 168 |
+| Capturas validadas (todos os marcadores encontrados no elemento real) | 168 de 168 |
+| Trechos marcados como "Não validado" | 32 |
 
 ## Módulos documentados
 
 | Cap. | Título | Tutoriais | Capturas | Validadas | Não validados |
 |---|---|---|---|---|---|
 | 1 | Apresentação do LS Pricer | 0 | 2 | 2 | 0 |
-| 2 | Primeiro acesso e navegação | 2 | 4 | 4 | 0 |
+| 2 | Primeiro acesso e navegação | 2 | 9 | 9 | 0 |
 | 3 | Criação de proposta | 5 | 12 | 12 | 1 |
-| 4 | Precificação SEQ | 7 | 13 | 13 | 1 |
+| 4 | Precificação SEQ | 7 | 16 | 16 | 1 |
 | 5 | Memorial | 4 | 11 | 11 | 3 |
 | 6 | SPV (serviços e pós-venda) e FACTS | 7 | 14 | 14 | 4 |
-| 7 | Cadastro de insumos | 9 | 19 | 19 | 3 |
-| 8 | Padronização de descrições | 6 | 7 | 7 | 1 |
-| 9 | Estruturas | 4 | 10 | 10 | 0 |
+| 7 | Cadastro de insumos | 9 | 22 | 22 | 3 |
+| 8 | Padronização de descrições | 6 | 8 | 8 | 1 |
+| 9 | Estruturas | 4 | 11 | 11 | 0 |
 | 10 | Kits | 4 | 5 | 5 | 1 |
 | 11 | Modelos e famílias | 5 | 9 | 9 | 2 |
 | 12 | Fornecedores e documentos | 4 | 8 | 8 | 2 |
 | 13 | Pendências e aprovações | 6 | 10 | 10 | 3 |
 | 14 | Margens e indicadores | 6 | 10 | 10 | 4 |
 | 15 | Revisões e histórico | 6 | 10 | 10 | 3 |
-| 16 | Configurações e administração | 5 | 10 | 10 | 3 |
+| 16 | Configurações e administração | 5 | 11 | 11 | 4 |
 | 17 | Erros comuns e soluções | 0 | 0 | 0 | 0 |
 | 18 | Exercícios práticos | 8 | 0 | 0 | 0 |
 
@@ -43,12 +43,12 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 
 | Entrada | Capturada |
 |---|---|
-| Início | sim |
+| Início: painel, atalhos e propostas recentes | sim |
 | Proposta aberta | sim |
-| Pendências | sim |
-| Margens | sim |
 | Cadastros | sim |
-| Configurações | sim |
+| Pendências | sim |
+| Margens e indicadores comerciais | sim |
+| Configurações e administração | sim |
 | Ajuda | sim |
 
 ### Abas da proposta SEQ
@@ -97,6 +97,7 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | historico | Histórico | sim |
 | propmodelo | Modelo da proposta | sim |
 | acessos | Responsáveis, e-mails e logo | sim |
+| numeracao | Numeração e máscaras | sim |
 | backup | Backup e restauração | sim |
 | tabelas | Planilha (avançado) | sim |
 
@@ -111,7 +112,12 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 02-01 | 02-01-navegacao-tela-inicial.png | Tela inicial e menu lateral | desktop | validada |
 | 02-02 | 02-02-navegacao-barra-superior.png | Barra superior com a proposta aberta | desktop | validada |
 | 02-03 | 02-03-navegacao-menu-recolhido.png | Menu lateral recolhido (só ícones) | desktop | validada |
-| 02-04 | 02-04-navegacao-celular.png | No celular: menu pelo botão ☰ | celular | validada |
+| 02-08 | 02-08-navegacao-submenu.png | Grupo Cadastros aberto, com os atalhos para cada cadastro | desktop | validada |
+| 02-09 | 02-09-navegacao-busca.png | Busca universal (Ctrl+K) | desktop | validada |
+| 02-04 | 02-04-navegacao-celular.png | No celular: barra de navegação embaixo e barra superior compacta | celular | validada |
+| 02-05 | 02-05-navegacao-celular-mais-acoes.png | No celular: painel Mais ações | celular | validada |
+| 02-06 | 02-06-navegacao-celular-menu.png | No celular: menu completo pelo botão Mais | celular | validada |
+| 02-07 | 02-07-navegacao-tablet.png | No tablet: menu lateral em coluna de ícones com o nome | tablet | validada |
 | 03-01 | 03-01-proposta-nova-janela.png | Janela Nova proposta | desktop | validada |
 | 03-02 | 03-02-proposta-inicio-familias.png | Tela Início: botões para começar uma proposta SEQ | desktop | validada |
 | 03-03 | 03-03-proposta-dados-cliente.png | Dados gerais, cartão Cliente, com os campos obrigatórios em destaque | desktop | validada |
@@ -125,15 +131,18 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 03-11 | 03-11-proposta-inicio-lista.png | Lista de propostas na tela Início | desktop | validada |
 | 03-12 | 03-12-proposta-copia-duplicada.png | Cópia criada pelo Duplicar: sem número e ainda não salva | desktop | validada |
 | 04-01 | 04-01-precificacao-itens-lista.png | Aba Itens da proposta de exemplo | desktop | validada |
-| 04-02 | 04-02-precificacao-item-alerta.png | Item 02 aberto: resumo do item e alerta de margem | desktop | validada |
+| 04-02 | 04-02-precificacao-item-alerta.png | Item 02 aberto no configurador: resumo do item e as três etapas | desktop | validada |
+| 04-14 | 04-14-precificacao-item-conferir-alerta.png | Etapa Conferir do item 02: alerta de margem com as ações e as confirmações | desktop | validada |
 | 04-03 | 04-03-precificacao-formacao.png | Aba Formação: resumo, condições comerciais e preço por item | desktop | validada |
 | 04-04 | 04-04-precificacao-simulador.png | Simulador de negociação com valor final de R$ 4.000.000,00 | desktop | validada |
 | 04-05 | 04-05-precificacao-conferencia.png | Aba Conferência: conferência central e pedido de aprovação | desktop | validada |
-| 04-06 | 04-06-precificacao-item-familia.png | Item novo: escolha da família | desktop | validada |
-| 04-07 | 04-07-precificacao-item-equipamento.png | Cartão Equipamento: modelo pronto ou montagem | desktop | validada |
-| 04-08 | 04-08-precificacao-item-modelo-alertas.png | Modelo pronto aplicado: preço calculado e avisos de código e descrição | desktop | validada |
-| 04-09 | 04-09-precificacao-item-condicoes.png | Condições deste item | desktop | validada |
-| 04-10 | 04-10-precificacao-item-componentes.png | Componentes do item (do modelo pronto) | desktop | validada |
+| 04-06 | 04-06-precificacao-item-familia.png | Item novo: etapa Configurar, escolha da família | desktop | validada |
+| 04-07 | 04-07-precificacao-item-equipamento.png | Etapa Configurar: ponto de partida e lista de modelos prontos com pesquisa e filtro | desktop | validada |
+| 04-08 | 04-08-precificacao-item-modelo-alertas.png | Modelo pronto aplicado: características do equipamento e a origem de cada valor | desktop | validada |
+| 04-10 | 04-10-precificacao-item-componentes.png | Etapa Compor: componentes classificados e o painel "Por que este componente?" | desktop | validada |
+| 04-15 | 04-15-precificacao-item-conferir.png | Etapa Conferir: resumo, custo e preço da planilha e as verificações | desktop | validada |
+| 04-09 | 04-09-precificacao-item-condicoes.png | Etapa Conferir: Condições deste item | desktop | validada |
+| 04-16 | 04-16-precificacao-item-incluir.png | Incluir na proposta: gravado e registrado, sem duplicar o item | desktop | validada |
 | 04-11 | 04-11-precificacao-custos.png | Aba Custos com o item novo (linhas com informação de cotação) | desktop | validada |
 | 04-12 | 04-12-precificacao-planilha-completa.png | Botão Planilha completa: visão com todas as colunas da proposta | desktop | validada |
 | 04-13 | 04-13-precificacao-preco-vencido.png | Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro | desktop | validada |
@@ -163,11 +172,14 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 06-13 | 06-13-spv-cadastro-servicos.png | Cadastros → Serviços: técnicos, deslocamento e modelos de serviço e contrato | desktop | validada |
 | 06-14 | 06-14-spv-cadastro-modelos.png | Cadastros → Serviços: modelos de serviço e contrato | desktop | validada |
 | 07-01 | 07-01-cadastro-insumos-lista.png | Lista de insumos com busca, filtros, favorito e ordenação | desktop | validada |
-| 07-02 | 07-02-cadastro-ficha-identificacao.png | Ficha guiada de um novo insumo: identificação e características técnicas | desktop | validada |
+| 07-20 | 07-20-cadastro-ficha-geral.png | Ficha do produto em abas: aba Geral de um novo insumo | desktop | validada |
+| 07-02 | 07-02-cadastro-ficha-identificacao.png | Aba Técnica: características técnicas da família | desktop | validada |
 | 07-03 | 07-03-cadastro-ficha-descricoes.png | Descrições do insumo e aviso de itens parecidos | desktop | validada |
 | 07-04 | 07-04-cadastro-ficha-fornecedores.png | Fornecedores e cotações, com o custo total, e equivalentes | desktop | validada |
+| 07-21 | 07-21-cadastro-ficha-equivalentes.png | Aba Técnica: equivalentes técnicos e alternativas | desktop | validada |
 | 07-05 | 07-05-cadastro-ficha-impacto-preco.png | Mudança de preço: aviso e impacto na margem das propostas | desktop | validada |
-| 07-06 | 07-06-cadastro-ficha-onde-usado.png | Final da ficha: onde é usado e históricos | desktop | validada |
+| 07-06 | 07-06-cadastro-ficha-onde-usado.png | Aba Estruturas e utilização: onde o insumo é usado | desktop | validada |
+| 07-22 | 07-22-cadastro-ficha-historicos.png | Abas Compras e custos (histórico de preço), Documentos e Histórico | desktop | validada |
 | 07-07 | 07-07-cadastro-renomear.png | Renomear um insumo usado em estrutura: o app mostra o impacto antes | desktop | validada |
 | 07-08 | 07-08-cadastro-edicao-massa.png | Edição em massa: campo, novo valor e prévia | desktop | validada |
 | 07-09 | 07-09-cadastro-historico-desfazer.png | Configurações → Histórico: desfazer um lote | desktop | validada |
@@ -183,7 +195,8 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 07-19 | 07-19-cadastro-precos-vencidos.png | Insumos com preço vencido: indicador, aviso, filtro e coluna Preço atualizado em | desktop | validada |
 | 08-01 | 08-01-cadastro-campos-por-familia.png | Cadastro geral → Campos por família | desktop | validada |
 | 08-02 | 08-02-cadastro-campos-modelo.png | Campos e modelo de uma família (motor elétrico) | desktop | validada |
-| 08-03 | 08-03-cadastro-descricao-gerada.png | Descrição técnica e comercial geradas pelos campos da família | desktop | validada |
+| 08-03 | 08-03-cadastro-descricao-gerada.png | Aba Técnica: campos da família que montam a descrição | desktop | validada |
+| 08-08 | 08-08-cadastro-descricao-gerada-geral.png | Aba Geral: descrição técnica gerada e descrição comercial sugerida | desktop | validada |
 | 08-04 | 08-04-cadastro-duplicidade.png | Verificação de duplicidade: mesmo produto e semelhantes | desktop | validada |
 | 08-05 | 08-05-cadastro-excecao-padrao.png | Descrição fora do padrão: justificativa da exceção | desktop | validada |
 | 08-06 | 08-06-cadastro-sinonimos.png | Cadastro geral → Sinônimos e abreviações | desktop | validada |
@@ -198,6 +211,7 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 09-08 | 09-08-estruturas-testador-resultado.png | Resultado do testador: componentes, custo e diagnóstico | desktop | validada |
 | 09-09 | 09-09-estruturas-comparar.png | Comparar estruturas: Conjunto motobomba × Skid (trecho com diferenças) | desktop | validada |
 | 09-10 | 09-10-estruturas-mao-de-obra-bases.png | Engenharia → Mão de obra e bases por porte | desktop | validada |
+| 09-11 | 09-11-estruturas-visoes.png | Visão comercial da estrutura: em que grupo do escopo cada linha aparece | desktop | validada |
 | 10-01 | 10-01-kits-lista.png | Cadastros → Custos → Kits de motor diesel | desktop | validada |
 | 10-02 | 10-02-kits-ficha.png | Ficha do kit de motor diesel, com Onde é usado | desktop | validada |
 | 10-03 | 10-03-kits-duplicar.png | Kit duplicado: Novo kit com a descrição terminada em (CÓPIA) | desktop | validada |
@@ -260,6 +274,7 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 16-08 | 16-08-config-planilha.png | Planilha (avançado), filtrada | desktop | validada |
 | 16-09 | 16-09-config-tema-escuro.png | Tema escuro (botão de tema na barra superior) | desktop | validada |
 | 16-10 | 16-10-config-cenarios-tributarios.png | Cadastros → Fiscal → Cenários tributários (reforma) | desktop | validada |
+| 16-11 | 16-11-config-numeracao.png | Administração → Numeração e máscaras (série de propostas SEQ ligada) | desktop | validada |
 
 ## Procedimentos testados
 
@@ -304,6 +319,7 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 16 | As capturas são do modo local. No modo compartilhado a tela Responsáveis, e-mails e logo mostra também o cartão Responsáveis por área (com + Pessoa e × para o dono), "Seus perfis" com selos e o cartão Como dar acesso. Essas telas, os nomes das pessoas e as recusas do banco não foram validados nas capturas. Pela leitura do código, os botões + Pessoa e × só respondem quando a tela atual é Cadastros; como a aba agora fica em Configurações, eles podem não reagir ao clique (ver o relatório de inconsistências). |
 | 16 | A troca do logo não foi feita nas capturas: a figura mostra o logo original e o botão. |
 | 16 | A restauração no banco compartilhado (gravação direta em cada coleção) não foi validada: as capturas param na prévia, no modo local. |
+| 16 | A reserva simultânea foi testada com o banco simulado (12 reservas ao mesmo tempo, sem repetição) e no modo local; no banco compartilhado real ela depende da trava do próprio banco, que é a mesma usada no teste. |
 
 ## Limitações do ambiente de captura
 
@@ -316,11 +332,11 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 
 | # | Verificação | Resultado |
 |---|---|---|
-| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 76 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
+| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 91 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
 | 2 | Os menus existem? | Sim: os 7 itens do menu lateral citados no manual são os do arquivo index.html. |
 | 3 | Os caminhos de navegação estão corretos? | Sim: cada caminho foi percorrido pela ferramenta de captura antes de cada foto (os passos clicam nos elementos reais). |
 | 4 | Os prints correspondem aos procedimentos? | Sim: cada figura é gerada pelos passos do próprio tutorial. |
-| 5 | As marcações estão posicionadas corretamente? | 154 de 154 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
+| 5 | As marcações estão posicionadas corretamente? | 168 de 168 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
 | 6 | As descrições dos campos estão corretas? | Conferidas contra o código (rótulos, mensagens e regras). |
 | 7 | Os exemplos usam dados fictícios identificados? | Sim: proposta de exemplo do sistema e dados de treinamento identificados como fictícios no capítulo 18. |
 | 8 | As fórmulas apresentadas são reais? | Sim: só aparecem as fórmulas que o próprio sistema mostra (nota de cálculo do Memorial e "Como cada número é calculado" do painel). |
@@ -335,16 +351,25 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 
 | Cap. | Termo |
 |---|---|
+| 2 | barra de navegação embaixo |
+| 2 | Ver em cartões |
 | 3 | SEQ — Soluções e equipamentos |
 | 3 | só nos campos vazios |
 | 3 | Salvar como revisão N |
 | 3 | É só correção: salvar na revisão N |
 | 3 | ← <etapa anterior> |
 | 3 | Próximo: <etapa> → |
+| 4 | 1. Configurar |
+| 4 | 2. Compor |
+| 4 | Ir para o campo / componente / item |
 | 4 | Especificações do fornecimento |
+| 4 | Proposta técnica e comercial deste item |
+| 4 | usar o configurador assistido |
 | 5 | Gerar proposta (PDF) |
 | 5 | Configurações → Modelo da proposta |
 | 5 | Qtd / Descrição |
+| 5 | texto reconhecido na imagem: confira tudo |
+| 5 | Folha de dados construtiva |
 | 6 | lucro líquido mínimo de 40% |
 | 6 | SPV — Serviços e pós-venda |
 | 6 | SEQ — Soluções e equipamentos |
@@ -397,6 +422,9 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 15 | Rev. N ▾ |
 | 16 | No modo local não há login nem controle de acesso |
 | 16 | Esconder um botão não é segurança |
+| 16 | SEQ-2026-00001 |
+| 16 | desligadas |
+| 16 | Número repetido: não deixa salvar |
 | 17 | Tabelas por porte gravam direto |
 | 17 | Margem em duas bases |
 | 17 | Margem e custo do item entre telas |
