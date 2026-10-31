@@ -6,7 +6,7 @@
   "titulo": "Lista de insumos com busca, filtros, favorito e ordenação",
   "vp": "desktop",
   "arquivo": "07-01-cadastro-insumos-lista.png",
-  "data": "2026-10-29T14:37:08.890Z",
+  "data": "2026-10-31T00:49:52.917Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -64,57 +64,27 @@
   "id": "07-02",
   "cap": 7,
   "nome": "cadastro-ficha-identificacao",
-  "titulo": "Ficha guiada de um novo insumo: identificação e características técnicas",
+  "titulo": "Aba Técnica: características técnicas da família",
   "vp": "desktop",
   "arquivo": "07-02-cadastro-ficha-identificacao.png",
-  "data": "2026-10-29T14:37:14.188Z",
+  "data": "2026-10-31T00:50:00.341Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Família: define os campos técnicos e o modelo de descrição.",
-    "sel": "#fFam",
-    "ok": true
-   },
-   {
-    "n": 2,
-    "txt": "Código: gerado pela família (aa-bbbb) e não muda depois.",
-    "sel": "#fCode",
-    "ok": true
-   },
-   {
-    "n": 3,
-    "txt": "Situação do item.",
-    "sel": "#fSit",
-    "ok": true
-   },
-   {
-    "n": 4,
-    "txt": "Fabricante (a marca fica aqui, não no nome).",
-    "sel": "#fFab",
-    "ok": true
-   },
-   {
-    "n": 5,
-    "txt": "Código do fabricante (usado também na verificação de duplicidade).",
-    "sel": "#fCodFab",
-    "ok": true
-   },
-   {
-    "n": 6,
     "txt": "Nome do padrão e modelo da descrição da família.",
     "sel": "#fCarSub",
     "ok": true
    },
    {
-    "n": 7,
+    "n": 2,
     "txt": "Campos técnicos; * = obrigatório.",
     "sel": "[data-car=\"hp\"]",
     "ok": true
    },
    {
-    "n": 8,
+    "n": 3,
     "txt": "Listas curtas aparecem como botões; \"outro\" abre um campo livre.",
     "sel": ".seg:has([data-carr=\"vcc\"])",
     "ok": true
@@ -128,7 +98,7 @@
   "titulo": "Descrições do insumo e aviso de itens parecidos",
   "vp": "desktop",
   "arquivo": "07-03-cadastro-ficha-descricoes.png",
-  "data": "2026-10-29T14:37:19.083Z",
+  "data": "2026-10-31T00:50:02.753Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -183,7 +153,7 @@
   "titulo": "Fornecedores e cotações, com o custo total, e equivalentes",
   "vp": "desktop",
   "arquivo": "07-04-cadastro-ficha-fornecedores.png",
-  "data": "2026-10-29T14:37:21.483Z",
+  "data": "2026-10-31T00:50:05.426Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -216,24 +186,6 @@
     "txt": "\"usar este preço\" leva o custo total ao campo Valor do cadastro.",
     "sel": "[data-fouse=\"0\"]",
     "ok": true
-   },
-   {
-    "n": 6,
-    "txt": "Equivalente registrado, com tipo, justificativa, restrições e data.",
-    "sel": "#fEquiv tbody tr",
-    "ok": true
-   },
-   {
-    "n": 7,
-    "txt": "Tipo: equivalência técnica, alternativa comercial ou substituto.",
-    "sel": "#eqTipo",
-    "ok": true
-   },
-   {
-    "n": 8,
-    "txt": "+ Registrar equivalente (exige características comparadas e justificativa).",
-    "sel": "#eqAdd",
-    "ok": true
    }
   ]
  },
@@ -244,7 +196,7 @@
   "titulo": "Mudança de preço: aviso e impacto na margem das propostas",
   "vp": "desktop",
   "arquivo": "07-05-cadastro-ficha-impacto-preco.png",
-  "data": "2026-10-29T14:37:31.817Z",
+  "data": "2026-10-31T00:50:15.320Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -290,41 +242,23 @@
   "id": "07-06",
   "cap": 7,
   "nome": "cadastro-ficha-onde-usado",
-  "titulo": "Final da ficha: onde é usado e históricos",
+  "titulo": "Aba Estruturas e utilização: onde o insumo é usado",
   "vp": "desktop",
   "arquivo": "07-06-cadastro-ficha-onde-usado.png",
-  "data": "2026-10-29T14:37:38.692Z",
+  "data": "2026-10-31T00:50:22.159Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
     "txt": "Onde é usado: componentes de estrutura, formações fechadas e propostas.",
-    "sel": ".modal .card > h2",
+    "sel": ".modal [data-fpane=\"uso\"] h2",
     "ok": true
    },
    {
     "n": 2,
     "txt": "Componente, quando entra e em quais estruturas.",
-    "sel": ".modal .card > ul.uso li",
-    "ok": true
-   },
-   {
-    "n": 3,
-    "txt": "Histórico de preço: de, para, variação e origem.",
-    "sel": ".modal .card > .tw table",
-    "ok": true
-   },
-   {
-    "n": 4,
-    "txt": "Anexar orçamento, nota ou ficha ao insumo.",
-    "sel": "label[for=\"insDoc\"]",
-    "ok": true
-   },
-   {
-    "n": 5,
-    "txt": "Histórico deste insumo: cada campo alterado, quando e por quem.",
-    "sel": ".modal .hist",
+    "sel": ".modal [data-fpane=\"uso\"] ul.uso li",
     "ok": true
    }
   ]
@@ -336,7 +270,7 @@
   "titulo": "Renomear um insumo usado em estrutura: o app mostra o impacto antes",
   "vp": "desktop",
   "arquivo": "07-07-cadastro-renomear.png",
-  "data": "2026-10-29T14:37:41.278Z",
+  "data": "2026-10-31T00:50:25.208Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -373,7 +307,7 @@
   "titulo": "Edição em massa: campo, novo valor e prévia",
   "vp": "desktop",
   "arquivo": "07-08-cadastro-edicao-massa.png",
-  "data": "2026-10-29T14:37:46.156Z",
+  "data": "2026-10-31T00:50:29.741Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -416,7 +350,7 @@
   "titulo": "Configurações → Histórico: desfazer um lote",
   "vp": "desktop",
   "arquivo": "07-09-cadastro-historico-desfazer.png",
-  "data": "2026-10-29T14:37:50.901Z",
+  "data": "2026-10-31T00:50:34.237Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -465,7 +399,7 @@
   "titulo": "Pedir cadastro de insumo",
   "vp": "desktop",
   "arquivo": "07-10-cadastro-pedir-cadastro.png",
-  "data": "2026-10-29T14:37:55.250Z",
+  "data": "2026-10-31T00:50:38.411Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -526,7 +460,7 @@
   "titulo": "Custos atende o pedido: preço e situação ao cadastrar",
   "vp": "desktop",
   "arquivo": "07-11-cadastro-atender-pedido.png",
-  "data": "2026-10-29T14:38:00.850Z",
+  "data": "2026-10-31T00:50:43.624Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -575,7 +509,7 @@
   "titulo": "Visão geral → Qualidade dos dados",
   "vp": "desktop",
   "arquivo": "07-12-cadastro-qualidade.png",
-  "data": "2026-10-29T14:38:02.524Z",
+  "data": "2026-10-31T00:50:45.137Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -624,7 +558,7 @@
   "titulo": "Importar preços: lista de preços colada",
   "vp": "desktop",
   "arquivo": "07-13-cadastro-importar-colar.png",
-  "data": "2026-10-29T14:38:10.586Z",
+  "data": "2026-10-31T00:50:52.248Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -655,7 +589,7 @@
   "titulo": "Importar preços: colunas, conferência e aplicação",
   "vp": "desktop",
   "arquivo": "07-14-cadastro-importar-conferir.png",
-  "data": "2026-10-29T14:38:13.192Z",
+  "data": "2026-10-31T00:50:54.562Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -698,7 +632,7 @@
   "titulo": "Custos → Validade e alertas",
   "vp": "desktop",
   "arquivo": "07-15-cadastro-validade-alertas.png",
-  "data": "2026-10-29T14:38:19.417Z",
+  "data": "2026-10-31T00:51:00.578Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -710,7 +644,7 @@
   "titulo": "Custos → Câmbio e importação (peças importadas da SPV)",
   "vp": "desktop",
   "arquivo": "07-16-cadastro-cambio.png",
-  "data": "2026-10-29T14:38:26.992Z",
+  "data": "2026-10-31T00:51:07.311Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -722,7 +656,7 @@
   "titulo": "Custos → Válvulas de alívio",
   "vp": "desktop",
   "arquivo": "07-17-cadastro-valvulas.png",
-  "data": "2026-10-29T14:38:34.363Z",
+  "data": "2026-10-31T00:51:14.123Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -734,7 +668,7 @@
   "titulo": "Custos → FACTS (MECON): lista de preços e custos de importação",
   "vp": "desktop",
   "arquivo": "07-18-cadastro-facts-mecon.png",
-  "data": "2026-10-29T14:38:42.006Z",
+  "data": "2026-10-31T00:51:21.106Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -746,7 +680,7 @@
   "titulo": "Insumos com preço vencido: indicador, aviso, filtro e coluna Preço atualizado em",
   "vp": "desktop",
   "arquivo": "07-19-cadastro-precos-vencidos.png",
-  "data": "2026-10-29T14:38:49.657Z",
+  "data": "2026-10-31T00:51:28.937Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -772,6 +706,123 @@
     "n": 4,
     "txt": "Selo \"vencido · N d\" na data do preço.",
     "sel": "tr[data-ins=\"01-1020\"] td:last-child .pill",
+    "ok": true
+   }
+  ]
+ },
+ "07-20": {
+  "id": "07-20",
+  "cap": 7,
+  "nome": "cadastro-ficha-geral",
+  "titulo": "Ficha do produto em abas: aba Geral de um novo insumo",
+  "vp": "desktop",
+  "arquivo": "07-20-cadastro-ficha-geral.png",
+  "data": "2026-10-31T00:49:57.377Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Abas da ficha: Geral, Técnica, Compras e custos (no insumo já cadastrado também Estruturas e utilização, Documentos e Histórico).",
+    "sel": ".modal .fichatabs",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Família: define os campos técnicos e o modelo de descrição.",
+    "sel": "#fFam",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Código: gerado pela família (aa-bbbb) e não muda depois.",
+    "sel": "#fCode",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Situação do item.",
+    "sel": "#fSit",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Fabricante (a marca fica aqui, não no nome).",
+    "sel": "#fFab",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Código do fabricante (usado também na verificação de duplicidade).",
+    "sel": "#fCodFab",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Cadastrar/Salvar e Cancelar ficam sempre visíveis, em qualquer aba.",
+    "sel": ".modal .fichaacoes",
+    "ok": true
+   }
+  ]
+ },
+ "07-21": {
+  "id": "07-21",
+  "cap": 7,
+  "nome": "cadastro-ficha-equivalentes",
+  "titulo": "Aba Técnica: equivalentes técnicos e alternativas",
+  "vp": "desktop",
+  "arquivo": "07-21-cadastro-ficha-equivalentes.png",
+  "data": "2026-10-31T00:50:12.484Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Equivalente registrado, com tipo, justificativa, restrições e data.",
+    "sel": "#fEquiv tbody tr",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Tipo: equivalência técnica, alternativa comercial ou substituto.",
+    "sel": "#eqTipo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "+ Registrar equivalente (exige características comparadas e justificativa).",
+    "sel": "#eqAdd",
+    "ok": true
+   }
+  ]
+ },
+ "07-22": {
+  "id": "07-22",
+  "cap": 7,
+  "nome": "cadastro-ficha-historicos",
+  "titulo": "Abas Compras e custos (histórico de preço), Documentos e Histórico",
+  "vp": "desktop",
+  "arquivo": "07-22-cadastro-ficha-historicos.png",
+  "data": "2026-10-31T00:50:24.274Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Compras e custos: preço, fornecedores e cotações, e o histórico de preço (de, para, variação e origem).",
+    "sel": ".modal [data-ftab=\"compras\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Documentos: folha de dados técnica e os orçamentos, notas e fichas anexados ao insumo.",
+    "sel": ".modal [data-ftab=\"docs\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Histórico deste insumo: cada campo alterado, quando e por quem.",
+    "sel": ".modal .hist",
     "ok": true
    }
   ]

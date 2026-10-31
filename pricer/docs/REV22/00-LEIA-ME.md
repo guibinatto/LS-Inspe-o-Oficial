@@ -26,4 +26,6 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
 10. [Configurador assistido do item](10-configurador.md): alterações, funções reaproveitadas, comparação com a tela anterior, uso e manutenção.
 11. [Celular e tablet](11-celular-e-tablet.md): auditoria, mudanças, resultado por resolução, testes no celular e limitações.
 12. [Folha de dados: pontos de trabalho, NFPA 20, potências e NPSH](12-folha-de-dados-nfpa20.md).
-13. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).
+13. [Arquitetura ERP/CPQ — auditoria](13-erp-auditoria.md): o que já existia, o que era parcial e o que faltava em relação ao complemento.
+14. [Arquitetura ERP/CPQ — implementação](14-erp-implementacao.md): menu por módulos, numeração e máscaras, ficha do produto em abas, descrições, visões da estrutura, busca universal, testes, compatibilidade, permissões, atualização e reversão, e o que não foi feito.
+15. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).

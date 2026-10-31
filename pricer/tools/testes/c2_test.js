@@ -22,6 +22,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   // muda o preço de um insumo usado (o motor do item 01 aparece em D69)
   const desc = '6M33G633/6 952HP@1800RPM 6CIL 24VCC RADIADOR MEC';
   await go('insumos'); await p.fill('#insQ', '6M33G633'); await p.waitForTimeout(600); await p.click('tr[data-ins] td.code'); await p.waitForTimeout(400);
+  await p.click('#overlay [data-ftab="compras"]'); // ficha em abas: o preço fica em Compras e custos
   const v0 = await p.$eval('#fVal', (x) => x.value); await p.fill('#fVal', '999999'); await p.waitForTimeout(200);
   console.log('3 impacto:', (await txt('#fImp')).slice(0, 300)); await p.click('#fImpCalc'); await p.waitForTimeout(2500); console.log('   calc:', (await txt('#fImpRes')).slice(0, 300));
   await p.click('#fSave'); await p.waitForTimeout(800); console.log('   salvou:', await toast(), 'era', v0);

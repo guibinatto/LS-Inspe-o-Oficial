@@ -6,7 +6,7 @@
   "titulo": "Cadastros → Engenharia → Estruturas: componentes da estrutura Conjunto motobomba",
   "vp": "desktop",
   "arquivo": "09-01-estruturas-lista.png",
-  "data": "2026-10-29T14:36:38.400Z",
+  "data": "2026-10-31T00:48:56.835Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -67,7 +67,7 @@
   "titulo": "Janela do componente da estrutura (Tanque de combustível)",
   "vp": "desktop",
   "arquivo": "09-02-estruturas-componente.png",
-  "data": "2026-10-29T14:36:43.142Z",
+  "data": "2026-10-31T00:49:00.772Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -128,7 +128,7 @@
   "titulo": "Tabelas por porte: potência do diesel (HP)",
   "vp": "desktop",
   "arquivo": "09-03-estruturas-tabelas-porte.png",
-  "data": "2026-10-29T14:36:45.278Z",
+  "data": "2026-10-31T00:49:02.107Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -165,7 +165,7 @@
   "titulo": "Estrutura em rascunho com uma alteração pendente",
   "vp": "desktop",
   "arquivo": "09-04-estruturas-rascunho.png",
-  "data": "2026-10-29T14:36:45.849Z",
+  "data": "2026-10-31T00:49:02.571Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -220,7 +220,7 @@
   "titulo": "Publicar o rascunho: diferenças e impacto nos modelos prontos",
   "vp": "desktop",
   "arquivo": "09-05-estruturas-impacto.png",
-  "data": "2026-10-29T14:36:49.222Z",
+  "data": "2026-10-31T00:49:05.427Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -257,7 +257,7 @@
   "titulo": "Versões publicadas recentes, com Desfazer esta versão",
   "vp": "desktop",
   "arquivo": "09-06-estruturas-versoes.png",
-  "data": "2026-10-29T14:37:07.402Z",
+  "data": "2026-10-31T00:49:15.626Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -288,7 +288,7 @@
   "titulo": "Testador de estruturas comparando dois modelos prontos",
   "vp": "desktop",
   "arquivo": "09-07-estruturas-testador-comparar.png",
-  "data": "2026-10-29T14:37:10.183Z",
+  "data": "2026-10-31T00:49:18.068Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -343,7 +343,7 @@
   "titulo": "Resultado do testador: componentes, custo e diagnóstico",
   "vp": "desktop",
   "arquivo": "09-08-estruturas-testador-resultado.png",
-  "data": "2026-10-29T14:37:15.905Z",
+  "data": "2026-10-31T00:49:23.301Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -386,7 +386,7 @@
   "titulo": "Comparar estruturas: Conjunto motobomba × Skid (trecho com diferenças)",
   "vp": "desktop",
   "arquivo": "09-09-estruturas-comparar.png",
-  "data": "2026-10-29T14:37:17.265Z",
+  "data": "2026-10-31T00:49:24.304Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -411,9 +411,34 @@
   "titulo": "Engenharia → Mão de obra e bases por porte",
   "vp": "desktop",
   "arquivo": "09-10-estruturas-mao-de-obra-bases.png",
-  "data": "2026-10-29T14:37:22.921Z",
+  "data": "2026-10-31T00:49:29.217Z",
   "ok": true,
   "problemas": [],
   "marcas": []
+ },
+ "09-11": {
+  "id": "09-11",
+  "cap": 9,
+  "nome": "estruturas-visoes",
+  "titulo": "Visão comercial da estrutura: em que grupo do escopo cada linha aparece",
+  "vp": "desktop",
+  "arquivo": "09-11-estruturas-visoes.png",
+  "data": "2026-10-31T00:49:33.954Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Visão: Técnica (só o que é físico), Custeio (tudo que forma o custo, padrão) ou Comercial.",
+    "sel": "#app .seg:has([data-estrvis])",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Na visão comercial, esta coluna diz em que grupo do escopo da proposta a linha aparece, ou se fica só no custo.",
+    "sel": "#app thead th:nth-child(5)",
+    "ok": true
+   }
+  ]
  }
 }

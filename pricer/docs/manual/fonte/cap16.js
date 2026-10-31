@@ -226,3 +226,28 @@ module.exports.conteudo.push(
   { t: 'fig', id: '16-10' },
   { t: 'nota', x: 'A formação oficial continua na planilha até a área Fiscal confirmar as regras: o cenário serve para comparar "hoje × cenário" em cada proposta, sem mudar o preço oficial.' },
 );
+
+// ---- Numeração e máscaras ----
+module.exports.capturas.push(
+  { id: '16-11', nome: 'config-numeracao', titulo: 'Administração → Numeração e máscaras (série de propostas SEQ ligada)', novo: true, alto: 1300,
+    prep: async (p, h) => { await h.nav('config'); await h.cad('numeracao'); await p.selectOption('[data-numserie="seq"] [data-nm="ativa"]', '1'); await h.esperar(200); await h.topo(); },
+    clip: '#app [data-numserie="seq"]', pad: 8,
+    marcas: [
+      { sel: '[data-numserie="seq"] [data-nm="ativa"]', txt: 'Série desligada (número digitado, o padrão) ou ligada (botão "gerar nº" na proposta).', pos: 'r' },
+      { sel: '[data-numserie="seq"] [data-nm="prefixo"]', txt: 'Prefixo, ano (com reinício anual), separador, posições, início e sufixo formam a máscara.', pos: 'b' },
+      { sel: '[data-numserie="seq"] [data-nm="bloqueio"]', txt: 'Número repetido: só avisar ou impedir a gravação.', pos: 't' },
+      { sel: '[data-numserie="seq"] [data-nmprev]', txt: 'Prévia do primeiro número com a máscara.', pos: 't' },
+    ] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Numeração e máscaras' },
+  { t: 'p', x: 'Em **Configurações** → **Numeração e máscaras** (ou **Administração** → **Numeração e máscaras**, no menu), o administrador define uma série de numeração para as propostas SEQ (inclusive FACTS) e outra para as SPV: prefixo, ano no número (recomeça a cada ano, no formato AAAA ou AA), separador depois do ano, posições do sequencial, número inicial e sufixo. Exemplo: **SEQ-2026-00001**. Quem não é administrador vê só as séries ligadas, sem poder alterar; no modo compartilhado, a configuração fica num lugar do banco que só o Editor/dono grava.' },
+  { t: 'fig', id: '16-11' },
+  { t: 'lista', itens: [
+    'As séries começam **desligadas**: o número da proposta continua digitado como hoje (ex.: 10.102). Nada é renumerado ao ligar uma série; propostas e códigos de insumo existentes não mudam.',
+    'Com a série ligada, o campo **Nº da proposta** ganha o botão **gerar nº**. Ele reserva o próximo número no banco compartilhado, com trava: duas pessoas ao mesmo tempo nunca recebem o mesmo número. Números já usados em propostas salvas são pulados, e número reservado não é reaproveitado, mesmo que a proposta seja excluída. Salve a proposta para gravar o número nela.',
+    'Número digitado que já está em outra proposta salva aparece com aviso ao lado do campo. Com **Número repetido: não deixa salvar**, a proposta só é gravada depois de trocar o número.',
+    'A lista **Últimos números reservados** mostra o número, a série, quando e quem reservou.',
+  ] },
+  { t: 'nv', x: 'A reserva simultânea foi testada com o banco simulado (12 reservas ao mesmo tempo, sem repetição) e no modo local; no banco compartilhado real ela depende da trava do próprio banco, que é a mesma usada no teste.' },
+);

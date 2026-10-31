@@ -6,7 +6,7 @@
   "titulo": "Tela Início: botões para começar uma SPV e o FACTS",
   "vp": "desktop",
   "arquivo": "06-01-spv-inicio-botoes.png",
-  "data": "2026-10-29T14:36:32.930Z",
+  "data": "2026-10-31T00:54:06.839Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -55,7 +55,7 @@
   "titulo": "SPV aberta: resumo, abas e barra de preço",
   "vp": "desktop",
   "arquivo": "06-02-spv-cabecalho-abas.png",
-  "data": "2026-10-29T14:36:33.657Z",
+  "data": "2026-10-31T00:54:07.349Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -104,7 +104,7 @@
   "titulo": "Cartão Cliente e escopo preenchido",
   "vp": "desktop",
   "arquivo": "06-03-spv-cliente-escopo.png",
-  "data": "2026-10-29T14:36:35.094Z",
+  "data": "2026-10-31T00:54:08.647Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -159,7 +159,7 @@
   "titulo": "Equipe e deslocamento (300 km só ida; alimentação alterada à mão)",
   "vp": "desktop",
   "arquivo": "06-04-spv-equipe-deslocamento.png",
-  "data": "2026-10-29T14:36:38.672Z",
+  "data": "2026-10-31T00:54:11.849Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -220,7 +220,7 @@
   "titulo": "Peças e materiais depois de importar uma NF-e em XML",
   "vp": "desktop",
   "arquivo": "06-05-spv-pecas-materiais.png",
-  "data": "2026-10-29T14:36:40.437Z",
+  "data": "2026-10-31T00:54:13.329Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -275,7 +275,7 @@
   "titulo": "Lucro abaixo da meta: o app mostra o multiplicador necessário",
   "vp": "desktop",
   "arquivo": "06-06-spv-alerta-lucro.png",
-  "data": "2026-10-29T14:36:43.646Z",
+  "data": "2026-10-31T00:54:15.923Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -312,7 +312,7 @@
   "titulo": "Formação do preço e documentos da proposta",
   "vp": "desktop",
   "arquivo": "06-07-spv-formacao-documentos.png",
-  "data": "2026-10-29T14:36:45.685Z",
+  "data": "2026-10-31T00:54:17.530Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -367,7 +367,7 @@
   "titulo": "Janela de modelo aberta por \"Salvar esta proposta como modelo\"",
   "vp": "desktop",
   "arquivo": "06-08-spv-salvar-modelo.png",
-  "data": "2026-10-29T14:36:46.499Z",
+  "data": "2026-10-31T00:54:18.069Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -416,7 +416,7 @@
   "titulo": "SPV salva na lista de propostas da tela Início",
   "vp": "desktop",
   "arquivo": "06-09-spv-lista-duplicar.png",
-  "data": "2026-10-29T14:36:48.841Z",
+  "data": "2026-10-31T00:54:19.923Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -459,7 +459,7 @@
   "titulo": "Inspeção / contrato: bloco Contrato recorrente",
   "vp": "desktop",
   "arquivo": "06-10-spv-contrato-recorrente.png",
-  "data": "2026-10-29T14:36:51.439Z",
+  "data": "2026-10-31T00:54:22.305Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -514,7 +514,7 @@
   "titulo": "FACTS: configuração de um conjunto (bomba)",
   "vp": "desktop",
   "arquivo": "06-11-spv-facts-conjunto.png",
-  "data": "2026-10-29T14:36:52.990Z",
+  "data": "2026-10-31T00:54:23.623Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -569,7 +569,7 @@
   "titulo": "FACTS: formação do preço",
   "vp": "desktop",
   "arquivo": "06-12-spv-facts-formacao.png",
-  "data": "2026-10-29T14:36:55.505Z",
+  "data": "2026-10-31T00:54:25.655Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -618,7 +618,7 @@
   "titulo": "Cadastros → Serviços: técnicos, deslocamento e modelos de serviço e contrato",
   "vp": "desktop",
   "arquivo": "06-13-spv-cadastro-servicos.png",
-  "data": "2026-10-29T14:36:59.466Z",
+  "data": "2026-10-31T00:54:28.487Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -630,7 +630,7 @@
   "titulo": "Cadastros → Serviços: modelos de serviço e contrato",
   "vp": "desktop",
   "arquivo": "06-14-spv-cadastro-modelos.png",
-  "data": "2026-10-29T14:37:02.360Z",
+  "data": "2026-10-31T00:54:30.345Z",
   "ok": true,
   "problemas": [],
   "marcas": []

@@ -206,3 +206,20 @@ module.exports.conteudo.push(
   { t: 'fig', id: '09-10' },
   { t: 'aviso', x: 'Aplicar o critério muda o custo de base, montagem e embalagem de todos os itens novos daquele porte. Confira o impacto no Testador de estruturas antes e depois.' },
 );
+
+// ---- Visões da estrutura: técnica, custeio e comercial ----
+module.exports.capturas.push(
+  { id: '09-11', nome: 'estruturas-visoes', titulo: 'Visão comercial da estrutura: em que grupo do escopo cada linha aparece', novo: true, alto: 1300,
+    prep: async (p, h) => { await h.nav('cadastro'); await h.cad('estruturas'); await p.click('[data-estrvis][value="comercial"]', { force: true }); await h.esperar(400); await h.topo(); },
+    clip: [['#app .seg:has([data-estrvis])', 0], ['#app .tw table.t', 0]], pad: 8,
+    marcas: [
+      { sel: '#app .seg:has([data-estrvis])', txt: 'Visão: Técnica (só o que é físico), Custeio (tudo que forma o custo, padrão) ou Comercial.', pos: 't' },
+      { sel: '#app thead th:nth-child(5)', txt: 'Na visão comercial, esta coluna diz em que grupo do escopo da proposta a linha aparece, ou se fica só no custo.', pos: 'b' },
+    ],
+    depois: async (p) => { await p.click('[data-estrvis][value="custeio"]', { force: true }); } },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Visões técnica, de custeio e comercial' },
+  { t: 'p', x: 'A mesma estrutura pode ser vista de três jeitos, sem cadastro duplicado. Os botões **Técnica**, **Custeio** e **Comercial**, logo abaixo das abas das estruturas, trocam só a forma de ver: **Técnica** mostra a composição física do equipamento (tira mão de obra, pintura especial, embalagem, testes e ensaios e documentos); **Custeio** (o padrão) mostra todas as linhas que formam o custo; **Comercial** mostra, para cada linha, em que grupo do escopo da proposta ela aparece (Acionador, Bomba, Acessórios…), se entra dentro da descrição do motor diesel ou se fica só no custo. A regra é a mesma usada para montar o escopo da proposta; os textos vêm do escopo cadastrado por família e por insumo.' },
+  { t: 'fig', id: '09-11' },
+);

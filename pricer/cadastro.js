@@ -87,6 +87,7 @@
       const maybeReady = () => { if (got.meta && got.ins && got.km && got.kb && !R.ready) { R.ready = true; changed('ready'); } };
       // meta/acessos só o dono do app grava (regra do banco); por isso quem gravou (by) é o dono
       db.doc('meta/acessos').onSnapshot((s) => { R.acessos = (s.exists && s.data().areas) || {}; R.donoId = (s.exists && s.data().by) || null; changed('acessos'); }, () => {});
+      db.doc('meta/numeracao').onSnapshot((s) => { R.numCfg = (s.exists && s.data().series) || {}; changed('numeracao'); }, () => {});
       db.doc('meta/cadastro').onSnapshot((s) => { R.seeded = !!(s.exists && s.data().seeded); got.meta = true; if (R._applyShared) R._applyShared(); maybeReady(); changed('meta'); }, err);
       // insumos: um documento por família (cadastro/fNN), com os itens por código
       let insDocs = null, kitDocs = null;
@@ -161,14 +162,17 @@
       const mudouPreco = before ? before.valor !== rec.valor : typeof rec.valor === 'number';
       body.precoEm = mudouPreco ? body.upd : before ? (before.precoEm || before.upd || 'planilha') : undefined; if (!body.precoEm) delete body.precoEm; // 'planilha': preço sem data conhecida
       const mud = diff(before, rec, INS_FIELDS);
-      if (!isNew && !mud.length) return false;
+      if (!isNew && !mud.length) return false; let colidiu = false;
       if (R.mode === 'shared') {
         if (before && famCode(before.fam) !== famCode(rec.fam)) await mutate(famDoc(before.fam), (d) => { if (d.itens) delete d.itens[rec.id]; return d; });
-        await mutate(famDoc(rec.fam), (d) => { d.fam = d.fam || rec.fam; d.itens = d.itens || {}; d.itens[rec.id] = body; return d; });
+        await mutate(famDoc(rec.fam), (d) => { d.fam = d.fam || rec.fam; d.itens = d.itens || {};
+          // código já gravado por outra pessoa (cadastro simultâneo): pega o próximo livre da família, nunca grava por cima
+          if (isNew && d.itens[rec.id]) { const bs = Object.keys(d.itens).map((k) => +String(k).split('-')[1]).filter((x) => x > 0).concat(R.insumos.filter((x) => x.a === rec.a).map((x) => x.b)); const b = Math.max(...bs) + 1; rec.b = b; rec.id = R.newInsumoId(rec.a, b); body.b = b; colidiu = true; }
+          d.itens[rec.id] = body; return d; });
       }
       else { R.insumos = before ? R.insumos.map((x) => x.id === rec.id ? Object.assign({ id: rec.id }, body) : x) : R.insumos.concat([Object.assign({ id: rec.id }, body)]); saveLocal(); changed('insumos'); }
-      await log({ tipo: isNew ? 'Insumo novo' : 'Insumo', ref: rec.id, desc: rec.produto, mudancas: mud });
-      return true;
+      await log({ tipo: isNew ? 'Insumo novo' : 'Insumo', ref: rec.id, desc: rec.produto + (colidiu ? ' (código ajustado: o anterior foi usado por outra pessoa ao mesmo tempo)' : ''), mudancas: mud });
+      return colidiu ? { id: rec.id, colidiu: true } : true;
     };
     // edição em lote (edição em massa, consolidação): grava por família, registra de/para de cada campo e devolve o lote para desfazer
     R.saveInsumosLote = async (changes, desc, tipo) => {
@@ -322,6 +326,69 @@
       return ok.length;
     };
 
+    // ---- numeração e máscaras (séries por tipo de documento) ----
+    // Configuração: só o administrador (no banco, meta/ só aceita gravação de Editor/dono). Nenhuma série vem ligada e
+    // nada é renumerado: a série só vale para números gerados depois que o administrador a liga.
+    // Reserva sem colisão: trava curta no contador da série (acquire), cada número vira um registro próprio
+    // (propostas/_numeracao/numeros/<número>) que só é gravado se ainda não existir, e números já usados em propostas
+    // salvas são pulados. Número reservado nunca é reaproveitado, mesmo que a proposta seja excluída.
+    R.NUM_SERIES = { seq: 'Proposta SEQ', spv: 'Proposta SPV' };
+    R.NUM_PADRAO = { seq: { prefixo: 'SEQ-', anual: true, formatoAno: 'AAAA', sepAno: '-', posicoes: 5, sufixo: '', inicio: 1, ativa: false, bloqueio: false },
+      spv: { prefixo: 'SPV-', anual: true, formatoAno: 'AAAA', sepAno: '-', posicoes: 5, sufixo: '', inicio: 1, ativa: false, bloqueio: false } };
+    R.numCfg = ls.get('lspricer.numeracao', {}) || {};
+    R.serieCfg = (k) => Object.assign({}, R.NUM_PADRAO[k] || {}, (R.numCfg || {})[k] || {});
+    R.formatarNumero = (cfg, n, ano) => { const a = String(ano || new Date().getFullYear()); return String(cfg.prefixo || '') + (cfg.anual ? (cfg.formatoAno === 'AA' ? a.slice(-2) : a) + String(cfg.sepAno ?? '-') : '') + String(n).padStart(Math.max(1, Math.min(12, +cfg.posicoes || 1)), '0') + String(cfg.sufixo || ''); };
+    R.salvarNumeracao = async (series, desc) => {
+      if (!R.ehAdmin()) throw new Error('Só o administrador configura a numeração e as máscaras.');
+      for (const [k, c] of Object.entries(series)) { if (!R.NUM_SERIES[k]) throw new Error('Série desconhecida: ' + k); if (!(+c.posicoes >= 1 && +c.posicoes <= 12)) throw new Error('Posições do sequencial: de 1 a 12.'); if (!(+c.inicio >= 1)) throw new Error('O sequencial começa em 1 ou mais.'); if (/[\/\\#?]/.test(String(c.prefixo || '') + String(c.sufixo || '') + String(c.sepAno || ''))) throw new Error('Prefixo, separador e sufixo não aceitam / \\ # ?'); }
+      const antes = JSON.parse(JSON.stringify(R.numCfg || {}));
+      if (R.mode === 'shared') await R.db.doc('meta/numeracao').set({ series: JSON.parse(JSON.stringify(series)), upd: new Date().toISOString(), by: R.me || null });
+      else { ls.set('lspricer.numeracao', series); }
+      R.numCfg = JSON.parse(JSON.stringify(series)); changed('numeracao');
+      await log({ tipo: 'Numeração', ref: 'numeracao', desc: desc || 'Séries de numeração alteradas', mudancas: Object.keys(series).map((k) => ({ campo: R.NUM_SERIES[k], de: antes[k] ? JSON.stringify(antes[k]) : null, para: JSON.stringify(series[k]) })) });
+    };
+    const slugNum = (n) => String(n).replace(/[^A-Za-z0-9_.~:@+-]/g, '_').slice(0, 180) || '_';
+    const numUsadoEmProposta = (numero, propId) => R.todasPropostas().some((p) => p.id !== propId && !p.excluida && String(p.numero || '').trim().toUpperCase() === String(numero).trim().toUpperCase());
+    R.numerosReservados = async (k) => {
+      if (R.mode !== 'shared') return Object.values(ls.get('lspricer.numeros', {})).filter((x) => !k || x.serie === k).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+      const q = await R.db.collection('propostas/_numeracao/numeros').orderBy('at', 'desc').limit(50).get(); return q.docs.map((d) => d.data()).filter((x) => !k || x.serie === k);
+    };
+    R.reservarNumero = async (k, propId) => {
+      const cfg = R.serieCfg(k); if (!R.NUM_SERIES[k]) throw new Error('Série desconhecida.'); if (!cfg.ativa) throw new Error('A série "' + R.NUM_SERIES[k] + '" não está ligada. O administrador liga em Administração → Numeração e máscaras.');
+      if (R.mode === 'shared' && !R.canSaveShared) throw new Error('Sem permissão para gravar propostas: não dá para reservar um número.');
+      const ano = new Date().getFullYear(); const chave = k + (cfg.anual ? '-' + ano : '');
+      const at = new Date().toISOString();
+      if (R.mode !== 'shared') {
+        const cont = ls.get('lspricer.numcont', {}); const slots = ls.get('lspricer.numeros', {}); let n = Math.max(+cont[chave] || 0, +cfg.inicio || 1);
+        for (let i = 0; i < 500; i++, n++) { const numero = R.formatarNumero(cfg, n, ano); if (slots[slugNum(numero)] || numUsadoEmProposta(numero, propId)) continue;
+          slots[slugNum(numero)] = { numero, serie: k, at, by: null, propId: propId || null }; cont[chave] = n + 1; ls.set('lspricer.numeros', slots); ls.set('lspricer.numcont', cont);
+          await log({ tipo: 'Número reservado', ref: numero, desc: R.NUM_SERIES[k] + ': ' + numero, mudancas: [] }); return numero; }
+        throw new Error('Não achei número livre na série.');
+      }
+      // trava por chamada (mesmo usuário em duas abas também não divide a trava)
+      const holder = (R.me || 'anon') + ':' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const contRef = R.db.doc('propostas/_numeracao/series/' + chave);
+      // espera a trava de quem está gerando agora (ela expira sozinha; quem termina a encurta para 1 s), por até ~20 s
+      let ok = false; const t0 = Date.now();
+      while (!ok && Date.now() - t0 < 20000) { const r = await contRef.acquire({ holder, ttlMs: 5000 }); ok = !!(r && r.acquired);
+        if (!ok) { const ate = r && r.expiresAt ? Date.parse(r.expiresAt) - Date.now() : 600; await new Promise((res) => setTimeout(res, Math.max(150, Math.min(ate, 1500)) + Math.random() * 250)); } }
+      if (!ok) throw new Error('Outra pessoa está gerando um número desta série agora. Tente de novo em alguns segundos.');
+      const c = await contRef.get(); let n = Math.max(+((c.exists && c.data().prox) || 0), +cfg.inicio || 1);
+      for (let i = 0; i < 200; i++, n++) {
+        const numero = R.formatarNumero(cfg, n, ano); if (numUsadoEmProposta(numero, propId)) continue;
+        // o registro do número também é reservado com trava e só é gravado se ainda não existir
+        const slot = R.db.doc('propostas/_numeracao/numeros/' + slugNum(numero)); const sl = await slot.acquire({ holder, ttlMs: 8000 }); if (!(sl && sl.acquired)) continue; const sx = await slot.get(); if (sx.exists) continue;
+        await slot.set({ numero, serie: k, at, by: R.me || null, propId: propId || null });
+        await contRef.set({ prox: n + 1, serie: k, ano: cfg.anual ? ano : null, upd: at, by: R.me || null });
+        try { await contRef.acquire({ holder, ttlMs: 1000 }); } catch (e) { /* a trava expira sozinha */ }
+        await log({ tipo: 'Número reservado', ref: numero, desc: R.NUM_SERIES[k] + ': ' + numero, mudancas: [] });
+        return numero;
+      }
+      throw new Error('Não achei número livre na série (200 tentativas). Confira a configuração.');
+    };
+    // número digitado já usado em outra proposta salva (aviso, ou bloqueio se a série pedir)
+    R.numeroDuplicado = (numero, propId) => !!String(numero || '').trim() && numUsadoEmProposta(numero, propId);
+
     // ---- áreas responsáveis: quem pode editar cada parte do cadastro ----
     // Sem ninguém atribuído, vale a regra antiga (todo Editor edita tudo). O dono do app edita sempre.
     R.acessos = {};
@@ -353,7 +420,13 @@
       return R.patchProposta(p.id, (r) => { r.excluida = { at: new Date().toISOString(), by: R.me || null, motivo: motivo || '' }; });
     };
     R.restaurarLixeira = async (p) => { if (!R.ehAdmin() && !(p.excluida && p.excluida.by === R.me)) throw new Error('Só o administrador ou quem excluiu pode restaurar.'); return R.patchProposta(p.id, (r) => { delete r.excluida; }); };
-    R.todasPropostas = () => R.mode === 'shared' && R.propostas ? R.propostas : Object.entries(ls.get(LS.saved, {})).map(([id, p]) => Object.assign({ id, local: true }, p)).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    // banco compartilhado: a lista ao vivo traz as 300 mais recentes; "carregar todas" busca até 1.000 de uma vez e junta
+    // as mais antigas (as recentes continuam atualizando ao vivo). Os indicadores usam o que estiver carregado e avisam do limite.
+    R.propostasAntigas = null;
+    R.propostasNoLimite = () => R.mode === 'shared' && !!R.propostas && R.propostas.length >= 300 && !R.propostasAntigas;
+    R.carregarTodasPropostas = async () => { if (R.mode !== 'shared') return R.todasPropostas().length; const q = await R.db.collection('propostas').orderBy('at', 'desc').limit(1000).get(); R.propostasAntigas = q.docs.map((d) => Object.assign({ id: d.id }, d.data())); changed('propostas'); return R.todasPropostas().length; };
+    R.todasPropostas = () => { if (R.mode === 'shared' && R.propostas) { if (!R.propostasAntigas) return R.propostas; const vivos = new Set(R.propostas.map((p) => p.id)); return R.propostas.concat(R.propostasAntigas.filter((p) => !vivos.has(p.id))).sort((a, b) => String(b.at).localeCompare(String(a.at))); }
+      return Object.entries(ls.get(LS.saved, {})).map(([id, p]) => Object.assign({ id, local: true }, p)).sort((a, b) => String(b.at).localeCompare(String(a.at))); };
     // gravação com versão: 'ver' sobe a cada gravação; 'verDoc' só quando o conteúdo (editor) muda.
     // O editor informa a versão que abriu (base): se outra pessoa gravou o conteúdo antes, é conflito — nunca sobrescreve calado.
     // Status, etapas e conferência gravam por patch: relê o registro atual, aplica só a mudança, grava e confere.

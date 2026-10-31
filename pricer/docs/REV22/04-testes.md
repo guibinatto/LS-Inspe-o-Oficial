@@ -88,3 +88,16 @@ Capturas reais: `interface/configurador/cfg_1_familia.jpg` a `cfg_6_escuro.jpg`.
 ## Celular e tablet (`mobile_test` e `mobile_audit`, 30/10/2026)
 
 Detalhes, tabela por resolução e limitações em `11-celular-e-tablet.md`. Todos os 31 scripts de interface foram rodados de novo com a versão para celular: os 31 terminaram com código 0 e sem erro de página. A regressão do motor (80 cenários, 6.216 valores) e a de SPV/FACTS (11 cenários) continuam com 0 diferença.
+
+
+## Arquitetura ERP/CPQ (31/10/2026)
+
+| Teste | Resultado |
+|---|---|
+| `erp_test.js` | 27 de 27 (menu por módulos, pesquisa no menu, recolhido, busca universal, ficha em abas, numeração na proposta, visões da estrutura, Ajuda) |
+| `numeracao_test.js` | 11 de 11 (reserva simultânea sem repetição com banco simulado, contador, máscaras, permissão, insumo simultâneo) |
+| Suíte completa (36 testes) | 36 de 36 com saída 0 |
+| Regressão do motor e SPV/FACTS | 0 diferença |
+| Auditoria do celular (10 resoluções × 33 telas) | 0 pendências |
+
+Detalhes em `14-erp-implementacao.md`.

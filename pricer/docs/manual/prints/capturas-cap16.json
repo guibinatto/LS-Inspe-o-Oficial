@@ -6,7 +6,7 @@
   "titulo": "Menu Configurações e suas quatro abas",
   "vp": "desktop",
   "arquivo": "16-01-config-menu.png",
-  "data": "2026-10-29T14:38:45.721Z",
+  "data": "2026-10-31T00:44:31.757Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -61,7 +61,7 @@
   "titulo": "Histórico com filtro de tipo e busca",
   "vp": "desktop",
   "arquivo": "16-02-config-historico.png",
-  "data": "2026-10-29T14:38:47.052Z",
+  "data": "2026-10-31T00:44:32.982Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -110,7 +110,7 @@
   "titulo": "Perfis e permissões (matriz)",
   "vp": "desktop",
   "arquivo": "16-03-config-perfis.png",
-  "data": "2026-10-29T14:38:48.480Z",
+  "data": "2026-10-31T00:44:34.335Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -159,7 +159,7 @@
   "titulo": "E-mails das áreas",
   "vp": "desktop",
   "arquivo": "16-04-config-emails.png",
-  "data": "2026-10-29T14:38:49.740Z",
+  "data": "2026-10-31T00:44:35.473Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -208,7 +208,7 @@
   "titulo": "Logo da empresa",
   "vp": "desktop",
   "arquivo": "16-05-config-logo.png",
-  "data": "2026-10-29T14:38:50.669Z",
+  "data": "2026-10-31T00:44:36.316Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -233,7 +233,7 @@
   "titulo": "Backup e restauração, com a lixeira",
   "vp": "desktop",
   "arquivo": "16-06-config-backup.png",
-  "data": "2026-10-29T14:38:51.077Z",
+  "data": "2026-10-31T00:44:36.683Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -270,7 +270,7 @@
   "titulo": "Janela de restauração de backup (prévia antes de gravar)",
   "vp": "desktop",
   "arquivo": "16-07-config-restaurar.png",
-  "data": "2026-10-29T14:38:52.266Z",
+  "data": "2026-10-31T00:44:37.762Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -319,7 +319,7 @@
   "titulo": "Planilha (avançado), filtrada",
   "vp": "desktop",
   "arquivo": "16-08-config-planilha.png",
-  "data": "2026-10-29T14:38:54.800Z",
+  "data": "2026-10-31T00:44:40.092Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -362,7 +362,7 @@
   "titulo": "Tema escuro (botão de tema na barra superior)",
   "vp": "desktop",
   "arquivo": "16-09-config-tema-escuro.png",
-  "data": "2026-10-29T14:38:57.835Z",
+  "data": "2026-10-31T00:44:42.904Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -387,9 +387,46 @@
   "titulo": "Cadastros → Fiscal → Cenários tributários (reforma)",
   "vp": "desktop",
   "arquivo": "16-10-config-cenarios-tributarios.png",
-  "data": "2026-10-29T14:39:07.190Z",
+  "data": "2026-10-31T00:44:51.601Z",
   "ok": true,
   "problemas": [],
   "marcas": []
+ },
+ "16-11": {
+  "id": "16-11",
+  "cap": 16,
+  "nome": "config-numeracao",
+  "titulo": "Administração → Numeração e máscaras (série de propostas SEQ ligada)",
+  "vp": "desktop",
+  "arquivo": "16-11-config-numeracao.png",
+  "data": "2026-10-31T00:44:59.975Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Série desligada (número digitado, o padrão) ou ligada (botão \"gerar nº\" na proposta).",
+    "sel": "[data-numserie=\"seq\"] [data-nm=\"ativa\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Prefixo, ano (com reinício anual), separador, posições, início e sufixo formam a máscara.",
+    "sel": "[data-numserie=\"seq\"] [data-nm=\"prefixo\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Número repetido: só avisar ou impedir a gravação.",
+    "sel": "[data-numserie=\"seq\"] [data-nm=\"bloqueio\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Prévia do primeiro número com a máscara.",
+    "sel": "[data-numserie=\"seq\"] [data-nmprev]",
+    "ok": true
+   }
+  ]
  }
 }

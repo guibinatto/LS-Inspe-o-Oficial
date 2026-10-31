@@ -22,7 +22,7 @@ const PDF = process.env.FD_PDF; if (!PDF || !fs.existsSync(PDF)) { console.log('
   for (const uso of ['Bomba', 'Motor']) {
     const bt = await p.$$eval('[data-insabre]', (x, uso) => { const e = x.find((y) => y.parentElement.innerText.includes(uso)); return e ? e.dataset.insabre : null; }, uso);
     if (!bt) { console.log('  sem atalho para', uso); continue; }
-    await p.click(`[data-insabre="${bt}"]`); await p.waitForTimeout(600);
+    await p.click(`[data-insabre="${bt}"]`); await p.waitForTimeout(600); await p.click('#overlay [data-ftab="docs"]'); // ficha em abas: a folha técnica fica em Documentos
     // o clique no quadro abre a janela de arquivo (o bloco não pode reabrir o cadastro)
     const fc = p.waitForEvent('filechooser', { timeout: 3000 }).then(() => 'abre').catch(() => 'NÃO ABRE'); await p.click('#fdtBox label.drop'); console.log('  janela de arquivo:', await fc);
     await p.setInputFiles(`[data-fdtup="${bt}"]`, PDF); await p.waitForTimeout(4000);

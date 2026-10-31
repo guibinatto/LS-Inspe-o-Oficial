@@ -20,16 +20,18 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   await p.selectOption('#insFam', '01.MOTORDIESEL'); await p.waitForTimeout(300);
   await p.click('#insNew'); await p.waitForTimeout(300);
   console.log('ficha campos:', await p.$$eval('[data-car],[data-carr]', (x) => [...new Set(x.map((e) => e.dataset.car || e.dataset.carr))].join(',')));
+  // ficha em abas: as características ficam na aba Técnica; descrições na Geral; preço em Compras e custos
+  const aba = async (k) => { await p.click('#overlay [data-ftab="' + k + '"]'); await p.waitForTimeout(100); };
+  await aba('tecnica');
   const fill = async (k, v) => { await p.fill('[data-car="' + k + '"]', v); };
   await fill('modelo', '6M16G308/6'); await fill('hp', '483'); await fill('rpm', '1800'); await fill('cil', '6'); await p.check('input[data-carr="vcc"][value="24VCC"]', { force: true }); await p.check('input[data-carr="arref"][value="RADIADOR"]', { force: true }); await p.check('input[data-carr="ctrl"][value="MEC"]', { force: true });
   await p.waitForTimeout(200);
   console.log('gerada:', await p.$eval('#fProd', (x) => x.value), '|', await txt('#fPad'));
   console.log('dup:', (await txt('#fDup')).slice(0, 220));
-  await p.fill('[data-car="hp"]', '490'); await p.waitForTimeout(200);
+  await aba('tecnica'); await p.fill('[data-car="hp"]', '490'); await p.waitForTimeout(200);
   console.log('gerada2:', await p.$eval('#fProd', (x) => x.value), '| dup2:', (await txt('#fDup')).slice(0, 200));
-  await p.click('#fComSug'); console.log('comercial:', await p.$eval('#fCom', (x) => x.value));
-  await p.fill('#fFab', 'BAUDOUIN'); await p.fill('#fVal', '100000');
-  await p.click('#fForn'.replace('#fForn', '.fsec summary')).catch(() => {});
+  await aba('geral'); await p.click('#fComSug'); console.log('comercial:', await p.$eval('#fCom', (x) => x.value));
+  await p.fill('#fFab', 'BAUDOUIN'); await aba('compras'); await p.fill('#fVal', '100000');
   await p.click('#fSave'); await p.waitForTimeout(800); console.log('salvou:', await toast());
   const novo = await p.evaluate(() => { const r = JSON.parse(localStorage.getItem('lspricer.registry.v1')); return r.insumos.filter((i) => /490HP/.test(i.produto)).map((i) => JSON.stringify(i)); });
   console.log('registro:', novo);

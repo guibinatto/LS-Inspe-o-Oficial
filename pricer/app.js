@@ -312,14 +312,53 @@
   const fechaMenu = () => { if (!document.body.classList.contains('side-open')) return; document.body.classList.remove('side-open'); $('#sideScrim').hidden = true; $('#bMenu').focus(); };
   $('#bMenu').onclick = () => { document.body.classList.add('side-open'); $('#sideScrim').hidden = false; const f = $('#nav button[aria-current="page"]') || $('#nav button'); if (f) f.focus(); };
   $('#bSideX').onclick = fechaMenu; $('#sideScrim').onclick = fechaMenu;
-  $('#nav').addEventListener('click', (e) => { if (e.target.closest('button')) fechaMenu(); });
+  $('#nav').addEventListener('click', (e) => { if (e.target.closest('button') && !e.target.closest('[data-navgt]')) fechaMenu(); });
   const sideCol = () => { const m = document.body.classList.contains('side-mini'); const b = $('#bSideCol'); b.dataset.ico = m ? 'panel-left-open' : 'panel-left-close'; b.title = m ? 'Expandir o menu' : 'Recolher o menu'; b.setAttribute('aria-label', b.title); b.querySelector('.nl').textContent = m ? 'Expandir' : 'Recolher'; decorar(b.parentElement); };
   $('#bSideCol').onclick = () => { const m = document.body.classList.toggle('side-mini'); try { localStorage.setItem('lspricer.sidemini', m ? '1' : '0'); } catch (e) { /* só nesta visita */ } sideCol(); };
   sideCol();
+  // menu por módulos: grupos que abrem e fecham (a escolha fica neste navegador), pesquisa no menu, setas do teclado e
+  // dica com o nome no menu recolhido. Os atalhos dos submenus só levam a telas que já existem.
+  const NAVG_K = 'lspricer.navgrupos'; const normMenu = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let navAbertos = {}; try { navAbertos = JSON.parse(localStorage.getItem(NAVG_K) || '{}') || {}; } catch (e) { navAbertos = {}; }
+  const navGrupo = (k, abre) => { const h = document.querySelector(`#nav [data-navgt="${k}"]`); const sb = document.getElementById('navs_' + k); if (!h || !sb) return; h.setAttribute('aria-expanded', abre ? 'true' : 'false'); sb.hidden = !abre; };
+  for (const h of document.querySelectorAll('#nav [data-navgt]')) navGrupo(h.dataset.navgt, !!navAbertos[h.dataset.navgt]);
+  for (const b of document.querySelectorAll('#nav [data-view]')) b.dataset.tip = (b.querySelector('.nl') || b).textContent.trim();
+  $('#nav').addEventListener('click', (e) => {
+    const h = e.target.closest('[data-navgt]'); if (h) { e.stopPropagation(); const k = h.dataset.navgt; const abre = h.getAttribute('aria-expanded') !== 'true'; navGrupo(k, abre); navAbertos[k] = abre; try { localStorage.setItem(NAVG_K, JSON.stringify(navAbertos)); } catch (er) { /* só nesta visita */ } return; }
+    const g = e.target.closest('[data-go]'); if (!g) return;
+    const v = g.dataset.go, k = g.dataset.gk, val = g.dataset.gv;
+    if (k === 'homeDiv') { ui.homeDiv = val; }
+    if (k === 'cad') { ui.cad = val; }
+    if (k === 'mgTab') { ui.mgTab = val; ui.mgId = null; ui.apId = null; }
+    if (k === 'ajuda') ui.ajuda = val;
+    setView(v);
+    // lista ou seção certa à vista
+    setTimeout(() => { const alvo = k === 'homeDiv' ? document.querySelector(`[data-hdiv="${CSS.escape(val)}"]`) : k === 'ajuda' ? document.getElementById('ajuda_' + val) : null; if (alvo) alvo.scrollIntoView({ block: 'start' }); }, 30);
+  });
+  // pesquisa no menu: mostra só o que bate (abre os grupos enquanto pesquisa)
+  $('#navQ').addEventListener('input', (e) => {
+    const q = String(e.target.value || '').trim(); const nq = normMenu(q);
+    let n = 0;
+    for (const b of document.querySelectorAll('#nav [data-view], #nav [data-go]')) {
+      const nl = b.querySelector('.nl'); const t = nl ? (nl.dataset.t || (nl.dataset.t = nl.textContent)) : '';
+      const ok = !nq || normMenu(t).includes(nq); b.hidden = !ok; if (ok) n++;
+      if (nl) { if (nq && ok) { const i = normMenu(t).indexOf(nq); nl.innerHTML = esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length)); } else nl.textContent = t; }
+    }
+    for (const h of document.querySelectorAll('#nav [data-navgt]')) { const k = h.dataset.navgt; const sb = document.getElementById('navs_' + k);
+      if (nq) { const vis = [...h.parentElement.querySelectorAll('[data-view], [data-go]')].some((x) => !x.hidden); h.hidden = !vis; sb.hidden = !vis; h.setAttribute('aria-expanded', vis ? 'true' : 'false'); }
+      else { h.hidden = false; navGrupo(k, !!navAbertos[k]); } }
+    let vz = $('#nav .navvazio'); if (nq && !n) { if (!vz) { vz = document.createElement('div'); vz.className = 'navvazio'; $('#nav').appendChild(vz); } vz.textContent = 'Nada no menu com "' + q + '". Use a busca (Ctrl+K) para procurar propostas e cadastros.'; } else if (vz) vz.remove();
+  });
+  $('#navQ').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.target.value = ''; e.target.dispatchEvent(new Event('input')); } if (e.key === 'ArrowDown') { e.preventDefault(); const f = [...document.querySelectorAll('#nav button')].find((x) => !x.hidden && x.offsetParent); if (f) f.focus(); } });
+  // setas para cima e para baixo percorrem o menu
+  $('#nav').addEventListener('keydown', (e) => { if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key) || !e.target.closest('button')) return;
+    const L = [...document.querySelectorAll('#nav button')].filter((x) => !x.hidden && x.offsetParent); const i = L.indexOf(e.target); if (i < 0) return; e.preventDefault();
+    const j = e.key === 'Home' ? 0 : e.key === 'End' ? L.length - 1 : Math.max(0, Math.min(L.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1))); L[j].focus(); });
   // teclado: Esc fecha a janela aberta (ou o menu); Ctrl+S (⌘S) salva a proposta
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('side-open')) { fechaMenu(); return; } });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && $('#overlay') && $('#overlay').firstElementChild && !e.defaultPrevented) { const c = $('#overlay [data-close]'); if (c) c.click(); else $('#overlay').innerHTML = ''; return; }
+    // Esc fecha a janela pelo botão que só fecha (um link "fechar e ir para…" também tem data-close e não pode ser o escolhido)
+    if (e.key === 'Escape' && $('#overlay') && $('#overlay').firstElementChild && !e.defaultPrevented) { const cs = [...document.querySelectorAll('#overlay [data-close]')]; const so = (x) => Object.keys(x.dataset).length === 1; const c = cs.find((x) => so(x) && x.offsetParent) || cs.find(so); if (c) c.click(); else $('#overlay').innerHTML = ''; return; }
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => $('#bSave').click(), 0); }
   });
   // tema: automático (segue o sistema), claro ou escuro; fica guardado neste navegador
@@ -327,6 +366,7 @@
   function aplicaTema(t) { if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; const b = $('#bTheme'); if (b) { const lb = (TEMAS.find((x) => x[0] === t) || TEMAS[0])[1]; b.innerHTML = '<span class="tl">' + lb + '</span>'; b.dataset.ico = t === 'light' ? 'sun' : t === 'dark' ? 'moon' : 'sun-moon'; b.title = lb + ' (clique para trocar)'; b.setAttribute('aria-label', lb + ' (clique para trocar)'); decorar(b.parentElement); } }
   let tema = 'auto'; try { tema = localStorage.getItem('lspricer.tema') || 'auto'; } catch (e) { tema = 'auto'; }
   aplicaTema(tema);
+  $('#bBusca').onclick = () => buscaAbrir();
   $('#bTheme').onclick = () => { const i = TEMAS.findIndex((x) => x[0] === tema); tema = TEMAS[(i + 1) % TEMAS.length][0]; try { localStorage.setItem('lspricer.tema', tema); } catch (e) { /* só nesta visita */ } aplicaTema(tema); };
   document.addEventListener('click', (e) => {
     const r = e.target.closest('[data-restore]');
@@ -382,7 +422,10 @@
     if (ui.view === 'cadastro' && CAD_TABS.some((x) => x[0] === ui.cad) && areaOfTab(ui.cad) === 'sistema') ui.view = 'config';
     if (ui.view === 'config' && areaOfTab(ui.cad) !== 'sistema') ui.cad = 'historico';
     const navAtual = viewDaProposta(ui.view) ? 'proposta' : ui.view;
-    for (const b of document.querySelectorAll('#nav button')) b.setAttribute('aria-current', b.dataset.view === navAtual ? 'page' : 'false');
+    for (const b of document.querySelectorAll('#nav button[data-view]')) b.setAttribute('aria-current', b.dataset.view === navAtual ? 'page' : 'false');
+    for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
+      const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : false));
+      if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
     const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
     { const b = $('#bMode'); if (b) b.hidden = outro || !['proposta', 'item'].includes(ui.view); }
@@ -2164,7 +2207,7 @@
           <div class="fields">
             <div class="f span2 req${falta.has('L5') ? ' miss' : ''}"><label for="cnpjIn">CNPJ / CPF</label><div class="cnpjrow"><input id="cnpjIn" value="${esc(fmtDoc(txt(P, 'L5')))}" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off"><button class="btn" id="cnpjGo" type="button">Buscar na Receita</button></div><small class="sub" id="cnpjMsg">${esc(state.cnpjInfo || 'Preenche cliente, local, UF e cadastro fiscal.')}</small></div>
             ${rq('F5', 'Cliente (razão social)', 'span2').replace('<input ', '<input list="dl_clientes" ')}${dlClientesHtml()}${rq('F6', 'Obra / local', 'span2')}${rq('F7', 'UF de destino')}${rq('J5', 'Cadastro fiscal', 'span2')}${rq('F8', 'Segmento')}</div></section>
-        <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
+        <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta').replace(/<\/label>/, window.LSNumGerar('seq', '#c_PROPOSTA_C5', txt(P, 'C5')) + '</label>')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
         ${(() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })()}
         <section class="card"><h2>Vendedor e comissões</h2><div class="fields">
             <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor${REG.areaOk('precificacao') ? ' <button type="button" class="restore" data-novovend>+ novo vendedor ou AN</button>' : ''}</label>${chips(vs, 'C8', REG.areaOk('precificacao') ? 'Nenhum vendedor cadastrado: use "+ novo vendedor ou AN".' : 'Nenhum vendedor cadastrado: peça a quem cuida de Precificação.')}</div>
@@ -2933,7 +2976,7 @@
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
     ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão, e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições'], ['campos', 'Campos por família'], ['sinonimos', 'Sinônimos e abreviações']]],
-    ['sistema', 'Sistema', 'Histórico, modelo da proposta, responsáveis e e-mails, backup e restauração e planilha (avançado)', [['historico', 'Histórico'], ['propmodelo', 'Modelo da proposta'], ['acessos', 'Responsáveis, e-mails e logo'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
+    ['sistema', 'Sistema', 'Histórico, modelo da proposta, responsáveis e e-mails, backup e restauração e planilha (avançado)', [['historico', 'Histórico'], ['propmodelo', 'Modelo da proposta'], ['acessos', 'Responsáveis, e-mails e logo'], ['numeracao', 'Numeração e máscaras'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
@@ -2979,7 +3022,7 @@
     if (OLD_TABS[ui.cad]) ui.cad = OLD_TABS[ui.cad];
     if (!CAD_TABS.some((x) => x[0] === ui.cad)) ui.cad = cfg ? 'historico' : 'insumos';
     const tab = ui.cad; const area = AREAS.find((a) => a[0] === areaOfTab(tab));
-    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, backup: vBackup, custoscfg: vCustosCfg, propmodelo: vModeloProposta, regras: () => RG.vCfg(canEd()), mapa: vMapa, qualidade: vQualidade, fornecedores: vFornecedores, campos: vCampos, sinonimos: vSinonimos, testador: vTestador, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
+    const body = { insumos: vInsumos, familias: vFamilias, codificacao: () => vParamTab('codificacao'), fiscal: () => vParamTab('fiscal'), preco: () => vParamTab('preco'), servicos: () => vParamTab('servicos'), geral: () => vParamTab('geral'), cambio: () => SPV.cfgSec('custos', canEd()), valvulas: () => tableCard('valv'), acessos: vAcessos, numeracao: vNumeracao, backup: vBackup, custoscfg: vCustosCfg, propmodelo: vModeloProposta, regras: () => RG.vCfg(canEd()), mapa: vMapa, qualidade: vQualidade, fornecedores: vFornecedores, campos: vCampos, sinonimos: vSinonimos, testador: vTestador, padrao: vPadrao, mobase: vMoBase, cenarios: () => TB.vCenarios(canEd()), facts: () => FX.vCfg(canEd()), pedidos: () => PD.vLista(), estruturas: vEstruturas, motor: () => vKits('motor'), bomba: () => vKits('bomba'), importar: vImportar, historico: vHistorico, tabelas: vTabelas }[tab]();
     const mine = REG.mode === 'shared' && REG.areasConfiguradas() ? REG.minhasAreas() : null;
     return `<div class="stack">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
@@ -3439,6 +3482,9 @@
     if (a.tipo === 'man' && rec.produto && rec.produto !== a.desc && ITEMS.includes(a.S)) { commit(a.S, 'D' + a.r, rec.produto); toast('Linha da proposta atualizada para "' + rec.produto + '"'); }
     else render();
   }
+  // ficha do produto (dados mestres) em abas; os campos continuam no mesmo formulário e são gravados juntos
+  const FICHA_ABAS = [['geral', 'Geral'], ['tecnica', 'Técnica'], ['compras', 'Compras e custos'], ['uso', 'Estruturas e utilização'], ['docs', 'Documentos'], ['hist', 'Histórico']];
+  const fichaAba = (o, k) => { for (const b of o.querySelectorAll('[data-ftab]')) b.setAttribute('aria-selected', b.dataset.ftab === k ? 'true' : 'false'); for (const el of o.querySelectorAll('[data-fpane]')) el.classList.toggle('fpane-off', el.dataset.fpane !== k); };
   function insumoModal(id, presetFam) {
     const isNew = !id; const rec = isNew ? { fam: presetFam || ui.insFam || famList()[0], origem: 'NAC', situacao: 'ativo' } : JSON.parse(JSON.stringify(REG.insumos.find((x) => x.id === id) || null));
     if (!rec) return;
@@ -3454,8 +3500,9 @@
     const hpHtml = hp.length ? `<div class="tw"><table class="t"><thead><tr><th>Quando</th><th>De</th><th>Para</th><th>Variação</th><th>Origem</th></tr></thead><tbody>${hp.slice(0, 15).map((x) => { const v = typeof x.de === 'number' && x.de && typeof x.para === 'number' ? (x.para - x.de) / x.de : null; return `<tr><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.de === 'number' ? brl(x.de) : '—'}</td><td class="n">${typeof x.para === 'number' ? brl(x.para) : '—'}</td><td class="n ${v !== null && Math.abs(v) >= C.variacaoPct ? 'bad-t' : ''}">${v === null ? '—' : (v > 0 ? '+' : '') + pct(v, 1)}</td><td><small>${esc(x.fonte || '')}</small></td></tr>`; }).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0">Sem alteração de preço registrada (o valor é o da planilha ou da última gravação).</p>';
     const insOpts = REG.insumos.filter((i) => i.id !== rec.id).map((i) => `<option value="${esc(i.id + ' · ' + i.produto)}">`).join('');
     modal(`<h2>${isNew ? 'Novo insumo' : 'Insumo ' + esc(rec.id)} ${isNew ? '' : situPillIns(rec)}</h2>
+      <div class="subtabs fichatabs" role="tablist" aria-label="Seções da ficha">${FICHA_ABAS.filter(([k]) => !isNew || ['geral', 'tecnica', 'compras'].includes(k)).map(([k, lb], i) => `<button type="button" role="tab" data-ftab="${k}" aria-selected="${i === 0}">${lb}</button>`).join('')}</div>
       <form id="insForm" autocomplete="off" class="stack" style="gap:10px">
-      <div class="fields">
+      <div class="fields" data-fpane="geral">
         <div class="f span2"><label for="fFam">Família</label><select id="fFam"${ro}>${fams.map((f) => `<option value="${esc(f)}"${f === rec.fam ? ' selected' : ''}>${esc(famNome(f))}</option>`).join('')}${ed ? '<option value="__nova">+ Nova família…</option>' : ''}</select></div>
         <div class="f" id="fNovaWrap" hidden><label for="fNova">Nova família (nn.NOME)</label><input id="fNova" placeholder="46.NOMEDAFAMILIA"></div>
         <div class="f"><label>Código (não muda)</label><div class="ro code" id="fCode">${esc(String(code.a).padStart(2, '0') + '-' + code.b)}</div></div>
@@ -3467,8 +3514,8 @@
         <div class="f"><label for="fOri">Origem</label><select id="fOri"${ro}><option${rec.origem === 'NAC' ? ' selected' : ''}>NAC</option><option${rec.origem === 'IMP' ? ' selected' : ''}>IMP</option></select></div>
         <div class="f span2" id="fSubWrap"${['inativo', 'descontinuado'].includes(situ(rec)) ? '' : ' hidden'}><label for="fSub">Substituto (quando descontinuado)</label><input id="fSub" list="dlInsAll" value="${esc(rec.substituto ? rec.substituto + ' · ' + ((REG.insumos.find((i) => i.id === rec.substituto) || {}).produto || '') : '')}"${ro}></div>
       </div>
-      <section class="fsec" id="fCarSec"><h3>Características técnicas <span class="sub" id="fCarSub"></span></h3><div class="fields" id="fCar"></div></section>
-      <section class="fsec"><h3>Descrições</h3>
+      <section class="fsec" id="fCarSec" data-fpane="tecnica"><h3>Características técnicas <span class="sub" id="fCarSub"></span></h3><div class="fields" id="fCar"></div></section>
+      <section class="fsec" data-fpane="geral"><h3>Descrições</h3>
         <div class="fields"><div class="f spanall"><label for="fProd">Descrição técnica padronizada <small class="sub">(é o nome que as fórmulas e as estruturas usam)</small></label>
           <input id="fProd" value="${esc(rec.produto || '')}"${ro}><label class="chk" id="fGerWrap"><input type="checkbox" id="fGerar"${st.gerar ? ' checked' : ''}${ro}> gerar pelas características da família</label><small class="sub" id="fPad"></small></div>
           <div class="f spanall" id="fExcWrap" hidden><label for="fExc">Justificativa da exceção ao padrão</label><input id="fExc" value="${esc(rec.excecao || '')}" placeholder="ex.: código do fabricante não segue a série; nome exigido pelo cliente"${ro}></div>
@@ -3476,30 +3523,32 @@
           <div class="f spanall"><label for="fDescFab">Descrição do fabricante <small class="sub">(texto original do catálogo ou da cotação)</small></label><input id="fDescFab" value="${esc(rec.descFab || '')}"${ro}></div>
           <div class="f spanall"><label for="fObs">Observações</label><input id="fObs" value="${esc(rec.obs || '')}"${ro}></div></div>
         <div id="fDup"></div></section>
-      <section class="fsec"><h3>Preço de aquisição</h3>
+      <section class="fsec" data-fpane="compras"><h3>Preço de aquisição</h3>
         <div class="fields"><div class="f"><label for="fVal">Valor (R$)</label><input id="fVal" inputmode="decimal" value="${typeof rec.valor === 'number' ? esc(NF[2].format(rec.valor)) : ''}" placeholder="sem preço"${ro}></div>
           <div class="f span2"><label for="fFonte">Origem do preço</label><input id="fFonte" value="${esc(rec.fonte || '')}" placeholder="fornecedor, nº do orçamento"${ro}></div>
           <div class="f"><label for="fDataCot">Data da cotação</label><input id="fDataCot" type="date" value="${esc(rec.dataCot || '')}"${ro}></div></div>
         <div id="fImp"></div></section>
-      <details class="fsec"${st.forn.length ? ' open' : ''}><summary><h3 style="display:inline">Fornecedores e cotações <span class="sub">${st.forn.length}</span></h3></summary><div id="fForn"></div></details>
-      <details class="fsec"${st.equiv.length ? ' open' : ''}><summary><h3 style="display:inline">Equivalentes técnicos e alternativas <span class="sub">${st.equiv.length}</span></h3></summary><div id="fEquiv"></div></details>
+      <details class="fsec" data-fpane="compras" open><summary><h3 style="display:inline">Fornecedores e cotações <span class="sub">${st.forn.length}</span></h3></summary><div id="fForn"></div></details>
+      <details class="fsec" data-fpane="tecnica" open><summary><h3 style="display:inline">Equivalentes técnicos e alternativas <span class="sub">${st.equiv.length}</span></h3></summary><div id="fEquiv"></div></details>
       </form>
       <datalist id="dlInsAll">${insOpts}</datalist><datalist id="dl_fornall">${[...new Set(REG.insumos.flatMap((i) => (i.forn || []).map((f) => f.nome)).concat((() => { try { return SPV.docs().map((d) => d.fornecedor); } catch (e) { return []; } })()).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
+      ${!isNew ? `<div data-fpane="uso">${ondeUsadoHtml(rec)}</div>` : ''}
+      ${!isNew ? `<div data-fpane="compras"><h3>Histórico de preço</h3>${hpHtml}</div>` : ''}
+      ${!isNew ? `<div data-fpane="geral"><h3>Na proposta</h3><div class="fields">${escCampoHtml(rec.id, rec.fam)}</div></div>` : ''}
+      ${!isNew && FDTEC_FAM[H.famCode(rec.fam)] ? `<div data-fpane="docs"><h3>Folha de dados técnica</h3><div id="fdtBox" data-fdtins="${esc(rec.id)}">${fdTecHtml(rec.id)}</div></div>` : ''}
+      ${!isNew ? `<div data-fpane="docs"><h3>Documentos deste insumo</h3>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden><button class="btn sm" data-close data-view="documentos" data-ico="folder-open">Todos os documentos</button></div></div>` : ''}
+      ${!isNew ? `<div data-fpane="hist"><h3>Histórico deste insumo</h3>${histHtml}</div>` : ''}
       <div id="fErr" class="bad-t"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="fichaacoes">
         ${ed ? `<button class="btn pri" id="fSave">${isNew ? 'Cadastrar' : 'Salvar'}</button>` : ''}
         ${ed && !isNew ? '<button class="btn" id="fDup2">Duplicar</button>' : ''}
         ${ed && !isNew ? '<button class="btn" id="fDel">Excluir</button>' : ''}
         <button class="btn" data-close>${ed ? 'Cancelar' : 'Fechar'}</button>
-      </div>
-      ${!isNew ? ondeUsadoHtml(rec) : ''}
-      ${!isNew ? `<h2>Histórico de preço</h2>${hpHtml}` : ''}
-      ${!isNew ? `<h2>Na proposta</h2><div class="fields">${escCampoHtml(rec.id, rec.fam)}</div>` : ''}
-      ${!isNew && FDTEC_FAM[H.famCode(rec.fam)] ? `<h2>Folha de dados técnica</h2><div id="fdtBox" data-fdtins="${esc(rec.id)}">${fdTecHtml(rec.id)}</div>` : ''}
-      ${!isNew ? `<h2>Documentos deste insumo</h2>${SPV.docsDoInsumo(rec.id)}<div class="docbar"><label class="btn sm" for="insDoc">📎 Anexar orçamento, nota ou ficha</label><input type="file" id="insDoc" data-insdoc="${esc(rec.id)}" accept="application/pdf,image/*,.xml,.xlsx,.csv" hidden><button class="btn sm" data-close data-view="documentos" data-ico="folder-open">Todos os documentos</button></div>` : ''}
-      ${!isNew ? `<h2>Histórico deste insumo</h2>${histHtml}` : ''}`,
+      </div>`,
     (o, close) => {
-      fillNames(o);
+      fillNames(o); fichaAba(o, 'geral');
+      o.addEventListener('click', (e) => { const b = e.target.closest('[data-ftab]'); if (b) fichaAba(o, b.dataset.ftab); });
+      o.addEventListener('keydown', (e) => { const b = e.target.closest('[data-ftab]'); if (!b || !['ArrowRight', 'ArrowLeft'].includes(e.key)) return; const L = [...o.querySelectorAll('[data-ftab]')]; const nx = L[(L.indexOf(b) + (e.key === 'ArrowRight' ? 1 : L.length - 1)) % L.length]; nx.focus(); fichaAba(o, nx.dataset.ftab); });
       const g = (s) => $(s, o); const famSel = g('#fFam'), nova = g('#fNova');
       const famAtual = () => (famSel.value === '__nova' ? nova.value.trim().toUpperCase().replace(/\s+/g, '') : famSel.value);
       const pad = () => FAMS_F.padraoDe(famAtual(), cfg);
@@ -3613,7 +3662,7 @@
         sv.disabled = true; sv.textContent = 'Salvando…';
         try {
           if (!isNew && produto !== rec.produto) await aplicarRenome(rec, produto);
-          const ch = await REG.saveInsumo(out, isNew); aposSalvarInsumo(out, isNew); close(); toast(ch === false ? 'Nada mudou' : (isNew ? 'Cadastrado: ' + nid : 'Salvo: ' + nid));
+          const ch = await REG.saveInsumo(out, isNew); aposSalvarInsumo(out, isNew); close(); toast(ch === false ? 'Nada mudou' : ch && ch.colidiu ? 'Cadastrado: ' + out.id + ' (o código ' + nid + ' foi usado por outra pessoa ao mesmo tempo)' : (isNew ? 'Cadastrado: ' + out.id : 'Salvo: ' + out.id));
         } catch (er) { sv.disabled = false; sv.textContent = isNew ? 'Cadastrar' : 'Salvar'; err(errMsg(er)); }
       };
       const dp = g('#fDup2'); if (dp) dp.onclick = () => { const cp = JSON.parse(JSON.stringify(rec)); close(); insumoModalCopia(cp); };
@@ -3845,7 +3894,8 @@
   // ---- padronização de descrições (motores diesel, elétricos, bombas, motobombas e jockey) ----
   const PADRAO = (window.PRICER_PADRAO || { itens: [] });
   const FAM_PAD = { '01': 'Motores diesel', 10: 'Motores elétricos', 11: 'Bombas de eixo livre', 12: 'Motobombas', 13: 'Jockey' };
-  const PAD_REGRAS = { '01': '{MODELO} {HP}HP@{RPM}RPM {N}CIL {12|24}VCC {RADIADOR|TROCADOR DE CALOR} — marca no campo Fabricante', 10: 'MOTOR {CV}CV {2P|4P|6P} IP55 {TENSÃO} {MARCA} {MANCAL|MONOBLOCO}', 11: '{SÉRIE} {MODELO} na notação do catálogo do fabricante (TKF 65-250, SCE 150-315, IS 080X065X250, MEGANORM 250-500)', 12: '{MODELO DA BOMBA} C/ MOTOR {ELÉTRICO|DIESEL} {MARCA} {POT}HP @{RPM}RPM {CERTIFICAÇÃO}', 13: '{MODELO} {POT}CV {TRIF|MONO} {60HZ} {fases}' };
+  // modelo de cada família: vem do gerador central (familias.js + Campos por família), o mesmo que monta a descrição no cadastro
+  const padRegra = (k) => { const pp = FAMS_F.padraoDe(String(k).padStart(2, '0') + '.', famCfg()); return pp && pp.modelo ? pp.modelo.toUpperCase().replace(/\{([A-Z]+)\}/g, (m, x) => '{' + ((pp.campos || []).find((c) => c.k.toUpperCase() === x) || { lb: x }).lb.toUpperCase() + '}') + ' — campos entre [ ] só entram quando preenchidos' : '—'; };
   function padStatus(x) {
     const it = REG.insumos.find((i) => i.id === x.id); if (!it) return { st: 'sumiu', it };
     const okNome = it.produto === x.para, okFab = !x.fab || it.fab === x.fab, okTipo = !x.tipo || it.tipo === x.tipo;
@@ -3889,7 +3939,7 @@
     const famOpts = Object.entries(FAM_PAD).map(([k, l]) => `<option value="${String(k).padStart(2, '0')}"${fam === String(k).padStart(2, '0') ? ' selected' : ''}>${l}</option>`).join('');
     return `<div class="stack">
       <section class="card"><h2>Padrão de descrição por família</h2>
-        <div class="kv" style="grid-template-columns:minmax(0,1fr) minmax(0,3fr)">${Object.entries(PAD_REGRAS).map(([k, r]) => `<div>${FAM_PAD[k]}</div><div class="code" style="text-align:left;font-weight:500;white-space:normal;overflow-wrap:anywhere;min-width:0">${esc(r)}</div>`).join('')}</div>
+        <div class="kv" style="grid-template-columns:minmax(0,1fr) minmax(0,3fr)">${Object.keys(FAM_PAD).map((k) => [k, padRegra(k)]).map(([k, r]) => `<div>${FAM_PAD[k]}</div><div class="code" style="text-align:left;font-weight:500;white-space:normal;overflow-wrap:anywhere;min-width:0">${esc(r)}</div>`).join('')}</div>
         <p class="sub" style="margin:10px 0 0">As fórmulas leem o nome (potência, rotação, tensão, arrefecimento, polos, série da bomba), por isso o padrão segue o formato que a planilha entende. Ao aplicar, o app troca o nome no insumo, nos kits com o mesmo nome e nas estruturas, e as propostas salvas passam a usar o nome novo quando forem abertas. Proposta de ${esc(PADRAO.gerado || '')}, feita a partir de catálogos e fichas de fabricantes (confiança alta = conferido na ficha; média = só formato e catálogo da série; baixa = há dúvida, confira antes).</p></section>
       <div class="sheetbar"><select id="padFam" aria-label="Família"><option value="">Todas as famílias</option>${famOpts}</select>
         <select id="padConf" aria-label="Confiança"><option value="">Toda confiança</option>${['alta', 'media', 'baixa'].map((c) => `<option${conf === c ? ' selected' : ''}>${c}</option>`).join('')}</select>
@@ -4016,6 +4066,47 @@
         ${PERMS.map(([a, ps, onde]) => `<tr><td>${esc(a)}</td>${PERFIS.map(([k]) => `<td class="c">${ps.includes(k) ? '<span class="ok-t" aria-label="pode">✓</span>' : '<span class="sub" aria-label="não pode">—</span>'}</td>`).join('')}<td><small class="sub">${esc(onde)}</small></td></tr>`).join('')}</tbody></table></div>
       <p class="sub" style="margin:8px 0 0"><b>Banco</b>: a regra é do banco compartilhado do claude.ai e vale mesmo fora da tela (nível de compartilhamento: Leitor, Contribuidor, Editor, dono). <b>App</b>: o app confere antes de gravar e registra no histórico, mas o banco só distingue nível de compartilhamento; uma pessoa com acesso de Contribuidor e conhecimento técnico poderia gravar direto pelo navegador. Esses casos ficam no histórico e estão descritos nas limitações da REV22. Sem ninguém nas áreas, todo Editor altera todo o cadastro; sem aprovadores definidos, qualquer Editor aprova.</p></section>`;
   }
+  // ---- numeração e máscaras (Administração) ----
+  // botão "gerar nº" ao lado do número da proposta (só com a série ligada) e aviso de número repetido
+  window.LSNumGerar = (serie, alvo, valor) => {
+    const cfg = REG.serieCfg ? REG.serieCfg(serie) : null; const dup = REG.numeroDuplicado && REG.numeroDuplicado(valor, state.id);
+    return (cfg && cfg.ativa && !state.verRev ? ` <button type="button" class="restore" data-numgerar="${esc(serie)}" data-numalvo="${esc(alvo)}" title="Reserva o próximo número da série ${esc(REG.NUM_SERIES[serie])} (sem repetir, também com várias pessoas ao mesmo tempo)">gerar nº ${esc((() => { const a = String(new Date().getFullYear()); return String(cfg.prefixo || '') + (cfg.anual ? (cfg.formatoAno === 'AA' ? a.slice(-2) : a) + String(cfg.sepAno ?? '-') : ''); })())}…</button>` : '')
+      + (dup ? ` <small class="cadnovo" role="status">Este número já está em outra proposta salva${cfg && cfg.bloqueio ? ': troque antes de salvar' : ''}.</small>` : '');
+  };
+  document.addEventListener('click', async (e) => { const b = e.target.closest('[data-numgerar]'); if (!b || state.verRev) return; e.preventDefault();
+    const inp = document.querySelector(b.dataset.numalvo); if (!inp) return;
+    if (String(inp.value || '').trim() && !await DLG.confirmar('Trocar o número "' + inp.value + '" por um número novo da série? O número atual não é apagado de nenhuma outra proposta.')) return;
+    b.disabled = true; try { const n = await REG.reservarNumero(b.dataset.numgerar, state.id); inp.value = n; inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); toast('Número reservado: ' + n + '. Salve a proposta para gravá-lo nela.'); } catch (er) { toast(errMsg(er)); } finally { b.disabled = false; } });
+  function vNumeracao() {
+    const adm = REG.ehAdmin(); const ser = Object.keys(REG.NUM_SERIES);
+    if (adm) queueMicrotask(nmLista);
+    if (!adm) return `<section class="card"><h2>Numeração e máscaras</h2><p class="sub">Só o administrador configura as séries de numeração. ${ser.filter((k) => REG.serieCfg(k).ativa).map((k) => esc(REG.NUM_SERIES[k]) + ': ' + esc(REG.formatarNumero(REG.serieCfg(k), REG.serieCfg(k).inicio))).join(' · ') || 'Nenhuma série ligada: o número da proposta é digitado.'}</p></section>`;
+    const card = (k) => { const c = REG.serieCfg(k); const id = (x) => 'nm_' + k + '_' + x;
+      return `<section class="card" data-numserie="${k}"><h2>${esc(REG.NUM_SERIES[k])} ${c.ativa ? '<span class="pill ok">ligada</span>' : '<span class="pill mute">desligada (número digitado)</span>'}</h2>
+        <div class="fields">
+          <div class="f"><label for="${id('ativa')}">Série</label><select id="${id('ativa')}" data-nm="ativa"><option value="0"${c.ativa ? '' : ' selected'}>desligada: número digitado</option><option value="1"${c.ativa ? ' selected' : ''}>ligada: botão "gerar nº"</option></select></div>
+          <div class="f"><label for="${id('prefixo')}">Prefixo</label><input id="${id('prefixo')}" data-nm="prefixo" value="${esc(c.prefixo)}" maxlength="12"></div>
+          <div class="f"><label for="${id('anual')}">Ano no número</label><select id="${id('anual')}" data-nm="anual"><option value="1"${c.anual ? ' selected' : ''}>sim, recomeça a cada ano</option><option value="0"${c.anual ? '' : ' selected'}>não, sequência contínua</option></select></div>
+          <div class="f"><label for="${id('formatoAno')}">Formato do ano</label><select id="${id('formatoAno')}" data-nm="formatoAno"><option${c.formatoAno === 'AAAA' ? ' selected' : ''}>AAAA</option><option${c.formatoAno === 'AA' ? ' selected' : ''}>AA</option></select></div>
+          <div class="f"><label for="${id('sepAno')}">Separador depois do ano</label><input id="${id('sepAno')}" data-nm="sepAno" value="${esc(c.sepAno)}" maxlength="3"></div>
+          <div class="f"><label for="${id('posicoes')}">Posições do sequencial</label><input id="${id('posicoes')}" data-nm="posicoes" type="number" min="1" max="12" value="${esc(c.posicoes)}"></div>
+          <div class="f"><label for="${id('inicio')}">Começa em</label><input id="${id('inicio')}" data-nm="inicio" type="number" min="1" value="${esc(c.inicio)}"></div>
+          <div class="f"><label for="${id('sufixo')}">Sufixo</label><input id="${id('sufixo')}" data-nm="sufixo" value="${esc(c.sufixo)}" maxlength="12"></div>
+          <div class="f span2"><label for="${id('bloqueio')}">Número repetido</label><select id="${id('bloqueio')}" data-nm="bloqueio"><option value="0"${c.bloqueio ? '' : ' selected'}>avisa e deixa salvar</option><option value="1"${c.bloqueio ? ' selected' : ''}>não deixa salvar com número de outra proposta</option></select></div>
+        </div>
+        <p class="sub" style="margin:8px 0 0">Prévia: <b data-nmprev>${esc(REG.formatarNumero(c, c.inicio))}</b> · o contador nunca volta: número reservado não é reaproveitado, mesmo que a proposta seja excluída.</p></section>`; };
+    return `<div class="stack"><section class="card"><h2>Numeração e máscaras</h2><p class="sub" style="margin:0">Séries de numeração por tipo de documento. <b>Nada é renumerado</b>: propostas e insumos existentes ficam como estão. Com a série ligada, o campo "Nº da proposta" ganha o botão <b>gerar nº</b>, que reserva o próximo número com trava no banco compartilhado (duas pessoas ao mesmo tempo nunca recebem o mesmo número); o número continua podendo ser digitado. Códigos de insumo não mudam: o motor de cálculo usa família + sequência (ex.: 01-1001).${REG.mode === 'shared' ? '' : ' <b>Neste navegador</b> (arquivo local), a numeração vale só aqui: sem banco compartilhado, não há como evitar colisão com outras pessoas.'}</p></section>
+      ${ser.map(card).join('')}
+      <div><button class="btn pri" data-nmsalvar>Salvar a numeração</button></div>
+      <section class="card"><h2>Últimos números reservados</h2><div data-nmlista><p class="sub">Carregando…</p></div></section></div>`;
+  }
+  const nmLer = (root) => { const out = {}; for (const sec of root.querySelectorAll('[data-numserie]')) { const k = sec.dataset.numserie; const g = (x) => (sec.querySelector(`[data-nm="${x}"]`) || {}).value;
+    out[k] = { ativa: g('ativa') === '1', prefixo: g('prefixo') || '', anual: g('anual') === '1', formatoAno: g('formatoAno') || 'AAAA', sepAno: g('sepAno') ?? '-', posicoes: +g('posicoes') || 5, inicio: +g('inicio') || 1, sufixo: g('sufixo') || '', bloqueio: g('bloqueio') === '1' }; } return out; };
+  document.addEventListener('input', (e) => { const sec = e.target.closest && e.target.closest('[data-numserie]'); if (!sec) return; const c = nmLer(sec.parentElement)[sec.dataset.numserie]; const pv = sec.querySelector('[data-nmprev]'); if (pv) pv.textContent = REG.formatarNumero(c, c.inicio); });
+  document.addEventListener('change', (e) => { const sec = e.target.closest && e.target.closest('[data-numserie]'); if (!sec) return; const c = nmLer(sec.parentElement)[sec.dataset.numserie]; const pv = sec.querySelector('[data-nmprev]'); if (pv) pv.textContent = REG.formatarNumero(c, c.inicio); });
+  document.addEventListener('click', async (e) => { if (!e.target.closest('[data-nmsalvar]')) return; try { await REG.salvarNumeracao(nmLer(document.getElementById('app')), 'Numeração e máscaras'); toast('Numeração salva'); render(); } catch (er) { toast(errMsg(er)); } });
+  async function nmLista() { const el = document.querySelector('[data-nmlista]'); if (!el || el.dataset.ok) return; el.dataset.ok = '1';
+    try { const L = await REG.numerosReservados(); el.innerHTML = L.length ? `<div class="tw"><table class="t"><thead><tr><th>Número</th><th>Série</th><th>Quando</th><th>Quem</th></tr></thead><tbody>${L.slice(0, 30).map((x) => `<tr><td><b>${esc(x.numero)}</b></td><td>${esc(REG.NUM_SERIES[x.serie] || x.serie)}</td><td>${esc(fmtAt(x.at))}</td><td>${who(x.by)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub">Nenhum número reservado ainda.</p>'; fillNames(el); } catch (er) { el.innerHTML = '<p class="sub">Não consegui ler os números reservados: ' + esc(errMsg(er)) + '</p>'; } }
   function vAcessos() {
     if (REG.mode !== 'shared') return perfisCard() + logoCard() + avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
     const own = REG.isOwner; const ac = REG.acessos || {};
@@ -4615,11 +4706,26 @@
   }
   document.addEventListener('change', (e) => { if (e.target.id === 'estrCmp' && e.target.value) { const A = estrList().includes(ui.estr) ? ui.estr : estrList()[0]; const B = e.target.value; e.target.value = ''; estrComparaModal(A, B); } });
   function vEstruturas() { const card = rascunhoCard(); return emRascunho() ? comWb(wbCom({ rasc: true }), () => card + '<div class="banner warn" style="margin:0">Mostrando o <b>rascunho</b>. As propostas continuam usando a estrutura publicada até você publicar.</div>' + vEstruturas0()) : card + vEstruturas0(); }
+  const ESTR_SERV = new Set([34, 35, 37, 46, 47]); // mão de obra, pintura especial, embalagem, testes e ensaios, documentos
+  const estrCode = (x) => { const m = /^(\d+)\./.exec(String(x.fam || '')); return m ? +m[1] : 0; };
+  const estrFisica = (x) => { const c = estrCode(x); return c > 0 && !ESTR_SERV.has(c); };
+  function estrNaProposta(x) {
+    const c = estrCode(x); const fe = escFam(c); const pf = EP.fams[c] || null; const comTexto = !!(fe.t || (pf && pf.t));
+    if ([1, 10].includes(c)) return '<span class="pill ok">Acionador</span>'; if ([11, 12].includes(c)) return '<span class="pill ok">Bomba</span>'; if (c === 13) return '<span class="pill ok">Bomba jockey</span>';
+    if ([16, 18, 26].includes(c)) return '<span class="pill mute">dentro da descrição do motor diesel</span>';
+    if (!c) return '<span class="pill mute">só no custo (sem família)</span>';
+    if (ESC_INTERNO.has(c) && !fe.t) return '<span class="pill mute">só no custo (uso interno)</span>';
+    if (FORA_ESC.has(c) && !comTexto) return '<span class="pill mute">só no custo (sem texto de escopo)</span>';
+    return `<span class="pill ok">${esc(fe.grupo || GRUPO_PAD[c] || 'Acessórios')}</span>`;
+  }
   function vEstruturas0() {
     const est = estrList().includes(ui.estr) ? ui.estr : estrList()[0]; const H = heads(); const lines = recLines();
     const free = 151 - 91 - lines.length;
     const tabs = ESTRSf().map(([k, lb]) => `<button role="tab" aria-selected="${k === est}" data-estr="${k}">${lb}</button>`).join('') + (canEd() && estrList().length < FAMS.length ? '<button data-estrnew>+ Nova estrutura</button>' : '');
-    const mine = lines.filter((x) => estrOf(x).includes(est));
+    // três visões da mesma estrutura (nada é cadastrado duas vezes): técnica = composição física; custeio = tudo que forma
+    // o custo (padrão); comercial = como cada linha aparece no escopo da proposta (mesma regra de escopoDoItem)
+    const vis = ['tecnica', 'custeio', 'comercial'].includes(ui.estrVis) ? ui.estrVis : 'custeio';
+    const mine = lines.filter((x) => estrOf(x).includes(est) && (vis !== 'tecnica' || estrFisica(x)));
     const groups = ACIONS.map(([k, lb]) => {
       const g = mine.filter((x) => (x.acion || 'TODOS') === k); if (!g.length) return '';
       const fold = (ui.estrFold || {})[k];
@@ -4627,7 +4733,7 @@
         <td><b>${esc(x.rot || '(sem nome)')}</b><br><small class="sub">${esc(famNome(x.fam))} · ${esc(x.bloco)}</small></td>
         <td>${esc(origemTxt(x, H))}</td><td>${esc(qtdTxt(x.qtd))}</td>
         <td>${x.regra ? `<span class="pill ${x.regra === 'OPCIONAL' ? 'mute' : 'warn'}">${x.regra === 'OPCIONAL' ? 'opcional' : 'condicional: ' + esc(regraTxt(x.regra))}</span>` : '<span class="pill ok">obrigatório</span>'}</td>
-        <td>${x.estr === 'TODOS' ? '<span class="pill mute">todas</span>' : estrOf(x).map((e) => `<span class="pill mute">${esc(e)}</span>`).join(' ')}</td>
+        <td>${vis === 'comercial' ? estrNaProposta(x) : x.estr === 'TODOS' ? '<span class="pill mute">todas</span>' : estrOf(x).map((e) => `<span class="pill mute">${esc(e)}</span>`).join(' ')}</td>
         <td><button class="btn sm" data-recedit="${x.r}">Editar</button></td></tr>`).join(''));
     }).join('');
     const sug = SUGESTOES.map((sg) => { const done = sugFeita(sg, lines); return `<label class="sugrow${done ? ' done' : ''}"><input type="checkbox" data-sug="${sg.id}" data-done="${done ? 1 : 0}"${done ? ' checked' : ''}${canEd() ? '' : ' disabled'}><span><b>${esc(sg.t)}</b>${done ? ' <span class="pill ok">aplicada</span> <small class="sub">desmarque para desfazer</small>' : ''}<br><small class="sub">${esc(sg.d)}</small></span></label>`; }).join('');
@@ -4635,8 +4741,10 @@
     return `<div class="stack">
       <p class="sub" style="margin:0">A estrutura padrão diz o que entra em cada equipamento montado: quais componentes, de onde sai o insumo (o que foi escolhido no item, a tabela por porte ou um insumo fixo), quantos por bomba e em que condição. Toda proposta nova monta o item por aqui. ${free} linha(s) livre(s) de 60.</p>
       <div class="subtabs" role="tablist" aria-label="Estrutura">${tabs}</div>
+      <div class="seg" role="radiogroup" aria-label="Visão da estrutura">${[['tecnica', 'Técnica', 'composição física do equipamento'], ['custeio', 'Custeio', 'tudo que forma o custo'], ['comercial', 'Comercial', 'como aparece no escopo da proposta']].map(([k, lb, d]) => `<label class="${vis === k ? 'on' : ''}" title="${d}"><input type="radio" name="estrVis" value="${k}" data-estrvis${vis === k ? ' checked' : ''}>${lb}</label>`).join('')}</div>
+      <p class="sub" style="margin:0">${vis === 'tecnica' ? 'Visão técnica: só os componentes físicos (sem mão de obra, pintura, embalagem, testes e documentos).' : vis === 'comercial' ? 'Visão comercial: em que grupo do escopo da proposta cada linha aparece, ou se fica só no custo. Os textos vêm de Cadastro → Escopo por família/insumo.' : 'Visão de custeio: todas as linhas que formam o custo do equipamento.'}</p>
       <div class="docbar"><button class="btn sm pri" data-recnew${canEd() && free > 0 ? '' : ' disabled'}>+ Novo componente</button><select id="estrCmp" aria-label="Comparar com outra estrutura"><option value="">Comparar com…</option>${ESTRSf().filter(([k]) => k !== est).map(([k, lb]) => `<option value="${k}">${esc(lb)}</option>`).join('')}</select><button class="btn sm" data-cad="testador">Testar esta estrutura</button>${changed ? `<span class="sub">${changed} alteração(ões) sobre a planilha</span><button class="btn sm" data-recreset>Voltar à estrutura da planilha</button>` : ''}</div>
-      <div class="tw"><table class="t"><thead><tr><th>Componente</th><th>De onde sai o insumo</th><th>Quantidade</th><th>Condição</th><th>Vale para</th><th></th></tr></thead><tbody>${groups || '<tr><td colspan="6" class="sub">Nenhum componente nesta estrutura.</td></tr>'}</tbody></table></div>
+      <div class="tw"><table class="t"><thead><tr><th>Componente</th><th>De onde sai o insumo</th><th>Quantidade</th><th>Condição</th><th>${vis === 'comercial' ? 'Na proposta (escopo)' : 'Vale para'}</th><th></th></tr></thead><tbody>${groups || '<tr><td colspan="6" class="sub">Nenhum componente nesta estrutura.</td></tr>'}</tbody></table></div>
       <section class="card"><h2>Sugestões <span class="sub">marque o que quiser aplicar; opcionais não entram no preço até serem marcados no item</span></h2>
         <div class="sugs">${sug}</div>
         <div class="docbar" style="margin-top:10px"><button class="btn sm pri" data-sugapply${canEd() ? '' : ' disabled'}>Aplicar mudanças</button></div></section>
@@ -4764,6 +4872,7 @@
   document.addEventListener('click', async (e) => {
     if (ui.view !== 'cadastro' || ui.cad !== 'estruturas') return;
     const t = e.target.closest('[data-estr]'); if (t) { ui.estr = t.dataset.estr; store.set(SK.view, ui); render(); return; }
+    const vv = e.target.closest('[data-estrvis]'); if (vv) { ui.estrVis = vv.value; store.set(SK.view, ui); render(); return; }
     const pt = e.target.closest('[data-porte]'); if (pt) { ui.porte = pt.dataset.porte; render(); return; }
     const pe = e.target.closest('[data-pedit]'); if (pe) { const [sh, a, lb] = pe.dataset.pedit.split('|'); const cur = txt(sh, a);
       modal(`<h2>${esc(lb)}</h2><p class="sub" style="margin:0">Faixa da linha ${esc(a.replace(/\D/g, ''))}. Escolha o insumo do cadastro (a lista filtra enquanto você digita).</p><div class="f"><label for="peIn">Insumo</label><input id="peIn" list="dl_all" value="${esc(cur)}" autocomplete="off"></div><p class="sub" id="peMsg" style="margin:0"></p><div style="display:flex;gap:8px"><button class="btn pri" id="peOk">Salvar</button><button class="btn" id="peClr">Deixar sem</button><button class="btn" data-close>Cancelar</button></div>${datalists()}`, (o, close) => {
@@ -5095,7 +5204,18 @@
       h += `<div class="gk">${esc(b === '·' ? '' : b)}</div><div>${esc(c)}${d ? ` <span class="pill mute">${esc(d)}</span>` : ''}</div>`;
     }
     return `<div class="stack"><div><h1>Guia</h1><div class="sub">O manual da planilha original. No app, "aba" vira tela: PROPOSTA e ITEM são as telas Proposta e Itens; insumos, kits e as demais abas estão em Cadastro. Amarelo é entrada, verde é automático e laranja é o que você alterou à mão.</div></div>
-      <section class="card"><div class="guide">${h}</div></section></div>`;
+      <section class="card" id="ajuda_guia"><div class="guide">${h}</div></section>
+      <section class="card" id="ajuda_atalhos"><h2>Atalhos de teclado</h2><div class="kv pcro">
+        <div><kbd>Ctrl</kbd> + <kbd>K</kbd> (<kbd>⌘</kbd> + <kbd>K</kbd> no Mac)</div><div>Busca universal: propostas, clientes, insumos, famílias, kits, estruturas, regras e documentos</div>
+        <div><kbd>Ctrl</kbd> + <kbd>S</kbd></div><div>Salvar a proposta</div>
+        <div><kbd>Esc</kbd></div><div>Fechar a janela aberta, a busca ou o menu</div>
+        <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
+        <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
+      <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>__LS_BUILD__</div>
+        <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
+        <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
+        <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
   }
 
   // ---------- fotografia da formação (para margens e fechamento) ----------
@@ -5139,6 +5259,54 @@
 
   // ---------- propostas: nova, salvar, abrir, exportar ----------
   function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
+  // ---- busca universal (Ctrl+K / ⌘K; no celular, o botão de lupa no topo) ----
+  // Procura no que a pessoa já pode ler (o banco aplica as permissões): propostas, clientes, insumos, famílias, modelos
+  // prontos, kits, estruturas, regras e documentos. Cada resultado tem a ação principal (Enter) e atalhos.
+  const nb = (x) => String(x ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function buscaResultados(q0) {
+    const q = nb(q0).trim(); if (q.length < 2) return [];
+    const termos = q.split(/\s+/).filter(Boolean); const bate = (...c) => { const h = nb(c.filter(Boolean).join(' ')); return termos.every((t) => h.includes(t)); };
+    const G = [];
+    const props = (REG.listPropostas() || []).filter((p) => bate(p.numero, p.cliente, p.name, p.div, p.tipo, p.status)).slice(0, 6);
+    if (props.length) G.push(['Propostas', props.map((p) => ({ t: (p.numero || 'sem número') + ' · ' + (p.cliente || p.name || ''), d: [p.div || 'SEQ', p.status || 'rascunho', typeof p.total === 'number' ? brl(p.total) : ''].filter(Boolean).join(' · '), ico: 'file-text', acoes: [['Abrir', () => openProposta(p, false)], ['Duplicar', () => openProposta(p, true)]] }))]);
+    const clis = [...clientesConhecidos().values()].filter((c) => bate(c.nome, c.L5)).slice(0, 5);
+    if (clis.length) G.push(['Clientes', clis.map((c) => ({ t: c.nome, d: [c.L5, c.F7 || c.uf].filter(Boolean).join(' · ') || 'cliente de propostas salvas', ico: 'users', acoes: [['Ver propostas', () => { ui.homeQ = c.nome; ui.homeDiv = 'todas'; setView('inicio'); }]] }))]);
+    const ins = REG.insumos.filter((i) => bate(i.id, i.produto, i.fab, i.codFab, i.descCom, famNome(i.fam))).slice(0, 8);
+    if (ins.length) G.push(['Produtos e insumos', ins.map((i) => ({ t: i.id + ' · ' + i.produto, d: [famNome(i.fam), i.fab, typeof i.valor === 'number' ? 'custo ' + brl(i.valor) : 'sem preço', situ(i) !== 'ativo' ? situ(i) : ''].filter(Boolean).join(' · '), ico: 'package',
+      acoes: [['Abrir ficha', () => { ui.cad = 'insumos'; if (ui.view !== 'cadastro') setView('cadastro'); insumoModal(i.id); }], ['Localizar na lista', () => { ui.cad = 'insumos'; ui.insQ = i.id; ui.insFam = ''; setView('cadastro'); }]] }))]);
+    const fams = famList().filter((f) => bate(f, famNome(f))).slice(0, 5);
+    if (fams.length) G.push(['Famílias de insumo', fams.map((f) => ({ t: famNome(f), d: f + ' · ' + REG.insumos.filter((i) => i.fam === f).length + ' insumo(s)', ico: 'folder-tree', acoes: [['Ver insumos', () => { ui.cad = 'insumos'; ui.insFam = f; ui.insQ = ''; setView('cadastro'); }]] }))]);
+    let mods = []; try { mods = modelos().filter((m) => bate(m.nome, m.estr, m.bomba, m.motor)).slice(0, 5); } catch (e) { mods = []; }
+    if (mods.length) G.push(['Modelos prontos', mods.map((m) => ({ t: m.nome, d: [famLabel(m.estr), m.bomba, m.motor].filter(Boolean).join(' · '), ico: 'layout-template', acoes: [['Abrir famílias e modelos', () => { ui.cad = 'familias'; setView('cadastro'); }]] }))]);
+    const kits = [...REG.kitMotor.map((k) => ['motor', k]), ...REG.kitBomba.map((k) => ['bomba', k])].filter(([, k]) => bate(k.desc, k.marca, k.tipo)).slice(0, 5);
+    if (kits.length) G.push(['Kits', kits.map(([tp, k]) => ({ t: k.desc, d: (tp === 'motor' ? 'kit de motor diesel' : 'kit de bomba') + (k.marca ? ' · ' + k.marca : ''), ico: 'boxes', acoes: [['Abrir kit', () => { ui.cad = tp; ui.kitQ = k.desc; setView('cadastro'); }]] }))]);
+    let ests = []; try { ests = ESTRSf().filter(([k, lb]) => bate(k, lb)).slice(0, 5); } catch (e) { ests = []; }
+    if (ests.length) G.push(['Estruturas', ests.map(([k, lb]) => ({ t: lb, d: 'estrutura ' + k, ico: 'network', acoes: [['Abrir estrutura', () => { ui.cad = 'estruturas'; ui.estr = k; setView('cadastro'); }]] }))]);
+    const regs = RG.lista().filter((r) => bate(r.id, r.nome, r.componente, r.mensagem)).slice(0, 5);
+    if (regs.length) G.push(['Regras de configuração', regs.map((r) => ({ t: (r.id ? r.id + ' · ' : '') + (r.nome || r.componente || 'regra'), d: [r.status, r.efeito, r.componente].filter(Boolean).join(' · '), ico: 'git-branch', acoes: [['Abrir regras', () => { ui.cad = 'regras'; setView('cadastro'); }]] }))]);
+    let docs = []; try { docs = (SPV.docs() || []).filter((d) => bate(d.nome, d.fornecedor, d.numero, d.notas, d.propNome)).slice(0, 5); } catch (e) { docs = []; }
+    if (docs.length) G.push(['Documentos', docs.map((d) => ({ t: d.nome || 'documento', d: [d.tipo, d.fornecedor, d.numero && 'nº ' + d.numero].filter(Boolean).join(' · '), ico: 'paperclip', acoes: [['Abrir', () => SPV.abrirDoc(d, false)], ['Ver em Documentos', () => { ui.docQ = d.nome || ''; setView('documentos'); }]] }))]);
+    return G;
+  }
+  let buscaQ = '';
+  function buscaAbrir() {
+    if ($('#gBusca')) { const i = $('#gBusca input'); if (i) i.focus(); return; }
+    let acoes = [];
+    modal(`<div id="gBusca" class="gbusca"><label class="sr" for="gbQ">Buscar</label><div class="gbq"><input id="gbQ" type="search" autocomplete="off" placeholder="Buscar proposta, cliente, insumo, família, kit, estrutura, regra ou documento" value="${esc(buscaQ)}" aria-controls="gbRes" aria-describedby="gbDica"></div>
+      <small class="sub" id="gbDica">↑ ↓ escolhem · Enter abre · Esc fecha · procura só no que você tem acesso</small><div id="gbRes" class="gbres" role="listbox" aria-label="Resultados"></div></div>`, (o, close) => {
+      const inp = $('#gbQ', o); const res = $('#gbRes', o);
+      const desenha = () => { buscaQ = inp.value; const G = buscaResultados(inp.value); acoes = [];
+        res.innerHTML = String(inp.value).trim().length < 2 ? '<p class="sub">Digite pelo menos 2 letras.</p>' : !G.length ? '<p class="sub">Nada encontrado.</p>' : G.map(([nome, L]) => `<div class="gbg"><div class="gbgh">${esc(nome)}</div>${L.map((r) => { const i = acoes.length; acoes.push(r); return `<div class="gbi" role="option" id="gb_${i}" data-gbi="${i}" aria-selected="false" tabindex="-1"><span class="gbico" data-ico="${r.ico}"></span><span class="gbt"><b>${esc(r.t)}</b><small class="sub">${esc(r.d)}</small></span><span class="gbacts">${r.acoes.map(([lb], j) => `<button type="button" class="btn sm${j ? '' : ' pri'}" data-gba="${i}|${j}">${esc(lb)}</button>`).join('')}</span></div>`; }).join('')}</div>`).join('');
+        decorar(res); marca(0); };
+      let sel = 0; const marca = (i) => { const L = [...res.querySelectorAll('[data-gbi]')]; if (!L.length) return; sel = Math.max(0, Math.min(L.length - 1, i)); L.forEach((x, k) => x.setAttribute('aria-selected', k === sel ? 'true' : 'false')); inp.setAttribute('aria-activedescendant', 'gb_' + sel); L[sel].scrollIntoView({ block: 'nearest' }); };
+      const faz = (i, j) => { const r = acoes[i]; if (!r) return; close(); r.acoes[j || 0][1](); };
+      inp.addEventListener('input', desenha);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown') { e.preventDefault(); marca(sel + 1); } else if (e.key === 'ArrowUp') { e.preventDefault(); marca(sel - 1); } else if (e.key === 'Enter') { e.preventDefault(); faz(sel, 0); } });
+      res.addEventListener('click', (e) => { const b = e.target.closest('[data-gba]'); if (b) { const [i, j] = b.dataset.gba.split('|').map(Number); faz(i, j); return; } const it = e.target.closest('[data-gbi]'); if (it) faz(+it.dataset.gbi, 0); });
+      desenha(); setTimeout(() => { inp.focus(); inp.select(); }, 0);
+    });
+  }
+  document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); buscaAbrir(); } });
   function modal(html, bind) {
     const o = $('#overlay'); o.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><div class="card">${html}</div></div>`;
     setTimeout(() => decorar(o), 0);
@@ -5241,6 +5409,9 @@
     // proposta já enviada ao cliente: alterar cria revisão nova (a enviada fica guardada), salvo se for só correção
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id);
     if (ev && salva && dirty && ['enviada', 'negociacao'].includes(salva.status)) { revSalvarEnviada(salva); return; }
+    // número já usado em outra proposta salva: avisa; com o bloqueio ligado na série, não grava
+    { const nu = isSpv() ? state.spv.numero : isFacts() ? state.facts.numero : txt('PROPOSTA', 'C5'); const sk = isSpv() ? 'spv' : 'seq';
+      if (REG.numeroDuplicado && REG.numeroDuplicado(nu, state.id)) { if (REG.serieCfg(sk).bloqueio) { toast('O número ' + nu + ' já está em outra proposta salva. Troque o número (ou use "gerar nº") antes de salvar.'); return; } toast('Atenção: o número ' + nu + ' já está em outra proposta salva.'); } }
     const id = state.id || ('p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)); const novaRev = !!state._novaRev;
     const p = { name: docTitle(), at: new Date().toISOString(), uid: state.uid };
     if (isSpv()) Object.assign(p, { div: 'SPV', tipo: state.spv.tipo, numero: state.spv.numero, cliente: state.spv.cliente, total: SPV.total(), spv: state.spv });

@@ -6,7 +6,7 @@
   "titulo": "Aba Memorial: título e documentos para o financeiro",
   "vp": "desktop",
   "arquivo": "05-01-memorial-cabecalho.png",
-  "data": "2026-10-29T18:40:20.225Z",
+  "data": "2026-10-31T00:53:48.466Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -43,7 +43,7 @@
   "titulo": "Memorial do exemplo: custos, impostos, comissão e margem",
   "vp": "desktop",
   "arquivo": "05-02-memorial-custos-margem.png",
-  "data": "2026-10-29T18:40:21.364Z",
+  "data": "2026-10-31T00:53:49.452Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -92,7 +92,7 @@
   "titulo": "Memorial do exemplo: preços, IPI, origem e demonstrativo",
   "vp": "desktop",
   "arquivo": "05-03-memorial-precos-demonstrativo.png",
-  "data": "2026-10-29T18:40:21.889Z",
+  "data": "2026-10-31T00:53:49.871Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -141,7 +141,7 @@
   "titulo": "Fim do Memorial: linhas de conferência e a nota de cálculo",
   "vp": "desktop",
   "arquivo": "05-04-memorial-notas.png",
-  "data": "2026-10-29T18:40:22.455Z",
+  "data": "2026-10-31T00:53:50.345Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -178,7 +178,7 @@
   "titulo": "Aba Documentos (proposta salva)",
   "vp": "desktop",
   "arquivo": "05-05-memorial-aba-documentos.png",
-  "data": "2026-10-29T18:40:22.960Z",
+  "data": "2026-10-31T00:53:50.757Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -221,7 +221,7 @@
   "titulo": "Memorial (PDF) sem acesso à internet: aviso do app",
   "vp": "desktop",
   "arquivo": "05-06-memorial-pdf-sem-internet.png",
-  "data": "2026-10-29T18:40:26.332Z",
+  "data": "2026-10-31T00:53:53.511Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -246,7 +246,7 @@
   "titulo": "Conferência do PDF da proposta (aba Conferência)",
   "vp": "desktop",
   "arquivo": "05-07-memorial-conferencia-pdf.png",
-  "data": "2026-10-29T18:40:27.775Z",
+  "data": "2026-10-31T00:53:54.878Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -277,7 +277,7 @@
   "titulo": "Bloco FCI do item 01",
   "vp": "desktop",
   "arquivo": "05-08-memorial-item-fci.png",
-  "data": "2026-10-29T18:40:28.901Z",
+  "data": "2026-10-31T00:53:55.939Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -326,7 +326,7 @@
   "titulo": "Aba Documentos: cartão Proposta técnica e comercial",
   "vp": "desktop",
   "arquivo": "05-09-proposta-ptc-cartao.png",
-  "data": "2026-10-29T18:40:31.446Z",
+  "data": "2026-10-31T00:53:58.269Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -387,7 +387,7 @@
   "titulo": "Configurações → Modelo da proposta",
   "vp": "desktop",
   "arquivo": "05-10-proposta-ptc-modelo.png",
-  "data": "2026-10-29T18:40:33.354Z",
+  "data": "2026-10-31T00:54:00.027Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -430,7 +430,7 @@
   "titulo": "Item: código do produto, folha de dados e curva da bomba",
   "vp": "desktop",
   "arquivo": "05-11-proposta-ptc-item.png",
-  "data": "2026-10-29T18:40:35.234Z",
+  "data": "2026-10-31T00:54:01.738Z",
   "ok": true,
   "problemas": [],
   "marcas": [

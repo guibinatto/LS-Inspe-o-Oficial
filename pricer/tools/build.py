@@ -8,6 +8,11 @@ def inline(m):
     js = open(os.path.join(root, src), encoding="utf-8").read().replace("</script", "<\\/script")
     return "<script>/* " + src + " */\n" + js + "\n</script>"
 page = re.sub(r'<script src="([\w.-]+)"></script>', inline, page)
+# carimbo da versão (Ajuda → Informações da versão): data da geração e o commit de origem, quando houver git
+import datetime, subprocess
+try: commit = subprocess.run(["git", "-C", root, "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5).stdout.strip()
+except Exception: commit = ""
+page = page.replace("__LS_BUILD__", datetime.datetime.now().strftime("%d/%m/%Y %H:%M") + (" · commit " + commit if commit else ""))
 import base64
 page = re.sub(r'src="([\w.-]+\.png)"', lambda m: 'src="data:image/png;base64,' + base64.b64encode(open(os.path.join(root, m.group(1)), "rb").read()).decode() + '"', page)
 head_end = page.index("</style>") + len("</style>")
