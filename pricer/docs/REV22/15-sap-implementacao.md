@@ -43,6 +43,7 @@ A aba **Formação de preço** ganhou o quadro **Composição do preço**, só d
 
 - barra empilhada Custo · Impostos · Comissões · Margem (% do preço sem IPI);
 - tabela com Peças e materiais, Serviços de fabricação, Start-up e Fretes (só as linhas com valor), **Custo total (memorial)**, Impostos (sem o IPI), Comissões, Margem líquida, **Preço de venda sem IPI**, IPI, **Preço de venda com IPI**;
+- coluna **% no memorial** (impostos sobre o preço sem IPI; comissões e margem sobre o preço sem impostos, como a planilha calcula), para a margem da composição não parecer diferente da do memorial;
 - botão **Abrir o memorial de cálculo**.
 
 Todos os valores vêm da coluna M da aba MEMORIAL, calculada pelo motor; o quadro não faz conta própria (não há fórmula simplificada). Ao conferir, apareceu uma diferença que já existia e não é erro: o indicador do alto da aba é a célula G16 (soma do custo dos itens) e o memorial soma também start-up e fretes. Na proposta de exemplo a diferença é R$ 17.000,00, exatamente o start-up. Para não confundir, o indicador passou a se chamar "Custo total dos itens" e uma nota explica a diferença com os valores da proposta.

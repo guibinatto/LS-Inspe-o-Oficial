@@ -101,3 +101,13 @@ Detalhes, tabela por resolução e limitações em `11-celular-e-tablet.md`. Tod
 | Auditoria do celular (10 resoluções × 33 telas) | 0 pendências |
 
 Detalhes em `14-erp-implementacao.md`.
+
+## Simulação de uso (31/10/2026)
+
+| Teste | Resultado |
+|---|---|
+| `sim_test.js` (novo) | 16 de 16 com a folha Sempa SCE 200-500 (`SEMPA_PDF`); 15 de 15 sem ela |
+| Regressão do motor e SPV/FACTS | 0 diferença |
+| `tools/regressao/financeiro-ui.js` (rev21 × atual) | 0 diferença no memorial |
+
+Detalhes, esforço por tarefa e problemas corrigidos em `16-simulacao-de-uso.md`.
