@@ -6,7 +6,7 @@ module.exports = {
       { sel: '.sidenav .brand, .sidenav .logo-plate', txt: 'Logotipo e nome do sistema (LS Pricer, revisão REV22).' },
       { sel: '#navQ', txt: 'Pesquisar no menu: mostra só as entradas com o texto digitado.', pos: 'r' },
       { sel: '#nav [data-view="inicio"]', txt: 'Início: busca, novas propostas, painel e lista de propostas.', pos: 'r' },
-      { sel: '#nav [data-navgt="propostas"]', txt: 'Grupo (Propostas, Cadastros, Gestão, Administração, Ajuda): clique para abrir ou fechar os atalhos dele.', pos: 'r' },
+      { sel: '#nav [data-navgt="comercial"]', txt: 'Grupo (Propostas, Cadastros, Gestão, Administração, Ajuda): clique para abrir ou fechar os atalhos dele.', pos: 'r' },
       { sel: '#nav [data-view="proposta"]', txt: 'Proposta aberta: a proposta em edição, com as abas da proposta.', pos: 'r' },
       { sel: '#nav [data-view="pendencias"]', txt: 'Pendências: o que depende de você ou da sua área.', pos: 'r' },
       { sel: '#nav [data-view="margens"]', txt: 'Margens: propostas fechadas, indicadores e custo real.', pos: 'r' },

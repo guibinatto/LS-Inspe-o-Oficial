@@ -353,12 +353,18 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const porSit = { aberto: (p) => faseDe(p) === 'aberto', aprovacao: (p) => faseDe(p) === 'aprovacao', enviada: (p) => faseDe(p) === 'enviada', ganha: (p) => ['ganha', 'encerrada'].includes(faseDe(p)), perdida: (p) => faseDe(p) === 'perdida' };
       const list = all.filter((p) => (f === 'todas' || divOf(p) === f || (porSit[f] && porSit[f](p)) || (pend[f] && ctx.etapaPendente && ctx.etapaPendente(p, pend[f]))) && (!q || hay(p).includes(q)));
       const sx = stats(all); const docsHit = q ? docs.filter((d) => norm([d.nome, d.fornecedor, d.numero, (d.itens || []).map((i) => i.descricao).join(' ')].join(' ')).includes(q)).slice(0, 6) : [];
-      const lim = ui.homeLim || 60; const rows = list.slice(0, lim).map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
-        <td><span class="divb ${divOf(p).toLowerCase()}">${divOf(p)}</span>${p.tipo ? ` <small class="sub">${esc(p.tipo)}</small>` : ''}</td>
+      // Modelo A: colunas escolhidas, visualizações salvas e páginas (no computador); no celular, "Mostrar mais"
+      const LL = window.LSLista; const PCOLS = [['div', 'Divisão'], ['total', 'Total'], ['sit', 'Situação'], ['data', 'Data']];
+      const vc = new Set(LL ? LL.cols('propostas', PCOLS) : PCOLS.map((c) => c[0])); const cv = (k, h) => (vc.has(k) ? h : '');
+      const cel = window.matchMedia && window.matchMedia('(max-width: 767px)').matches; const tam = (LL && LL.pref('propostas').tam) || 50;
+      const pgN = Math.min(Math.max(1, ui.pg_propostas || 1), Math.max(1, Math.ceil(list.length / tam)));
+      const lim = ui.homeLim || 60; const vis = cel || !LL ? list.slice(0, lim) : list.slice((pgN - 1) * tam, pgN * tam);
+      const rows = vis.map((p) => `<tr class="click" data-hopen="${esc(p.id)}">
+        ${cv('div', `<td><span class="divb ${divOf(p).toLowerCase()}">${divOf(p)}</span>${p.tipo ? ` <small class="sub">${esc(p.tipo)}</small>` : ''}</td>`)}
         <td><b>${esc(p.numero || '—')}</b>${(() => { const rv = p.spv ? p.spv.revisao : p.facts ? p.facts.revisao : ((p.doc || {}).PROPOSTA || {}).C6; const n = parseInt(String(rv ?? '0').replace(/\D/g, ''), 10) || 0; return n ? ` <small class="pill mute">rev. ${n}</small>` : ''; })()}<br><small class="sub">${esc(p.cliente || p.name || '')}</small></td>
-        <td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>
-        <td><span class="pill ${sit(p)[1]}">${esc(sit(p)[0])}</span></td>
-        <td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>
+        ${cv('total', `<td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>`)}
+        ${cv('sit', `<td><span class="pill ${sit(p)[1]}">${esc(sit(p)[0])}</span></td>`)}
+        ${cv('data', `<td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>`)}
         <td class="hacts"><div class="hbtns">${(() => { const nx = ctx.proximo && ctx.proximo(p); return nx ? `<button class="btn sm pri" data-hnext="${esc(p.id)}|${nx.act}">${esc(nx.lb)}</button>` : ''; })()}${['aberto', 'aprovacao', 'enviada'].includes(faseDe(p)) ? `<button class="btn sm" data-hrev="${esc(p.id)}" data-ico="history" title="Criar uma nova revisão (a atual fica guardada)">Revisar</button>` : ''}<button class="btn sm" data-hopen="${esc(p.id)}" data-ico="external-link">Abrir</button><button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${['ganha', 'encerrada'].includes(faseDe(p)) && (!ctx.podeReabrir || ctx.podeReabrir()) ? `<button class="btn sm" data-hreabrir="${esc(p.id)}" data-ico="rotate-ccw" title="Desfazer a baixa e voltar para Enviada ao cliente">Reabrir</button>` : ''}${['perdida', 'ganha', 'encerrada'].includes(faseDe(p)) ? '' : `<button class="btn sm perd" data-hperdida="${esc(p.id)}" data-ico="circle-x" title="Marcar como perdida, com o motivo">Perdida</button>`}</div></td></tr>${ctx.etapasHtml ? `<tr class="etrow"><td colspan="6">${ctx.etapasHtml(p)}</td></tr>` : ''}`).join('');
       const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['aberto', 'Em aberto'], ['aprovacao', 'Em aprovação'], ['enviada', 'Enviadas ao cliente'], ['ganha', 'Ganhas'], ['perdida', 'Perdidas'], ['pend_fin', 'Falta avisar financeiro'], ['pend_eng', 'Falta avisar engenharia'], ['pend_real', 'Falta custo real']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
       const tipos = spvTipos().map((t) => `<button class="tchip" data-spvnew="${t.abrev}" title="${esc(t.desc)}"><b>${esc((TIPO_INI[t.abrev] || {}).titulo || t.nome)}</b><small>${esc(t.abrev)}</small></button>`).join('');
@@ -381,9 +387,10 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           <div class="kpi"><span>Propostas salvas</span><b>${all.length}</b><em>${all.filter((p) => divOf(p) === 'SPV').length} SPV · ${all.filter((p) => divOf(p) === 'SEQ').length} SEQ</em></div>
           <div class="kpi"><span>Documentos</span><b>${docs.length}</b><em><button class="restore" data-view="documentos">abrir a biblioteca</button></em></div>
         </div>`}
-        <section class="card"><h2>Propostas <span class="sub">${list.length} encontrada(s)</span></h2><div class="hchips">${chips}</div>
-          <div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th>Divisão</th><th>Número / cliente</th><th>Total</th><th>Situação</th><th>Data</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="sub">${all.length ? 'Nada encontrado com essa busca.' : 'Nenhuma proposta salva ainda. Comece uma nova acima e clique em Salvar.'}</td></tr>`}</tbody></table></div>
-          ${list.length > lim ? `<div class="docbar" style="margin-top:8px"><span class="sub">Mostrando ${lim} de ${list.length}.</span> <button class="btn sm" data-hmais>Mostrar mais ${Math.min(60, list.length - lim)}</button></div>` : ''}
+        <section class="card"><div class="lhead"><h2>Propostas <span class="sub">${list.length} encontrada(s)</span></h2><span class="lacts">${LL ? LL.ferramentas('propostas', PCOLS, true) : ''}</span></div><div class="hchips">${chips}</div>
+          <div class="tw" style="margin-top:10px"><table class="t"><thead><tr>${cv('div', '<th>Divisão</th>')}<th>Número / cliente</th>${cv('total', '<th>Total</th>')}${cv('sit', '<th>Situação</th>')}${cv('data', '<th>Data</th>')}<th></th></tr></thead><tbody>${rows || `<tr><td colspan="${2 + vc.size}" class="sub">${all.length ? 'Nada encontrado com essa busca.' : 'Nenhuma proposta salva ainda. Comece uma nova acima e clique em Salvar.'}</td></tr>`}</tbody></table></div>
+          ${(cel || !LL) && list.length > lim ? `<div class="docbar" style="margin-top:8px"><span class="sub">Mostrando ${lim} de ${list.length}.</span> <button class="btn sm" data-hmais>Mostrar mais ${Math.min(60, list.length - lim)}</button></div>` : ''}
+          ${!cel && LL ? LL.paginas('propostas', list.length, pgN, tam) : ''}
           ${REG.propostasNoLimite && REG.propostasNoLimite() ? `<div class="banner warn" style="margin-top:8px">A lista e os números do painel consideram as ${(REG.listPropostas() || []).length} propostas mais recentes carregadas. <button class="btn sm" data-hcarregar>Carregar todas (até 1.000)</button></div>` : ''}</section>
         ${docsHit.length ? `<section class="card"><h2>Documentos encontrados</h2>${docList(docsHit)}</section>` : ''}
       </div>`;
@@ -718,7 +725,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     let qT;
     document.addEventListener('input', (e) => {
       const id = e.target.id; if (id !== 'homeQ' && id !== 'docQ') return;
-      clearTimeout(qT); qT = setTimeout(() => { ctx.ui[id] = e.target.value; ctx.render(); const f = document.getElementById(id); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }, 200);
+      clearTimeout(qT); qT = setTimeout(() => { ctx.ui[id] = e.target.value; if (id === 'homeQ') ctx.ui.pg_propostas = 1; ctx.render(); const f = document.getElementById(id); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }, 200);
     });
     document.addEventListener('click', (e) => {
       const t = e.target;
@@ -726,7 +733,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const sp = t.closest('[data-spstep]'); if (sp && S()) { const [path, d] = sp.dataset.spstep.split('|'); const ks = path.split('.'); let o = S(); for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]] = o[ks[i]] || {}; const k = ks[ks.length - 1]; o[k] = Math.max(0, num(o[k]) + +d); ctx.persist(); ctx.render(); return; }
       if (t.closest('[data-seqnew]')) { ctx.newSeq(); return; }
       const sf = t.closest('[data-seqfam]'); if (sf) { ctx.newSeq(sf.dataset.seqfam); return; }
-      const hd = t.closest('[data-hdiv]'); if (hd) { ctx.ui.homeDiv = hd.dataset.hdiv; ctx.render(); return; }
+      const hd = t.closest('[data-hdiv]'); if (hd) { ctx.ui.homeDiv = hd.dataset.hdiv; ctx.ui.pg_propostas = 1; ctx.render(); return; }
       if (t.closest('[data-hmais]')) { ctx.ui.homeLim = (ctx.ui.homeLim || 60) + 60; ctx.render(); return; }
       if (t.closest('[data-hcarregar]')) { (async () => { try { const n = await REG.carregarTodasPropostas(); toast(n + ' proposta(s) carregadas'); } catch (er) { toast('Não consegui carregar: ' + ((er && er.message) || er)); } ctx.render(); })(); return; }
       const ho = t.closest('[data-hopen]'); if (ho && !t.closest('select') && !t.closest('[data-hdup]') && !t.closest('[data-hnext]') && !t.closest('[data-hperdida]') && !t.closest('[data-hrev]') && !t.closest('[data-hreabrir]')) { const p = (REG.listPropostas() || []).find((x) => x.id === ho.dataset.hopen); if (p) ctx.openProposta(p, false); return; }

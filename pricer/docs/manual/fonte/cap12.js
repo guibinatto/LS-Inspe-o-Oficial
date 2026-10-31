@@ -83,7 +83,7 @@ module.exports = {
     { id: '12-04', nome: 'documentos-ficha-insumo-fornecedores', titulo: 'Ficha do insumo: seção Fornecedores e cotações', clip: '.modal details.fsec', pad: 8,
       prep: async (p, h) => {
         await h.nav('cadastro'); await h.cad('insumos'); await h.clicar('#app tr.click[data-ins]', 700);
-        await h.clicar('.modal [data-ftab="compras"]', 250); // ficha em abas: fornecedores ficam em Compras e custos
+        await h.clicar('.modal [data-ftab="forn"]', 250); // ficha em abas: aba Fornecedores
         await h.clicar('#foAdd', 300); await h.preencher('[data-fo="0|nome"]', 'FORNECEDOR EXEMPLO VALVULAS LTDA'); await h.preencher('[data-fo="0|preco"]', '1.850,00');
         await h.preencher('[data-fo="0|impostos"]', '3,25'); await h.preencher('[data-fo="0|frete"]', '60'); await h.preencher('[data-fo="0|prazo"]', '20'); await h.preencher('[data-fo="0|validade"]', '2026-12-31');
         await h.clicar('#foAdd', 300); await h.preencher('[data-fo="1|nome"]', 'OUTRO FORNECEDOR EXEMPLO'); await p.selectOption('[data-fo="1|moeda"]', 'USD'); await h.esperar(300);

@@ -371,6 +371,10 @@
   document.addEventListener('click', (e) => {
     const r = e.target.closest('[data-restore]');
     if (r) { const [s, a] = r.dataset.restore.split('|'); commit(s, a, null, true); return; }
+    // aba Configuração: o configurador do item atual (ou do primeiro item); sem item, vai para a lista de itens
+    if (e.target.closest('[data-ptcfg]')) { if (!cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes do equipamento'); return; }
+      const us = ITEMS.map((S, i) => i).filter((i) => used(i)); if (!us.length) { ui.step = 2; setView('proposta'); toast('Adicione um item para configurar'); return; }
+      ui.item = us.includes(ui.item) ? ui.item : us[0]; ui.itemFull = false; setView('item'); return; }
     const go = e.target.closest('[data-goitem]');
     if (go) { ui.item = +go.dataset.goitem; ui.itemFull = false; cfgEtRestart(ui.item); setView('item'); return; }
     const nv = e.target.closest('[data-view]');
@@ -499,7 +503,7 @@
       </div>
       <div class="kpis">
         <div class="kpi lead"><span>Preço total (com IPI)</span><b>${brl(val(P, 'B16'))}</b><em>${esc(txt(P, 'M16'))} itens preenchidos</em></div>
-        <div class="kpi"><span>Custo total</span><b>${brl(val(P, 'G16'))}</b></div>
+        <div class="kpi"><span>Custo total dos itens</span><b>${brl(val(P, 'G16'))}</b></div>
         <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
         <div class="kpi"><span>Desconto global</span><b>${pct(val(P, 'E16'), 2)}</b></div>
         <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div>
@@ -1804,7 +1808,7 @@
     return `<div class="banner warn" style="margin:0 0 12px"><b>${m.size} insumo(s) desta proposta com preço vencido</b> — mais de ${C.validadeDias} dias sem atualizar no cadastro: ${nomes}${lista.length > 4 ? '; …' : ''}.
       <button class="btn sm pri" data-irvenc="${esc(lista.map((i) => i.id).join(','))}">Atualizar no cadastro</button></div>`;
   }
-  document.addEventListener('click', (e) => { const b = e.target.closest('[data-irvenc]'); if (!b) return; ui.insIds = b.dataset.irvenc.split(',').filter(Boolean); ui.insSit = ''; ui.insQ = ''; ui.insFam = ''; ui.cad = 'insumos'; setView('cadastro'); });
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-irvenc]'); if (!b) return; ui.insIds = b.dataset.irvenc.split(',').filter(Boolean); ui.insSit = ''; ui.pg_insumos = 1; ui.insQ = ''; ui.pg_insumos = 1; ui.insFam = ''; ui.pg_insumos = 1; ui.cad = 'insumos'; setView('cadastro'); });
   function vCustos0() {
     const L = linhasCusto(); const C = custosCfg(); const sev = { imped: 0, aviso: 0, info: 0 }; for (const x of L) for (const [s] of x.al) sev[s]++;
     const filtro = ui.custoFiltro || 'alertas';
@@ -2114,10 +2118,12 @@
 
   // ---------- proposta: cabeçalho de contexto e abas ----------
   // Itens e Memorial pertencem à proposta SEQ aberta: ficam nas abas da proposta, não no menu global.
-  const ABAS_SEQ = [['geral', 'Dados gerais', 'id-card', 1], ['itens', 'Itens', 'boxes', 2], ['custos', 'Custos', 'coins', 3], ['formacao', 'Formação', 'badge-percent', 4], ['conferencia', 'Conferência', 'clipboard-check', 5], ['memorial', 'Memorial', 'scroll-text', 0], ['documentos', 'Documentos', 'folder-open', 6], ['historico', 'Histórico', 'history', 0]];
+  // abas da proposta (documento): Itens lista os equipamentos; Configuração abre o configurador do item atual;
+  // Formação de preço e Memorial de cálculo mostram o mesmo motor da planilha (nenhum cálculo novo)
+  const ABAS_SEQ = [['geral', 'Dados gerais', 'id-card', 1], ['itens', 'Itens', 'boxes', 2], ['configuracao', 'Configuração', 'sliders-horizontal', 0], ['custos', 'Custos', 'coins', 3], ['formacao', 'Formação de preço', 'badge-percent', 4], ['memorial', 'Memorial de cálculo', 'scroll-text', 0], ['conferencia', 'Conferência', 'clipboard-check', 5], ['documentos', 'Documentos', 'folder-open', 6], ['historico', 'Histórico', 'history', 0]];
   const ABAS_OUTRO = [['proposta', 'Proposta', 'wrench'], ['historico', 'Histórico', 'history']];
   const viewDaProposta = (v) => ['proposta', 'item', 'memorial', 'phist'].includes(v);
-  function abaAtual() { if (ui.view === 'item') return 'itens'; if (ui.view === 'memorial') return 'memorial'; if (ui.view === 'phist') return 'historico'; const st = ui.step || 1; return (ABAS_SEQ.find((a) => a[3] === st) || ABAS_SEQ[0])[0]; }
+  function abaAtual() { if (ui.view === 'item') return 'configuracao'; if (ui.view === 'memorial') return 'memorial'; if (ui.view === 'phist') return 'historico'; const st = ui.step || 1; return (ABAS_SEQ.find((a) => a[3] === st) || ABAS_SEQ[0])[0]; }
   function estadoEtapas() {
     const P = 'PROPOSTA'; const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => used(x.i));
     const alerts = items.flatMap((x) => alertsFor(x.s).map((a) => Object.assign({ i: x.i }, a)));
@@ -2162,7 +2168,7 @@
     if (isSpv() || isFacts()) { const cur = ui.view === 'phist' ? 'historico' : 'proposta';
       return `<nav class="ptabs" aria-label="Áreas da proposta">${ABAS_OUTRO.map(([k, lb, ic]) => `<button class="ptab${cur === k ? ' on' : ''}" data-view="${k === 'historico' ? 'phist' : 'proposta'}" data-ico="${ic}" aria-current="${cur === k ? 'page' : 'false'}"><span>${lb === 'Proposta' ? (isSpv() ? 'Serviço e pós-venda' : 'FACTS') : lb}</span></button>`).join('')}</nav>`; }
     const E = estadoEtapas().e; const cur = abaAtual();
-    return `<nav class="ptabs" aria-label="Áreas da proposta">${ABAS_SEQ.map(([k, lb, ic, n]) => { const s = n ? E[n] : null; const at = n ? `data-step="${n}"` : `data-view="${k === 'memorial' ? 'memorial' : 'phist'}"`;
+    return `<nav class="ptabs" aria-label="Áreas da proposta">${ABAS_SEQ.map(([k, lb, ic, n]) => { const s = n ? E[n] : null; const at = n ? `data-step="${n}"` : k === 'configuracao' ? 'data-ptcfg' : `data-view="${k === 'memorial' ? 'memorial' : 'phist'}"`;
       return `<button class="ptab${cur === k ? ' on' : ''}${s ? ' st-' + s[0] : ''}" ${at} data-ico="${ic}" aria-current="${cur === k ? 'page' : 'false'}" title="${esc(lb + (s && s[1] ? ' — ' + s[1] : ''))}"><span>${lb}</span>${s ? `<i class="pst" aria-label="${esc(s[1] || '')}">${s[0] === 'ok' ? '✓' : s[0] === 'bad' ? '!' : s[0] === 'warn' ? '•' : ''}</i>` : ''}</button>`; }).join('')}</nav>`;
   }
   const propHeader = () => ctxHeader() + propTabs();
@@ -2237,10 +2243,11 @@
       const sn = (() => { try { return seqSnapshot(); } catch (e) { return null; } })();
       body = vencidosBanner() + `<div class="kpis">
           <div class="kpi lead"><span>Preço total (com IPI)</span><b>${brl(val(P, 'B16'))}</b></div>
-          <div class="kpi"><span>Custo total</span><b>${brl(val(P, 'G16'))}</b><em>${sn && sn.custo ? 'markup ' + NF[2].format(sn.venda / sn.custo) + 'x' : ''}</em></div>
+          <div class="kpi"><span>Custo total dos itens</span><b>${brl(val(P, 'G16'))}</b><em>${sn && sn.custo ? 'markup ' + NF[2].format(sn.venda / sn.custo) + 'x' : ''}</em></div>
           <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
           <div class="kpi"><span>Impostos · comissões</span><b>${sn ? brl(sn.impostos) : '—'}</b><em>${sn ? 'comissões ' + brl(sn.comissao) : ''}</em></div>
           <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
+        ${composicaoPrecoHtml()}
         <section class="card"><h2>Condições comerciais <span class="sub">o que mexe no preço</span></h2><div class="fields">${fieldS(P, 'C9', 'Desconto global')}${fieldS(P, 'J6', 'Condição de pagamento', { cls: 'span2' })}${fieldS(P, 'B13', 'Frete', { cls: 'span2' })}</div>
           <p class="sub" style="margin:8px 0 0">Comissões: ${esc(txt(P, 'J7') || '—')} (vendedor) · ${esc(txt(P, 'J8') || '—')} (AN) — ajuste em Identificação. Margem-alvo e desconto por item ficam na tela de cada item.</p></section>
         <section class="card"><h2>Preço por item</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
@@ -3065,6 +3072,40 @@
     const d = (Date.now() - r) / 864e5; const dt = new Date(r).toLocaleDateString('pt-BR');
     return `${dt}${d > C.validadeDias ? ` <span class="pill warn" title="mais de ${C.validadeDias} dias sem atualizar">vencido · ${Math.round(d)} d</span>` : d > C.validadeDias - C.avisoDias ? ` <span class="pill mute">vence em ${Math.max(0, Math.round(C.validadeDias - d))} d</span>` : ''}`;
   }
+  // ---- Modelo A (listas): colunas escolhidas, visualizações salvas e paginação. Preferência de tela, guardada neste navegador ----
+  const LISTA_K = 'lspricer.listas';
+  const listaPref = (id) => { try { return (JSON.parse(localStorage.getItem(LISTA_K) || '{}') || {})[id] || {}; } catch (e) { return {}; } };
+  const listaSet = (id, patch) => { try { const all = JSON.parse(localStorage.getItem(LISTA_K) || '{}') || {}; all[id] = Object.assign({}, all[id] || {}, patch); localStorage.setItem(LISTA_K, JSON.stringify(all)); } catch (e) { /* só nesta visita */ } };
+  const listaCols = (id, cols) => { const h = listaPref(id).ocultas || []; return cols.filter(([k]) => !h.includes(k)).map(([k]) => k); };
+  function listaFerramentas(id, cols, views) {
+    const h = listaPref(id).ocultas || []; const vs = listaPref(id).views || {};
+    return `<details class="lmenu"><summary class="btn sm" data-ico="columns-3">Colunas</summary><div class="lpop" role="group" aria-label="Colunas visíveis">${cols.map(([k, lb]) => `<label class="chk"><input type="checkbox" data-lcol="${id}|${k}"${h.includes(k) ? '' : ' checked'}> ${esc(lb)}</label>`).join('')}</div></details>
+      ${views ? `<details class="lmenu"><summary class="btn sm" data-ico="bookmark">Visualizações${Object.keys(vs).length ? ' (' + Object.keys(vs).length + ')' : ''}</summary><div class="lpop">${Object.keys(vs).map((n) => `<div class="lview"><button type="button" class="linkbtn" data-lview="${id}|${esc(n)}">${esc(n)}</button><button type="button" class="restore" data-lviewdel="${id}|${esc(n)}" aria-label="Excluir a visualização ${esc(n)}">excluir</button></div>`).join('') || '<small class="sub">Nenhuma salva.</small>'}<button type="button" class="btn sm" data-lviewsave="${id}">Salvar a visualização atual…</button><small class="sub">Guarda busca, filtros, ordem e colunas neste navegador.</small></div></details>` : ''}`;
+  }
+  function listaPaginas(id, total, pg, tam) {
+    if (total <= tam) return ''; const nP = Math.ceil(total / tam); const p0 = Math.min(Math.max(1, pg), nP);
+    return `<div class="lpager" role="navigation" aria-label="Páginas"><span class="sub">${NF[0].format((p0 - 1) * tam + 1)}–${NF[0].format(Math.min(total, p0 * tam))} de ${NF[0].format(total)}</span>
+      <button class="btn sm" data-lpg="${id}|${p0 - 1}"${p0 <= 1 ? ' disabled' : ''} aria-label="Página anterior">‹ Anterior</button><span class="sub">página ${p0} de ${nP}</span><button class="btn sm" data-lpg="${id}|${p0 + 1}"${p0 >= nP ? ' disabled' : ''} aria-label="Próxima página">Próxima ›</button>
+      <label class="sub">por página <select data-lpgtam="${id}" aria-label="Linhas por página">${[50, 100, 200].map((n) => `<option${n === tam ? ' selected' : ''}>${n}</option>`).join('')}</select></label></div>`;
+  }
+  // a janela de Colunas/Visualizações abre sempre dentro da tela e por cima do menu lateral; fecha ao clicar fora
+  document.addEventListener('toggle', (e) => { const d = e.target; if (!(d && d.classList && d.classList.contains('lmenu')) || !d.open) return;
+    for (const o of document.querySelectorAll('details.lmenu[open]')) if (o !== d) o.open = false;
+    const pop = d.querySelector('.lpop'); const r = d.querySelector('summary').getBoundingClientRect(); const w = Math.min(pop.offsetWidth || 260, window.innerWidth - 16);
+    pop.style.position = 'fixed'; pop.style.top = Math.round(r.bottom + 6) + 'px'; pop.style.right = 'auto'; pop.style.left = Math.round(Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))) + 'px'; }, true);
+  document.addEventListener('click', (e) => { if (e.target.closest('details.lmenu')) return; for (const o of document.querySelectorAll('details.lmenu[open]')) o.open = false; });
+  // estado de cada lista que entra numa visualização salva
+  const LISTA_ESTADO = { insumos: ['insQ', 'insFam', 'insFab', 'insSit', 'insSem', 'insFav', 'insOrd'], propostas: ['homeQ', 'homeDiv'] };
+  window.LSLista = { ferramentas: listaFerramentas, paginas: listaPaginas, cols: listaCols, pref: listaPref };
+  document.addEventListener('change', (e) => { const t = e.target;
+    if (t.dataset && t.dataset.lcol) { const [id, k] = t.dataset.lcol.split('|'); const h = new Set(listaPref(id).ocultas || []); if (t.checked) h.delete(k); else h.add(k); listaSet(id, { ocultas: [...h] }); render(); return; }
+    if (t.dataset && t.dataset.lpgtam) { listaSet(t.dataset.lpgtam, { tam: +t.value }); ui['pg_' + t.dataset.lpgtam] = 1; render(); } });
+  document.addEventListener('click', async (e) => {
+    const pg = e.target.closest('[data-lpg]'); if (pg) { const [id, n] = pg.dataset.lpg.split('|'); ui['pg_' + id] = +n; render(); const t = document.querySelector('#app .lpager'); if (t) t.closest('section').scrollIntoView({ block: 'start' }); return; }
+    const sv = e.target.closest('[data-lviewsave]'); if (sv) { const id = sv.dataset.lviewsave; const nome = String(await DLG.pedir('Nome da visualização (ex.: Motores sem preço):', '') || '').trim(); if (!nome) return;
+      const est = {}; for (const k of LISTA_ESTADO[id] || []) est[k] = ui[k]; const vs = Object.assign({}, listaPref(id).views || {}, { [nome]: { est, ocultas: listaPref(id).ocultas || [] } }); listaSet(id, { views: vs }); toast('Visualização salva: ' + nome); render(); return; }
+    const ap = e.target.closest('[data-lview]'); if (ap) { const [id, n] = ap.dataset.lview.split('|'); const v = (listaPref(id).views || {})[n]; if (!v) return; for (const k of LISTA_ESTADO[id] || []) ui[k] = v.est[k]; listaSet(id, { ocultas: v.ocultas || [] }); ui['pg_' + id] = 1; render(); toast('Visualização: ' + n); return; }
+    const dl = e.target.closest('[data-lviewdel]'); if (dl) { const [id, n] = dl.dataset.lviewdel.split('|'); const vs = Object.assign({}, listaPref(id).views || {}); delete vs[n]; listaSet(id, { views: vs }); render(); } });
   function vInsumos() {
     const fam = ui.insFam || ''; const fab = ui.insFab || ''; const sit = ui.insSit || ''; const sem = !!ui.insSem; const soFav = !!ui.insFav; const ord = ui.insOrd || 'codigo';
     const all = H.sortIns(REG.insumos); const cfg = famCfg(); const F = favs(); const C = custosCfg();
@@ -3079,13 +3120,16 @@
     const cmp = { codigo: () => 0, produto: (a, b) => a.produto.localeCompare(b.produto), valor: (a, b) => (b.valor ?? -1) - (a.valor ?? -1), upd: (a, b) => (precoRef(a) || 0) - (precoRef(b) || 0) }[ord] || (() => 0);
     list = list.slice().sort((a, b) => (F.has(b.id) - F.has(a.id)) || cmp(a, b));
     // no celular os insumos aparecem em cartões, 80 por vez ("Mostrar mais"), para a tela não ficar pesada
-    const lim = window.matchMedia && window.matchMedia('(max-width: 767px)').matches ? Math.min(400, ui.insLim || 80) : 400;
-    const shown = list.slice(0, lim); const ed = canEd();
+    // celular: cartões, 80 por vez ("Mostrar mais"); computador: páginas de 50, 100 ou 200 linhas
+    const cel = window.matchMedia && window.matchMedia('(max-width: 767px)').matches; const tam = listaPref('insumos').tam || 100;
+    const pgN = Math.min(Math.max(1, ui.pg_insumos || 1), Math.max(1, Math.ceil(list.length / tam))); const lim = cel ? Math.min(400, ui.insLim || 80) : list.length;
+    const shown = cel ? list.slice(0, lim) : list.slice((pgN - 1) * tam, pgN * tam); const ed = canEd();
+    const INS_COLS = [['fam', 'Família'], ['fab', 'Fabricante'], ['tipo', 'Tipo/config.'], ['valor', 'Valor'], ['origem', 'Origem'], ['upd', 'Preço atualizado em']]; const vc = new Set(listaCols('insumos', INS_COLS)); const cv = (k, html) => (vc.has(k) ? html : '');
     const last = all.reduce((m, x) => (x.upd && x.upd > (m.upd || '') ? x : m), {});
     const th = (k, lb) => `<th><button class="thsort${ord === k ? ' on' : ''}" data-insord="${k}">${lb}${ord === k ? ' ▾' : ''}</button></th>`;
-    const rows = shown.map((x) => `<tr class="click" data-ins="${esc(x.id)}">${ed ? `<td class="in"><input type="checkbox" data-inssel="${esc(x.id)}"${selIns.has(x.id) ? ' checked' : ''} aria-label="Selecionar ${esc(x.id)}"></td>` : ''}<td><button class="star${F.has(x.id) ? ' on' : ''}" data-insfav="${esc(x.id)}" aria-label="${F.has(x.id) ? 'Tirar dos favoritos' : 'Favoritar'}">${F.has(x.id) ? '★' : '☆'}</button></td><td class="code">${esc(x.id)}</td><td>${esc(famNome(x.fam))}</td>
-      <td style="min-width:280px">${esc(x.produto)} ${situPillIns(x)} ${pend(x).filter((p) => p[0] !== 'sem preço').map(([t, c]) => `<span class="pill ${c}">${t}</span>`).join(' ')}</td><td>${esc(x.fab || '')}</td><td>${esc(x.tipo || '')}</td>
-      <td class="n">${typeof x.valor === 'number' ? brl(x.valor) : '<span class="pill warn">sem preço</span>'}</td><td>${esc(x.origem || '')}</td><td>${dataPrecoHtml(x, C)}</td></tr>`).join('');
+    const rows = shown.map((x) => `<tr class="click" data-ins="${esc(x.id)}">${ed ? `<td class="in"><input type="checkbox" data-inssel="${esc(x.id)}"${selIns.has(x.id) ? ' checked' : ''} aria-label="Selecionar ${esc(x.id)}"></td>` : ''}<td><button class="star${F.has(x.id) ? ' on' : ''}" data-insfav="${esc(x.id)}" aria-label="${F.has(x.id) ? 'Tirar dos favoritos' : 'Favoritar'}">${F.has(x.id) ? '★' : '☆'}</button></td><td class="code">${esc(x.id)}</td>${cv('fam', `<td>${esc(famNome(x.fam))}</td>`)}
+      <td style="min-width:280px">${esc(x.produto)} ${situPillIns(x)} ${pend(x).filter((p) => p[0] !== 'sem preço').map(([t, c]) => `<span class="pill ${c}">${t}</span>`).join(' ')}</td>${cv('fab', `<td>${esc(x.fab || '')}</td>`)}${cv('tipo', `<td>${esc(x.tipo || '')}</td>`)}
+      ${cv('valor', `<td class="n">${typeof x.valor === 'number' ? brl(x.valor) : '<span class="pill warn">sem preço</span>'}</td>`)}${cv('origem', `<td>${esc(x.origem || '')}</td>`)}${cv('upd', `<td>${dataPrecoHtml(x, C)}</td>`)}</tr>`).join('');
     const semData = all.filter((x) => typeof x.valor === 'number' && !precoRef(x)); const vencidos = all.filter((x) => precoVencido(x)); const UI = vencidos.length ? usoIndex() : null; const vUso = vencidos.filter((x) => UI.de(x).length);
     const fams = famList(); const fabs = [...new Set(all.map((x) => x.fab).filter(Boolean))].sort();
     for (const id of [...selIns]) if (!REG.insumos.some((x) => x.id === id)) selIns.delete(id);
@@ -3107,12 +3151,14 @@
           <label class="chk"><input type="checkbox" id="insSem"${sem ? ' checked' : ''}> Só sem preço</label>
           <label class="chk"><input type="checkbox" id="insFavF"${soFav ? ' checked' : ''}> ★ Favoritos</label>
           <span style="flex:1"></span>
+          ${listaFerramentas('insumos', INS_COLS, true)}
           <button class="btn sm" id="insCsv">Exportar CSV</button>
           ${ed ? `<button class="btn sm" id="insLote"${selIns.size ? '' : ' disabled'}>Edição em massa (${selIns.size})</button><button class="btn sm pri" id="insNew">+ Novo insumo</button>` : ''}
         </div>
-        <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + (shown.length < 400 ? '' : '; refine a busca') : ''}. Clique numa linha para ver ou editar.${ed ? ' Marque as caixas para a edição em massa.' : ''}</p>
-        <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr>${ed ? `<th><input type="checkbox" id="insSelAll" aria-label="Marcar os visíveis"></th>` : ''}<th></th>${th('codigo', 'Código')}<th>Família</th>${th('produto', 'Produto')}<th>Fabricante</th><th>Tipo/config.</th>${th('valor', 'Valor')}<th>Origem</th>${th('upd', 'Preço atualizado em')}</tr></thead><tbody>${rows || `<tr><td colspan="${ed ? 10 : 9}" class="sub">Nenhum insumo com esse filtro.</td></tr>`}</tbody></table></div>
-        ${list.length > shown.length && shown.length < 400 ? `<div class="docbar" style="margin-top:8px"><button class="btn" data-insmais>Mostrar mais ${Math.min(80, list.length - shown.length)}</button></div>` : ''}
+        <p class="sub" style="margin:8px 0">${list.length === all.length ? all.length + ' insumos' : list.length + ' de ' + all.length + ' insumos'}${cel && list.length > shown.length ? ' — mostrando os primeiros ' + shown.length + (shown.length < 400 ? '' : '; refine a busca') : ''}. Clique numa linha para ver ou editar.${ed ? ' Marque as caixas para a edição em massa.' : ''}</p>
+        <div class="tw" style="max-height:62vh;overflow:auto"><table class="t"><thead><tr>${ed ? `<th><input type="checkbox" id="insSelAll" aria-label="Marcar os visíveis"></th>` : ''}<th></th>${th('codigo', 'Código')}${cv('fam', '<th>Família</th>')}${th('produto', 'Produto')}${cv('fab', '<th>Fabricante</th>')}${cv('tipo', '<th>Tipo/config.</th>')}${cv('valor', th('valor', 'Valor'))}${cv('origem', '<th>Origem</th>')}${cv('upd', th('upd', 'Preço atualizado em'))}</tr></thead><tbody>${rows || `<tr><td colspan="${ed ? 10 : 9}" class="sub">Nenhum insumo com esse filtro.</td></tr>`}</tbody></table></div>
+        ${cel ? '' : listaPaginas('insumos', list.length, pgN, tam)}
+        ${cel && list.length > shown.length && shown.length < 400 ? `<div class="docbar" style="margin-top:8px"><button class="btn" data-insmais>Mostrar mais ${Math.min(80, list.length - shown.length)}</button></div>` : ''}
       </section>`;
   }
   // edição em massa: escolhe o campo, vê a prévia e o impacto, confirma; fica no histórico e pode ser desfeita
@@ -3146,9 +3192,9 @@
   document.addEventListener('click', (e) => {
     const fv = e.target.closest('[data-insfav]'); if (fv) { e.stopPropagation(); favToggle(fv.dataset.insfav); render(); return; }
     if (e.target.closest('[data-insmais]')) { ui.insLim = Math.min(400, (ui.insLim || 80) + 80); render(); return; }
-    const so = e.target.closest('[data-insord]'); if (so) { ui.insOrd = so.dataset.insord; render(); return; }
-    if (e.target.closest('[data-inssemdata]')) { ui.insSit = 'semdata'; render(); return; }
-    if (e.target.closest('[data-insvenc]')) { ui.insSit = 'vencido'; ui.insOrd = 'upd'; render(); return; }
+    const so = e.target.closest('[data-insord]'); if (so) { ui.insOrd = so.dataset.insord; ui.pg_insumos = 1; render(); return; }
+    if (e.target.closest('[data-inssemdata]')) { ui.insSit = 'semdata'; ui.pg_insumos = 1; render(); return; }
+    if (e.target.closest('[data-insvenc]')) { ui.insSit = 'vencido'; ui.pg_insumos = 1; ui.insOrd = 'upd'; ui.pg_insumos = 1; render(); return; }
     if (e.target.closest('[data-insids]')) { ui.insIds = null; render(); return; }
     if (e.target.closest('#insLote')) { loteModal(); return; }
     const dz = e.target.closest('[data-desfaz]'); if (dz) { const h = REG.historico.find((x) => x.at === dz.dataset.desfaz && String(x.ref) === dz.dataset.ref); if (!h) return;
@@ -3158,7 +3204,7 @@
   document.addEventListener('change', (e) => {
     const s = e.target.closest('[data-inssel]'); if (s) { if (s.checked) selIns.add(s.dataset.inssel); else selIns.delete(s.dataset.inssel); const b = $('#insLote'); if (b) { b.disabled = !selIns.size; b.textContent = 'Edição em massa (' + selIns.size + ')'; } return; }
     if (e.target.id === 'insSelAll') { document.querySelectorAll('[data-inssel]').forEach((c) => { c.checked = e.target.checked; if (c.checked) selIns.add(c.dataset.inssel); else selIns.delete(c.dataset.inssel); }); const b = $('#insLote'); if (b) { b.disabled = !selIns.size; b.textContent = 'Edição em massa (' + selIns.size + ')'; } return; }
-    if (e.target.id === 'insFab') { ui.insFab = e.target.value; render(); } else if (e.target.id === 'insSit') { ui.insSit = e.target.value; render(); } else if (e.target.id === 'insFavF') { ui.insFav = e.target.checked; render(); }
+    if (e.target.id === 'insFab') { ui.insFab = e.target.value; ui.pg_insumos = 1; render(); } else if (e.target.id === 'insSit') { ui.insSit = e.target.value; ui.pg_insumos = 1; render(); } else if (e.target.id === 'insFavF') { ui.insFav = e.target.checked; ui.pg_insumos = 1; render(); }
   });
   // ---------- ficha do insumo (REV22): campos por família, descrição gerada, três descrições, duplicidade, fornecedores, equivalentes ----------
   const FAMS_F = window.PricerFamilias;
@@ -3483,7 +3529,7 @@
     else render();
   }
   // ficha do produto (dados mestres) em abas; os campos continuam no mesmo formulário e são gravados juntos
-  const FICHA_ABAS = [['geral', 'Geral'], ['tecnica', 'Técnica'], ['compras', 'Compras e custos'], ['uso', 'Estruturas e utilização'], ['docs', 'Documentos'], ['hist', 'Histórico']];
+  const FICHA_ABAS = [['geral', 'Geral'], ['tecnica', 'Características técnicas'], ['compras', 'Compras e custos'], ['forn', 'Fornecedores'], ['uso', 'Estruturas e kits'], ['docs', 'Documentos'], ['hist', 'Histórico']];
   const fichaAba = (o, k) => { for (const b of o.querySelectorAll('[data-ftab]')) b.setAttribute('aria-selected', b.dataset.ftab === k ? 'true' : 'false'); for (const el of o.querySelectorAll('[data-fpane]')) el.classList.toggle('fpane-off', el.dataset.fpane !== k); };
   function insumoModal(id, presetFam) {
     const isNew = !id; const rec = isNew ? { fam: presetFam || ui.insFam || famList()[0], origem: 'NAC', situacao: 'ativo' } : JSON.parse(JSON.stringify(REG.insumos.find((x) => x.id === id) || null));
@@ -3499,8 +3545,9 @@
     const hp = isNew ? [] : historicoPreco(rec); const C = custosCfg();
     const hpHtml = hp.length ? `<div class="tw"><table class="t"><thead><tr><th>Quando</th><th>De</th><th>Para</th><th>Variação</th><th>Origem</th></tr></thead><tbody>${hp.slice(0, 15).map((x) => { const v = typeof x.de === 'number' && x.de && typeof x.para === 'number' ? (x.para - x.de) / x.de : null; return `<tr><td>${esc(fmtAt(x.at))}<br><small class="sub">${who(x.by)}</small></td><td class="n">${typeof x.de === 'number' ? brl(x.de) : '—'}</td><td class="n">${typeof x.para === 'number' ? brl(x.para) : '—'}</td><td class="n ${v !== null && Math.abs(v) >= C.variacaoPct ? 'bad-t' : ''}">${v === null ? '—' : (v > 0 ? '+' : '') + pct(v, 1)}</td><td><small>${esc(x.fonte || '')}</small></td></tr>`; }).join('')}</tbody></table></div>` : '<p class="sub" style="margin:0">Sem alteração de preço registrada (o valor é o da planilha ou da última gravação).</p>';
     const insOpts = REG.insumos.filter((i) => i.id !== rec.id).map((i) => `<option value="${esc(i.id + ' · ' + i.produto)}">`).join('');
-    modal(`<h2>${isNew ? 'Novo insumo' : 'Insumo ' + esc(rec.id)} ${isNew ? '' : situPillIns(rec)}</h2>
-      <div class="subtabs fichatabs" role="tablist" aria-label="Seções da ficha">${FICHA_ABAS.filter(([k]) => !isNew || ['geral', 'tecnica', 'compras'].includes(k)).map(([k, lb], i) => `<button type="button" role="tab" data-ftab="${k}" aria-selected="${i === 0}">${lb}</button>`).join('')}</div>
+    modal(`<div class="objhead"><div class="objid"><small class="sub">${isNew ? 'Novo insumo' : 'Insumo'} · ${esc(famNome(rec.fam) || '')}</small><h2>${isNew ? 'Novo insumo' : 'Insumo ' + esc(rec.id)} ${isNew ? '' : situPillIns(rec)}</h2>${isNew ? '' : `<div class="objtit">${esc(rec.produto || '')}</div>`}</div>
+      ${isNew ? '' : `<div class="objkpis"><div><small class="sub">Custo vigente</small><b>${typeof rec.valor === 'number' ? brl(rec.valor) : 'sem preço'}</b></div><div><small class="sub">Fabricante</small><b>${esc(rec.fab || '—')}</b></div><div><small class="sub">Origem</small><b>${esc(rec.origem || '—')}</b></div>${precoVencido(rec) ? '<div><span class="pill warn">preço vencido</span></div>' : ''}</div>`}</div>
+      <div class="subtabs fichatabs" role="tablist" aria-label="Seções da ficha">${FICHA_ABAS.filter(([k]) => !isNew || ['geral', 'tecnica', 'compras', 'forn'].includes(k)).map(([k, lb], i) => `<button type="button" role="tab" data-ftab="${k}" aria-selected="${i === 0}">${lb}</button>`).join('')}</div>
       <form id="insForm" autocomplete="off" class="stack" style="gap:10px">
       <div class="fields" data-fpane="geral">
         <div class="f span2"><label for="fFam">Família</label><select id="fFam"${ro}>${fams.map((f) => `<option value="${esc(f)}"${f === rec.fam ? ' selected' : ''}>${esc(famNome(f))}</option>`).join('')}${ed ? '<option value="__nova">+ Nova família…</option>' : ''}</select></div>
@@ -3528,7 +3575,7 @@
           <div class="f span2"><label for="fFonte">Origem do preço</label><input id="fFonte" value="${esc(rec.fonte || '')}" placeholder="fornecedor, nº do orçamento"${ro}></div>
           <div class="f"><label for="fDataCot">Data da cotação</label><input id="fDataCot" type="date" value="${esc(rec.dataCot || '')}"${ro}></div></div>
         <div id="fImp"></div></section>
-      <details class="fsec" data-fpane="compras" open><summary><h3 style="display:inline">Fornecedores e cotações <span class="sub">${st.forn.length}</span></h3></summary><div id="fForn"></div></details>
+      <details class="fsec" data-fpane="forn" open><summary><h3 style="display:inline">Fornecedores e cotações <span class="sub">${st.forn.length}</span></h3></summary><div id="fForn"></div></details>
       <details class="fsec" data-fpane="tecnica" open><summary><h3 style="display:inline">Equivalentes técnicos e alternativas <span class="sub">${st.equiv.length}</span></h3></summary><div id="fEquiv"></div></details>
       </form>
       <datalist id="dlInsAll">${insOpts}</datalist><datalist id="dl_fornall">${[...new Set(REG.insumos.flatMap((i) => (i.forn || []).map((f) => f.nome)).concat((() => { try { return SPV.docs().map((d) => d.fornecedor); } catch (e) { return []; } })()).filter(Boolean))].sort().map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
@@ -3878,7 +3925,7 @@
           try { for (const x of sel) { const c = REG.insumos.some((i) => i.fam === fam) ? REG.nextCode(fam) : { a: H.famCode(fam), b: H.famCode(fam) * 1000 + 1 };
               await REG.saveInsumo({ id: REG.newInsumoId(c.a, c.b), a: c.a, b: c.b, fam, produto: x.produto, valor: typeof x.valor === 'number' ? x.valor : null, origem: 'NAC', situacao: 'provisorio', fonte: imp.name, dataCot: new Date().toISOString().slice(0, 10), obs: 'importado de ' + imp.name + (x.pad ? ' · fora do padrão: ' + x.pad : ''), excecao: x.pad ? 'importação: conferir a descrição' : undefined }, true);
               n++; const pg = $('#inProg', o); if (pg) pg.textContent = n + ' de ' + sel.length + ' cadastrados…'; }
-            close(); toast(n + ' provisório(s) cadastrado(s). Valide na lista de insumos (situação Provisório).'); ui.insSit = 'provisorio'; ui.cad = 'insumos'; imp = null; render(); } catch (er) { $('#inOk', o).disabled = false; toast(errMsg(er)); } };
+            close(); toast(n + ' provisório(s) cadastrado(s). Valide na lista de insumos (situação Provisório).'); ui.insSit = 'provisorio'; ui.pg_insumos = 1; ui.cad = 'insumos'; imp = null; render(); } catch (er) { $('#inOk', o).disabled = false; toast(errMsg(er)); } };
       });
     };
     const go = $('#impGo'); if (go) go.onclick = async () => {
@@ -4481,7 +4528,7 @@
     const cf = e.target.closest('[data-campofam]'); if (cf) { camposModal(cf.dataset.campofam); return; }
     const sr = e.target.closest('[data-sinrm]'); if (sr) { const m = Object.assign({}, sinonimos()); delete m[sr.dataset.sinrm]; salvaSin(m, 'Sinônimo removido: ' + sr.dataset.sinrm); return; }
     if (e.target.closest('[data-sinadd]')) { const k = FAMS_F.norm($('#sinK').value); const v = $('#sinV').value.split(',').map((x) => FAMS_F.norm(x)).filter(Boolean); if (!k || !v.length) { toast('Informe o termo e as outras grafias'); return; } const m = Object.assign({}, sinonimos(), { [k]: v }); salvaSin(m, 'Sinônimo: ' + k + ' = ' + v.join(', ')); return; }
-    const fg = e.target.closest('[data-fabgo]'); if (fg) { ui.insFab = fg.dataset.fabgo; ui.cad = 'insumos'; render(); }
+    const fg = e.target.closest('[data-fabgo]'); if (fg) { ui.insFab = fg.dataset.fabgo; ui.pg_insumos = 1; ui.cad = 'insumos'; render(); }
   });
   // ---------- qualidade dos dados mestres: aponta, filtra e leva ao registro; nada é alterado sozinho ----------
   function qualidade() {
@@ -4729,7 +4776,7 @@
     const groups = ACIONS.map(([k, lb]) => {
       const g = mine.filter((x) => (x.acion || 'TODOS') === k); if (!g.length) return '';
       const fold = (ui.estrFold || {})[k];
-      return `<tr class="grp click" data-fold="${k}"><td colspan="6">${fold ? '▸' : '▾'} ${lb} <span class="sub">· ${g.length} componentes · ${g.filter((x) => !x.regra).length} obrigatório(s), ${g.filter((x) => x.regra === 'OPCIONAL').length} opcional(is), ${g.filter((x) => x.regra && x.regra !== 'OPCIONAL').length} condicional(is)</span></td></tr>` + (fold ? '' : g.map((x) => `<tr class="click" data-recedit="${x.r}">
+      return `<tr class="grp click" data-fold="${k}"><td colspan="6">${fold ? '▸' : '▾'} ${lb} <span class="sub">· ${g.length} componentes · ${g.filter((x) => !x.regra).length} obrigatório(s), ${g.filter((x) => x.regra === 'OPCIONAL').length} opcional(is), ${g.filter((x) => x.regra && x.regra !== 'OPCIONAL').length} condicional(is)</span></td></tr>` + (fold ? '' : g.map((x) => `<tr class="click" data-recpainel="${x.r}">
         <td><b>${esc(x.rot || '(sem nome)')}</b><br><small class="sub">${esc(famNome(x.fam))} · ${esc(x.bloco)}</small></td>
         <td>${esc(origemTxt(x, H))}</td><td>${esc(qtdTxt(x.qtd))}</td>
         <td>${x.regra ? `<span class="pill ${x.regra === 'OPCIONAL' ? 'mute' : 'warn'}">${x.regra === 'OPCIONAL' ? 'opcional' : 'condicional: ' + esc(regraTxt(x.regra))}</span>` : '<span class="pill ok">obrigatório</span>'}</td>
@@ -4781,6 +4828,30 @@
       }).join('') + '</tr>';
     }
     return `<div class="tw" style="margin-top:10px"><table class="t porte"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${k === 'VAZAO' ? '<p class="sub" style="margin:8px 0 0">Nesta tabela você muda as bitolas (colunas à esquerda); os nomes dos insumos à direita saem delas.</p>' : ''}`;
+  }
+  // painel lateral com os detalhes do componente da estrutura (só leitura; Editar abre a janela de sempre)
+  function recPainel(r) {
+    const x = recLines().find((y) => y.r === r); if (!x) return; const H = heads(); const est = estrOf(x);
+    const code = (/^(\d+)\./.exec(String(x.fam || '')) || [])[1]; const insFam = x.fam ? REG.insumos.filter((i) => i.fam === x.fam) : [];
+    const fixo = x.tipo === 'FIXO' || x.tipo === 'SPLIT' ? (REG.insumos.find((i) => FAMS_F.norm(i.produto) === FAMS_F.norm(x.campo)) || null) : null;
+    modal(`<div class="objhead"><div class="objid"><small class="sub">Componente da estrutura · linha ${r}</small><h2>${esc(x.rot || '(sem nome)')}</h2><div class="objtit">${esc(famNome(x.fam) || 'sem família')} · ${esc(x.bloco || '')}</div></div>
+        <div class="objkpis"><div><small class="sub">Condição</small><b>${x.regra ? (x.regra === 'OPCIONAL' ? 'opcional' : 'condicional') : 'obrigatório'}</b></div><div><small class="sub">Quantidade</small><b>${esc(qtdTxt(x.qtd))}</b></div></div></div>
+      <div class="kv pcro"><div>De onde sai o insumo</div><div>${esc(origemTxt(x, H))}</div>
+        <div>Quando entra</div><div>${x.regra ? esc(x.regra === 'OPCIONAL' ? 'opcional: entra quando marcado no item' : regraTxt(x.regra)) : 'sempre'}</div>
+        <div>Acionamento</div><div>${esc((ACIONS.find((a) => a[0] === (x.acion || 'TODOS')) || [0, x.acion || 'todos'])[1])}</div>
+        <div>Vale para</div><div>${x.estr === 'TODOS' ? 'todas as estruturas' : esc(est.map(famLabel).join(', '))}</div>
+        <div>Na proposta (escopo)</div><div>${estrNaProposta(x)}</div>
+        ${fixo ? `<div>Insumo fixo</div><div><b>${esc(fixo.id)}</b> · ${esc(fixo.produto)} · ${typeof fixo.valor === 'number' ? brl(fixo.valor) : 'sem preço'}</div>` : ''}
+        ${x.fam ? `<div>Insumos da família</div><div>${insFam.length} no cadastro${code ? '' : ''}</div>` : ''}</div>
+      <div class="fichaacoes">${canEd() ? `<button class="btn pri" data-recedit="${r}" data-ico="pencil">Editar componente</button>` : ''}
+        ${fixo ? `<button class="btn" data-recins="${esc(fixo.id)}">Abrir ficha do insumo</button>` : ''}
+        ${x.fam ? `<button class="btn" data-recfam="${esc(x.fam)}">Ver insumos da família</button>` : ''}
+        <button class="btn" data-close>Fechar</button></div>`, (o, close) => {
+      const m = o.querySelector('.modal'); if (m) m.classList.add('drawer');
+      o.addEventListener('click', (e) => { const a = e.target.closest('[data-recins]'); if (a) { close(); insumoModal(a.dataset.recins); return; }
+        const f = e.target.closest('[data-recfam]'); if (f) { close(); ui.cad = 'insumos'; ui.insFam = f.dataset.recfam; ui.insQ = ''; ui.pg_insumos = 1; render(); return; }
+        const ed = e.target.closest('[data-recedit]'); if (ed) { close(); recModal(+ed.dataset.recedit); } });
+    });
   }
   function recModal(r, preset) { if (emRascunho()) return comWb(wbCom({ rasc: true }), () => recModal0(r, preset)); return recModal0(r, preset); }
   function recModal0(r, preset) {
@@ -4881,6 +4952,7 @@
         $('#peOk', o).onclick = () => go(inp.value.trim()); $('#peClr', o).onclick = () => go('');
       }); return; }
     const ed = e.target.closest('[data-recedit]'); if (ed) { recModal(+ed.dataset.recedit); return; }
+    const rp = e.target.closest('[data-recpainel]'); if (rp && !e.target.closest('button, a, input, select')) { recPainel(+rp.dataset.recpainel); return; }
     if (e.target.closest('[data-estrnew]')) { estrNewModal(); return; }
     if (e.target.closest('[data-recnew]')) { const used = new Set(recLines().map((x) => x.r)); let r = 92; while (used.has(r)) r++; if (r > 151) return toast('A receita já tem 60 linhas'); recModal(r, { r, rot: '', estr: ui.estr || 'CMB', acion: 'TODOS', bloco: 'TERCEIROS', fam: '', tipo: 'FIXO', campo: '', qtd: 'N', regra: '' }); return; }
     const rs = e.target.closest('[data-recreset]');
@@ -5105,7 +5177,7 @@
     const dl = e.target.closest('[data-rowdel]'); if (dl) { if (!dl.dataset.sure) { dl.dataset.sure = 1; dl.textContent = 'confirmar'; return; } const [id, r] = dl.dataset.rowdel.split('|'); rowDelete(id, +r); return; }
     const fe = e.target.closest('[data-famedit]'); if (fe) { famModal(fe.dataset.famedit); return; }
     if (e.target.closest('[data-famnew]')) { famModal(null); return; }
-    const fi = e.target.closest('[data-famins]'); if (fi) { ui.cad = 'insumos'; ui.insFam = fi.dataset.famins; store.set(SK.view, ui); render(); return; }
+    const fi = e.target.closest('[data-famins]'); if (fi) { ui.cad = 'insumos'; ui.insFam = fi.dataset.famins; ui.pg_insumos = 1; store.set(SK.view, ui); render(); return; }
     const ee = e.target.closest('[data-eqedit]'); if (ee) { eqModal(+ee.dataset.eqedit); return; }
     if (e.target.closest('[data-eqnew]')) { eqModal(0); return; }
   });
@@ -5181,8 +5253,8 @@
     if (tab === 'importar') bindImportar();
     const deb = (id, key) => { const el = $('#' + id); if (!el) return; let t; el.oninput = () => { clearTimeout(t); t = setTimeout(() => { ui[key] = el.value; render(); const f = $('#' + id); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }, 250); }; };
     deb('insQ', 'insQ'); deb('kitQ', 'kitQ'); deb('histQ', 'histQ'); deb('padQ', 'padQ');
-    const fam = $('#insFam'); if (fam) fam.onchange = () => { ui.insFam = fam.value; render(); };
-    const sem = $('#insSem'); if (sem) sem.onchange = () => { ui.insSem = sem.checked; render(); };
+    const fam = $('#insFam'); if (fam) fam.onchange = () => { ui.insFam = fam.value; ui.pg_insumos = 1; render(); };
+    const sem = $('#insSem'); if (sem) sem.onchange = () => { ui.insSem = sem.checked; ui.pg_insumos = 1; render(); };
     const ht = $('#histT'); if (ht) ht.onchange = () => { ui.histT = ht.value; render(); };
     const csv = $('#insCsv'); if (csv) csv.onclick = exportInsumos;
     const nw = $('#insNew'); if (nw) nw.onclick = () => insumoModal(null);
@@ -5222,6 +5294,34 @@
   const MEM_KEYS = { custoMat: 'Custo do conjunto de peças e materiais', custoFab: 'Custos dos serviços de fabricação', custoStartup: 'Custos de Startup', custoFrete: 'Custos dos fretes', custo: 'TOTAL CUSTOS',
     icmsPct: 'ICMS', pisCofinsPct: 'PIS/COFINS', irPct: 'IR/CSLL', impostosPct: 'TOTAL IMPOSTOS (sem o IPI)', comissaoPct: 'TOTAL COMISSÃO', margemPct: 'Margem Liquida',
     venda: 'Preço de venda com impostos — SEM IPI (total)', qtd: 'Quantidade', ipiPct: 'IPI (%)', comExtPct: 'Comissão de 3os externos', comIntPct: 'Comissão de 3os internos', ipi: 'IPI (R$)', vendaIpi: 'Preço de venda com impostos e COM IPI (total)', impostos: 'Impostos', comissao: 'Comissão', margem: 'Margem líquida', ci: 'Conteúdo de importação (CI)' };
+  // composição do preço de venda: as linhas do memorial (coluna do total), na ordem custo → impostos → comissões →
+  // margem → preço sem IPI → IPI → preço com IPI. Só leitura do motor; nenhuma conta nova (a última linha só confere a soma).
+  function composicaoPrecoHtml() {
+    const R = memRows(); const v = (k) => (R[k] ? val('MEMORIAL', 'M' + R[k]) : null); const num = (x) => (typeof x === 'number' && isFinite(x) ? x : null);
+    const venda = num(v('venda')); if (!venda) return '';
+    const lin = [['Peças e materiais', v('custoMat')], ['Serviços de fabricação', v('custoFab')], ['Start-up', v('custoStartup')], ['Fretes', v('custoFrete')]].filter(([, x]) => num(x));
+    const custo = num(v('custo')), imp = num(v('impostos')), com = num(v('comissao')), mg = num(v('margem')), ipi = num(v('ipi')), comIpi = num(v('vendaIpi'));
+    const pc = (x) => (num(x) !== null && venda ? pct(x / venda) : '');
+    const resto = [custo, imp, com, mg].every((x) => x !== null) ? venda - custo - imp - com - mg : null;
+    const barra = [['custo', custo, 'Custo'], ['imp', imp, 'Impostos'], ['com', com, 'Comissões'], ['mg', mg, 'Margem']].filter(([, x]) => num(x) && x > 0)
+      .map(([k, x, lb]) => `<span class="cpb-${k}" style="width:${Math.max(0, Math.min(100, (x / venda) * 100)).toFixed(2)}%" title="${esc(lb + ': ' + brl(x) + ' (' + pct(x / venda) + ')')}"></span>`).join('');
+    const tr = (lb, x, extra, cls) => `<tr class="${cls || ''}"><td>${lb}</td><td class="n">${brl(x)}</td><td class="n">${extra ?? pc(x)}</td></tr>`;
+    return `<section class="card cpreco"><h2>Composição do preço <span class="sub">memorial de cálculo, total da proposta</span></h2>
+      <div class="cpbar" role="img" aria-label="Divisão do preço sem IPI: custo ${pc(custo)}, impostos ${pc(imp)}, comissões ${pc(com)}, margem ${pc(mg)}">${barra}</div>
+      <div class="cplegend"><span><i class="cpb-custo"></i>Custo ${pc(custo)}</span><span><i class="cpb-imp"></i>Impostos ${pc(imp)}</span><span><i class="cpb-com"></i>Comissões ${pc(com)}</span><span><i class="cpb-mg"></i>Margem ${pc(mg)}</span></div>
+      <div class="tw"><table class="t"><thead><tr><th>Componente</th><th class="n">Valor</th><th class="n">% do preço sem IPI</th></tr></thead><tbody>
+        ${lin.map(([lb, x]) => tr('&nbsp;&nbsp;' + esc(lb), x, null, 'sub-t')).join('')}
+        ${tr('<b>Custo total (memorial)</b>', custo, null, 'tot')}
+        ${tr('Impostos (sem o IPI)', imp)}${tr('Comissões', com)}${tr('Margem líquida', mg)}
+        ${resto !== null && Math.abs(resto) > 0.01 ? tr('Outros itens do memorial', resto) : ''}
+        ${tr('<b>Preço de venda sem IPI</b>', venda, '100%', 'tot')}
+        ${num(ipi) ? tr('IPI', ipi, '') : ''}${tr('<b>Preço de venda com IPI</b>', comIpi, '', 'tot')}
+      </tbody></table></div>
+      ${(() => { const g16 = num(val('PROPOSTA', 'G16')); const st = num(v('custoStartup')) || 0, fr = num(v('custoFrete')) || 0; if (custo === null || g16 === null || Math.abs(custo - g16) < 0.01) return '';
+        const dif = custo - g16; const bate = Math.abs(dif - st - fr) < 0.01;
+        return `<p class="sub" style="margin:8px 0 0">O indicador <b>Custo total dos itens</b> no alto da aba (célula G16 da planilha) soma o custo dos itens: ${brl(g16)}. O custo total do memorial é ${brl(dif)} maior${bate ? ' — exatamente o start-up e os fretes, que o memorial soma ao custo' : ''}.</p>`; })()}
+      <div class="docbar" style="margin-top:8px"><button class="btn sm" data-view="memorial" data-ico="scroll-text">Abrir o memorial de cálculo</button><span class="sub">Valores do motor da planilha (as mesmas fórmulas da REV21); o memorial mostra item por item.</span></div></section>`;
+  }
   function memRows() { const m = {}; for (let r = 3; r <= 38; r++) { const lb = txt('MEMORIAL', 'B' + r); for (const [k, l] of Object.entries(MEM_KEYS)) if (lb === l && !m[k]) m[k] = r; } return m; }
   function seqSnapshot() {
     const rows = memRows(); const n = (x) => (typeof x === 'number' && isFinite(x) ? x : 0);
@@ -5273,9 +5373,9 @@
     if (clis.length) G.push(['Clientes', clis.map((c) => ({ t: c.nome, d: [c.L5, c.F7 || c.uf].filter(Boolean).join(' · ') || 'cliente de propostas salvas', ico: 'users', acoes: [['Ver propostas', () => { ui.homeQ = c.nome; ui.homeDiv = 'todas'; setView('inicio'); }]] }))]);
     const ins = REG.insumos.filter((i) => bate(i.id, i.produto, i.fab, i.codFab, i.descCom, famNome(i.fam))).slice(0, 8);
     if (ins.length) G.push(['Produtos e insumos', ins.map((i) => ({ t: i.id + ' · ' + i.produto, d: [famNome(i.fam), i.fab, typeof i.valor === 'number' ? 'custo ' + brl(i.valor) : 'sem preço', situ(i) !== 'ativo' ? situ(i) : ''].filter(Boolean).join(' · '), ico: 'package',
-      acoes: [['Abrir ficha', () => { ui.cad = 'insumos'; if (ui.view !== 'cadastro') setView('cadastro'); insumoModal(i.id); }], ['Localizar na lista', () => { ui.cad = 'insumos'; ui.insQ = i.id; ui.insFam = ''; setView('cadastro'); }]] }))]);
+      acoes: [['Abrir ficha', () => { ui.cad = 'insumos'; if (ui.view !== 'cadastro') setView('cadastro'); insumoModal(i.id); }], ['Localizar na lista', () => { ui.cad = 'insumos'; ui.insQ = i.id; ui.pg_insumos = 1; ui.insFam = ''; ui.pg_insumos = 1; setView('cadastro'); }]] }))]);
     const fams = famList().filter((f) => bate(f, famNome(f))).slice(0, 5);
-    if (fams.length) G.push(['Famílias de insumo', fams.map((f) => ({ t: famNome(f), d: f + ' · ' + REG.insumos.filter((i) => i.fam === f).length + ' insumo(s)', ico: 'folder-tree', acoes: [['Ver insumos', () => { ui.cad = 'insumos'; ui.insFam = f; ui.insQ = ''; setView('cadastro'); }]] }))]);
+    if (fams.length) G.push(['Famílias de insumo', fams.map((f) => ({ t: famNome(f), d: f + ' · ' + REG.insumos.filter((i) => i.fam === f).length + ' insumo(s)', ico: 'folder-tree', acoes: [['Ver insumos', () => { ui.cad = 'insumos'; ui.insFam = f; ui.pg_insumos = 1; ui.insQ = ''; ui.pg_insumos = 1; setView('cadastro'); }]] }))]);
     let mods = []; try { mods = modelos().filter((m) => bate(m.nome, m.estr, m.bomba, m.motor)).slice(0, 5); } catch (e) { mods = []; }
     if (mods.length) G.push(['Modelos prontos', mods.map((m) => ({ t: m.nome, d: [famLabel(m.estr), m.bomba, m.motor].filter(Boolean).join(' · '), ico: 'layout-template', acoes: [['Abrir famílias e modelos', () => { ui.cad = 'familias'; setView('cadastro'); }]] }))]);
     const kits = [...REG.kitMotor.map((k) => ['motor', k]), ...REG.kitBomba.map((k) => ['bomba', k])].filter(([, k]) => bate(k.desc, k.marca, k.tipo)).slice(0, 5);

@@ -78,7 +78,7 @@ body.side-mini .navq,body.side-mini .navgh,body.side-mini .navsub{display:none}
 body.side-mini .navg{margin-top:0}
 body.side-mini .nav [data-view]{overflow:visible}
 body.side-mini .nav [data-view]:hover::after,body.side-mini .nav [data-view]:focus-visible::after{content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:#111;color:#fff;font:500 13px/1.2 var(--f-body,system-ui);letter-spacing:0;text-transform:none;padding:6px 9px;border-radius:6px;white-space:nowrap;z-index:60;box-shadow:0 4px 14px rgba(0,0,0,.3);pointer-events:none}
-.fpane-off{display:none!important}.fichatabs{margin:-4px 0 10px;position:sticky;top:-1px;z-index:2;background:var(--card,#fff)}.fichaacoes{display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:-1px;background:var(--card,#fff);padding:10px 0 2px;border-top:1px solid var(--line);margin-top:12px;z-index:2}
+.fpane-off{display:none!important}.modal.drawer{place-items:stretch end;padding:0}.modal.drawer .card{width:min(460px,100vw);height:100%;max-height:100vh;border-radius:0;overflow:auto;animation:none}.objhead{display:flex;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;align-items:flex-end;padding-bottom:10px;margin-bottom:8px;border-bottom:1px solid var(--line)}.objhead h2{margin:2px 0}.objtit{font-weight:600;overflow-wrap:anywhere}.objkpis{display:flex;gap:18px;flex-wrap:wrap}.objkpis>div{display:flex;flex-direction:column;gap:2px}.objkpis b{font-size:15px}.fichatabs{margin:-4px 0 10px;position:sticky;top:-1px;z-index:2;background:var(--card,#fff)}.fichaacoes{display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:-1px;background:var(--card,#fff);padding:10px 0 2px;border-top:1px solid var(--line);margin-top:12px;z-index:2}
 .gbusca .gbq input{width:100%;font-size:17px;padding:12px 14px;border:1px solid var(--line);border-radius:10px}
 .gbres{margin-top:10px;max-height:min(62vh,560px);overflow:auto;display:flex;flex-direction:column;gap:10px}
 .gbgh{font-family:var(--f-cond);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--ink2,#555);margin:2px 0 4px}
@@ -87,6 +87,16 @@ body.side-mini .nav [data-view]:hover::after,body.side-mini .nav [data-view]:foc
 .gbico .ico{width:18px;height:18px;color:var(--or)}.gbt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}.gbt b{overflow-wrap:anywhere}
 .gbacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:767px){.gbi{flex-wrap:wrap}.gbacts{width:100%;justify-content:flex-start}}
+.cpbar{display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--line);margin:4px 0 8px}.cpbar span{display:block;height:100%}
+.cpb-custo{background:#5b6573}.cpb-imp{background:#9aa4b2}.cpb-com{background:#f0b27a}.cpb-mg{background:var(--or)}
+.cplegend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;margin-bottom:8px}.cplegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.cpreco tr.tot td{font-weight:700;border-top:1px solid var(--line)}.cpreco tr.sub-t td{color:var(--ink2,#555)}
+.lmenu{position:relative;display:inline-block}.lmenu>summary{list-style:none;cursor:pointer}.lmenu>summary::-webkit-details-marker{display:none}
+.lpop{position:absolute;right:0;top:calc(100% + 6px);z-index:45;max-height:min(70vh,520px);overflow:auto;background:var(--card,#fff);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);padding:10px 12px;min-width:230px;display:flex;flex-direction:column;gap:6px}
+.lhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.lhead h2{margin:0}.lacts{display:flex;gap:6px}
+.lview{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.lpager{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:flex-end;margin-top:10px}
+@media (max-width:767px){.lpop{right:auto;left:0}}
 .iconbtn.side-x,.iconbtn.menu-btn,.side-scrim{display:none}
 .mainw{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bar);color:var(--bar-ink);box-shadow:0 1px 0 rgba(0,0,0,.25)}
@@ -842,19 +852,19 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   </div>
   <nav class="nav" id="nav" aria-label="Seções">
     <div class="navq"><input id="navQ" type="search" placeholder="Pesquisar no menu" aria-label="Pesquisar no menu" autocomplete="off"></div>
-    <button data-view="inicio" data-ico="house" title="Início: painel, atalhos e propostas recentes"><span class="nl">Início</span></button>
-    <div class="navg" data-navg="propostas">
-      <button type="button" class="navgh" data-navgt="propostas" aria-expanded="false" aria-controls="navs_propostas"><span class="nl">Propostas</span></button>
+    <button data-view="inicio" data-ico="house" title="Página inicial: resumo, propostas recentes, pendências e ações rápidas"><span class="nl">Início</span></button>
+    <div class="navg" data-navg="comercial">
+      <button type="button" class="navgh" data-navgt="comercial" aria-expanded="false" aria-controls="navs_comercial"><span class="nl">Comercial</span></button>
       <button data-view="proposta" data-ico="file-text" title="Proposta aberta"><span class="nl">Proposta aberta</span></button>
-      <div class="navsub" id="navs_propostas" role="group" aria-label="Propostas" hidden>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="todas" data-ico="list"><span class="nl">Todas as propostas</span></button>
+      <div class="navsub" id="navs_comercial" role="group" aria-label="Comercial" hidden>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SEQ" data-ico="flame"><span class="nl">Propostas SEQ</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SPV" data-ico="wrench"><span class="nl">Propostas SPV</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aberto" data-ico="file-pen"><span class="nl">Em aberto (rascunhos)</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="todas" data-ico="list"><span class="nl">Todas as propostas</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aberto" data-ico="file-pen"><span class="nl">Rascunhos (em aberto)</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aprovacao" data-ico="hourglass"><span class="nl">Aguardando aprovação</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="enviada" data-ico="send"><span class="nl">Enviadas</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="ganha" data-ico="trophy"><span class="nl">Ganhas</span></button>
-      <button type="button" data-go="phist" data-ico="history"><span class="nl">Revisões e histórico da proposta aberta</span></button>
+      <button type="button" data-go="phist" data-ico="history"><span class="nl">Histórico da proposta aberta</span></button>
       <button type="button" data-go="documentos" data-ico="paperclip"><span class="nl">Documentos</span></button>
       </div>
     </div>
@@ -863,17 +873,29 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button data-view="cadastro" data-ico="database" title="Cadastros"><span class="nl">Cadastros</span></button>
       <div class="navsub" id="navs_cadastros" role="group" aria-label="Cadastros" hidden>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="insumos" data-ico="package"><span class="nl">Produtos e insumos</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="familias" data-ico="folder-tree"><span class="nl">Famílias</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="importar" data-ico="table-properties"><span class="nl">Importar preços</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="familias" data-ico="folder-tree"><span class="nl">Famílias e modelos prontos</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="fornecedores" data-ico="factory"><span class="nl">Fabricantes e fornecedores</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="estruturas" data-ico="network"><span class="nl">Estruturas</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="valvulas" data-ico="boxes"><span class="nl">Válvulas de alívio</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="cambio" data-ico="globe"><span class="nl">Câmbio e importação</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="facts" data-ico="badge-check"><span class="nl">FACTS (MECON)</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="servicos" data-ico="hard-hat"><span class="nl">Serviços e equipe</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="geral" data-ico="building-2"><span class="nl">Empresa, unidades e famílias</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="sinonimos" data-ico="languages"><span class="nl">Sinônimos e abreviações</span></button>
+      </div>
+    </div>
+    <div class="navg" data-navg="engenharia">
+      <button type="button" class="navgh" data-navgt="engenharia" aria-expanded="false" aria-controls="navs_engenharia"><span class="nl">Engenharia de produto</span></button>
+      <div class="navsub" id="navs_engenharia" role="group" aria-label="Engenharia de produto" hidden>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="estruturas" data-ico="network"><span class="nl">Estruturas e tabelas por porte</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="motor" data-ico="boxes"><span class="nl">Kits de motor diesel</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="bomba" data-ico="boxes"><span class="nl">Kits de bomba</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="mobase" data-ico="ruler"><span class="nl">Mão de obra e bases por porte</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="regras" data-ico="git-branch"><span class="nl">Regras de configuração</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="testador" data-ico="flask-conical"><span class="nl">Testador de estruturas</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="padrao" data-ico="type"><span class="nl">Padronização de descrições</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="fiscal" data-ico="landmark"><span class="nl">Tabelas fiscais e NCM</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="preco" data-ico="percent"><span class="nl">Margens e política de preço</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="servicos" data-ico="hard-hat"><span class="nl">Serviços e mão de obra</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="campos" data-ico="list-checks"><span class="nl">Campos por família</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="codificacao" data-ico="hash"><span class="nl">Codificação dos equipamentos</span></button>
       </div>
     </div>
     <div class="navg" data-navg="gestao">
@@ -881,9 +903,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button data-view="pendencias" data-ico="clipboard-list" title="Pendências"><span class="nl">Pendências</span></button>
       <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens e indicadores comerciais"><span class="nl">Margens</span></button>
       <div class="navsub" id="navs_gestao" role="group" aria-label="Gestão" hidden>
+      <button type="button" data-go="margens" data-gk="mgTab" data-gv="painel" data-ico="trending-up"><span class="nl">Indicadores</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovações</span></button>
-      <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="trending-up"><span class="nl">Em andamento</span></button>
+      <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass"><span class="nl">Em andamento</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="fechadas" data-ico="trophy"><span class="nl">Ganhas e custo real</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check"><span class="nl">Auditoria de cadastros</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
       </div>
     </div>
     <div class="navg" data-navg="admin">
@@ -891,11 +916,15 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button data-view="config" data-ico="settings-2" title="Configurações e administração"><span class="nl">Configurações</span></button>
       <div class="navsub" id="navs_admin" role="group" aria-label="Administração" hidden>
       <button type="button" data-go="config" data-gk="cad" data-gv="acessos" data-ico="users"><span class="nl">Usuários e permissões</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="numeracao" data-ico="hash"><span class="nl">Numeração e máscaras</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="numeracao" data-ico="hash"><span class="nl">Máscaras e numeração</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="fiscal" data-ico="landmark"><span class="nl">Parâmetros fiscais e NCM</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="cenarios" data-ico="landmark"><span class="nl">Cenários tributários (reforma)</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="preco" data-ico="percent"><span class="nl">Política de preço e margens</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="custoscfg" data-ico="coins"><span class="nl">Validade e alertas de custos</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="historico" data-ico="scroll-text"><span class="nl">Auditoria (histórico)</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check"><span class="nl">Integridade dos cadastros</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="backup" data-ico="hard-drive-download"><span class="nl">Backup e restauração</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="propmodelo" data-ico="layout-template"><span class="nl">Modelo da proposta</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="tabelas" data-ico="table-2"><span class="nl">Planilha (avançado)</span></button>
       </div>
     </div>
     <div class="navg" data-navg="ajuda">

@@ -9,7 +9,7 @@ const path = require('path'); const OUT = path.resolve(__dirname, '../../docs/RE
     await p.goto('file://' + path.resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1500);
     if (nome === 'desktop') {
       await p.screenshot({ path: `${OUT}/${PRE}-menu.png` });
-      const sub = await p.$('[data-navgt="cadastros"]'); if (sub) { await sub.click(); await p.click('[data-navgt="propostas"]'); await p.waitForTimeout(300); await p.screenshot({ path: `${OUT}/${PRE}-menu-cadastros.png` }); }
+      const sub = await p.$('[data-navgt="cadastros"]'); if (sub) { await sub.click(); await p.click('[data-navgt="comercial"]'); await p.waitForTimeout(300); await p.screenshot({ path: `${OUT}/${PRE}-menu-cadastros.png` }); }
       await p.click('#bSideCol'); await p.waitForTimeout(300); await p.screenshot({ path: `${OUT}/${PRE}-menu-recolhido.png` }); await p.click('#bSideCol');
       await p.evaluate(() => { const b = document.querySelector('[data-view="cadastro"]'); if (b) b.click(); }); await p.waitForTimeout(500);
       await p.evaluate(() => { const r = document.querySelector('[data-insedit], [data-ins]'); if (r) r.click(); }); await p.waitForTimeout(800);

@@ -287,17 +287,19 @@ module.exports = {
       'Salve a proposta.',
     ], resultado: 'A linha passa a mostrar "não se aplica" com o motivo e o link **desfazer**, e sai das pendências da conferência.', atencao: 'Sem motivo o app não aceita ("Escreva o motivo").' },
 
-    { t: 'h', x: 'Aba Formação' },
+    { t: 'h', x: 'Aba Formação de preço' },
     { t: 'fig', id: '04-03' },
-    { t: 'p', x: 'A Formação mostra o resumo (preço total com IPI, custo total e markup, margem líquida, impostos e comissões, DIFAL do cliente), as **Condições comerciais** que mexem no preço da proposta toda (Desconto global, Condição de pagamento, Frete), a tabela **Preço por item** e o **Simulador de negociação**. As comissões são ajustadas em Dados gerais; margem-alvo e desconto por item, na tela de cada item.' },
+    { t: 'p', x: 'A Formação de preço mostra o resumo (preço total com IPI, custo total dos itens e markup, margem líquida, impostos e comissões, DIFAL do cliente), as **Condições comerciais** que mexem no preço da proposta toda (Desconto global, Condição de pagamento, Frete), a tabela **Preço por item** e o **Simulador de negociação**. As comissões são ajustadas em Dados gerais; margem-alvo e desconto por item, na tela de cada item.' },
     { t: 'tab', cab: ['Exemplo SEQ (Cocamar)', 'Valor'], lin: [
       ['Preço total (com IPI)', 'R$ 4.258.300,00'],
-      ['Custo total', 'R$ 2.424.560,16 (markup 1,74x)'],
+      ['Custo total dos itens', 'R$ 2.424.560,16 (markup 1,74x)'],
       ['Margem líquida', '33,2% (mínimo 30,0%)'],
       ['Impostos · comissões', 'R$ 477.539,35 · comissões R$ 85.058,53'],
       ['DIFAL do cliente (fora do preço)', 'R$ 183.715,42'],
       ['Item 01 / 02 / 03 — margem', '34,8% / 22,6% / 17,7%'],
     ] },
+    { t: 'p', x: 'Logo abaixo dos indicadores, o quadro **Composição do preço** mostra, com os valores do memorial de cálculo (total da proposta), como o preço se forma: peças e materiais, serviços de fabricação, start-up e fretes somam o **Custo total (memorial)**; depois vêm os impostos (sem o IPI), as comissões e a margem líquida, que fecham o **Preço de venda sem IPI**; e o IPI leva ao **Preço de venda com IPI**. A barra colorida mostra a parte de cada um no preço sem IPI. São os mesmos números do memorial; nada é recalculado. **Abrir o memorial de cálculo** leva à aba do memorial, item por item.' },
+    { t: 'nota', x: 'O indicador **Custo total dos itens** (célula G16 da planilha) soma o custo dos itens; o **Custo total (memorial)** soma também o start-up e os fretes. No exemplo, a diferença é de R$ 17.000,00, exatamente o start-up, e o quadro explica isso logo abaixo da tabela.' },
     { t: 'h', x: 'Simulador de negociação' },
     { t: 'fig', id: '04-04' },
     { t: 'tut', titulo: 'Simular um valor negociado', objetivo: 'Ver o efeito de um desconto ou de um valor final sem mexer na proposta oficial.', quem: 'Contribuidor, Editor ou dono. No modo local não há controle de acesso.', pre: ['Proposta com itens precificados.', 'Para converter em revisão: proposta salva.'], passos: [

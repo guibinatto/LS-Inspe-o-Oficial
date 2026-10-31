@@ -14,11 +14,11 @@ module.exports = {
         { sel: '#estrCmp', txt: 'Comparar com…: abre a comparação com outra estrutura.', pos: 't' },
         { sel: '#app .docbar [data-cad="testador"]', txt: 'Testar esta estrutura: abre o Testador de estruturas.', pos: 'r' },
         { sel: 'tr.grp[data-fold="DIESEL"]', txt: 'Grupo (conjunto) com a contagem de obrigatórios, opcionais e condicionais. Clique para recolher ou expandir.', pos: 'l' },
-        { sel: 'tr[data-recedit="98"] button[data-recedit]', txt: 'Editar: abre o componente.', pos: 'r' },
+        { sel: 'tr[data-recpainel="98"] button[data-recedit]', txt: 'Editar: abre o componente.', pos: 'r' },
       ],
       depois: async (p, h) => { for (const g of ['ELETRICA', 'JOCKEY', 'TODOS']) await h.clicar(`tr.grp[data-fold="${g}"]`, 250); } },
     { id: '09-02', nome: 'estruturas-componente', titulo: 'Janela do componente da estrutura (Tanque de combustível)',
-      prep: async (p, h) => { await h.clicar('tr[data-recedit="98"] button[data-recedit]', 500); },
+      prep: async (p, h) => { await h.clicar('tr[data-recpainel="98"] button[data-recedit]', 500); },
       clip: '.modal .card', pad: 8,
       marcas: [
         { sel: '#rRot', txt: 'Nome do componente (como aparece no item).', pos: 'l' },
@@ -43,7 +43,7 @@ module.exports = {
     { id: '09-04', nome: 'estruturas-rascunho', titulo: 'Estrutura em rascunho com uma alteração pendente',
       prep: async (p, h) => {
         await h.topo(); await h.clicar('[data-estrrasc]', 600);
-        await h.clicar('tr[data-recedit="103"] button[data-recedit]', 500);
+        await h.clicar('tr[data-recpainel="103"] button[data-recedit]', 500);
         await p.selectOption('#rRg', 'OPCIONAL'); await h.clicar('#rSave', 900);
         await h.topo();
       },
@@ -55,7 +55,7 @@ module.exports = {
         { sel: '[data-rascpub]', txt: 'Publicar…: mostra as diferenças e o impacto e só então libera a publicação.', pos: 't' },
         { sel: '[data-rascdesc]', txt: 'Descartar rascunho (pede confirmação).', pos: 'b' },
         { sel: '#app .banner.warn', txt: 'Aviso: a tela mostra o rascunho.', pos: 'l' },
-        { sel: 'tr[data-recedit="103"] .pill', txt: 'Sensores passou a opcional no rascunho.', pos: 'l' },
+        { sel: 'tr[data-recpainel="103"] .pill', txt: 'Sensores passou a opcional no rascunho.', pos: 'l' },
       ] },
     { id: '09-05', nome: 'estruturas-impacto', titulo: 'Publicar o rascunho: diferenças e impacto nos modelos prontos', alto: 1500,
       prep: async (p, h) => {

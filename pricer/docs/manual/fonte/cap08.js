@@ -30,7 +30,7 @@ module.exports = {
         { sel: '#cmOk', txt: 'Salvar.', pos: 'b' },
       ],
       depois: async (p, h) => { await h.esc(); } },
-    { id: '08-03', nome: 'cadastro-descricao-gerada', titulo: 'Aba Técnica: campos da família que montam a descrição', alto: 1500,
+    { id: '08-03', nome: 'cadastro-descricao-gerada', titulo: 'Aba Características técnicas: campos da família que montam a descrição', alto: 1500,
       prep: async (p, h) => {
         await h.cad('insumos'); await h.clicar('#insNew', 600);
         await p.selectOption('#fFam', '10.MOTORELETRICO'); await h.esperar(400); await p.fill('#fFab', 'WEG');
@@ -155,7 +155,7 @@ module.exports = {
     ] },
     { t: 'tut', titulo: 'Cadastrar um insumo com a descrição gerada pelo padrão', objetivo: 'Obter a descrição técnica e a comercial a partir dos dados técnicos, sem digitar o nome.', quem: 'No modo compartilhado: **Editor** da área **Custos** (ou o dono). No modo local, quem abre o arquivo.', pre: ['Ficha técnica do item.', 'Família com modelo (01, 10, 11, 12 ou 13, ou outra configurada em Campos por família).'], passos: [
       'Em **Custos** → **Insumos e preços**, clique em **+ Novo insumo** e escolha a **Família**.',
-      { x: 'Na aba **Técnica**, preencha as **Características técnicas**. Campos opcionais com "—" ficam fora da descrição. Na aba **Geral**, confira a **Descrição técnica padronizada** e a mensagem "Gerada pelo padrão da família.". Clique em **Sugerir** para a **Descrição comercial**.', fig: '08-03' },
+      { x: 'Na aba **Características técnicas**, preencha as **Características técnicas**. Campos opcionais com "—" ficam fora da descrição. Na aba **Geral**, confira a **Descrição técnica padronizada** e a mensagem "Gerada pelo padrão da família.". Clique em **Sugerir** para a **Descrição comercial**.', fig: '08-03' },
       { x: 'Na aba **Geral**, a descrição técnica aparece montada e **Sugerir** preenche a descrição comercial.', fig: '08-08' },
       'Preencha o **Fabricante** (a marca não vai no nome, salvo nas famílias 10 e 12) e o preço.',
       'Clique em **Cadastrar**.',

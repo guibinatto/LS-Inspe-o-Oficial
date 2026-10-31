@@ -35,7 +35,7 @@ module.exports = {
         await h.clicar('#insNew', 600); await p.fill('#fFab', 'BAUDOUIN'); await h.esperar(300);
       },
       marcas: [
-        { sel: '.modal .fichatabs', txt: 'Abas da ficha: Geral, Técnica, Compras e custos (no insumo já cadastrado também Estruturas e utilização, Documentos e Histórico).', pos: 'b' },
+        { sel: '.modal .fichatabs', txt: 'Abas da ficha: Geral, Características técnicas, Compras e custos, Fornecedores (no insumo já cadastrado também Estruturas e kits, Documentos e Histórico).', pos: 'b' },
         { sel: '#fFam', txt: 'Família: define os campos técnicos e o modelo de descrição.', pos: 'l' },
         { sel: '#fCode', txt: 'Código: gerado pela família (aa-bbbb) e não muda depois.', pos: 'r' },
         { sel: '#fSit', txt: 'Situação do item.', pos: 'l' },
@@ -43,7 +43,7 @@ module.exports = {
         { sel: '#fCodFab', txt: 'Código do fabricante (usado também na verificação de duplicidade).', pos: 'r' },
         { sel: '.modal .fichaacoes', txt: 'Cadastrar/Salvar e Cancelar ficam sempre visíveis, em qualquer aba.', pos: 't' },
       ] },
-    { id: '07-02', nome: 'cadastro-ficha-identificacao', titulo: 'Aba Técnica: características técnicas da família', alto: 1500,
+    { id: '07-02', nome: 'cadastro-ficha-identificacao', titulo: 'Aba Características técnicas: campos da família', alto: 1500,
       prep: async (p, h) => {
         await aba(p, h, 'tecnica');
         await h.preencher('[data-car="modelo"]', '6M16G308/6'); await h.esperar(400);
@@ -71,11 +71,11 @@ module.exports = {
         { sel: '#fDup .banner', txt: 'Antes de salvar, confira: itens parecidos já cadastrados. Nada é juntado sozinho.', pos: 'l' },
       ],
       depois: async (p, h) => { await aba(p, h, 'compras'); await p.fill('#fVal', '105.000,00'); await h.esperar(200); await salvarFicha(p, h); } },
-    { id: '07-04', nome: 'cadastro-ficha-fornecedores', titulo: 'Fornecedores e cotações, com o custo total, e equivalentes', alto: 1500,
+    { id: '07-04', nome: 'cadastro-ficha-fornecedores', titulo: 'Aba Fornecedores: cotações com o custo total', alto: 1500,
       prep: async (p, h) => {
         await p.fill('#insQ', '6M33G633'); await h.esperar(800);
         await h.clicar('tr[data-ins="01-1008"] td.code', 600); await larga(p);
-        await aba(p, h, 'compras');
+        await aba(p, h, 'forn');
         await h.clicar('#foAdd', 300); await h.clicar('#foAdd', 300);
         await h.preencher('[data-fo="0|nome"]', 'FORNECEDOR A'); await h.preencher('[data-fo="0|preco"]', '210.000,00'); await h.preencher('[data-fo="0|frete"]', '1.500,00'); await h.preencher('[data-fo="0|prazo"]', '30');
         await h.preencher('[data-fo="1|nome"]', 'FORNECEDOR B'); await h.preencher('[data-fo="1|preco"]', '38.000,00');
@@ -91,7 +91,7 @@ module.exports = {
         { sel: '.modal .forn .pill.ok', txt: 'Custo total = preço × câmbio × (1 + impostos) + frete. "menor total" é só indicação.', pos: 'b' },
         { sel: '[data-fouse="0"]', txt: '"usar este preço" leva o custo total ao campo Valor do cadastro.', pos: 'r' },
       ] },
-    { id: '07-21', nome: 'cadastro-ficha-equivalentes', titulo: 'Aba Técnica: equivalentes técnicos e alternativas', alto: 1500,
+    { id: '07-21', nome: 'cadastro-ficha-equivalentes', titulo: 'Aba Características técnicas: equivalentes técnicos e alternativas', alto: 1500,
       prep: async (p, h) => {
         await aba(p, h, 'tecnica');
         await p.fill('#eqIns', '01-1009'); await p.selectOption('#eqTipo', 'comercial');
@@ -99,7 +99,7 @@ module.exports = {
         await h.clicar('#eqAdd', 300); await rolarAte(p, '#fEquiv');
       },
       clip: '#fEquiv',
-      depois: async (p, h) => { await aba(p, h, 'compras'); await h.clicar('[data-fouse="0"]', 400); await salvarFicha(p, h); },
+      depois: async (p, h) => { await aba(p, h, 'forn'); await h.clicar('[data-fouse="0"]', 400); await salvarFicha(p, h); },
       marcas: [
         { sel: '#fEquiv tbody tr', txt: 'Equivalente registrado, com tipo, justificativa, restrições e data.', pos: 'l' },
         { sel: '#eqTipo', txt: 'Tipo: equivalência técnica, alternativa comercial ou substituto.', pos: 'r' },
@@ -125,7 +125,7 @@ module.exports = {
         { sel: '#fImpRes', txt: 'Resultado: tabela com proposta, custo e margem antes → depois, ou o aviso de que nenhuma proposta muda.', pos: 'l' },
       ],
       depois: async (p, h) => { await salvarFicha(p, h); } },
-    { id: '07-06', nome: 'cadastro-ficha-onde-usado', titulo: 'Aba Estruturas e utilização: onde o insumo é usado', alto: 1500,
+    { id: '07-06', nome: 'cadastro-ficha-onde-usado', titulo: 'Aba Estruturas e kits: onde o insumo é usado', alto: 1500,
       prep: async (p, h) => { await p.fill('#insQ', '6M33G633'); await h.esperar(800); await h.clicar('tr[data-ins="01-1008"] td.code', 600); await aba(p, h, 'uso'); },
       clip: '.modal [data-fpane="uso"]',
       marcas: [
@@ -136,7 +136,7 @@ module.exports = {
       prep: async (p, h) => { await aba(p, h, 'hist'); },
       clip: '.modal [data-fpane="hist"]',
       marcas: [
-        { sel: '.modal [data-ftab="compras"]', txt: 'Compras e custos: preço, fornecedores e cotações, e o histórico de preço (de, para, variação e origem).', pos: 'b' },
+        { sel: '.modal [data-ftab="compras"]', txt: 'Compras e custos: preço de aquisição e o histórico de preço (de, para, variação e origem). Fornecedores e cotações têm aba própria.', pos: 'b' },
         { sel: '.modal [data-ftab="docs"]', txt: 'Documentos: folha de dados técnica e os orçamentos, notas e fichas anexados ao insumo.', pos: 'b' },
         { sel: '.modal .hist', txt: 'Histórico deste insumo: cada campo alterado, quando e por quem.', pos: 'r' },
       ],
@@ -252,7 +252,7 @@ module.exports = {
       'Clique na linha para abrir a ficha do insumo.',
     ], resultado: 'A contagem abaixo da barra mostra quantos insumos atendem à busca ("139 de 938 insumos", por exemplo) e a ficha abre ao clicar na linha.', dica: 'Use **Toda situação** → **Com pendência** para achar de uma vez os itens sem preço, fora do padrão ou com cotação vencida.' },
     { t: 'h', x: 'A ficha guiada do insumo' },
-    { t: 'p', x: 'A ficha abre ao clicar numa linha ou em **+ Novo insumo**. Ela é organizada em abas, como uma ficha de dados mestres: **Geral** (família, código, situação, fabricante, código do fabricante, tipo/config., origem, certificação, as três **Descrições** e o texto **Na proposta**); **Técnica** (**Características técnicas** da família e **Equivalentes técnicos e alternativas**); **Compras e custos** (**Preço de aquisição**, **Fornecedores e cotações** e **Histórico de preço**); e, nos itens já gravados, **Estruturas e utilização** (**Onde é usado**), **Documentos** (folha de dados técnica e anexos) e **Histórico** (**Histórico deste insumo**). Todas as abas são do mesmo formulário: **Salvar** grava tudo de uma vez e fica sempre visível embaixo. As setas ← → trocam de aba quando a barra de abas está selecionada.' },
+    { t: 'p', x: 'A ficha abre ao clicar numa linha ou em **+ Novo insumo**. Ela é organizada em abas, como uma ficha de dados mestres: **Geral** (família, código, situação, fabricante, código do fabricante, tipo/config., origem, certificação, as três **Descrições** e o texto **Na proposta**); **Características técnicas** (os campos da família e **Equivalentes técnicos e alternativas**); **Compras e custos** (**Preço de aquisição** e **Histórico de preço**); **Fornecedores** (**Fornecedores e cotações**); e, nos itens já gravados, **Estruturas e kits** (**Onde é usado**), **Documentos** (folha de dados técnica e anexos) e **Histórico** (**Histórico deste insumo**). Todas as abas são do mesmo formulário: **Salvar** grava tudo de uma vez e fica sempre visível embaixo. As setas ← → trocam de aba quando a barra de abas está selecionada.' },
     { t: 'fig', id: '07-20' },
     { t: 'tab', cab: ['Situação', 'Quando usar'], lin: [
       ['Ativo', 'Liberado para uso. Registros antigos sem situação contam como ativos.'],
@@ -265,7 +265,7 @@ module.exports = {
     { t: 'tut', titulo: 'Cadastrar um novo insumo pela ficha guiada', objetivo: 'Incluir um item novo com a descrição técnica no padrão da família.', quem: 'No modo compartilhado: **Editor** (e, se houver responsáveis por área, quem cuida de **Custos** ou o dono). No modo local, quem abre o arquivo.', pre: ['Ficha técnica ou cotação do item, com os dados que a família pede.', 'Ter conferido na busca que o item ainda não existe.'], passos: [
       'Em **Insumos e preços**, escolha a família no filtro (opcional) e clique em **+ Novo insumo**.',
       'Confira a **Família**. O **Código (não muda)** é sugerido pela família.',
-      { x: 'Preencha **Fabricante** e, se houver, **Código do fabricante**. Na aba **Técnica**, em **Características técnicas**, preencha os campos marcados com * (obrigatórios). Nas listas curtas, clique no botão da opção; use **outro** para um valor fora da lista.', fig: '07-02' },
+      { x: 'Preencha **Fabricante** e, se houver, **Código do fabricante**. Na aba **Características técnicas**, preencha os campos marcados com * (obrigatórios). Nas listas curtas, clique no botão da opção; use **outro** para um valor fora da lista.', fig: '07-02' },
       'Ao sair do campo de modelo, se o modelo já existe na família, o app preenche os campos vazios que são iguais em todos os itens daquele modelo e avisa quais preencheu. Confira-os.',
       { x: 'Volte à aba **Geral** e veja a **Descrição técnica padronizada** montada automaticamente (caixa **gerar pelas características da família** marcada). Clique em **Sugerir** para a descrição comercial. Leia o quadro **Antes de salvar, confira**.', fig: '07-03' },
       'Informe o **Valor (R$)**, a **Origem do preço** e a **Data da cotação**.',
@@ -276,11 +276,11 @@ module.exports = {
     { t: 'p', x: 'Em **Fornecedores e cotações** cada linha é uma cotação: fornecedor, preço, moeda (BRL, USD, EUR), câmbio, impostos %, frete, prazo (dias), validade, pagamento e quantidade mínima. O app calcula o **Custo total = preço × câmbio × (1 + impostos) + frete**, por unidade, e marca o **menor total** só como indicação. Moeda estrangeira sem câmbio mostra "informe o câmbio"; validade vencida mostra **vencida**. O preço do cadastro continua sempre em reais.' },
     { t: 'p', x: 'Em **Equivalentes técnicos e alternativas** registre outro insumo do cadastro como **Equivalência técnica validada**, **Alternativa comercial (sujeita a aprovação)** ou **Substituto de produto descontinuado**, com características comparadas e justificativa (obrigatório) e restrições de uso. O app nunca troca um produto por outro sozinho.' },
     { t: 'tut', titulo: 'Registrar cotações de fornecedores e levar o preço ao cadastro', objetivo: 'Comparar fornecedores pelo custo total e atualizar o preço do insumo com a cotação escolhida.', quem: 'No modo compartilhado: **Editor** da área **Custos** (ou o dono). No modo local, quem abre o arquivo.', pre: ['Cotações recebidas, com moeda, câmbio, impostos e frete.'], passos: [
-      'Abra a ficha do insumo e clique na aba **Compras e custos**.',
+      'Abra a ficha do insumo e clique na aba **Fornecedores**.',
       'Clique em **+ Fornecedor** para cada cotação e preencha a linha.',
       { x: 'Para moeda estrangeira, escolha a moeda e informe o câmbio. Compare o **Custo total**, o prazo, a validade e o pagamento.', fig: '07-04' },
       'Clique em **usar este preço** na cotação escolhida: o **Valor (R$)**, a **Origem do preço** e a **Data da cotação** são preenchidos.',
-      { x: 'Se quiser, na aba **Técnica**, em **Equivalentes técnicos e alternativas**, escolha o produto, o tipo, escreva a justificativa e clique em **+ Registrar equivalente**.', fig: '07-21' },
+      { x: 'Se quiser, na aba **Características técnicas**, em **Equivalentes técnicos e alternativas**, escolha o produto, o tipo, escreva a justificativa e clique em **+ Registrar equivalente**.', fig: '07-21' },
       'Clique em **Salvar**.',
     ], resultado: 'O preço do cadastro passa a ser o custo total da cotação escolhida, e a mudança aparece no **Histórico de preço** da ficha.', atencao: '"usar este preço" só preenche os campos; nada é gravado até você clicar em **Salvar**.', dica: 'A aba **Fornecedores e fabricantes** (área Custos) resume os fornecedores das cotações cadastradas: itens cotados, cotações vencidas e prazo médio.' },
     { t: 'h', x: 'Mudança de preço e impacto nas propostas' },
@@ -290,7 +290,7 @@ module.exports = {
       'Abra a ficha do insumo.',
       { x: 'Na aba **Compras e custos**, digite o novo valor em **Valor (R$)**, preencha **Origem do preço** e **Data da cotação** e leia o quadro **Mudança de preço**. Clique em **calcular o impacto na margem das propostas**.', fig: '07-05' },
       'Clique em **Salvar**.',
-      { x: 'Reabra a ficha e confira, na aba **Estruturas e utilização**, **Onde é usado**; na aba **Compras e custos**, o **Histórico de preço** (de, para, variação e origem; variações acima do limite da política de Custos ficam em vermelho); e, na aba **Histórico**, o **Histórico deste insumo**.', fig: '07-06' },
+      { x: 'Reabra a ficha e confira, na aba **Estruturas e kits**, **Onde é usado**; na aba **Compras e custos**, o **Histórico de preço** (de, para, variação e origem; variações acima do limite da política de Custos ficam em vermelho); e, na aba **Histórico**, o **Histórico deste insumo**.', fig: '07-06' },
       { x: 'Documentos e histórico ficam nas últimas abas.', fig: '07-22' },
     ], resultado: 'O aviso "Salvo: <código>" aparece, o novo valor entra na lista e a alteração fica registrada no histórico de preço.', atencao: 'O cálculo considera o custo efetivamente usado em cada proposta. Na proposta de exemplo os custos estão digitados nas linhas dos componentes, por isso a captura mostra "Nenhuma proposta salva muda de custo com este preço."', dica: 'Use **📎 Anexar orçamento, nota ou ficha** para guardar a cotação junto do insumo.' },
     { t: 'nv', x: 'A tabela de propostas afetadas (custo, margem antes → depois, congelada/rascunho) foi conferida no código, mas não aparece nas capturas: com a proposta de exemplo, cujos custos estão digitados nas linhas, nenhuma proposta muda de custo.' },

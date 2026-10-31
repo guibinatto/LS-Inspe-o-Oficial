@@ -9,20 +9,20 @@ const path = require('path');
   await p.goto('file://' + path.resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1500);
   const ok = [], falha = []; const confere = (n, c, d) => (c ? ok : falha).push(n + (d !== undefined ? ' (' + d + ')' : ''));
   // 1) menu
-  confere('grupos do menu', (await p.$$eval('#nav [data-navgt]', (x) => x.map((e) => e.innerText.trim()).join('|'))) === 'PROPOSTAS|CADASTROS|GESTÃO|ADMINISTRAÇÃO|AJUDA');
+  confere('grupos do menu', (await p.$$eval('#nav [data-navgt]', (x) => x.map((e) => e.innerText.trim()).join('|'))) === 'COMERCIAL|CADASTROS|ENGENHARIA DE PRODUTO|GESTÃO|ADMINISTRAÇÃO|AJUDA');
   confere('submenus começam fechados', await p.$$eval('#nav .navsub', (x) => x.every((e) => e.hidden)));
-  await p.click('[data-navgt="propostas"]'); confere('abre o grupo', await p.$eval('#navs_propostas', (x) => !x.hidden) && (await p.getAttribute('[data-navgt="propostas"]', 'aria-expanded')) === 'true');
+  await p.click('[data-navgt="comercial"]'); confere('abre o grupo', await p.$eval('#navs_comercial', (x) => !x.hidden) && (await p.getAttribute('[data-navgt="comercial"]', 'aria-expanded')) === 'true');
   await p.click('[data-go="inicio"][data-gv="SEQ"]'); await p.waitForTimeout(300);
   confere('atalho "Propostas SEQ" filtra a lista', await p.$eval('[data-hdiv="SEQ"]', (x) => x.classList.contains('on')) && (await p.getAttribute('[data-go="inicio"][data-gv="SEQ"]', 'aria-current')) === 'true');
-  await p.reload(); await p.waitForTimeout(1200); confere('grupo aberto lembrado', await p.$eval('#navs_propostas', (x) => !x.hidden));
+  await p.reload(); await p.waitForTimeout(1200); confere('grupo aberto lembrado', await p.$eval('#navs_comercial', (x) => !x.hidden));
   await p.fill('#navQ', 'numer'); await p.waitForTimeout(100);
   const vis = await p.$$eval('#nav [data-view], #nav [data-go]', (x) => x.filter((e) => !e.hidden).map((e) => e.innerText.trim()));
-  confere('pesquisa no menu acha "Numeração e máscaras"', vis.length === 1 && /Numeração/.test(vis[0]), vis.join(','));
+  confere('pesquisa no menu acha "Máscaras e numeração"', vis.length === 1 && /numeração/i.test(vis[0]), vis.join(','));
   await p.press('#navQ', 'Escape'); confere('Esc limpa a pesquisa', (await p.$$eval('#nav [data-view]', (x) => x.filter((e) => !e.hidden).length)) === 7);
   await p.click('#bSideCol'); await p.waitForTimeout(200); await p.hover('#nav [data-view="margens"]'); await p.waitForTimeout(150);
   confere('recolhido: dica com o nome', (await p.$eval('#nav [data-view="margens"]', (x) => getComputedStyle(x, '::after').content)) === '"Margens"');
   confere('recolhido: submenus escondidos', await p.$$eval('#nav .navgh', (x) => x.every((e) => e.offsetParent === null))); await p.click('#bSideCol');
-  await p.focus('#nav [data-view="inicio"]'); await p.keyboard.press('ArrowDown'); confere('setas percorrem o menu', await p.evaluate(() => document.activeElement && document.activeElement.dataset.navgt === 'propostas'));
+  await p.focus('#nav [data-view="inicio"]'); await p.keyboard.press('ArrowDown'); confere('setas percorrem o menu', await p.evaluate(() => document.activeElement && document.activeElement.dataset.navgt === 'comercial'));
   // 2) Ajuda
   await p.click('[data-navgt="ajuda"]'); await p.click('[data-go="guia"][data-gv="versao"]'); await p.waitForTimeout(300);
   const ver = await p.$eval('#ajuda_versao', (x) => x.innerText).catch(() => '');
@@ -35,7 +35,7 @@ const path = require('path');
   await p.keyboard.press('Enter'); await p.waitForTimeout(500); confere('Enter abre a ficha do primeiro', /Insumo 01-/i.test(await p.$eval('#overlay h2', (x) => x.innerText).catch(() => '')));
   // 4) ficha em abas
   const abas = await p.$$eval('#overlay [data-ftab]', (x) => x.map((e) => e.innerText.trim()));
-  confere('ficha com 6 abas', abas.length === 6, abas.join(' | '));
+  confere('ficha com 7 abas (item master)', abas.length === 7, abas.join(' | '));
   await p.click('#overlay [data-ftab="compras"]'); confere('aba Compras mostra o preço e esconde a descrição', await p.evaluate(() => !!document.querySelector('#fVal').offsetParent && !document.querySelector('#fProd').offsetParent));
   confere('Salvar visível em qualquer aba', await p.evaluate(() => { const b = document.querySelector('#fSave'); return !!(b && b.offsetParent); }));
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
@@ -62,7 +62,7 @@ const path = require('path');
   confere('aviso de número repetido', /já está em outra proposta salva/.test(await p.$eval('#app', (x) => x.innerText)));
   // 6) estrutura: visões
   await p.evaluate(() => { const b = document.querySelector('[data-go="cadastro"][data-gv="estruturas"]'); b.click(); }); await p.waitForTimeout(500);
-  const linhas = async () => p.$$eval('#app tr:has([data-recedit])', (x) => x.length);
+  const linhas = async () => p.$$eval('#app tr[data-recpainel]', (x) => x.length);
   const nC = await linhas(); await p.click('[data-estrvis][value="tecnica"]', { force: true }); await p.waitForTimeout(300); const nT = await linhas();
   await p.click('[data-estrvis][value="comercial"]', { force: true }); await p.waitForTimeout(300); const txtC = await p.$eval('#app', (x) => x.innerText);
   confere('visão técnica tira serviços', nT > 0 && nT < nC, nT + ' de ' + nC);

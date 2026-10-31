@@ -43,7 +43,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   // 7. estrutura em rascunho → diferenças → publicar
   await go('estruturas'); await p.click('[data-estrrasc]'); await p.waitForTimeout(400);
   console.log('7 modo rascunho:', (await txt('#app .banner.warn')).slice(0, 120));
-  await p.click('tr[data-recedit]'); await p.waitForTimeout(400); const nm = await p.$eval('.modal input', (x) => x.id + '=' + x.value).catch(() => '?'); console.log('   modal:', nm);
+  await p.click('tr[data-recpainel] button[data-recedit]'); await p.waitForTimeout(400); const nm = await p.$eval('.modal input', (x) => x.id + '=' + x.value).catch(() => '?'); console.log('   modal:', nm);
   const q = await p.$('.modal select[id^="r"]'); 
   await p.evaluate(() => { const i = [...document.querySelectorAll('.modal input')].find((x) => /rot|nome/i.test(x.id)); if (i) { i.value = i.value + ' (RASC)'; i.dispatchEvent(new Event('input')); } });
   const sv = await p.$('.modal .btn.pri'); await sv.click(); await p.waitForTimeout(900); console.log('   salvou:', await toast());

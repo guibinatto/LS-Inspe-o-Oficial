@@ -28,4 +28,5 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
 12. [Folha de dados: pontos de trabalho, NFPA 20, potências e NPSH](12-folha-de-dados-nfpa20.md).
 13. [Arquitetura ERP/CPQ — auditoria](13-erp-auditoria.md): o que já existia, o que era parcial e o que faltava em relação ao complemento.
 14. [Arquitetura ERP/CPQ — implementação](14-erp-implementacao.md): menu por módulos, numeração e máscaras, ficha do produto em abas, descrições, visões da estrutura, busca universal, testes, compatibilidade, permissões, atualização e reversão, e o que não foi feito.
-15. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).
+15. [Padrão SAP Business One — implementação](15-sap-implementacao.md): auditoria do prompt, menu Comercial/Cadastros/Engenharia, abas da proposta com Formação de preço, listas (Modelo A) e fichas (Modelo B), design system, **equivalência financeira antes × depois** e o que não foi feito.
+16. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).
