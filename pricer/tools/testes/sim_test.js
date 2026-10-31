@@ -42,12 +42,14 @@ const br = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   await p.click('[data-rascpub]'); await p.waitForFunction(() => { const x = document.querySelector('#riRes'); return x && /Testados|nenhum|muda/.test(x.innerText); }, null, { timeout: 120000 }).catch(() => {}); await p.click('#riPub'); await p.waitForTimeout(700);
   // 3) proposta SEQ pelo cabeçalho
   await p.click('#cad_vend, [data-cad="preco"]').catch(() => {}); await menu('preco'); await p.waitForTimeout(300);
-  await p.fill('#vNome', 'Carlos Vendedor'); await p.click('label:has(input[name="vPapel"][value="vendedor"])'); await p.click('#vAdd'); await p.waitForTimeout(300);
+  await p.fill('#vNome', 'CARLOS VENDEDOR'); await p.dispatchEvent('#vNome', 'change'); await p.click('label:has(input[name="vPapel"][value="vendedor"])'); await p.click('#vAdd'); await p.waitForTimeout(300);
   await p.click('[data-view="inicio"]'); await p.waitForTimeout(300); await p.click('[data-seqfam="CONJUNTO MOTOBOMBA"]'); await p.waitForTimeout(400);
   await p.fill('#cnpjIn', '11.222.333/0001-81'); await p.dispatchEvent('#cnpjIn', 'change'); await p.waitForTimeout(200); await p.click('#cnpjGo'); await p.waitForTimeout(900);
   const sel1 = async (a, i = 1) => { const el = await p.$(`[id$="PROPOSTA_${a}"]`); const o = await el.$$eval('option', (x) => x.map((y) => y.value)); await el.selectOption(o[i]); await p.waitForTimeout(200); };
+  confere('cliente e obra em Primeira Maiúscula (CNPJ)', await p.$eval('[id$="PROPOSTA_F5"]', (x) => x.value) === 'Agroindustrial Simulação Ltda' && /^Londrina \/ PR$/.test(await p.$eval('[id$="PROPOSTA_F6"]', (x) => x.value)));
   await sel1('F8'); for (const [a, v] of [['C5', '10.250'], ['C10', '15 dias']]) { await p.fill(`[id$="PROPOSTA_${a}"]`, v); await p.dispatchEvent(`[id$="PROPOSTA_${a}"]`, 'change'); }
   await sel1('J6', 2); await p.evaluate(() => { const x = [...document.querySelectorAll('[id$="PROPOSTA_F9"] label, [id$="PROPOSTA_F9"] button')].find((e) => /NFPA20/.test(e.innerText)); if (x) x.click(); }); await sel1('B13');
+  confere('vendedor gravado em Primeira Maiúscula', await p.$$eval('input[data-ppcell="C8"]', (x) => x.some((e) => e.value === 'Carlos Vendedor')));
   await p.click('label:has(input[data-ppcell="C8"])'); await p.waitForTimeout(200);
   for (const [s, v] of [['#pcf_prazoFab', '90'], ['#pcf_prazoEnt', '30']]) if (await p.$(s)) { await p.fill(s, v); await p.dispatchEvent(s, 'change'); }
   await p.click('[data-cabnext]'); await p.waitForTimeout(800);
@@ -77,6 +79,7 @@ const br = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   const vl = (re) => { const r = comp.find((c) => re.test(c[0])); return r ? br(r[1]) : NaN; };
   const soma = vl(/^Custo total/) + vl(/^Impostos/) + vl(/^Comiss/) + vl(/^Margem/); const venda = vl(/^Preço de venda sem IPI/);
   confere('composição: custo + impostos + comissões + margem = preço', Math.abs(soma - venda) < 0.02, soma.toFixed(2) + ' × ' + venda);
+  const mgKpi = (await txt('#app .kpis')).match(/MARGEM LÍQUIDA ([\d,]+)%/i); confere('Ajustar à margem mínima deixa a margem em 30,0%', mgKpi && mgKpi[1] === '30,0', mgKpi && mgKpi[1]);
   confere('composição mostra o % do memorial (margem)', comp.some((c) => /^Margem/.test(c[0]) && /%/.test(c[3] || '')));
   // 5) documentos
   await p.evaluate(() => [...document.querySelectorAll('.ptab')].find((e) => /DOCUMENTOS/i.test(e.innerText)).click()); await p.waitForTimeout(800);

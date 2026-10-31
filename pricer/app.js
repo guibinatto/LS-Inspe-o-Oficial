@@ -206,6 +206,35 @@
     const v = val(sheet, a); if (typeof v === 'number') return 'num';
     return 'text';
   }
+  // nomes digitados (cliente, obra, cidade, contato, vendedor…) com a primeira letra de cada palavra maiúscula e o resto
+  // minúsculo. Ficam como estão: siglas de UF depois de "/" ou "-" ou no fim, S.A., ME, EPP, EIRELI, algarismos romanos e
+  // palavras com números (BR-376); "de/da/do/e…" no meio do nome ficam minúsculas. Não vale para descrições técnicas,
+  // códigos e marcas (são chaves das fórmulas e do cadastro)
+  const UF_SIG = new Set('AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' '));
+  const SIG_FIXA = new Set(['S.A.', 'S/A', 'SA', 'ME', 'EPP', 'EIRELI', 'MEI', 'CNPJ', 'CPF', 'LS', 'NFPA', 'UL', 'FM']);
+  const LIGA = new Set('de da do das dos e em na no nas nos a o as os ao aos à às para por com del di du la van von'.split(' '));
+  function capNome(txt0) {
+    const s = String(txt0 || '').replace(/\s+/g, ' ').trim(); if (!/[A-Za-zÀ-ÿ]/.test(s)) return s;
+    const tok = s.split(/(\s+|\/|\s-\s)/); let n = 0;
+    return tok.map((t, i) => {
+      if (!t.trim() || t === '/' || t.trim() === '-') return t;
+      const up = t.toUpperCase(); const prev = tok.slice(0, i).reverse().find((x) => x.trim()); const ultimo = !tok.slice(i + 1).some((x) => x.trim() && x !== '/' && x.trim() !== '-');
+      const pos = n++;
+      if (SIG_FIXA.has(up) || /\d/.test(t) || /^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)$/.test(up) || /^([A-Z]\.){2,}$/.test(up)) return up;
+      if (UF_SIG.has(up) && t.length === 2 && pos > 0 && (ultimo || prev === '/' || (prev && prev.trim() === '-'))) return up;
+      const low = t.toLowerCase(); if (pos > 0 && LIGA.has(low)) return low;
+      const ps = low.split(/([-'’])/);
+      return ps.map((p, j) => { if (/^[-'’]$/.test(p) || !p) return p;
+        if (j === ps.length - 1 && j > 1 && ps[j - 1] === '-' && ultimo && UF_SIG.has(p.toUpperCase())) return p.toUpperCase(); // Maringá-PR
+        if (j === 0 && p === 'd' && /['’]/.test(ps[1] || '') && pos > 0) return p; // Santa Bárbara d'Oeste
+        return p.charAt(0).toUpperCase() + p.slice(1); }).join('');
+    }).join('');
+  }
+  window.LSCapNome = capNome;
+  // aplica ao sair do campo (change), antes dos outros tratadores lerem o valor
+  const CAMPOS_NOME = ['[id$="PROPOSTA_F5"]', '[id$="PROPOSTA_F6"]', '[data-pc="clienteCurto"]', '[data-pc="aosCuidados"]', '[data-pc="cidade"]', '[data-sp="cliente"]', '[data-sp="contato"]', '[data-sp="local"]',
+    '[data-fx="cliente"]', '[data-fx="contato"]', '[data-fx="local"]', '#vNome', '#nvNome', '[data-pmct$="|nome"]', '[data-pmct$="|cargo"]'].join(',');
+  document.addEventListener('change', (e) => { const t = e.target; if (!t || t.tagName !== 'INPUT' || !t.matches(CAMPOS_NOME)) return; const v = capNome(t.value); if (v !== t.value) t.value = v; }, true);
   function parseInput(raw, kind) {
     const t = String(raw).trim(); if (t === '') return null;
     if (kind === 'pct' || kind === 'num') {
@@ -934,8 +963,17 @@
       if (a.act === 'margem') { const mn = val(PA, 'C34');
         // margem alvo e, como o desconto entra depois, sobe o alvo até a margem final chegar ao mínimo
         const setq = (addr, v) => { const tg = target(S); tg[S] = tg[S] || {}; tg[S][addr] = v; wb.setRaw(S, addr, v); };
-        setq('J17', 'MARGEM ALVO'); let alvo = mn; setq('L17', alvo);
-        for (let k = 0; k < 8; k++) { const m = val(S, 'J15'); if (typeof m !== 'number' || m >= mn - 5e-4) break; alvo = Math.min(0.9, alvo + (mn - m) + 1e-4); setq('L17', alvo); }
+        // a planilha aplica a margem-alvo "encadeada" (sobre o preço já sem a comissão), então alvo = mínimo não dá margem final = mínimo:
+        // procura (secante, com recuo por bisseção) o alvo cuja margem final J15 fica no mínimo, sem ficar abaixo dele
+        setq('J17', 'MARGEM ALVO'); const mDe = (x) => { setq('L17', x); return val(S, 'J15'); };
+        let lo = 0, hi = 0.9, alvo = mn, m = mDe(alvo);
+        for (let k = 0; k < 40 && typeof m === 'number' && Math.abs(m - mn) > 5e-6; k++) {
+          if (m > mn) hi = alvo; else lo = alvo;
+          const m2 = mDe(alvo + 1e-4); const d = typeof m2 === 'number' ? (m2 - m) / 1e-4 : 0;
+          let nx = d > 0 ? alvo - (m - mn) / d : (lo + hi) / 2; if (!(nx > lo && nx < hi)) nx = (lo + hi) / 2;
+          alvo = nx; m = mDe(alvo);
+        }
+        if (typeof m === 'number' && m < mn - 5e-6) { alvo = hi; m = mDe(alvo); } // nunca abaixo do mínimo
         listCache = new Map(); dirty = true; persist(); render(); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': preço ajustado à margem mínima de ' + pct(mn), mudancas: [{ campo: 'Modo de preço', de: null, para: 'MARGEM ALVO' }, { campo: 'Margem alvo', de: null, para: alvo }, { campo: 'Margem final', de: null, para: val(S, 'J15') }] }); toast('Preço ajustado à margem mínima'); return; }
       if (a.act === 'desconto') { const d0 = val(S, 'C8'); commit(S, 'C8', null, true); logEv({ tipo: 'Alerta corrigido', ref: docTitle(), desc: S + ': desconto retirado', mudancas: [{ campo: 'Desconto', de: d0, para: null }] }); toast('Desconto retirado'); return; }
       if (a.act === 'esp') { ui.item = i; ui.itemFull = false; ui.cfgEt = Object.assign({}, ui.cfgEt, { [S]: 3 }); if (ui.view !== 'item') setView('item'); else render();
@@ -1002,8 +1040,8 @@
       if (d) commit(P, 'L5', d); const m2 = () => $('#cnpjMsg');
       try { if (m2()) m2().textContent = 'Consultando a Receita…';
         const x = await buscaCnpj(d); const [cad, pq] = cadFiscalDe(x);
-        if (x.razao) commit(P, 'F5', x.razao.toUpperCase());
-        if (!txt(P, 'F6') && x.cidade) commit(P, 'F6', (x.cidade + ' / ' + (x.uf || '')).toUpperCase());
+        if (x.razao) commit(P, 'F5', capNome(x.razao));
+        if (!txt(P, 'F6') && x.cidade) commit(P, 'F6', capNome(x.cidade) + ' / ' + String(x.uf || '').toUpperCase());
         if (!txt(P, 'F7') && x.uf) commit(P, 'F7', x.uf);
         commit(P, 'J5', cad);
         state.cnpjInfo = `${x.fonte}: ${x.situacao || 'situação não informada'}${x.situacao && !/ATIVA/i.test(x.situacao) ? ' — ATENÇÃO' : ''} · ${x.cidade || ''}/${x.uf || ''} · cadastro fiscal: ${cad.split(' — ')[0].toLowerCase()} (${pq}). Confira.`;
@@ -3538,8 +3576,8 @@
     if (!REG.areaOk('precificacao')) { toast('Sem permissão para cadastrar vendedores: peça a quem cuida de Precificação.'); return; }
     modal(`<h2>Novo vendedor ou agente de negócio</h2><div class="fields"><div class="f span2"><label for="nvNome">Nome</label><input id="nvNome" placeholder="ex.: THIAGO SILVA" autocomplete="off"></div><div class="f"><label>Papel</label><div class="seg"><label class="on"><input type="radio" name="nvPapel" value="vendedor" checked>Vendedor</label><label><input type="radio" name="nvPapel" value="an">AN</label></div></div><div class="f span2"><label for="nvMail">E-mail (opcional)</label><input id="nvMail" type="email" inputmode="email" autocomplete="email"></div></div>
       <p class="sub" style="margin:0">Fica na lista de Cadastros → Precificação → Vendedores e agentes, para todas as propostas.</p><div class="docbar"><button class="btn pri" id="nvOk">Cadastrar</button><button class="btn" data-close>Cancelar</button></div>`,
-    (o, close) => { const n = $('#nvNome', o); if (n) n.focus(); $('#nvOk', o).onclick = () => { const nome = ($('#nvNome', o).value || '').trim().toUpperCase().replace(/\s+/g, ' '); const papel = (o.querySelector('input[name="nvPapel"]:checked') || {}).value || 'vendedor'; const email = ($('#nvMail', o).value || '').trim();
-      if (!nome) { toast('Escreva o nome'); return; } const L = equipeCom(); if (L.some((x) => x.nome === nome && x.papel === papel)) { toast('Já cadastrado'); return; }
+    (o, close) => { const n = $('#nvNome', o); if (n) n.focus(); $('#nvOk', o).onclick = () => { const nome = capNome($('#nvNome', o).value || ''); const papel = (o.querySelector('input[name="nvPapel"]:checked') || {}).value || 'vendedor'; const email = ($('#nvMail', o).value || '').trim();
+      if (!nome) { toast('Escreva o nome'); return; } const L = equipeCom(); if (L.some((x) => String(x.nome).toUpperCase() === nome.toUpperCase() && x.papel === papel)) { toast('Já cadastrado'); return; }
       close(); salvaEquipe(L.concat([{ nome, papel, email }]), (papel === 'an' ? 'AN' : 'Vendedor') + ' incluído: ' + nome, [{ campo: nome, de: null, para: papel }]); toast((papel === 'an' ? 'AN' : 'Vendedor') + ' cadastrado: ' + nome + '. Escolha na lista.'); }; });
   }
   window.LSNovo = { insumo: novoInsumo, vendedor: novoVendedor };
@@ -5174,8 +5212,8 @@
   }
   async function salvaEquipe(lista, desc, mud) { try { await REG.setTable('EQUIPE_COM', { lista }, desc, mud || []); render(); } catch (e) { toast(errMsg(e)); } }
   document.addEventListener('click', (e) => {
-    if (e.target.closest('#vAdd')) { const nome = ($('#vNome').value || '').trim().toUpperCase().replace(/\s+/g, ' '); const papel = (document.querySelector('input[name="vPapel"]:checked') || {}).value || 'vendedor'; const email = ($('#vMail').value || '').trim();
-      if (!nome) { toast('Escreva o nome'); return; } const L = equipeCom(); if (L.some((x) => x.nome === nome && x.papel === papel)) { toast('Já cadastrado'); return; }
+    if (e.target.closest('#vAdd')) { const nome = capNome($('#vNome').value || ''); const papel = (document.querySelector('input[name="vPapel"]:checked') || {}).value || 'vendedor'; const email = ($('#vMail').value || '').trim();
+      if (!nome) { toast('Escreva o nome'); return; } const L = equipeCom(); if (L.some((x) => String(x.nome).toUpperCase() === nome.toUpperCase() && x.papel === papel)) { toast('Já cadastrado'); return; }
       salvaEquipe(L.concat([{ nome, papel, email }]), (papel === 'an' ? 'AN' : 'Vendedor') + ' incluído: ' + nome, [{ campo: nome, de: null, para: papel }]); return; }
     const rm = e.target.closest('[data-vrm]'); if (rm) { const [nome, papel] = rm.dataset.vrm.split('|'); salvaEquipe(equipeCom().filter((x) => !(x.nome === nome && x.papel === papel)), 'Removido de vendedores/AN: ' + nome, [{ campo: nome, de: papel, para: null }]); }
   });
