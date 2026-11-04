@@ -43,7 +43,7 @@
   const PROPOSAL_SHEETS = new Set(['PROPOSTA', ...ITEMS]);
   const TABLE_SHEETS = ['PARÂMETROS', 'POLÍTICA', 'MONTADOR', 'CODIFICAÇÃO', 'KIT HIDRÁULICA', 'KIT VÁLVULA ALÍVIO', 'FCI', 'FCI EXTRAÇÃO', 'CADASTRO', 'KIT MOTORES DIESEL', 'KIT BOMBA'];
   const REGISTRY_SHEETS = new Set(['CADASTRO', 'KIT MOTORES DIESEL', 'KIT BOMBA']);
-  const SK = { cur: 'lspricer.current', db: 'lspricer.db', saved: 'lspricer.saved', view: 'lspricer.view' };
+  const SK = { cur: 'lspricer.current', db: 'lspricer.db', saved: 'lspricer.saved', view: 'lspricer.view', onde: 'lspricer.ondeparou' };
   const baseSheets = Object.fromEntries(MODEL.sheets.map((s) => [s.name, s]));
 
   // ---------- armazenamento ----------
@@ -448,6 +448,8 @@
   function decorar(root) { iconeAuto(root); for (const el of (root || document).querySelectorAll('[data-ico]')) { if (!el.dataset.ico) continue; const n = el.dataset.ico; const cur = el.querySelector(':scope > .ico'); if (cur && cur.dataset.n === n) continue; if (cur) cur.remove(); const t = document.createElement('template'); t.innerHTML = window.ICO ? window.ICO(n) : ''; const svg = t.content.firstChild; if (!svg) continue; svg.dataset.n = n; el.insertBefore(svg, el.firstChild); } }
   function setView(v) { if ((v === 'item' || v === 'memorial') && !cabOk()) { ui.step = 1; ui.reqShow = true; v = 'proposta'; toast('Preencha o cabeçalho antes do equipamento'); } ui.view = v; store.set(SK.view, ui); render(); window.scrollTo(0, 0); }
   function render() {
+    // onde a pessoa está (tela, item, etapa do configurador): com rascunho recuperado, o app reabre aqui
+    try { localStorage.setItem(SK.onde, JSON.stringify({ uid: state.uid, view: ui.view, item: ui.item, step: ui.step, cfgEt: ui.cfgEt || {}, cfgModo: ui.cfgModo || {}, at: Date.now() })); } catch (e) { /* sem armazenamento: só não reabre no mesmo lugar */ }
     const spv = isSpv(); const fx = isFacts(); const outro = spv || fx;
     aplicaLogo();
     if (outro && (ui.view === 'item' || ui.view === 'memorial')) ui.view = 'proposta';
@@ -1415,7 +1417,7 @@
         ${usd ? `<div class="f"><label for="pc_taxa">R$ por US$ 1,00</label><input id="pc_taxa" data-pcmoeda="taxa" inputmode="decimal" value="${esc(moeda.taxa ? NF[4].format(moeda.taxa) : '')}" placeholder="${esc(cambioPadrao() ? NF[4].format(cambioPadrao()) : '')}"${ro}><small class="sub">vazio = câmbio do cadastro (${esc(cambioPadrao() ? NF[4].format(cambioPadrao()) : 'não definido')})</small></div><div class="f"><label for="pc_taxad">Data da taxa</label><input id="pc_taxad" type="date" data-pcmoeda="data" value="${esc(moeda.data || hojeISO())}"${ro}></div>` : ''}
       </div>
       ${faltam.length ? `<div class="banner warn" style="margin:8px 0">Falta preencher: ${esc(faltam.join(', '))}. ${seq ? 'Preencha em Dados gerais.' : 'Preencha nos dados da proposta, acima.'}</div>` : ''}
-      <div class="docbar" style="margin:8px 0 4px"><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button><span class="sub">${D.itens.length} item(ns) · total ${esc(din(D.total))}${usd && taxa > 0 ? ' (R$ ' + esc(nfL.format(D.total || 0)) + ' a ' + esc(NF[4].format(taxa)) + ')' : ''} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
+      <div class="docbar" style="margin:8px 0 4px"><button class="btn" data-pcimprimir data-ico="printer" title="Resumo em A4: imprimir ou salvar como PDF pelo navegador">Imprimir (A4)</button><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button><span class="sub">${D.itens.length} item(ns) · total ${esc(din(D.total))}${usd && taxa > 0 ? ' (R$ ' + esc(nfL.format(D.total || 0)) + ' a ' + esc(NF[4].format(taxa)) + ')' : ''} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
       ${lang !== 'pt' || faltaTr || tradEm ? `<div class="banner ${tradEm === lang ? 'info' : faltaTr ? 'warn' : 'ok'}" style="margin:0 0 6px">${tradEm === lang ? 'Traduzindo descrições e condições desta proposta…' : faltaTr ? `${faltaTr} texto(s) desta proposta ainda em português. ${ro ? '' : '<button class="btn sm" data-pctraduz data-ico="refresh-cw">Traduzir agora</button>'}` : 'Textos desta proposta traduzidos: confira abaixo (original em cinza) e, se precisar, ajuste em "Traduções desta proposta", mais abaixo.'} ${lang !== 'pt' ? 'Textos padrão e rótulos saem traduzidos com o modelo.' : 'No padrão Folha de dados, o que vem do fabricante em inglês é traduzido para o português.'}</div>` : ''}
       <details class="sub2"${openSet.pc_cab === false ? '' : ' open'} data-keep="pc_cab"><summary>Cabeçalho e condições <span class="sub">vêm de ${seq ? 'Dados gerais e da formação' : 'dados da proposta'}</span></summary>
         <div class="kv pcro">${kvs.map(([lb, v]) => `<div>${esc(lb)}</div><div>${['Projeto/Obra', 'Condição de pagamento', 'Frete'].includes(lb) ? dupla(v) : v ? esc(v) : '<span class="sub">—</span>'}</div>`).join('')}</div>
@@ -5565,9 +5567,9 @@
     if (!podeCancelar()) return;
     const salva = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
     if (!salva) { if (dirty && !await DLG.confirmar('Cancelar a criação desta proposta? O que foi preenchido e não foi salvo será descartado.')) return;
-      loadDoc({}, ''); dirty = false; persist(); setView('inicio'); toast('Proposta nova descartada'); return; }
+      loadDoc({}, ''); dirty = false; state._sujo = false; state._editEm = null; ui.recuperado = null; persist(); setView('inicio'); toast('Proposta nova descartada'); return; }
     if (!await DLG.confirmar('Descartar as alterações não salvas e voltar à última versão salva?')) return;
-    openProposta(salva, false); dirty = false; persist(); render(); toast('Alterações descartadas: voltou à versão salva');
+    openProposta(salva, false); dirty = false; state._sujo = false; state._editEm = null; ui.recuperado = null; persist(); render(); toast('Alterações descartadas: voltou à versão salva');
   }
   // salvar mostra o estado: girando enquanto grava, e volta ao normal no fim (sucesso ou erro)
   $('#bSave').onclick = async (ev) => { const sb = $('#bSave'); if (sb.classList.contains('busy')) return; sb.classList.add('busy'); sb.dataset.ico = 'loader-circle'; decorar(sb.parentElement);
@@ -5605,7 +5607,7 @@
     try {
       const novo = !state.id; const where = await REG.saveProposta(id, p, { editor: true, base, ajustar });
       delete state._novaRev; state.id = id; state.verBase = (REG.ultimaVersao[id] || {}).verDoc; if (p.precos) { state.precosSalvos = p.precos; if (state.precosFix) state.precosFix = JSON.parse(JSON.stringify(p.precos)); } state.status = (REG.listPropostas() || []).find((x) => x.id === id)?.status || state.status;
-      dirty = false; ui.salvoEm = new Date().toISOString(); ui.erroSalvar = null; persist(); atualizaSaveSt();
+      dirty = false; state._sujo = false; state._editEm = null; ui.recuperado = null; ui.salvoEm = new Date().toISOString(); ui.erroSalvar = null; persist(); atualizaSaveSt();
       if (!isSpv() && !isFacts()) { try { PN.sincronizar({ id, numero: p.numero, cliente: p.cliente }, conferenciaCentral()).catch(() => {}); } catch (e) { /* a conferência não impede salvar */ } }
       if (!(ev && ev.auto)) toast((where === 'shared' ? 'Salvo e confirmado no banco da equipe: ' : 'Salvo e confirmado neste navegador: ') + docTitle());
       logEv({ tipo: novo ? 'Proposta criada' : ev && ev.auto ? 'Proposta salva (automático)' : 'Proposta salva', ref: id, desc: docTitle() + ' · ' + (p.div || 'SEQ') + (p.tipo ? ' ' + p.tipo : ''), mudancas: [{ campo: 'Total', de: null, para: typeof p.total === 'number' ? p.total : null }, { campo: 'Margem', de: null, para: p.resumo ? p.resumo.margemPct : null }] });
@@ -5704,5 +5706,43 @@
     if (b.dataset.doc === 'fcipdf') DOCS.fciPdf(it);
     if (b.dataset.doc === 'fcixlsx') DOCS.fciXlsx(it);
   });
-  build(); render();
+  // ---------- impressão A4 (Ctrl+P ou botão "Imprimir"): resumo da proposta com os números desta formação ----------
+  // mesma fonte de dados do PDF (propostaDados); só monta a página de impressão, nenhuma conta nova
+  const PRINT_VIEWS = ['proposta', 'item', 'memorial'];
+  function impressaoHtml() {
+    const D = propostaDados(); if (!D || !(D.itens || []).length) return '';
+    const E = pcGet(); const v = (x) => (typeof x === 'number' && isFinite(x) ? brl(x) : '—'); const n = (x) => (typeof x === 'number' && isFinite(x));
+    const seq = D.tipo === 'SEQ'; const logo = (document.getElementById('logoPdf') || {}).src || '';
+    const dataBr = (d) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String(d || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : esc(d || ''); };
+    const kv = (lb, x) => (x ? `<div><span>${esc(lb)}</span><b>${esc(x)}</b></div>` : '');
+    const cod = (it) => (E.codigos || {})[it.key] || it.codigo || ''; const temCod = D.itens.some((it) => cod(it));
+    const linhas = D.itens.map((it, i) => `<tr><td class="c">${i + 1}</td>${temCod ? `<td>${esc(cod(it))}</td>` : ''}<td>${esc((seq ? it.completa : '') || it.breve || '')}${it.condicao ? `<small>Ponto de trabalho: ${esc(it.condicao)}</small>` : ''}</td>
+      <td class="c">${n(it.qtd) ? esc(fmtNum(it.qtd)) : esc(it.qtd || "")}${it.un ? ' ' + esc(it.un) : ''}</td><td class="n">${v(it.unit)}</td><td class="n"><b>${v(it.total)}</b></td></tr>`).join('');
+    const tribs = seq ? D.itens.map((it, i) => `<tr><td class="c">${i + 1}</td><td>${esc(it.ncm || '—')}</td><td class="n">${n(it.icms) ? pct(it.icms, 2) : '—'}</td><td class="n">${n(it.pisCofins) ? pct(it.pisCofins, 2) : '—'}</td><td class="n">${n(it.ipi) ? pct(it.ipi, 2) : '—'}</td><td class="n">${v(it.totalSemImp)}</td></tr>`).join('') : '';
+    const T = D.totais || {}; const impNota = n(T.semIpi) && n(T.semImp) ? T.semIpi - T.semImp : null;
+    const prazo = [n(E.prazoFab) ? 'fabricação ' + E.prazoFab + ' dias (DAPC)' : '', n(E.prazoEnt) ? 'entrega ' + E.prazoEnt + ' dias (DAE)' : ''].filter(Boolean).join(' + ') || D.prazo || '';
+    return `<header class="pd-head">${logo ? `<img src="${esc(logo)}" alt="LS Fire">` : '<b>LS Fire</b>'}<div><h1>Proposta ${esc(D.numero || 'sem número')}${D.rev !== '' && D.rev != null ? ' · Rev. ' + esc(D.rev) : ''}</h1><p>${seq ? 'Equipamentos de combate a incêndio' : 'Serviços e pós-venda'} · ${dataBr(D.data)}</p></div></header>
+      <section class="pd-kv">${kv('Cliente', D.razao || D.cliente)}${kv('CNPJ', D.cnpj)}${kv('Aos cuidados de', E.aosCuidados || D.contato)}${kv('Obra / local', D.obra)}${kv('Validade', D.validade)}${kv('Vendedor', D.vendedor)}</section>
+      <h2>Itens</h2><table class="pd-t"><thead><tr><th class="c">Item</th>${temCod ? '<th>Código</th>' : ''}<th>Descrição</th><th class="c">Qtd</th><th class="n">Unitário c/ impostos</th><th class="n">Total</th></tr></thead><tbody>${linhas}</tbody></table>
+      ${tribs ? `<h2>Tributos</h2><table class="pd-t"><thead><tr><th class="c">Item</th><th>NCM</th><th class="n">ICMS</th><th class="n">PIS + COFINS</th><th class="n">IPI</th><th class="n">Total sem impostos</th></tr></thead><tbody>${tribs}</tbody></table>` : ''}
+      <section class="pd-tot">${n(T.semImp) ? `<div><span>Total sem impostos</span><b>${v(T.semImp)}</b></div>` : ''}${impNota !== null ? `<div><span>ICMS + PIS + COFINS (por dentro)</span><b>${v(impNota)}</b></div>` : ''}${n(T.ipi) && T.ipi ? `<div><span>IPI (por fora)</span><b>${v(T.ipi)}</b></div>` : ''}<div class="pd-total"><span>Valor total</span><b>${v(D.total)}</b></div></section>
+      <h2>Condições comerciais</h2><section class="pd-kv">${kv('Pagamento', D.pagamento)}${kv('Frete', D.frete)}${kv('Prazo', prazo)}${kv('Exclusões', D.exclusoes)}</section>
+      ${E.observacoes ? `<p class="pd-obs">${esc(E.observacoes)}</p>` : ''}
+      <footer class="pd-foot">LS Fire · www.lsfire.com.br · Valores desta formação de preço em ${dataBr(new Date().toISOString())}. A proposta técnica e comercial completa sai em Documentos → Gerar proposta (PDF).</footer>`;
+  }
+  function preparaImpressao() {
+    let el = document.getElementById('printDoc'); if (el) el.remove(); document.body.classList.remove('imprimindo');
+    if (!PRINT_VIEWS.includes(ui.view)) return false;
+    let h = ''; try { h = impressaoHtml(); } catch (e) { h = ''; } if (!h) return false;
+    el = document.createElement('div'); el.id = 'printDoc'; el.innerHTML = h; document.body.appendChild(el); document.body.classList.add('imprimindo'); return true;
+  }
+  window.addEventListener('beforeprint', preparaImpressao);
+  window.addEventListener('afterprint', () => { const el = document.getElementById('printDoc'); if (el) el.remove(); document.body.classList.remove('imprimindo'); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('[data-pcimprimir]')) return; if (!preparaImpressao()) { toast('Nenhum item com preço para imprimir'); return; } window.print(); });
+  // rascunho recuperado (alterações não salvas): volta à proposta, ao item e à etapa do configurador em que a pessoa estava;
+  // sem rascunho, o app abre na página inicial como sempre
+  if (dirty) { const o = store.get(SK.onde, null); if (o && o.uid === state.uid && ['proposta', 'item', 'memorial'].includes(o.view)) Object.assign(ui, { view: o.view, item: +o.item || 0, step: +o.step || 1, cfgEt: o.cfgEt || {}, cfgModo: o.cfgModo || ui.cfgModo }); }
+  build();
+  if ((ui.view === 'item' || ui.view === 'memorial') && (!cabOk() || isSpv() || isFacts())) { ui.view = 'proposta'; if (!cabOk()) ui.step = 1; }
+  render();
 })();

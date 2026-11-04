@@ -43,6 +43,7 @@ Cada teste imprime o que verificou. A última linha é `erros [...]`, com os err
 | `c2_test` | Testador com origem; preços da época (proposta enviada não muda e oferece atualização seletiva); edição em massa e desfazer; estrutura em rascunho, impacto nos modelos prontos e publicação |
 | `c3_test` | Central de regras (rascunho não vale na proposta), comparação de modelos no testador, cobertura dos modelos prontos, campos por família, importação de provisórios, biblioteca de configurações, comparação de kits |
 | `sim_test` | simulação de ponta a ponta: família e insumo novos, componente opcional na estrutura, proposta SEQ do cabeçalho ao PDF; confere composição, impostos do documento, escopo com o conteúdo dos kits e pressão (com `SEMPA_PDF`, também a NFPA 20 pela curva do fabricante) |
+| `imp_test` | rascunho recuperado reabre na proposta, no item e na etapa do configurador (salvo, abre no Início); impressão A4 da SEQ e da SPV (Ctrl+P ou botão Imprimir) com cliente, itens, tributos, totais e condições iguais à formação |
 | `varredura_test` | todas as telas do menu no computador e no celular (erro, tela vazia, rolagem lateral); os 10 tipos SPV/FACTS até o PDF conferido; "Ajustar à margem mínima" em 12 modelos prontos (margem final 30,0%); Primeira Maiúscula nos nomes |
 | `sap_test` | menu, abas da proposta, composição do preço, listas (Modelo A), ficha (Modelo B), painel do componente |
 
