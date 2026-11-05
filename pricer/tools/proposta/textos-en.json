@@ -1,0 +1,196 @@
+{
+  "somos": [
+    "Specialists in pumping solutions for fire protection systems. We know that the fire pump is the heart of the system: it is what keeps the water moving, ensures pressure and flow, and guarantees that, at the critical moment, the entire system responds efficiently.",
+    "We supply fire pump sets and other safety equipment built to the highest standards of quality and technology. Our mission is to provide complete, reliable and innovative solutions, tailored to the needs of each customer. We achieve this by combining a team of dedicated specialists, reliable suppliers, standardized quality processes and equipment fully compliant with national and international regulations."
+  ],
+  "solucoes": [
+    { "img": "sol-cmb", "t": "CMB", "x": "Pump sets are ideal for applications with existing infrastructure or that require installation flexibility. They allow integration in the field, providing versatility and lower initial costs." },
+    { "img": "sol-skid", "t": "Skid", "x": "Skid systems integrate all the components of a pump house on a single metal base, ready and factory-tested. This approach reduces assembly time, ensuring quality and reliability and reducing the need for specialized labor." },
+    { "img": "sol-container", "t": "Container", "x": "The container solution is an evolution of the pump house: an enclosed system, designed and tested at the factory. Ready for operation, it offers maximum protection to the equipment and can be installed quickly, even in remote locations or where infrastructure is limited." }
+  ],
+  "notaPagamento": "Payments linked to contractual events (DTC - Conceptual Technical Drawing, APE - Ready-for-Shipment Notice or other milestones defined in the proposal) fall due on the date the respective event occurs. Any additional payment term must be expressly provided for in the contracted payment terms.",
+  "atencao": [
+    "This document is for information purposes only and does not replace the LS Fire Terms and Conditions",
+    "It is recommended that the contractual instrument be read in full before the order is placed."
+  ],
+  "comissionamento": {
+    "incluso": [
+      "LS FIRE authorized technician on site",
+      "Verification of the equipment installation",
+      "Commissioning of the pump set",
+      "Assisted start-up",
+      "Operational tests and adjustments",
+      "Hands-on team training",
+      "{diarias}",
+      "Service during business hours",
+      "Scheduling upon approved checklist",
+      "Performed within up to 4 months after supply",
+      "Travel, lodging and meal expenses included during this period"
+    ],
+    "adicionais": [
+      "Extra day rates",
+      "Service outside business hours",
+      "Costs agreed in advance"
+    ],
+    "responsabilidades": [
+      "Mechanical, electrical and hydraulic installation",
+      "Infrastructure and assembly",
+      "System released and ready for testing"
+    ]
+  },
+  "notasSeq": [
+    "Our welding services are performed in accordance with AWS D1.1 for steel structures; ASME Section VIII, Division 1 for the fabrication of metal tanks; and ASME B31.1 and ASME B31.3 for industrial piping systems.",
+    "The pump sets comply with {norma}, {certificacao}.",
+    "The pump curves are defined in accordance with NFPA 20.",
+    "The maximum pressure at shut-off is limited to 140% of the rated pressure.",
+    "[diesel] The selection of the diesel engine takes into account the power derating due to altitude, in accordance with NFPA 20.",
+    "[diesel] The fuel tank is sized in accordance with NFPA 20.",
+    "The electrical control panels are designed and manufactured in accordance with NR 10.",
+    "Rotating elements are protected by metal guards, in compliance with NR 12.",
+    "The hydraulic and electrical interconnection of the Pump House with the customer's network, as well as the installation of the silencer, is excluded from this scope of supply.",
+    "Civil works design and the infrastructure required to accommodate the Container, Skid or Pump Set are excluded from this scope of supply.",
+    "Approval by the competent environmental authorities is not included.",
+    "The supply of a variable frequency drive is excluded from our scope.",
+    "The air release valve is outside our scope of supply. If the pump type offered is End Suction, according to the criteria of NFPA 20, its use is not required.",
+    "The alignment and leveling of the pump set, between driver and pump, are performed at the LS Fire factory and subsequently checked on site by the LS Fire technician, after installation by the customer or the responsible installer.",
+    "Spare parts for assembly, commissioning and start-up are not applicable.",
+    "The LS Fire standard warranty applies.",
+    "Any item not clearly described in our proposal is excluded from our scope of supply.",
+    "[start-up] Commissioning and Start-up included.",
+    "[sem start-up] Commissioning and Start-up not included.",
+    "The delivery lead time is counted from receipt of the formal order, as well as confirmation of the down payment, when applicable."
+  ],
+  "notasServico": [
+    "[contrato] The contract term will be {meses} months, covering {visitas} technical visits;",
+    "[campo] Visit dates must be agreed in advance between LS Fire and the contracting party;",
+    "[campo] The customer shall provide safe access to the Pump House, as well as the releases, work permits, lockouts, HSE conditions and shutdown windows required to carry out the activities;",
+    "[contrato] The scope covers inspection, preventive maintenance, operational training and performance testing as described in this proposal;",
+    "Corrective services, repairs, upgrades and replacement of components identified during the inspections are not included and may be quoted separately upon technical assessment;",
+    "[contrato] The Preventive Maintenance Kit covers only the materials applicable to the installed engine models. Any additional components will be subject to a supplementary quotation;",
+    "[contrato] Replacement of oil, filters and coolant will be carried out in accordance with the specifications and recommendations applicable to the equipment;",
+    "[contrato] Training will be delivered during one of the scheduled visits, subject to the availability of the team designated by the customer;",
+    "[contrato] To carry out the performance test, the system must be operational and have sufficient water available throughout the entire test period;",
+    "[contrato] The customer shall ensure adequate conditions for the circulation, return or disposal of the water used during the performance test;",
+    "[contrato] If the installation conditions prevent obtaining the points required to plot the pump curve, this limitation will be recorded in the technical report;",
+    "[contrato] The performance comparison will be made based on the manufacturer's rated curve, when it is available and compatible with the installed equipment;",
+    "[contrato] The result of the performance test represents the conditions of the equipment and the installation at the time the test is performed;",
+    "Calibration, repair or replacement of existing instruments is not included, unless expressly described in this proposal;",
+    "[contrato] The inspection of the piping, valves, fuel tank, ventilation, drainage and other components of the Pump House will be visual and functional, within the limits of the available access;",
+    "Destructive tests, complete disassembly, structural assessments, civil works or hydraulic and electrical upgrades are not included;",
+    "The ART will be issued exclusively for the services performed by LS Fire and covered by this proposal;",
+    "[contrato] The RedBook record and the technical reports will be prepared based on the conditions verified during each service visit;",
+    "[contrato] Any irregularities identified will be classified and presented to the customer for follow-up and definition of the necessary actions;",
+    "[contrato] The identification of an irregularity does not imply its automatic correction under this contract;",
+    "[contrato] The performance of the inspections and preventive maintenance does not eliminate the need for the routine checks and tests that are the responsibility of the owner or operator of the installation;",
+    "[campo] In the event of unavailability of the equipment, lack of water, inability to access the site, lack of release or any condition that prevents the scheduled activity from being carried out, a new date must be agreed between the parties;",
+    "Any material, service or activity not clearly described in this proposal shall be considered outside the scope of supply.",
+    "This price is only valid for these payment terms; if the payment terms change, LS Fire will have to review the prices."
+  ],
+  "observacoesServico": [
+    "SERVICES WARRANTY – 90 DAYS: The services warranty will be 90 (ninety) days, limited to workmanship defects demonstrably attributable to LS Fire;",
+    "ADDITIONAL DAY RATES: The proposal covers only the day rates provided for in the scope. If the technician needs to remain beyond the contracted period, the additional day rates will be charged separately, at R$ 4.000,00 (four thousand reais) per day rate, plus any additional expenses;",
+    "WORKING HOURS: The services will be performed during business hours, Monday to Friday, from 8 a.m. to 6 p.m., with a 1 (one) hour lunch break. Work performed outside this period must be authorized in advance and may incur additional costs;",
+    "ACCESS AND WORKING CONDITIONS: The contracting party shall provide safe access to the equipment, adequate conditions for performing the services and, when necessary, local support for the technical team;",
+    "ADDITIONAL SERVICES / PROBLEMS IDENTIFIED: Any service not provided for in the scope, including repairs, replacement of components or additional activities identified during execution, will be reported in advance to the contracting party and quoted separately;",
+    "PRE-EXISTING CONDITIONS: LS Fire is not responsible for pre-existing problems, interference by third parties or installation conditions that prevent or hinder the performance of the services as initially planned;",
+    "TRAVEL, LODGING AND MEALS: The technicians' travel, lodging and meal expenses are covered within the period and conditions provided for in the scope. If it becomes necessary to extend the technical team's stay for reasons not attributable to LS Fire, the resulting additional expenses will be charged separately;",
+    "WARRANTY LIMITATIONS: The services warranty does not cover failures arising from interventions by third parties, subsequent changes to the installation, improper operation of the equipment or lack of adequate maintenance."
+  ],
+  "pecas": {
+    "escopo": [
+      "Supply of parts, materials and components according to the items, quantities and specifications described in this commercial proposal, intended to meet the request submitted by the customer.",
+      "The items will be supplied according to the available specifications and may include original, similar or equivalent parts, as indicated individually in the proposal.",
+      "When applicable, the supply may include services, rentals, technical support or training, provided that they are expressly described in the quotation."
+    ],
+    "notas": [
+      "The items listed in the proposal correspond to the parts and materials planned for supply;",
+      "The supply will be carried out according to the quantities and specifications described in the quotation;",
+      "Any changes of manufacturer, model or specification will be subject to availability and prior approval;",
+      "The availability and delivery lead time of the items will be subject to stock and supply conditions;",
+      "Additional needs identified after approval of the proposal are not covered and will be assessed separately;",
+      "The application, installation or replacement of the parts is not included, unless expressly indicated in the scope."
+    ],
+    "desvios": [
+      "Parts, materials or components that are not expressly listed in the proposal are not included;",
+      "Any additional items required for the execution or operation of the assembly will be presented separately;",
+      "Changes in quantity or specification requested after approval may result in a revision of prices and lead time;",
+      "Expenses or activities not provided for in the scope will be considered separately, subject to approval."
+    ],
+    "exclusoes": [
+      "Any item not clearly described in the proposal is excluded from the scope."
+    ]
+  },
+  "prazos": {
+    "intro": "The total delivery lead time consists of the manufacturing lead time (stated in the proposal) plus the transportation time to the destination. The count begins after full fulfillment of the order start conditions.",
+    "siglas": [
+      ["DAPC", "Calendar days after the Purchase Order", "Start of the manufacturing lead time count"],
+      ["DAE", "Calendar days after Shipment of the equipment", "Lead time for actual delivery to the destination"],
+      ["ARDA", "After Receipt of the Approved Drawings", "When prior approval by the buyer is required, suspends the DAPC count"]
+    ],
+    "inicio": [
+      "Purchase Order (PO) formalized and signed",
+      "Approval of the technical documentation by the buyer",
+      "Confirmation of the down payment (if applicable)",
+      "Resolution of pending technical and commercial issues"
+    ],
+    "suspensao": [
+      "Pending prior approval (activates ARDA count)",
+      "Late payment of installments",
+      "No response to formal requests",
+      "Changes of scope after the start of manufacturing",
+      "Force majeure events"
+    ],
+    "recebimento": "RECEIPT: Upon receipt, the CUSTOMER must check the number of packages and the integrity of the packaging. Any visible damage must be recorded on the carrier's delivery receipt and reported to LS Fire within 24 hours, with photographic evidence. Failure to note such exceptions makes it impossible to claim under the transportation insurance."
+  },
+  "escopoDocs": {
+    "cab": ["Deliverable", "Lead time (days) (N5)", "Lead Time Basis", "Subject to Penalty (N3)", "Requires Prior Approval (N4)", "Delivery Type", "Part of the IOM Manual"],
+    "grupos": [
+      ["TECHNICAL AND COMMERCIAL DOCUMENTS", [
+        ["Detailed Technical Drawing (DTE)", "up to 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Supply Databook", "up to 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Electrical Load Table", "up to 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Electrical Control Design", "up to 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Pump Performance Curve (Q-H / Q-BHP / Q-η)", "up to 60", "DAPC", "No", "No", "DIG", "No"]
+      ]],
+      ["COMPONENT DATASHEETS AND CATALOGS", [
+        ["Pump Datasheet", "up to 60", "DAPC", "No", "No", "DIG", "No"],
+        ["[eletrica] Electric Motor Dimensional Catalog", "up to 60", "DAPC", "No", "No", "DIG", "No"],
+        ["[diesel] Diesel Engine Catalog / Technical Manual", "up to 60", "DAPC", "No", "No", "DIG", "No"],
+        ["Control Panel Datasheet", "up to 60", "DAPC", "No", "No", "DIG", "No"]
+      ]]
+    ],
+    "basePrazo": [
+      "DAPC - Calendar days after receipt of the Purchase Order",
+      "DART - Calendar days after the tests are performed",
+      "DAE - Calendar days after shipment of the equipment",
+      "ARDA - After receipt of the drawings approved by the customer"
+    ],
+    "tipoEntrega": [
+      "DIG - Digital file in PDF format — LS Fire standard",
+      "IMP - Printed copy (hard copy)",
+      "IOM - Installation, Operation and Maintenance Manual",
+      "DWG - Editable AutoCAD file (.dwg) — available for engineering drawings",
+      "EDT - Editable file (Excel / Word) — datasheets and technical documents",
+      "CLT - Customer format / standard — upon provision of the template and prior agreement"
+    ],
+    "adicionais": [
+      "Additional documents not listed in this index",
+      "Documentation in the customer's standard format",
+      "Additional bound copies",
+      "Technical reports (laudos), certifications and special reports not provided for in the contracted scope",
+      "For any deliverable not listed in this index, consult LS Fire for assessment and quotation",
+      "Technical meetings (in person or by videoconference) are not included in the standard scope, unless previously agreed and recorded in the proposal. Examples: project kickoff, follow-up meetings, document review and approval, technical presentation of the project and commercial alignment meetings."
+    ],
+    "notas": [
+      "N1 — \"If applicable\" indicates that the issue of the deliverable is conditional upon one or more of the following factors: type and configuration of the equipment supplied; items expressly contracted in the scope; requirements of the technical standard applicable to the product; or LS Fire standard of supply. Applicability is determined by LS Fire or according to prior agreement recorded in the commercial proposal.",
+      "N2 — All deliverables are issued in the LS Fire standard format (PDF), unless formally agreed otherwise.",
+      "N3 — Lead time penalties, when applicable, are negotiated and recorded in the commercial proposal.",
+      "N4 — If any deliverable requires prior approval, the equipment shipment lead time becomes ARDA.",
+      "N5 — Lead times in business days. Where there is a document certified by a sub-supplier, the longer of the contractual lead time and the sub-supplier's lead time plus 20 business days shall prevail.",
+      "* — The IOM Manual is issued in Dig. + 1 Imp. copy. Additional copies upon request.",
+      "** — The Databook is preferably issued in digital format (Dig.). The printed version (Imp.) may be provided upon request and prior agreement recorded in the proposal.",
+      "N6 — Special reports and certifications are issued only when applicable to the type of equipment supplied and upon formal request by the customer. Lead times and conditions must be checked with LS Fire prior to contracting.",
+      "Reissues requested by the buyer are charged according to the current price table, except in the case of an error attributable to LS Fire"
+    ]
+  }
+}

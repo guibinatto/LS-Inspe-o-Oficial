@@ -1,0 +1,78 @@
+// Guia rápido de consulta (versão resumida do manual MN · LS Pricer).
+module.exports = {
+  intro: [
+    { t: 'p', x: 'Consulta rápida das rotinas mais usadas do **LS Pricer REV22**. O passo a passo completo, com as telas anotadas, está no Manual de Utilização (capítulo indicado entre parênteses).' },
+  ],
+  secoes: [
+    { titulo: 'Onde fica cada coisa', fig: '01-02', blocos: [
+      { t: 'tab', cab: ['Menu lateral', 'Para quê'], lin: [
+        ['Início', 'Busca, começar proposta SEQ ou SPV, painel, lista de propostas e próximas etapas (cap. 2 e 14)'],
+        ['Propostas', 'A proposta aberta, com as abas dela (cap. 3 a 6)'],
+        ['Pendências', 'Acompanhamento e Minhas pendências (cap. 13)'],
+        ['Margens', 'Ganhas, em andamento, aprovações, custo real e gráficos (cap. 13 e 14)'],
+        ['Cadastros', 'Visão geral, Custos, Engenharia, Fiscal, Precificação, Serviços e Cadastro geral (cap. 7 a 11)'],
+        ['Configurações', 'Histórico, responsáveis e e-mails, backup e restauração, planilha avançada (cap. 16)'],
+        ['Ajuda', 'Guia de campos da planilha original'],
+      ] },
+      { t: 'tab', cab: ['Abas da proposta SEQ', 'O que fazer'], lin: [
+        ['Dados gerais', 'Cliente, obra, UF, cadastro fiscal, segmento, número, revisão, pagamento, norma, vendedor e comissões'],
+        ['Itens', 'Família, modelo, condições, componentes e quantidade de cada equipamento'],
+        ['Custos', 'Origem, data e validade dos preços; "não se aplica"'],
+        ['Formação', 'Preço por item, desconto, margem e simulador'],
+        ['Conferência', 'Impeditivos, alertas, pedido de aprovação, conferência do PDF'],
+        ['Memorial', 'Memorial de formação para o financeiro, por item e total'],
+        ['Documentos', 'Proposta técnica e comercial (PDF no modelo LS Fire), documentos ligados, memorial em PDF, FCI; **Anexar ou ver todos os documentos** abre a biblioteca'],
+        ['Histórico', 'Tudo o que aconteceu com a proposta'],
+      ] },
+      { t: 'nota', x: 'Na SPV e no FACTS, a proposta tem só duas abas: **Serviço e pós-venda** (ou **FACTS**) e **Histórico**.' },
+    ] },
+    { titulo: 'Rotinas mais usadas', blocos: [
+      { t: 'tab', cab: ['Rotina', 'Caminho'], lin: [
+        ['Nova proposta SEQ', 'Início → botão da família, ou **Nova** → **SEQ em branco** (cap. 3)'],
+        ['Nova SPV', 'Início → tipo de serviço, ou **Nova** → **SPV** (cap. 6)'],
+        ['Abrir proposta salva', '**Abrir** na barra superior, ou a lista da tela Início (cap. 3)'],
+        ['Duplicar', 'Lista da tela Início → **Duplicar**; dê um número novo e salve (cap. 3)'],
+        ['Simular negociação', 'Aba **Formação** → Simulador (cap. 4)'],
+        ['Pedir aprovação de valor target', 'Aba **Conferência** → pedido de aprovação (cap. 13)'],
+        ['Nova revisão', 'Selo da revisão no cabeçalho → **Revisar**, com o motivo (cap. 15)'],
+        ['Comparar revisões', 'Selo da revisão → escolha a revisão → **Comparar** (cap. 15)'],
+        ['Gerar a proposta (técnica e comercial, comercial ou técnica; PT, EN ou ES; R$ ou US$)', 'Proposta → aba **Documentos** → escolha documento, idioma e moeda → **Gerar proposta (PDF)** (cap. 5)'],
+        ['Folha de dados e curva da bomba na proposta', 'Item → **Proposta: código do produto e folha de dados** → solte o PDF (cap. 5)'],
+        ['Mudar estrutura, imagens, textos padrão e contatos da proposta', 'Configurações → **Modelo da proposta** (cap. 5)'],
+        ['Dar baixa (ganha/perdida)', 'Tela Início → próxima etapa da proposta (cap. 14)'],
+        ['Lançar custo real', 'Margens → proposta ganha → Custo real (cap. 14)'],
+        ['Cadastrar insumo', 'Cadastros → Custos → Insumos e preços → **+ Novo insumo** (cap. 7)'],
+        ['Atualizar preços vencidos (mensal)', 'Cadastros → Custos → Insumos e preços → **Ver os vencidos**; ou, na proposta, **Atualizar no cadastro** (cap. 7)'],
+        ['Pedir cadastro de insumo', 'No item ou na SPV, botão **pedir cadastro** (cap. 7)'],
+        ['Mudar estrutura', 'Cadastros → Engenharia → Estruturas, **editar em rascunho** → **Ver diferenças e impacto** → **Publicar** (cap. 9)'],
+        ['Backup', 'Configurações → Backup e restauração → **Baixar backup completo** (cap. 16)'],
+        ['Restaurar proposta excluída', 'Configurações → Backup e restauração → Lixeira (cap. 15)'],
+      ] },
+    ] },
+    { titulo: 'Atalhos e sinais', blocos: [
+      { t: 'tab', cab: ['Atalho ou sinal', 'Significado'], lin: [
+        ['Ctrl+S', 'Salvar a proposta'],
+        ['Esc', 'Fechar a janela aberta ou o menu do celular'],
+        ['● Alterações não salvas', 'Há mudanças ainda não gravadas: clique em Salvar'],
+        ['✓ Salvo às …', 'Proposta gravada'],
+        ['✓ / • / ! nas abas', 'Etapa concluída / pede atenção / tem problema'],
+        ['Margem em vermelho no cabeçalho', 'Abaixo da margem mínima da política'],
+        ['Botão Recolher (menu lateral)', 'Deixa o menu só com ícones; no celular, use ☰'],
+      ] },
+    ] },
+    { titulo: 'Erros frequentes', blocos: [
+      { t: 'tab', cab: ['Mensagem', 'O que fazer'], lin: [
+        ['"Preencha o cabeçalho antes do equipamento" / "Falta: …"', 'Preencha os campos obrigatórios (*) de Dados gerais'],
+        ['"Nenhum vendedor cadastrado…"', 'Cadastros → Precificação → Vendedores e agentes → **Incluir**'],
+        ['"… não está no cadastro de insumos; entra com custo zero."', 'Escolha o insumo pela lista ou peça o cadastro'],
+        ['"Margem X abaixo do mínimo de Y"', '**Ajustar à margem mínima** ou pedir aprovação'],
+        ['"N item(ns) da conferência impedem enviar."', 'Resolva os impeditivos na aba Conferência'],
+        ['"A aprovação perdeu a validade…"', '**Pedir de novo (novo valor target)**'],
+        ['"N insumo(s) desta proposta com preço vencido"', '**Atualizar no cadastro** e atualizar o preço (validade de 30 dias)'],
+        ['"Já existe … com mesma descrição."', 'Use o insumo existente ou diferencie a descrição'],
+        ['"Outra pessoa salvou esta proposta"', 'Escolha guardar a versão dela como revisão, salvar a sua como cópia ou descartar a sua'],
+      ] },
+      { t: 'aviso', x: 'No modo local (arquivo aberto no computador) não há login nem controle de acesso, e os dados ficam só naquele navegador. Use o endereço compartilhado da equipe para o trabalho real.' },
+    ] },
+  ],
+};

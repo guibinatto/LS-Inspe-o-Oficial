@@ -1,0 +1,82 @@
+{
+ "01-01": {
+  "id": "01-01",
+  "cap": 1,
+  "nome": "apresentacao-tela-inicial",
+  "titulo": "Tela Início do LS Pricer",
+  "vp": "desktop",
+  "arquivo": "01-01-apresentacao-tela-inicial.png",
+  "data": "2026-10-31T00:51:45.309Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Busca por cliente, número, peça ou fornecedor (propostas e documentos).",
+    "sel": ".home .hsearch, #homeQ",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Atalho para continuar a proposta que estava aberta.",
+    "sel": ".home .contcard",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "SEQ — Soluções e equipamentos: escolha o que vai formar.",
+    "sel": ".home .start.seq",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "SPV — Serviços e pós-venda: escolha o tipo de serviço.",
+    "sel": ".home .start.spv",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Painel com os indicadores do período.",
+    "sel": "#painel",
+    "ok": true
+   }
+  ]
+ },
+ "01-02": {
+  "id": "01-02",
+  "cap": 1,
+  "nome": "apresentacao-proposta-seq",
+  "titulo": "Proposta SEQ aberta: cabeçalho de contexto e abas da proposta",
+  "vp": "desktop",
+  "arquivo": "01-02-apresentacao-proposta-seq.png",
+  "data": "2026-10-31T00:51:46.053Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Divisão, número, cliente, revisão e situação da proposta.",
+    "sel": ".ctxh .ctx-id",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Valor total, margem (com o mínimo), custo, itens e pendências — sempre à vista.",
+    "sel": ".ctxh .ctx-kpis",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abas da proposta SEQ: Dados gerais, Itens, Custos, Formação, Conferência, Memorial, Documentos e Histórico.",
+    "sel": ".ptabs",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "No menu lateral, a proposta aberta fica em Propostas.",
+    "sel": "#nav [data-view=\"proposta\"]",
+    "ok": true
+   }
+  ]
+ }
+}

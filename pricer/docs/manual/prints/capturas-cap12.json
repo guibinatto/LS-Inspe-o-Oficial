@@ -1,0 +1,310 @@
+{
+ "12-01": {
+  "id": "12-01",
+  "cap": 12,
+  "nome": "documentos-biblioteca",
+  "titulo": "Tela Documentos: área para soltar o arquivo, busca e filtro por tipo",
+  "vp": "desktop",
+  "arquivo": "12-01-documentos-biblioteca.png",
+  "data": "2026-10-31T01:07:20.678Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Solte aqui o arquivo (PDF, XML da NF-e, Excel ou foto) ou clique para escolher.",
+    "sel": "#docDrop",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Busca por fornecedor, peça, número, proposta ou observação.",
+    "sel": "#docQ",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Filtro por tipo de documento.",
+    "sel": "#docT",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Quantos documentos aparecem com a busca e o filtro, do total.",
+    "sel": "#app .sheetbar .sub",
+    "ok": true
+   }
+  ]
+ },
+ "12-02": {
+  "id": "12-02",
+  "cap": 12,
+  "nome": "documentos-novo",
+  "titulo": "Novo documento lido de um XML de NF-e, ligado à proposta, à revisão, ao item e à etapa",
+  "vp": "desktop",
+  "arquivo": "12-02-documentos-novo.png",
+  "data": "2026-10-31T01:07:22.429Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O que o app leu do arquivo. Confira antes de salvar.",
+    "sel": "#mdStatus",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Tipo: orçamento de fornecedor, nota fiscal, pedido de compra, contrato, desenho/data sheet, proposta enviada ou outro.",
+    "sel": "#mdTipo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Fornecedor/emitente, lido do documento ou digitado.",
+    "sel": "#mdForn",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Proposta a que o documento pertence.",
+    "sel": "#mdProp",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Revisão da proposta.",
+    "sel": "#mdRev",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Item da proposta (ou a proposta toda).",
+    "sel": "#mdItem",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Etapa da proposta a que o documento se refere.",
+    "sel": "#mdEtapa",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Salvar documento.",
+    "sel": "#mdSave",
+    "ok": true
+   }
+  ]
+ },
+ "12-03": {
+  "id": "12-03",
+  "cap": 12,
+  "nome": "documentos-lista",
+  "titulo": "Documento salvo na lista, com a ligação à proposta",
+  "vp": "desktop",
+  "arquivo": "12-03-documentos-lista.png",
+  "data": "2026-10-31T01:07:25.639Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Arquivo, número, data e quantos itens foram lidos.",
+    "sel": "#app table.t tbody tr td:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Ligado a: proposta, revisão, item e etapa.",
+    "sel": "#app table.t tbody tr td:nth-child(5)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abrir o arquivo numa aba nova.",
+    "sel": "#app [data-dopen]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Baixar o arquivo.",
+    "sel": "#app [data-ddown]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Detalhes: mudar os dados, a ligação ou excluir.",
+    "sel": "#app [data-dedit]",
+    "ok": true
+   }
+  ]
+ },
+ "12-04": {
+  "id": "12-04",
+  "cap": 12,
+  "nome": "documentos-ficha-insumo-fornecedores",
+  "titulo": "Ficha do insumo: seção Fornecedores e cotações",
+  "vp": "desktop",
+  "arquivo": "12-04-documentos-ficha-insumo-fornecedores.png",
+  "data": "2026-10-31T01:07:27.238Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Em moeda estrangeira, informe o câmbio: sem ele o custo total não sai.",
+    "sel": ".modal [data-fo=\"1|cambio\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Custo total por unidade = preço × câmbio × (1 + impostos) + frete.",
+    "sel": ".modal table.forn tbody tr:nth-child(1) td.n",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "O menor custo total recebe o selo \"menor total\" (o app não escolhe sozinho).",
+    "sel": ".modal table.forn .pill.ok",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "usar este preço: leva a cotação para o preço de aquisição do insumo.",
+    "sel": ".modal [data-fouse=\"0\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "+ Fornecedor: mais uma cotação para o mesmo insumo.",
+    "sel": ".modal #foAdd",
+    "ok": true
+   }
+  ]
+ },
+ "12-05": {
+  "id": "12-05",
+  "cap": 12,
+  "nome": "documentos-fornecedores",
+  "titulo": "Cadastros → Custos → Fornecedores e fabricantes",
+  "vp": "desktop",
+  "arquivo": "12-05-documentos-fornecedores.png",
+  "data": "2026-10-31T01:07:36.738Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Itens cotados: quantos insumos têm cotação deste fornecedor na ficha.",
+    "sel": "#app .stack .stack section.card:nth-child(1) table.t thead th:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Documentos anexados com este fornecedor.",
+    "sel": "#app .stack .stack section.card:nth-child(1) table.t thead th:nth-child(5)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Fabricantes: vêm do campo Fabricante dos insumos.",
+    "sel": "#app .stack .stack section.card:nth-child(2) h2",
+    "ok": true
+   }
+  ]
+ },
+ "12-06": {
+  "id": "12-06",
+  "cap": 12,
+  "nome": "documentos-conferencia-divergencias",
+  "titulo": "Conferência do PDF com divergências",
+  "vp": "desktop",
+  "arquivo": "12-06-documentos-conferencia-divergencias.png",
+  "data": "2026-10-31T01:07:39.122Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Solte aqui o PDF da proposta comercial (a leitura é feita no navegador).",
+    "sel": "#confCard .drop",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quantos pontos corrigir e quantos conferir.",
+    "sel": "#confCard .banner.bad",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Cada divergência: o que é, o valor na formação e o que foi achado no PDF.",
+    "sel": "#confCard tr.cf-erro",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Mostrar também o que conferiu.",
+    "sel": "#confCard [data-conftudo]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Aceitar as divergências com justificativa e salvar o PDF.",
+    "sel": "#confCard [data-confaceita]",
+    "ok": true
+   }
+  ]
+ },
+ "12-07": {
+  "id": "12-07",
+  "cap": 12,
+  "nome": "documentos-conferencia-ok",
+  "titulo": "PDF que confere: proposta marcada como conferida e PDF salvo",
+  "vp": "desktop",
+  "arquivo": "12-07-documentos-conferencia-ok.png",
+  "data": "2026-10-31T01:07:49.060Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Situação: conferida, com a data.",
+    "sel": "#confCard .pill.ok",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Tudo confere com a formação; o PDF foi salvo nos documentos da proposta.",
+    "sel": "#confCard .banner.ok",
+    "ok": true
+   }
+  ]
+ },
+ "12-08": {
+  "id": "12-08",
+  "cap": 12,
+  "nome": "documentos-aba-proposta",
+  "titulo": "Aba Documentos da proposta: documentos ligados e o PDF conferido",
+  "vp": "desktop",
+  "arquivo": "12-08-documentos-aba-proposta.png",
+  "data": "2026-10-31T01:07:58.853Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Gera o Memorial (PDF) e a FCI (PDF ou Excel) desta proposta.",
+    "sel": "#app [data-doc=\"memorial\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Cada documento ligado: tipo, número, fornecedor, revisão, item e etapa.",
+    "sel": "#app section.card:has([data-doc=\"memorial\"]) tbody tr:nth-child(1) td:nth-child(1)",
+    "ok": true
+   }
+  ]
+ }
+}

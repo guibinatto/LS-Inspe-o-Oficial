@@ -1,0 +1,463 @@
+{
+ "05-01": {
+  "id": "05-01",
+  "cap": 5,
+  "nome": "memorial-cabecalho",
+  "titulo": "Aba Memorial: título e documentos para o financeiro",
+  "vp": "desktop",
+  "arquivo": "05-01-memorial-cabecalho.png",
+  "data": "2026-10-31T00:53:48.466Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Memorial de formação de preço: custos, impostos, comissão, margem e demonstrativo, por item e total.",
+    "sel": "#app .stack > div:first-child h1",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Memorial (PDF).",
+    "sel": "#app .stack > div:first-child [data-doc=\"memorial\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "FCI (PDF) de todos os itens.",
+    "sel": "#app .stack > div:first-child [data-doc=\"fcipdf\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "FCI (Excel), no layout do template.",
+    "sel": "#app .stack > div:first-child [data-doc=\"fcixlsx\"]",
+    "ok": true
+   }
+  ]
+ },
+ "05-02": {
+  "id": "05-02",
+  "cap": 5,
+  "nome": "memorial-custos-margem",
+  "titulo": "Memorial do exemplo: custos, impostos, comissão e margem",
+  "vp": "desktop",
+  "arquivo": "05-02-memorial-custos-margem.png",
+  "data": "2026-10-31T00:53:49.452Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Uma coluna por item preenchido (ITEM 01, ITEM 02…).",
+    "sel": "#app section.card table.t thead th:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Total da proposta: R$ somados; percentuais efetivos.",
+    "sel": "#app section.card table.t thead th:last-child",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Custos de Startup e dos fretes entram no custo.",
+    "sel": "#app section.card table.t tbody tr:nth-child(3) td:first-child",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "TOTAL CUSTOS (materiais, fabricação, start-up e frete).",
+    "sel": "#app section.card table.t tbody tr:nth-child(5)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "TOTAL IMPOSTOS (sem o IPI): ICMS + PIS/COFINS + IR/CSLL.",
+    "sel": "#app section.card table.t tbody tr:nth-child(9)",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Margem Liquida de cada item e da proposta (acima, as comissões).",
+    "sel": "#app section.card table.t tbody tr:nth-child(13)",
+    "ok": true
+   }
+  ]
+ },
+ "05-03": {
+  "id": "05-03",
+  "cap": 5,
+  "nome": "memorial-precos-demonstrativo",
+  "titulo": "Memorial do exemplo: preços, IPI, origem e demonstrativo",
+  "vp": "desktop",
+  "arquivo": "05-03-memorial-precos-demonstrativo.png",
+  "data": "2026-10-31T00:53:49.871Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Preço de venda SEM IPI (total), quantidade e unitário.",
+    "sel": "#app section.card table.t tbody tr:nth-child(14)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "IPI (%) e IPI (R$): por fora, não entra na margem.",
+    "sel": "#app section.card table.t tbody tr:nth-child(17)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Preço COM IPI: unitário e total (o valor ao cliente).",
+    "sel": "#app section.card table.t tbody tr:nth-child(19)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Origem do conjunto e conteúdo de importação (CI), da FCI.",
+    "sel": "#app section.card table.t tbody tr:nth-child(21)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Demonstrativo: base é o preço SEM IPI.",
+    "sel": "#app section.card table.t tbody tr:nth-child(23)",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Margem líquida em R$ (preço sem impostos − custos − comissão).",
+    "sel": "#app section.card table.t tbody tr:nth-child(29)",
+    "ok": true
+   }
+  ]
+ },
+ "05-04": {
+  "id": "05-04",
+  "cap": 5,
+  "nome": "memorial-notas",
+  "titulo": "Fim do Memorial: linhas de conferência e a nota de cálculo",
+  "vp": "desktop",
+  "arquivo": "05-04-memorial-notas.png",
+  "data": "2026-10-31T00:53:50.345Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Conferência: custos + comissão + margem, por item e no total.",
+    "sel": "#app section.card table.t tbody tr:nth-last-child(6)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Preço do item calculado nas abas de item (sem IPI).",
+    "sel": "#app section.card table.t tbody tr:nth-last-child(4)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Diferença entre o preço do item e o preço refeito pelo memorial: deve ser zero.",
+    "sel": "#app section.card table.t tbody tr:nth-last-child(2)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Como o preço é formado e como ler o total da proposta.",
+    "sel": "#app section.card > p.sub:last-child",
+    "ok": true
+   }
+  ]
+ },
+ "05-05": {
+  "id": "05-05",
+  "cap": 5,
+  "nome": "memorial-aba-documentos",
+  "titulo": "Aba Documentos (proposta salva)",
+  "vp": "desktop",
+  "arquivo": "05-05-memorial-aba-documentos.png",
+  "data": "2026-10-31T00:53:50.757Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Situação e próximo passo: a trilha de etapas da proposta.",
+    "sel": "#app .stack > section:nth-child(1) h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Próximo passo sugerido (aqui, Conferir PDF).",
+    "sel": "#app .stack [data-hnext]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Proposta técnica e comercial: gera o PDF no modelo LS Fire (PTC).",
+    "sel": "#pcCard [data-pcgerar]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Memorial (PDF), FCI (PDF), FCI (Excel) e Ver todas as colunas (abre a planilha completa da proposta).",
+    "sel": "#app .stack [data-propfull]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Ver e comparar revisões e Revisar (nova revisão).",
+    "sel": "#app .stack [data-revisar]",
+    "ok": true
+   }
+  ]
+ },
+ "05-06": {
+  "id": "05-06",
+  "cap": 5,
+  "nome": "memorial-pdf-sem-internet",
+  "titulo": "Memorial (PDF) sem acesso à internet: aviso do app",
+  "vp": "desktop",
+  "arquivo": "05-06-memorial-pdf-sem-internet.png",
+  "data": "2026-10-31T00:53:53.511Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Clique em Memorial (PDF)…",
+    "sel": "#app .stack [data-doc=\"memorial\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "…sem internet, o app avisa que não conseguiu carregar a biblioteca do PDF.",
+    "sel": ".toast",
+    "ok": true
+   }
+  ]
+ },
+ "05-07": {
+  "id": "05-07",
+  "cap": 5,
+  "nome": "memorial-conferencia-pdf",
+  "titulo": "Conferência do PDF da proposta (aba Conferência)",
+  "vp": "desktop",
+  "arquivo": "05-07-memorial-conferencia-pdf.png",
+  "data": "2026-10-31T00:53:54.878Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O app confere o PDF com a formação: cabeçalho, valores, especificações e escopo.",
+    "sel": "#confCard h2 .sub",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Situação: não conferida, conferida ✓ (com a data) ou desatualizada.",
+    "sel": "#confCard .pill",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Solte aqui o PDF da proposta comercial, ou clique para escolher.",
+    "sel": "#confCard .drop",
+    "ok": true
+   }
+  ]
+ },
+ "05-08": {
+  "id": "05-08",
+  "cap": 5,
+  "nome": "memorial-item-fci",
+  "titulo": "Bloco FCI do item 01",
+  "vp": "desktop",
+  "arquivo": "05-08-memorial-item-fci.png",
+  "data": "2026-10-31T00:53:55.939Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Resumo: conteúdo importado, origem e se a FCI está pronta. Logo abaixo, o conteúdo importado e o limite (40%).",
+    "sel": "#app details[data-keep=\"fci\"] summary",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Valor da saída, sem ICMS e IPI.",
+    "sel": "#app details[data-keep=\"fci\"] .kpi:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "ICMS na nota e o CST.",
+    "sel": "#app details[data-keep=\"fci\"] .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Unidade p/ transmissão e Finalidade.",
+    "sel": "#app details[data-keep=\"fci\"] .fields",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Componentes importados e a parcela importada.",
+    "sel": "#app details[data-keep=\"fci\"] table",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "FCI em PDF e FCI em Excel (template), só deste item.",
+    "sel": "#app details[data-keep=\"fci\"] [data-doc=\"fcixlsx\"]",
+    "ok": true
+   }
+  ]
+ },
+ "05-09": {
+  "id": "05-09",
+  "cap": 5,
+  "nome": "proposta-ptc-cartao",
+  "titulo": "Aba Documentos: cartão Proposta técnica e comercial",
+  "vp": "desktop",
+  "arquivo": "05-09-proposta-ptc-cartao.png",
+  "data": "2026-10-31T00:53:58.269Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Padrão: Clássico (PTC) ou Folha de dados (novo).",
+    "sel": "#pcCard .pcopts .f:nth-child(1) .seg",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Documento: técnica e comercial, comercial (sem folha de dados) ou técnica (sem preços).",
+    "sel": "#pcCard .pcopts .f:nth-child(2) .seg",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Idioma: português, inglês ou espanhol. Ao trocar, o cartão já mostra a tradução.",
+    "sel": "#pcCard .pcopts .f:nth-child(3) .seg",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Moeda: real ou dólar (com a taxa do dia).",
+    "sel": "#pcCard .pcopts .f:nth-child(4) .seg",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Gera o PDF com os números desta formação.",
+    "sel": "#pcCard [data-pcgerar]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Cabeçalho e condições só para conferir: vêm de Dados gerais e da formação.",
+    "sel": "#pcCard .pcro",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Para mudar, volte a Dados gerais.",
+    "sel": "#pcCard [data-step=\"1\"]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Código, folha de dados e curva ficam em cada item.",
+    "sel": "#pcCard [data-goitem]",
+    "ok": true
+   }
+  ]
+ },
+ "05-10": {
+  "id": "05-10",
+  "cap": 5,
+  "nome": "proposta-ptc-modelo",
+  "titulo": "Configurações → Modelo da proposta",
+  "vp": "desktop",
+  "arquivo": "05-10-proposta-ptc-modelo.png",
+  "data": "2026-10-31T00:54:00.027Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Estrutura, imagens, textos padrão e contatos do PDF de todas as propostas.",
+    "sel": "#app section.card:has([data-pmlay]) h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Muda a ordem das seções.",
+    "sel": "#app [data-pmord=\"conheca|1\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "O que entra em cada tipo de documento.",
+    "sel": "#app [data-pmlay=\"com|termos\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Imagens: trocar, tamanho, alinhamento e posição.",
+    "sel": "#app details[data-keep=\"pm_img\"] summary",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Textos padrão em português, inglês ou espanhol.",
+    "sel": "#app .pmtextos .seg",
+    "ok": true
+   }
+  ]
+ },
+ "05-11": {
+  "id": "05-11",
+  "cap": 5,
+  "nome": "proposta-ptc-item",
+  "titulo": "Item: código do produto, folha de dados e curva da bomba",
+  "vp": "desktop",
+  "arquivo": "05-11-proposta-ptc-item.png",
+  "data": "2026-10-31T00:54:01.738Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Código do produto (ERP): sai na coluna Código.",
+    "sel": "#app details[data-keep=\"fdprop\"] [data-pccod]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Notas deste item na folha de dados.",
+    "sel": "#app details[data-keep=\"fdprop\"] [data-pcni]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Folha de dados da bomba: o app lê os dados para você conferir.",
+    "sel": "#app details[data-keep=\"fdprop\"] .fdslot:nth-child(1) .drop",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Curva da bomba: entra na folha de dados da proposta.",
+    "sel": "#app details[data-keep=\"fdprop\"] .fdslot:nth-child(3) .drop",
+    "ok": true
+   }
+  ]
+ }
+}

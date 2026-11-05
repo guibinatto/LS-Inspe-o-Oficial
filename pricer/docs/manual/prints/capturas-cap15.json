@@ -1,0 +1,372 @@
+{
+ "15-01": {
+  "id": "15-01",
+  "cap": 15,
+  "nome": "revisoes-cabecalho",
+  "titulo": "Cabeçalho da proposta: revisão atual e botão Revisar",
+  "vp": "desktop",
+  "arquivo": "15-01-revisoes-cabecalho.png",
+  "data": "2026-10-31T01:02:30.456Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Revisão atual. Clique para ver, comparar e restaurar as revisões.",
+    "sel": ".ctxh .apselo[data-revs]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Revisar: guarda a revisão atual e abre a próxima para edição.",
+    "sel": ".ctxh .ctx-tags [data-revisar]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Situação da proposta.",
+    "sel": ".ctxh .ctx-tags > span.pill",
+    "ok": true
+   }
+  ]
+ },
+ "15-02": {
+  "id": "15-02",
+  "cap": 15,
+  "nome": "revisoes-revisar",
+  "titulo": "Revisar a proposta: o motivo fica registrado",
+  "vp": "desktop",
+  "arquivo": "15-02-revisoes-revisar.png",
+  "data": "2026-10-31T01:02:31.856Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O que muda nesta revisão? (vai para o histórico e para a lista de revisões)",
+    "sel": ".modal #rvMot",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Criar revisão: a atual fica guardada como está.",
+    "sel": ".modal #rvOk",
+    "ok": true
+   }
+  ]
+ },
+ "15-03": {
+  "id": "15-03",
+  "cap": 15,
+  "nome": "revisoes-salvar-enviada",
+  "titulo": "Salvar uma proposta já enviada: nova revisão ou só correção",
+  "vp": "desktop",
+  "arquivo": "15-03-revisoes-salvar-enviada.png",
+  "data": "2026-10-31T01:02:36.368Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Aparece ao salvar alterações numa proposta enviada ao cliente ou em negociação.",
+    "sel": ".modal h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "O que muda? (opcional)",
+    "sel": ".modal #rvMot2",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Salvar como revisão nova: a enviada fica guardada.",
+    "sel": ".modal #rvNova",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "É só correção: grava por cima, na mesma revisão.",
+    "sel": ".modal #rvMesma",
+    "ok": true
+   }
+  ]
+ },
+ "15-04": {
+  "id": "15-04",
+  "cap": 15,
+  "nome": "revisoes-lista",
+  "titulo": "Lista de revisões: ver, restaurar, comparar",
+  "vp": "desktop",
+  "arquivo": "15-04-revisoes-lista.png",
+  "data": "2026-10-31T01:02:42.895Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Revisão atual (a que se edita).",
+    "sel": ".modal tbody tr.tot",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Versão enviada ao cliente, congelada automaticamente.",
+    "sel": ".modal tbody .pill.warn",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ver: abre só para consulta.",
+    "sel": ".modal [data-revver]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Restaurar: traz de volta como a próxima revisão.",
+    "sel": ".modal [data-revrest]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Comparar esta versão…",
+    "sel": ".modal #rcA",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "…com esta (por padrão, a atual).",
+    "sel": ".modal #rcB",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Comparar.",
+    "sel": ".modal [data-revcmp]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Revisar (criar a próxima revisão).",
+    "sel": ".modal [data-revisar]",
+    "ok": true
+   }
+  ]
+ },
+ "15-05": {
+  "id": "15-05",
+  "cap": 15,
+  "nome": "revisoes-comparar",
+  "titulo": "Comparação entre a revisão 3 e a atual",
+  "vp": "desktop",
+  "arquivo": "15-05-revisoes-comparar.png",
+  "data": "2026-10-31T01:02:44.107Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Total, custo, impostos e margem lado a lado, com a diferença.",
+    "sel": ".modal table.t",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Se a mudança exige nova aprovação, e por quê.",
+    "sel": ".modal .banner",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Itens incluídos, retirados e alterados.",
+    "sel": ".modal h3",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Campos alterados (de → para).",
+    "sel": ".modal h3",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "← Revisões: volta à lista.",
+    "sel": ".modal [data-revs]",
+    "ok": true
+   }
+  ]
+ },
+ "15-06": {
+  "id": "15-06",
+  "cap": 15,
+  "nome": "revisoes-consulta",
+  "titulo": "Consultando uma revisão anterior (só leitura)",
+  "vp": "desktop",
+  "arquivo": "15-06-revisoes-consulta.png",
+  "data": "2026-10-31T01:02:45.236Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Consultando a revisão: só leitura, nada aqui é salvo.",
+    "sel": "#app .banner.warn span",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Voltar à revisão atual.",
+    "sel": "#app .banner.warn [data-revatual]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "O selo mostra \"Consultando rev. N\".",
+    "sel": ".ctxh .apselo[data-revs]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "O indicador de gravação também avisa a consulta.",
+    "sel": "#saveSt",
+    "ok": true
+   }
+  ]
+ },
+ "15-07": {
+  "id": "15-07",
+  "cap": 15,
+  "nome": "revisoes-historico-proposta",
+  "titulo": "Aba Histórico da proposta: registro de tudo o que aconteceu com ela",
+  "vp": "desktop",
+  "arquivo": "15-07-revisoes-historico-proposta.png",
+  "data": "2026-10-31T01:02:48.483Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Registro: eventos desta proposta, do mais recente para o mais antigo.",
+    "sel": "#app section.card:nth-of-type(3) h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quando e quem.",
+    "sel": "#app .hlist .hrow .hmeta",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Tipo do evento (revisão, salva, status, aprovação, conferência…).",
+    "sel": "#app .hlist .hrow .pill",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "O que mudou: de → para.",
+    "sel": "#app .hlist .hrow table.mini",
+    "ok": true
+   }
+  ]
+ },
+ "15-08": {
+  "id": "15-08",
+  "cap": 15,
+  "nome": "revisoes-historico-geral",
+  "titulo": "Configurações → Histórico: todas as alterações, com filtro e busca",
+  "vp": "desktop",
+  "arquivo": "15-08-revisoes-historico-geral.png",
+  "data": "2026-10-31T01:02:52.125Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Tipo: tudo, propostas e alertas, baixas e custo real, documentos, pedidos, cadastro, acessos.",
+    "sel": "#histT",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Busca no tipo, descrição, referência e campos alterados.",
+    "sel": "#histQ",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Neste navegador: alterações feitas aqui. No compartilhado: últimos 90 dias de toda a equipe.",
+    "sel": "#app .sheetbar > span.sub",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Campos alterados: de → para.",
+    "sel": "#app .hlist .hrow table.mini",
+    "ok": true
+   }
+  ]
+ },
+ "15-09": {
+  "id": "15-09",
+  "cap": 15,
+  "nome": "revisoes-excluir",
+  "titulo": "Abrir → Propostas salvas: Excluir manda para a lixeira",
+  "vp": "desktop",
+  "arquivo": "15-09-revisoes-excluir.png",
+  "data": "2026-10-31T01:02:54.549Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Buscar por número ou cliente.",
+    "sel": ".modal #mQ",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Abrir a proposta.",
+    "sel": ".modal [data-open]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Excluir: o primeiro clique vira \"Confirmar\"; o segundo manda para a lixeira.",
+    "sel": ".modal [data-del]",
+    "ok": true
+   }
+  ]
+ },
+ "15-10": {
+  "id": "15-10",
+  "cap": 15,
+  "nome": "revisoes-lixeira",
+  "titulo": "Configurações → Backup e restauração → Lixeira",
+  "vp": "desktop",
+  "arquivo": "15-10-revisoes-lixeira.png",
+  "data": "2026-10-31T01:02:56.835Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Lixeira: propostas excluídas.",
+    "sel": "#app section.card:nth-of-type(3) h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Restaurar: a proposta volta para a lista.",
+    "sel": "#app [data-lxrest]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Apagar de vez (só o administrador; não dá para desfazer).",
+    "sel": "#app [data-lxdel]",
+    "ok": true
+   }
+  ]
+ }
+}

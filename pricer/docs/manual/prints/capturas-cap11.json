@@ -1,0 +1,382 @@
+{
+ "11-01": {
+  "id": "11-01",
+  "cap": 11,
+  "nome": "modelos-familias-equipamento",
+  "titulo": "Cadastros → Engenharia → Famílias: famílias de equipamento",
+  "vp": "desktop",
+  "arquivo": "11-01-modelos-familias-equipamento.png",
+  "data": "2026-10-31T00:58:26.083Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Famílias de equipamento: o que o item é.",
+    "sel": "#app section.card:nth-of-type(2) h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Sigla da família no código do produto.",
+    "sel": "#app section.card:nth-of-type(2) td.code",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Estrutura: cadastrada ou \"sem estrutura\".",
+    "sel": "#app section.card:nth-of-type(2) .pill.ok",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Quantos modelos prontos a família tem.",
+    "sel": "#app section.card:nth-of-type(2) tbody tr:first-child td:nth-child(5)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Editar: nome, sigla e família de produto na política de preço.",
+    "sel": "[data-eqedit]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "+ Nova família de equipamento (até 9).",
+    "sel": "[data-eqnew]",
+    "ok": true
+   }
+  ]
+ },
+ "11-02": {
+  "id": "11-02",
+  "cap": 11,
+  "nome": "modelos-familia-insumo",
+  "titulo": "Editar uma família de insumo",
+  "vp": "desktop",
+  "arquivo": "11-02-modelos-familia-insumo.png",
+  "data": "2026-10-31T00:58:28.496Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Código: fixo depois de criada (1 a 98 na criação).",
+    "sel": "#fmCode",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Nome sem espaços, como no código do insumo.",
+    "sel": "#fmNome",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Descrição: para que serve a família.",
+    "sel": "#fmDesc",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Renomear troca a família nos insumos e nas linhas da estrutura.",
+    "sel": ".modal .card p.sub",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Salvar.",
+    "sel": "#fmOk",
+    "ok": true
+   }
+  ]
+ },
+ "11-03": {
+  "id": "11-03",
+  "cap": 11,
+  "nome": "modelos-ncm-familia",
+  "titulo": "Cadastros → Fiscal → Impostos e NCM: NCM e unidade por família",
+  "vp": "desktop",
+  "arquivo": "11-03-modelos-ncm-familia.png",
+  "data": "2026-10-31T00:58:29.791Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "NCM e unidade por família de equipamento: o item puxa daqui.",
+    "sel": "#app section.card h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "NCM da família (lista da tabela NCM e IPI).",
+    "sel": "select[data-ffam$=\"|ncm\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Unidade da família.",
+    "sel": "select[data-ffam$=\"|unid\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Família sem NCM: o item fica sem NCM e o alerta da FCI avisa.",
+    "sel": "#app section.card > p.sub",
+    "ok": true
+   }
+  ]
+ },
+ "11-04": {
+  "id": "11-04",
+  "cap": 11,
+  "nome": "modelos-item",
+  "titulo": "Itens da proposta: Salvar como modelo e o quadro Modelos de item",
+  "vp": "desktop",
+  "arquivo": "11-04-modelos-item.png",
+  "data": "2026-10-31T00:58:30.777Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Salvar como modelo: pede o nome e guarda a configuração do item.",
+    "sel": "[data-modsave=\"0\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Usar: cria o item numa posição livre desta proposta.",
+    "sel": "[data-moduse]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "excluir: só quem criou o modelo (ou o dono).",
+    "sel": "[data-moddel]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "buscar em configurações já usadas: a biblioteca de itens de propostas salvas.",
+    "sel": "#app h2 [data-biblio]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "+ Adicionar item: modelo pronto ou montagem própria.",
+    "sel": "[data-additem]",
+    "ok": true
+   }
+  ]
+ },
+ "11-05": {
+  "id": "11-05",
+  "cap": 11,
+  "nome": "modelos-biblioteca",
+  "titulo": "Configurações já usadas: busca por \"skid\"",
+  "vp": "desktop",
+  "arquivo": "11-05-modelos-biblioteca.png",
+  "data": "2026-10-31T00:58:34.470Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Quantos itens existem nas propostas salvas.",
+    "sel": ".modal .card h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Busca por família, modelo, potência, vazão, cliente ou componente (aceita sinônimos).",
+    "sel": "#bbQ",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Proposta, item, família/modelo e potência, vazão e pressão.",
+    "sel": "#bbL thead",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Usar: copia a configuração para uma posição livre desta proposta.",
+    "sel": "[data-bbuse]",
+    "ok": true
+   }
+  ]
+ },
+ "11-06": {
+  "id": "11-06",
+  "cap": 11,
+  "nome": "modelos-regra-nova",
+  "titulo": "Nova regra de configuração com a condição Componente presente",
+  "vp": "desktop",
+  "arquivo": "11-06-modelos-regra-nova.png",
+  "data": "2026-10-31T00:58:37.060Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nome (obrigatório).",
+    "sel": "#rgNome",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Criticidade: Impeditiva, Atenção ou Informativa.",
+    "sel": "#rgSev",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Prioridade: ordem de avaliação e de exibição (menor primeiro).",
+    "sel": "#rgPri",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Situação: Publicada (vale nas propostas), Rascunho (só no testador) ou Inativa.",
+    "sel": "#rgSt",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Quando: condições (todas precisam valer). \"Componente presente\" olha a descrição dos componentes do item.",
+    "sel": ".rgcond",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Então: exige, não pode ter, ou só avisa.",
+    "sel": "#rgEf",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Componente (parte da descrição) exigido ou proibido.",
+    "sel": "#rgComp",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Fonte ou justificativa (obrigatória).",
+    "sel": "#rgFonte",
+    "ok": true
+   }
+  ]
+ },
+ "11-07": {
+  "id": "11-07",
+  "cap": 11,
+  "nome": "modelos-regras-lista",
+  "titulo": "Regras de configuração: a regra salva em rascunho",
+  "vp": "desktop",
+  "arquivo": "11-07-modelos-regras-lista.png",
+  "data": "2026-10-31T00:58:40.336Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Identificador da regra (RG-001…).",
+    "sel": "#app tbody td:first-child .code",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Situação (publicada, rascunho ou inativa), ao lado da prioridade e da versão (a versão sobe a cada alteração salva).",
+    "sel": "#app tbody .pill.warn",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Fonte e responsável (quem salvou por último; no modo local fica \"—\").",
+    "sel": "#app tbody td:nth-child(5)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Editar: altera, duplica ou exclui a regra.",
+    "sel": "[data-rgedit=\"0\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "+ Nova regra.",
+    "sel": "[data-rgedit=\"novo\"]",
+    "ok": true
+   }
+  ]
+ },
+ "11-08": {
+  "id": "11-08",
+  "cap": 11,
+  "nome": "modelos-spv",
+  "titulo": "Proposta SPV: Salvar esta proposta como modelo",
+  "vp": "desktop",
+  "arquivo": "11-08-modelos-spv.png",
+  "data": "2026-10-31T00:58:41.651Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nome do modelo (sugerido pelo tipo e pelo cliente).",
+    "sel": "#moNome",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Tipo de serviço.",
+    "sel": "#moTipo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Visitas por ano (vazio = serviço avulso).",
+    "sel": "#moVis",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Equipe: um técnico por linha, \"nome; dias\".",
+    "sel": "#moEq",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Peças e materiais padrão: \"descrição; quantidade; valor unitário\".",
+    "sel": "#moPc",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Escopo; abaixo, Não incluso.",
+    "sel": "#moEsc",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Salvar modelo.",
+    "sel": "#moSave",
+    "ok": true
+   }
+  ]
+ },
+ "11-09": {
+  "id": "11-09",
+  "cap": 11,
+  "nome": "modelos-codificacao",
+  "titulo": "Engenharia → Codificação: padrões e a tabela Configurações de bomba",
+  "vp": "desktop",
+  "arquivo": "11-09-modelos-codificacao.png",
+  "data": "2026-10-31T00:58:47.334Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ }
+}

@@ -1,0 +1,53 @@
+// Dados do documento (cabeçalho LS Fire, capa, controle de revisões) e textos de abertura.
+// Código, elaborado e aprovado: confirmar com a LS Fire antes de distribuir.
+module.exports = {
+  titulo: 'MANUAL DE UTILIZAÇÃO — LS PRICER',
+  subtitulo: 'Guia de Operação e Treinamento',
+  codigo: 'MN',
+  revisao: '00',
+  data: '29/10/2026',
+  sistema: 'LS Pricer REV22',
+  elaborado: '',
+  aprovado: '',
+  arquivo: 'MN-LS-Pricer-Manual-de-Utilizacao-Rev00',
+  arquivoGuia: 'MN-LS-Pricer-Guia-Rapido-Rev00',
+  revisoes: [
+    { rev: '00', data: '29/10/2026', desc: 'Emissão inicial. LS Pricer REV22 com a nova navegação (menu lateral, abas da proposta SEQ, Configurações separadas de Cadastros).' },
+  ],
+  sobre: [
+    { t: 'h', x: 'Sobre este manual' },
+    { t: 'p', x: 'Este manual ensina a operar o **LS Pricer**, o sistema de formação de preço da LS Fire para soluções e equipamentos (SEQ) e para serviços e pós-venda (SPV). Ele serve para o treinamento de novos usuários e como consulta no dia a dia.' },
+    { t: 'tab', cab: ['Item', 'Conteúdo'], lin: [
+      ['Versão do sistema', 'LS Pricer REV22 (arquivo ls-pricer.html), com o menu lateral e as abas da proposta SEQ'],
+      ['Público', 'Vendas, Precificação, Custos, Engenharia, Fiscal, Serviços, Diretoria, Financeiro e administradores do sistema'],
+      ['Como as telas foram obtidas', 'Todas as figuras são capturas reais do sistema, geradas automaticamente a partir do arquivo publicado, no modo local, com a proposta de exemplo (Cocamar). Nenhuma tela foi desenhada ou montada à mão'],
+      ['Arquivos das telas', 'Pasta prints: "original" (a tela como ela é) e "anotado" (com os marcadores). O nome do arquivo começa pelo número do capítulo e diz o módulo'],
+    ] },
+    { t: 'h', x: 'Como ler este manual' },
+    { t: 'lista', itens: [
+      '**Figuras anotadas**: cada número laranja aponta um elemento real da tela. A legenda abaixo da figura explica cada número.',
+      '**Tutoriais**: seguem sempre o mesmo modelo — objetivo, quem pode executar, pré-requisitos, passo a passo, resultado esperado, atenção e dica.',
+      '**Nomes de botões e campos** aparecem em **negrito**, exatamente como estão na tela. Botões com o ícone de mais aparecem escritos como "+ Nome" (por exemplo, **+ Novo insumo**).',
+      'O manual segue a ordem do trabalho: navegação, proposta SEQ, memorial, SPV, cadastros, processo (documentos, pendências, aprovações, margens, revisões), administração, erros comuns e exercícios.',
+    ] },
+    { t: 'aviso', x: 'Caixas de atenção apontam risco de erro ou de perda de dados.' },
+    { t: 'dica', x: 'Caixas de dica trazem atalhos e boas práticas.' },
+    { t: 'nota', x: 'Caixas de observação explicam o porquê de um comportamento.' },
+    { t: 'nv', x: 'Caixas "Não validado" marcam o que não pôde ser confirmado nas capturas — em geral o que depende do modo compartilhado (login, permissões, nomes de pessoas), de serviços externos (consulta à Receita, e-mail) ou de dados reais da empresa. Antes de usar esses trechos em treinamento, confirme no ambiente da equipe.' },
+  ],
+  glossario: [
+    ['SEQ', 'Soluções e equipamentos: conjuntos motobomba, skids, containers, especiais, jockey + painel e FACTS. Calculados pela planilha REV21 embutida no sistema'],
+    ['SPV', 'Serviços e pós-venda: treinamento, start-up, serviço em campo e em fábrica, peças, inspeção, contrato, locação, filtragem e outros'],
+    ['FACTS', 'Proposta da linha FACTS, iniciada pelo botão FACTS em SEQ na tela Início'],
+    ['Modo local', 'O arquivo ls-pricer.html aberto direto no computador. Os dados ficam só naquele navegador e não há login nem controle de acesso'],
+    ['Modo compartilhado', 'O sistema aberto pelo endereço da equipe. Os dados ficam no banco compartilhado e as permissões são verificadas no banco'],
+    ['Insumo', 'Material ou serviço cadastrado com código, descrição e preço, usado nas estruturas e nas propostas'],
+    ['Estrutura (MONTADOR)', 'Lista de componentes que o sistema monta para cada família e modelo de equipamento'],
+    ['Kit', 'Conjunto de insumos cadastrado para ser usado de uma vez'],
+    ['Margem', 'Margem líquida da proposta, comparada com a margem mínima da política'],
+    ['Revisão', 'Nova versão numerada de uma proposta. As versões enviada e aprovada ficam guardadas'],
+    ['Pendência', 'Item de acompanhamento com responsável, prazo e criticidade; pode nascer da conferência da proposta'],
+    ['Valor target', 'Valor de venda pedido para aprovação abaixo da política de desconto ou margem'],
+    ['Preços da época', 'Propostas enviadas, aprovadas e ganhas continuam calculando com os preços do dia em que foram feitas; a atualização é seletiva'],
+  ],
+};

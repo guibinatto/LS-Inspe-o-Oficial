@@ -1,0 +1,444 @@
+{
+ "09-01": {
+  "id": "09-01",
+  "cap": 9,
+  "nome": "estruturas-lista",
+  "titulo": "Cadastros → Engenharia → Estruturas: componentes da estrutura Conjunto motobomba",
+  "vp": "desktop",
+  "arquivo": "09-01-estruturas-lista.png",
+  "data": "2026-10-31T00:57:33.418Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Área Engenharia: estruturas, famílias, regras e testador.",
+    "sel": ".areatabs [aria-selected=\"true\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Uma aba por estrutura (família de equipamento): Conjunto motobomba, Skid, Container.",
+    "sel": ".subtabs [data-estr=\"CMB\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "+ Nova estrutura: cria a estrutura de outra família, partindo dos componentes de uma existente.",
+    "sel": "[data-estrnew]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "+ Novo componente: inclui uma linha na estrutura (60 linhas no total).",
+    "sel": "[data-recnew]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Comparar com…: abre a comparação com outra estrutura.",
+    "sel": "#estrCmp",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Testar esta estrutura: abre o Testador de estruturas.",
+    "sel": "#app .docbar [data-cad=\"testador\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Grupo (conjunto) com a contagem de obrigatórios, opcionais e condicionais. Clique para recolher ou expandir.",
+    "sel": "tr.grp[data-fold=\"DIESEL\"]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Editar: abre o componente.",
+    "sel": "tr[data-recedit=\"98\"] button[data-recedit]",
+    "ok": true
+   }
+  ]
+ },
+ "09-02": {
+  "id": "09-02",
+  "cap": 9,
+  "nome": "estruturas-componente",
+  "titulo": "Janela do componente da estrutura (Tanque de combustível)",
+  "vp": "desktop",
+  "arquivo": "09-02-estruturas-componente.png",
+  "data": "2026-10-31T00:57:37.269Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nome do componente (como aparece no item).",
+    "sel": "#rRot",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Conjunto: diesel, elétrico, bomba jockey ou comum ao equipamento.",
+    "sel": "#rAc",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Vale para: em quais estruturas a linha entra.",
+    "sel": ".modal .chks",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "De onde sai o insumo: escolhido no item, tabela por porte, porte do motor ou insumo fixo.",
+    "sel": "#rTipo",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Coluna da tabela por porte (aparece conforme a origem escolhida).",
+    "sel": "#rFx",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Quantidade: 1 por bomba, 1 por bomba + 1, 2 ou 4 por bomba, ou fixa por equipamento.",
+    "sel": "#rQ",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Condição: sempre, só sem kit, só trocador/radiador ou opcional marcado no item.",
+    "sel": "#rRg",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Salvar. Ao lado, Excluir da estrutura pede confirmação.",
+    "sel": "#rSave",
+    "ok": true
+   }
+  ]
+ },
+ "09-03": {
+  "id": "09-03",
+  "cap": 9,
+  "nome": "estruturas-tabelas-porte",
+  "titulo": "Tabelas por porte: potência do diesel (HP)",
+  "vp": "desktop",
+  "arquivo": "09-03-estruturas-tabelas-porte.png",
+  "data": "2026-10-31T00:57:38.595Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Três tabelas: Potência do diesel (HP), Potência elétrica (CV) e Vazão (hidráulica, bitolas por vazão da bomba).",
+    "sel": "[data-porte=\"VAZAO\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Para que serve a tabela, com um exemplo lido da própria tabela.",
+    "sel": "#app section.card .banner.info",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Limites da faixa: digite o número e saia do campo para gravar.",
+    "sel": "input[data-tcell]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Insumo da faixa: clique e escolha do cadastro (ou Deixar sem).",
+    "sel": "button.pedit",
+    "ok": true
+   }
+  ]
+ },
+ "09-04": {
+  "id": "09-04",
+  "cap": 9,
+  "nome": "estruturas-rascunho",
+  "titulo": "Estrutura em rascunho com uma alteração pendente",
+  "vp": "desktop",
+  "arquivo": "09-04-estruturas-rascunho.png",
+  "data": "2026-10-31T00:57:39.051Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "editar em rascunho: marcado, as mudanças vão para o rascunho e as propostas não as veem.",
+    "sel": "#app section.card label.chk:has([data-estrrasc])",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quantas células o rascunho mudou.",
+    "sel": "#app section.card .pill.warn",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ver diferenças e impacto: o que mudou e quais modelos prontos mudam (sem publicar).",
+    "sel": "[data-rascdif]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Publicar…: mostra as diferenças e o impacto e só então libera a publicação.",
+    "sel": "[data-rascpub]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Descartar rascunho (pede confirmação).",
+    "sel": "[data-rascdesc]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Aviso: a tela mostra o rascunho.",
+    "sel": "#app .banner.warn",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Sensores passou a opcional no rascunho.",
+    "sel": "tr[data-recedit=\"103\"] .pill",
+    "ok": true
+   }
+  ]
+ },
+ "09-05": {
+  "id": "09-05",
+  "cap": 9,
+  "nome": "estruturas-impacto",
+  "titulo": "Publicar o rascunho: diferenças e impacto nos modelos prontos",
+  "vp": "desktop",
+  "arquivo": "09-05-estruturas-impacto.png",
+  "data": "2026-10-31T00:57:41.831Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Diferenças por linha da estrutura: incluído, excluído ou alterado (campo: antes → depois).",
+    "sel": ".modal table",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Impacto: cada modelo pronto das estruturas alteradas é montado no motor real, antes e depois.",
+    "sel": "#riRes",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Publicar: só fica ativo depois do cálculo do impacto.",
+    "sel": "#riPub",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Fechar sem publicar: o rascunho continua guardado.",
+    "sel": ".modal [data-close]",
+    "ok": true
+   }
+  ]
+ },
+ "09-06": {
+  "id": "09-06",
+  "cap": 9,
+  "nome": "estruturas-versoes",
+  "titulo": "Versões publicadas recentes, com Desfazer esta versão",
+  "vp": "desktop",
+  "arquivo": "09-06-estruturas-versoes.png",
+  "data": "2026-10-31T00:57:51.397Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Versões publicadas recentes: data, quem publicou e quantas células mudaram.",
+    "sel": "#app section.card details summary",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "desfazer esta versão: o primeiro clique pede confirmação e mostra quantas células voltam.",
+    "sel": "[data-estrdesf]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Depois de publicar, o modo rascunho é desligado.",
+    "sel": "#app section.card label.chk:has([data-estrrasc])",
+    "ok": true
+   }
+  ]
+ },
+ "09-07": {
+  "id": "09-07",
+  "cap": 9,
+  "nome": "estruturas-testador-comparar",
+  "titulo": "Testador de estruturas comparando dois modelos prontos",
+  "vp": "desktop",
+  "arquivo": "09-07-estruturas-testador-comparar.png",
+  "data": "2026-10-31T00:57:53.927Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Estrutura a testar.",
+    "sel": "#tsEstr",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Configurar por modelo pronto ou por características (arranjo, bomba, potências, vazão).",
+    "sel": "#app .seg",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Modelo pronto a montar.",
+    "sel": "#tsMod",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Comparar com: outro modelo pronto.",
+    "sel": "#tsCmp",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Opcionais da estrutura: marque para testar com eles.",
+    "sel": "#app .chks",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Montar e testar: roda a planilha real numa cópia. Nada é gravado.",
+    "sel": "[data-tstrun]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Custo direto por grupo e do item, nos dois modelos, com a diferença.",
+    "sel": "#app section.card tr.tot",
+    "ok": true
+   }
+  ]
+ },
+ "09-08": {
+  "id": "09-08",
+  "cap": 9,
+  "nome": "estruturas-testador-resultado",
+  "titulo": "Resultado do testador: componentes, custo e diagnóstico",
+  "vp": "desktop",
+  "arquivo": "09-08-estruturas-testador-resultado.png",
+  "data": "2026-10-31T00:57:59.129Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Custo do item calculado pela planilha.",
+    "sel": "#app .kpi.lead",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Componentes sem cadastro / sem preço.",
+    "sel": "#app section.card .kpis .kpi:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Grupo com subtotal e participação no custo.",
+    "sel": "#app tr.grp",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Por que entrou: origem, condição e a linha da estrutura (clique na linha para abrir o componente).",
+    "sel": "#app section.card:nth-of-type(3) th:last-child",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Componentes que não entraram e o motivo.",
+    "sel": "#app section.card h3",
+    "ok": true
+   }
+  ]
+ },
+ "09-09": {
+  "id": "09-09",
+  "cap": 9,
+  "nome": "estruturas-comparar",
+  "titulo": "Comparar estruturas: Conjunto motobomba × Skid (trecho com diferenças)",
+  "vp": "desktop",
+  "arquivo": "09-09-estruturas-comparar.png",
+  "data": "2026-10-31T00:58:00.128Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "difere: mostra o que muda entre as duas (tipo, campo do insumo, quantidade, condição, família).",
+    "sel": ".modal .pill.warn",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "mesma linha: o componente é a mesma linha da estrutura nas duas.",
+    "sel": ".modal tr:has(.pill.warn) ~ tr:has(.pill.ok) .pill.ok",
+    "ok": true
+   }
+  ]
+ },
+ "09-10": {
+  "id": "09-10",
+  "cap": 9,
+  "nome": "estruturas-mao-de-obra-bases",
+  "titulo": "Engenharia → Mão de obra e bases por porte",
+  "vp": "desktop",
+  "arquivo": "09-10-estruturas-mao-de-obra-bases.png",
+  "data": "2026-10-31T00:58:05.023Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "09-11": {
+  "id": "09-11",
+  "cap": 9,
+  "nome": "estruturas-visoes",
+  "titulo": "Visão comercial da estrutura: em que grupo do escopo cada linha aparece",
+  "vp": "desktop",
+  "arquivo": "09-11-estruturas-visoes.png",
+  "data": "2026-10-31T00:58:09.878Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Visão: Técnica (só o que é físico), Custeio (tudo que forma o custo, padrão) ou Comercial.",
+    "sel": "#app .seg:has([data-estrvis])",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Na visão comercial, esta coluna diz em que grupo do escopo da proposta a linha aparece, ou se fica só no custo.",
+    "sel": "#app thead th:nth-child(5)",
+    "ok": true
+   }
+  ]
+ }
+}

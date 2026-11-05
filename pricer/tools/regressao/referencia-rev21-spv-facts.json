@@ -1,0 +1,48 @@
+{
+ "SPV TRT": {
+  "PREÇO": "R$ 11.475,00",
+  "LUCRO LÍQUIDO": "50,7%"
+ },
+ "SPV TAQ": {
+  "PREÇO": "R$ 3.015,00",
+  "LUCRO LÍQUIDO": "50,7%"
+ },
+ "SPV PAN": {
+  "PREÇO": "R$ 3.015,00",
+  "LUCRO LÍQUIDO": "50,7%"
+ },
+ "SPV SMC": {
+  "PREÇO": "R$ 9.885,00",
+  "LUCRO LÍQUIDO": "50,7%"
+ },
+ "SPV SMF": {
+  "PREÇO": "R$ 7.395,00",
+  "LUCRO LÍQUIDO": "50,7%"
+ },
+ "SPV FRC": {
+  "PREÇO": "R$ 7.395,00",
+  "LUCRO LÍQUIDO": "50,7%"
+ },
+ "SPV PAR": {
+  "PREÇO": "R$ 0,00",
+  "LUCRO LÍQUIDO": "0,0%"
+ },
+ "SPV ITM": {
+  "PREÇO DO CONTRATO": "R$ 27.105,00",
+  "MENSAL": "R$ 2.258,75",
+  "LUCRO LÍQUIDO": "50,7%"
+ },
+ "SPV REN": {
+  "PREÇO": "R$ 0,00",
+  "LUCRO LÍQUIDO": "0,0%"
+ },
+ "SPV SFL": {
+  "PREÇO": "R$ 3.015,00",
+  "LUCRO LÍQUIDO": "50,7%"
+ },
+ "FACTS padrão": {
+  "PREÇO SEM IPI": "R$ 285.629,50",
+  "POR CONJUNTO": "R$ 285.629,50",
+  "MARGEM LÍQUIDA": "30,0%"
+ }
+}
