@@ -30,4 +30,5 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
 14. [Arquitetura ERP/CPQ — implementação](14-erp-implementacao.md): menu por módulos, numeração e máscaras, ficha do produto em abas, descrições, visões da estrutura, busca universal, testes, compatibilidade, permissões, atualização e reversão, e o que não foi feito.
 15. [Padrão SAP Business One — implementação](15-sap-implementacao.md): auditoria do prompt, menu Comercial/Cadastros/Engenharia, abas da proposta com Formação de preço, listas (Modelo A) e fichas (Modelo B), design system, **equivalência financeira antes × depois** e o que não foi feito.
 16. [Simulação de uso de ponta a ponta](16-simulacao-de-uso.md): cadastros, estruturas, proposta SEQ e SPV até o PDF, esforço por tarefa, coerência dos números, problemas corrigidos e pontos para decisão.
+17. [Ajustes técnicos](17-ajustes-tecnicos.md): NCM 8413.70.80 para bomba de até 18 m³/h, recalque de 5" para 450 gpm, perda de potência do diesel por altitude e temperatura (NFPA 20) e folha de desempenho no padrão Peerless.
 17. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).

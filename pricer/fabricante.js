@@ -359,7 +359,7 @@
     'Rated power (based on duty point)': ['Potência no ponto de trabalho', 'Potencia en el punto de trabajo'], 'Max power (non-overloading)': ['Potência máxima (sem sobrecarga)', 'Potencia máxima (sin sobrecarga)'], 'NPSH required': ['NPSH requerido', 'NPSH requerido'],
   };
   const VAL = {
-    Yes: ['Sim', 'Sí'], No: ['Não', 'No'], 'N/A': ['N/A', 'N/A'], None: ['Nenhum', 'Ninguno'], Ample: ['Amplo', 'Amplio'], 'Cold Water': ['Água fria', 'Agua fría'], 'Ductile Iron': ['Ferro fundido nodular', 'Hierro dúctil'], 'Cast Iron': ['Ferro fundido', 'Hierro fundido'],
+    Yes: ['Sim', 'Sí'], No: ['Não', 'No'], 'N/A': ['N/A', 'N/A'], None: ['Nenhum', 'Ninguno'], Ample: ['Amplo', 'Amplio'], 'Cold Water': ['Água fria', 'Agua fría'], 'Ductile Cast Iron': ['Ferro fundido nodular', 'Hierro fundido dúctil'], 'Ductile Iron': ['Ferro fundido nodular', 'Hierro dúctil'], 'Cast Iron': ['Ferro fundido', 'Hierro fundido'],
     'Clockwise (RH)': ['Horário (RH)', 'Horario (RH)'], 'Counterclockwise (LH)': ['Anti-horário (LH)', 'Antihorario (LH)'], Grease: ['Graxa', 'Grasa'], Oil: ['Óleo', 'Aceite'], 'Packing seal': ['Gaxeta', 'Empaquetadura'], 'Mechanical seal': ['Selo mecânico', 'Sello mecánico'],
     'Single Row': ['Uma carreira', 'Una hilera'], 'Silicon Brass': ['Latão ao silício', 'Latón al silicio'], 'Carbon steel': ['Aço carbono', 'Acero al carbono'], 'Bismuth tin bronze': ['Bronze estanho-bismuto', 'Bronce estaño-bismuto'], Integral: ['Integral', 'Integral'],
     'Heat exchanger cooled': ['Trocador de calor', 'Intercambiador de calor'], 'Radiator cooled': ['Radiador', 'Radiador'], 'Mounted on base with driver': ['Montada na base com o acionador', 'Montada en la base con el accionador'], 'Standard ventilation': ['Ventilação padrão', 'Ventilación estándar'],
@@ -373,7 +373,7 @@
   const secT = (s, lang) => (idx(lang) < 0 ? s : (SEC[s] || [])[idx(lang)] || null);
   const rotT = (s, lang) => (idx(lang) < 0 ? s : (ROT[s] || [])[idx(lang)] || null);
   // valor com código depois da barra ("Cast Iron / 06025"): traduz o material e mantém o código
-  const valT = (s, lang) => { if (idx(lang) < 0) return s; const d = (VAL[s] || [])[idx(lang)]; if (d) return d; const m = String(s).match(/^(.+?) \/ (.+)$/); if (m && VAL[m[1]]) return VAL[m[1]][idx(lang)] + ' / ' + (VAL[m[2]] ? VAL[m[2]][idx(lang)] : m[2]); return null; };
+  const valT = (s, lang) => { if (idx(lang) < 0) return s; const d = (VAL[s] || [])[idx(lang)]; if (d) return d; const m = String(s).match(/^(.+?) \/ (.+)$/); if (m && VAL[m[1]]) return VAL[m[1]][idx(lang)] + ' / ' + (VAL[m[2]] ? VAL[m[2]][idx(lang)] : m[2]); const g = String(s).match(/^(.+?)\s+(\d[\d.]{2,})$/); if (g && VAL[g[1]]) return VAL[g[1]][idx(lang)] + ' ' + g[2]; return null; }; // material + norma (ex.: Ductile Cast Iron 07040)
   // linha do escopo "Chave: valor": traduz cada parte pelo dicionário
   const linhaT = (s, lang) => { if (idx(lang) < 0) return s; if (VAL[s]) return valT(s, lang); const m = String(s).match(/^([^:]{2,60}):\s*(.*)$/); if (!m) return null; const k = rotT(m[1], lang) || ESC_ROT[m[1]]?.[idx(lang)]; const v = m[2] === '' ? '' : valT(m[2], lang); return k && v !== null ? (v ? k + ': ' + v : k + ':') : null; };
   const ESC_ROT = { 'Pump model': ['Modelo da bomba', 'Modelo de la bomba'], 'Selected pump listing': ['Listagem', 'Listado'], 'Casing material': ['Material da carcaça', 'Material de la carcasa'], 'Suction flange': ['Flange de sucção', 'Brida de succión'],

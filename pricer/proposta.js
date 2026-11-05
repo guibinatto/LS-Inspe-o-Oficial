@@ -45,7 +45,7 @@
       incluso: 'O que está incluso', comTit: 'Comissionamento e Start-up', servAd: 'Serviços adicionais', foraEsc: '(fora do escopo e sob consulta)', resp: 'Responsabilidades do cliente', notas: 'Notas', desvios: 'Desvios', exclusoes: 'Exclusões',
       compTit: 'Composição do Prazo Total', pFab: 'Prazo de Fabricação', pEnt: 'Prazo de entrega (CIF)', pTot: 'Prazo Total', dias: 'dias', sigla: ['Sigla', 'Significado', 'Aplica-se a'], inicio: 'Condições para início da contagem (DAPC)', susp: 'Hipóteses de suspensão do prazo',
       basePrazo: 'Base de Prazo', tipoEnt: 'Tipo de Entrega', adSob: 'Adicionais (sob consulta — solicitar à LS Fire)', disp: 'À disposição para esclarecimentos,', comCert: 'com certificação UL e FM', semCert: 'sem certificação UL e FM', diaria1: '1 diária inclusa', diariaN: '{n} diárias inclusas',
-      moeda: 'Valores em dólares americanos (US$), convertidos à taxa de R$ {taxa} por US$ 1,00{data}.', moedaData: ' de {d}', bomba: 'Bomba {n}' },
+      moeda: 'Valores em dólares americanos (US$), convertidos à taxa de R$ {taxa} por US$ 1,00{data}.', moedaData: ' de {d}', bomba: 'Bomba {n}', deratAlt: 'altitude {v} m', deratTemp: 'temperatura ambiente {v} °C', deratPar: 'de {a} HP para {b} HP', derat: 'Potência do motor diesel corrigida para as condições do local ({cond}), conforme a NFPA 20 (−3% a cada 300 m acima de 91 m e −1% a cada 5,6 °C acima de 25 °C): {pot}.' },
     en: { t_conheca: 'MEET LS FIRE', t_solucoes: 'LS FIRE SOLUTIONS', t_planilha: 'PRICE SCHEDULE', t_planilhaCond: 'PRICE SCHEDULE AND CONDITIONS', t_escopo: 'SCOPE OF SUPPLY', t_condicoes: 'CONDITIONS', t_folha: 'DATA SHEET', t_comiss: 'COMMISSIONING AND START-UP', t_notasSeq: 'NOTES, DEVIATIONS AND REMARKS', t_notasSpv: 'NOTES AND DEVIATIONS', t_prazos: 'LEAD TIMES AND CONDITIONS', t_docs: 'DOCUMENT SCOPE', t_termos: 'TERMS AND CONDITIONS', t_contatos: 'CONTACTS',
       cliente: 'Customer:', data: 'Date:', propNo: 'Proposal No.:', validade: 'Valid until:', capaProposta: 'PROPOSAL', capa_tc: 'TECHNICAL AND COMMERCIAL', capa_com: 'COMMERCIAL', capa_tec: 'TECHNICAL', obraProj: 'Project/Site:', aosCuid: 'Attention:', numero: 'Number:', revisao: 'Revision:', somos: 'WE ARE ',
       razao: 'Company name:', cnpj: 'Tax ID (CNPJ):', projObra: 'Project/Site:', cidade: 'Site city:', h_planilha: 'Price schedule', h_escopo: 'Scope of supply', th: ['Item', 'Code', 'Qty.', 'Unit', 'PIS/|COFINS', 'ICMS', 'ICMS/|ISS', 'IPI', 'NCM', 'Unit Price|(Incl. Taxes)', 'Total Price|(Incl. Taxes)', 'Short description'],
@@ -55,7 +55,7 @@
       incluso: "What's included", comTit: 'Commissioning and Start-up', servAd: 'Additional services', foraEsc: '(out of scope, upon request)', resp: 'Customer responsibilities', notas: 'Notes', desvios: 'Deviations', exclusoes: 'Exclusions',
       compTit: 'Total Lead Time Breakdown', pFab: 'Manufacturing time', pEnt: 'Delivery time (CIF)', pTot: 'Total lead time', dias: 'days', sigla: ['Code', 'Meaning', 'Applies to'], inicio: 'Conditions to start counting (DAPC)', susp: 'Lead time suspension events',
       basePrazo: 'Lead time basis', tipoEnt: 'Delivery type', adSob: 'Additional (upon request — ask LS Fire)', disp: 'We remain at your disposal for any clarification,', comCert: 'with UL and FM certification', semCert: 'without UL and FM certification', diaria1: '1 day included', diariaN: '{n} days included',
-      moeda: 'Prices in US dollars (US$), converted at R$ {taxa} per US$ 1.00{data}.', moedaData: ' on {d}', bomba: 'Pump {n}' },
+      moeda: 'Prices in US dollars (US$), converted at R$ {taxa} per US$ 1.00{data}.', moedaData: ' on {d}', bomba: 'Pump {n}', deratAlt: 'altitude {v} m', deratTemp: 'ambient temperature {v} °C', deratPar: 'from {a} HP to {b} HP', derat: 'Diesel engine power derated for site conditions ({cond}) per NFPA 20 (−3% per 300 m above 91 m and −1% per 5.6 °C above 25 °C): {pot}.' },
     es: { t_conheca: 'CONOZCA LS FIRE', t_solucoes: 'SOLUCIONES LS FIRE', t_planilha: 'PLANILLA DE PRECIOS', t_planilhaCond: 'PLANILLA DE PRECIOS Y CONDICIONES', t_escopo: 'ALCANCE DEL SUMINISTRO', t_condicoes: 'CONDICIONES', t_folha: 'HOJA DE DATOS', t_comiss: 'COMISIONAMIENTO Y PUESTA EN MARCHA', t_notasSeq: 'NOTAS, DESVÍOS Y OBSERVACIONES', t_notasSpv: 'NOTAS Y DESVÍOS', t_prazos: 'PLAZOS Y CONDICIONES', t_docs: 'ALCANCE DE DOCUMENTOS', t_termos: 'TÉRMINOS Y CONDICIONES', t_contatos: 'CONTACTOS',
       cliente: 'Cliente:', data: 'Fecha:', propNo: 'Propuesta N.º:', validade: 'Validez:', capaProposta: 'PROPUESTA', capa_tc: 'TÉCNICA Y COMERCIAL', capa_com: 'COMERCIAL', capa_tec: 'TÉCNICA', obraProj: 'Obra/Proyecto:', aosCuid: 'A la atención de:', numero: 'Número:', revisao: 'Revisión:', somos: 'SOMOS ',
       razao: 'Razón social:', cnpj: 'CNPJ:', projObra: 'Proyecto/Obra:', cidade: 'Ciudad de la obra:', h_planilha: 'Planilla de precios', h_escopo: 'Alcance del suministro', th: ['Ítem', 'Código', 'Cant.', 'Unid.', 'PIS/|COFINS', 'ICMS', 'ICMS/|ISS', 'IPI', 'NCM', 'Valor Unit.|(C/ Impuestos)', 'Valor Total|(C/ Impuestos)', 'Descripción breve'],
@@ -65,7 +65,7 @@
       incluso: 'Qué está incluido', comTit: 'Comisionamiento y puesta en marcha', servAd: 'Servicios adicionales', foraEsc: '(fuera del alcance y bajo consulta)', resp: 'Responsabilidades del cliente', notas: 'Notas', desvios: 'Desvíos', exclusoes: 'Exclusiones',
       compTit: 'Composición del Plazo Total', pFab: 'Plazo de fabricación', pEnt: 'Plazo de entrega (CIF)', pTot: 'Plazo total', dias: 'días', sigla: ['Sigla', 'Significado', 'Se aplica a'], inicio: 'Condiciones para el inicio del conteo (DAPC)', susp: 'Hipótesis de suspensión del plazo',
       basePrazo: 'Base del plazo', tipoEnt: 'Tipo de entrega', adSob: 'Adicionales (bajo consulta — solicitar a LS Fire)', disp: 'Quedamos a su disposición para cualquier aclaración,', comCert: 'con certificación UL y FM', semCert: 'sin certificación UL y FM', diaria1: '1 jornada incluida', diariaN: '{n} jornadas incluidas',
-      moeda: 'Valores en dólares estadounidenses (US$), convertidos a R$ {taxa} por US$ 1,00{data}.', moedaData: ' del {d}', bomba: 'Bomba {n}' },
+      moeda: 'Valores en dólares estadounidenses (US$), convertidos a R$ {taxa} por US$ 1,00{data}.', moedaData: ' del {d}', bomba: 'Bomba {n}', deratAlt: 'altitud {v} m', deratTemp: 'temperatura ambiente {v} °C', deratPar: 'de {a} HP a {b} HP', derat: 'Potencia del motor diésel corregida para las condiciones del sitio ({cond}), según la NFPA 20 (−3% cada 300 m por encima de 91 m y −1% cada 5,6 °C por encima de 25 °C): {pot}.' },
   };
   // folha de dados: títulos (@chave), rótulos e valores (#chave) que o app manda já classificados
   const FD = {
@@ -95,6 +95,7 @@
     return out;
   }
   // linhas com condição entre colchetes: só entram quando a proposta atende
+  const RE_DERAT = /perda de potência por altitude|power derating due to altitude|pérdida de potencia por altitud/i;
   function aplica(lista, f, lang) {
     const r = R[lang || 'pt'] || R.pt; const out = [];
     for (const raw of lista || []) {
@@ -109,6 +110,10 @@
         }
       }
       if (!ok) continue;
+      // perda de potência do diesel (NFPA 20): com altitude/temperatura informadas, sai o cálculo; sem elas, a frase genérica não entra
+      if (RE_DERAT.test(x)) { if (!(f.derating || []).length) continue; const n0 = new Intl.NumberFormat(LOC[lang] || 'pt-BR', { maximumFractionDigits: 0 });
+        const cond = [f.altitude !== '' && f.altitude !== undefined ? r.deratAlt.replace('{v}', n0.format(f.altitude)) : '', f.temperatura !== '' && f.temperatura !== undefined ? r.deratTemp.replace('{v}', n0.format(f.temperatura)) : ''].filter(Boolean).join(', ');
+        x = r.derat.replace('{cond}', cond).replace('{pot}', f.derating.map(([a, b]) => r.deratPar.replace('{a}', n0.format(a)).replace('{b}', n0.format(b))).join('; ')); }
       x = x.replace(/\{norma\}/g, f.normaTxt || 'NFPA 20').replace(/\{certificacao\}/g, f.ulfm ? r.comCert : r.semCert)
         .replace(/\{meses\}/g, f.meses || '—').replace(/\{visitas\}/g, f.visitas || '—')
         .replace(/\{diarias\}/g, f.diarias > 1 ? r.diariaN.replace('{n}', f.diarias) : r.diaria1);

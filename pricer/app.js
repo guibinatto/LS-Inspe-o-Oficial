@@ -1321,6 +1321,16 @@
     const v = t.value.trim(); if (v) g[k] = v; else delete g[k]; if (!Object.keys(g).length) delete it[c]; if (!Object.keys(it).length) delete all[S];
     pcSet('espec', Object.keys(all).length ? all : undefined); render();
   });
+  // NFPA 20 (11.2.2.5): o motor diesel perde 3% a cada 300 m acima de 91 m de altitude e 1% a cada 5,6 °C acima de 25 °C.
+  // Com altitude e/ou temperatura do local informadas na proposta, a potência disponível no local de cada diesel
+  const derate = () => { const E = pcGet(); const alt = typeof E.altitude === 'number' ? E.altitude : null, tp = typeof E.tempAmb === 'number' ? E.tempAmb : null; if (alt === null && tp === null) return null;
+    const fa = alt !== null && alt > 91.44 ? 1 - 0.03 * (alt - 91.44) / 304.8 : 1, ft = tp !== null && tp > 25 ? 1 - 0.01 * (tp - 25) / 5.556 : 1; return { alt, tp, fa, ft, f: fa * ft }; };
+  function derateFlags(itens) {
+    const d = derate(); if (!d) return { derating: '' };
+    // números sem formatação: o documento formata no idioma dele
+    const ps = [], vistos = new Set(); for (const it of itens) for (const b of it.pontos || []) if (b.acion === '#diesel' && b.pot > 0 && !vistos.has(b.pot)) { vistos.add(b.pot); ps.push([b.pot, b.potLocal]); }
+    return { derating: ps.length ? ps : '', altitude: d.alt === null ? '' : d.alt, temperatura: d.tp === null ? '' : d.tp };
+  }
   function propostaDados() {
     if (isSpv()) return SPV.propostaDados(state.spv);
     if (isFacts()) return FX.propostaDados(state.facts);
@@ -1357,14 +1367,14 @@
       const semIpiT = val(P, 'M' + r); const semImpDoc = impNota !== null && typeof semIpiT === 'number' ? semIpiT - impNota : val(P, 'K' + r);
       itens.push({ key: S, codigo: (pcGet().codigos || {})[S] || '', qtd: num0(val(P, 'F' + r)) || 1, unitSemImp: impNota !== null && typeof semIpiT === 'number' ? semImpDoc / qd : val(P, 'J' + r), totalSemImp: semImpDoc, totalSemIpi: semIpiT, ipiValor: val(P, 'N' + r), pis: val(P, 'S' + r), cofins: val(P, 'T' + r), un: txt(S, 'H21') || txt(P, 'J10') || 'CJ', pisCofins: num0(val(P, 'S' + r)) + num0(val(P, 'T' + r)), icms: val(P, 'R' + r), ipi: val(P, 'U' + r), ncm: txt(P, 'G' + r),
         unit: val(P, 'O' + r), total, breve: txt(S, 'C27'), completa: txt(S, 'C29'), condicao, bombaDesc: bombaDesc(S),
-        pontos: bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => ({ acion: acion[b.ac] || b.ac.toLowerCase(), jockey: b.ac === 'JOCKEY', mod: b.mod, vz: b.vz, pr: typeof b.pr === 'number' ? b.pr : null, pot: typeof b.pot === 'number' && b.pot > 0 ? b.pot : null, rpm: typeof b.rpm === 'number' && b.rpm > 0 ? b.rpm : null })), vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S), cad: cadastroDoItem(S), escopoG: escopoDoItem(S),
+        pontos: bombas.filter((b) => typeof b.vz === 'number' && b.vz > 0).map((b) => ({ acion: acion[b.ac] || b.ac.toLowerCase(), jockey: b.ac === 'JOCKEY', mod: b.mod, vz: b.vz, pr: typeof b.pr === 'number' ? b.pr : null, pot: typeof b.pot === 'number' && b.pot > 0 ? b.pot : null, potLocal: b.ac === 'DIESEL' && typeof b.pot === 'number' && b.pot > 0 && derate() ? b.pot * derate().f : null, rpm: typeof b.rpm === 'number' && b.rpm > 0 ? b.rpm : null })), vazaoNominal: typeof vn === 'number' && vn > 0 ? nBR(vn) + ' USgpm' : '', fd: fdDoItem(S), espec: especDoItem(S), cad: cadastroDoItem(S), escopoG: escopoDoItem(S),
         folha: { componentes: comps, adicionais: adic, hidraulica: bombas.map((b, k) => ({ n: k + 1, acion: acion[b.ac] || b.ac.toLowerCase(), cfg: b.cfg ? TIPO_BOMBA[upNoAc(b.cfg)] || b.cfg.toLowerCase() : '',
           dados: [['modelo', b.mod], ['vazaoNom', typeof vn === 'number' && vn > 0 && b.ac !== 'JOCKEY' ? nBR(vn) + ' USgpm' : ''], ['vazaoProj', typeof b.vz === 'number' && b.vz ? nBR(b.vz) + ' m³/h' : ''], ['pressao', typeof b.pr === 'number' && b.pr ? nBR(b.pr) + ' mca' : ''], ['rotacao', typeof b.rpm === 'number' && b.rpm ? nBR(b.rpm) + ' rpm' : ''], ['potencia', typeof b.pot === 'number' && b.pot ? nBR(b.pot) + ' HP' : '']] })) } });
     });
     const f6 = txt(P, 'F6'); const ac = f6.match(/\s*[·\-–—|,;]?\s*a\/c\.?\s*(.+)$/i);
     return { tipo: 'SEQ', numero: txt(P, 'C5'), rev: txt(P, 'C6'), data: txt(P, 'C7'), validade: txt(P, 'C10'), cliente: txt(P, 'F5'), razao: txt(P, 'F5'), cnpj: txt(P, 'L5'), contato: ac ? ac[1].trim() : '', obra: ac ? f6.slice(0, ac.index).trim() : f6, cidade: '',
       pagamento: txt(P, 'J6'), frete: txt(P, 'B13'), prazo: '', exclusoes: '', vendedor: txt(P, 'C8'), total: val(P, 'P43'), totais: { semImp: itens.every((it) => typeof it.totalSemImp === 'number') ? itens.reduce((t, it) => t + it.totalSemImp, 0) : val(P, 'K43'), semIpi: val(P, 'M43'), ipi: val(P, 'N43') }, itens,
-      flags: Object.assign(fl, { normaTxt: [...new Set([...normas].map(PRP.normaTxt))].join(' / ') || 'NFPA 20' }) };
+      flags: Object.assign(fl, { normaTxt: [...new Set([...normas].map(PRP.normaTxt))].join(' / ') || 'NFPA 20' }, derateFlags(itens)) };
   }
   const cambioPadrao = () => { try { return Number(SPV.cfg().mk.cambio_usd) || 0; } catch (e) { return 0; } };
   const hojeISO = () => new Date().toISOString().slice(0, 10);
@@ -1377,7 +1387,7 @@
   function docPropostaCampos(D) {
     const seq = D.tipo === 'SEQ';
     return `<section class="card"><h2>Para o documento da proposta <span class="sub">vai no PDF gerado na aba ${seq ? 'Documentos' : 'da proposta'}</span></h2><div class="fields">
-      ${pcCampo('clienteCurto', 'Nome do cliente no topo das páginas', { cls: 'span2', ph: D.cliente || 'igual ao cliente', dica: 'ex.: COCAMAR SEDE; vazio = nome do cliente' })}${pcCampo('aosCuidados', 'Aos cuidados de', { ph: D.contato || 'nome do contato' })}${pcCampo('cidade', 'Cidade da obra', { ph: 'ex.: MARINGÁ-PR' })}
+      ${pcCampo('clienteCurto', 'Nome do cliente no topo das páginas', { cls: 'span2', ph: D.cliente || 'igual ao cliente', dica: 'ex.: COCAMAR SEDE; vazio = nome do cliente' })}${pcCampo('aosCuidados', 'Aos cuidados de', { ph: D.contato || 'nome do contato' })}${pcCampo('cidade', 'Cidade da obra', { ph: 'ex.: MARINGÁ-PR' }) + (seq ? pcCampo('altitude', 'Altitude da instalação (m)', { num: true, ph: 'ex.: 550', dica: 'motor diesel: −3% a cada 300 m acima de 91 m (NFPA 20)' }) + pcCampo('tempAmb', 'Temperatura ambiente máx. (°C)', { num: true, ph: 'ex.: 38', dica: 'motor diesel: −1% a cada 5,6 °C acima de 25 °C (NFPA 20)' }) : '')}
       ${seq ? pcCampo('prazoFab', 'Prazo de fabricação (dias, DAPC)', { num: true }) + pcCampo('prazoEnt', 'Prazo de entrega (dias, DAE)', { num: true }) : ''}${pcCampo('prazoTexto', seq ? 'Prazo — texto livre (opcional)' : 'Prazo na proposta (opcional)', { area: true, ph: seq ? 'Fabricação + entrega viram "Prazo Total: N dias."' : D.prazo || 'ex.: Prazo para primeira visita: 40 dias.' })}
       ${seq ? pcCampo('observacoes', 'Observações da proposta', { area: true, rows: 3, ph: 'ex.: o detalhe da condição de pagamento' }) : ''}</div></section>`;
   }
@@ -1790,7 +1800,7 @@
   }
   document.addEventListener('change', (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return;
-    if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } if (v === '' && ['clienteCurto', 'aosCuidados', 'cidade', 'prazoFab', 'prazoEnt', 'prazoTexto', 'observacoes'].includes(k)) v = undefined; pcSet(k, v); if (t.closest('#pcCard')) render(); return; }
+    if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } if (k === 'altitude' || k === 'tempAmb') { const n = v.trim() === '' ? NaN : Number(v.replace(/\./g, '').replace(',', '.')); v = isFinite(n) ? n : ''; } if (v === '' && ['clienteCurto', 'aosCuidados', 'cidade', 'prazoFab', 'prazoEnt', 'prazoTexto', 'observacoes', 'altitude', 'tempAmb'].includes(k)) v = undefined; pcSet(k, v); if (t.closest('#pcCard')) render(); return; }
     if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : k === 'estilo' ? 'estilo' : 'idioma', t.value); render(); if (k === 'idioma' || k === 'estilo') traduzirAgora(); return; }
     if (t.dataset.pcmoeda) { const m = Object.assign({}, pcGet().moeda || {}); if (t.dataset.pcmoeda === 'taxa') { const n = parseInput(t.value, 'num'); m.taxa = typeof n === 'number' && n > 0 ? n : undefined; } else m.data = t.value; pcSet('moeda', m); render(); return; }
     if (t.dataset.pccod !== undefined) { pcSet('codigos', Object.assign({}, pcGet().codigos || {}, { [t.dataset.pccod]: t.value.trim() })); return; }

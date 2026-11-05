@@ -521,7 +521,9 @@
         const s = wb.sheet('ITEM ' + String(i).padStart(2, '0')); if (!s) continue;
         const ncm = fams.filter(([, v]) => v.ncm).reduceRight((acc, [f, v]) => `IF($C$21=${q(f)},${q(v.ncm)},${acc})`, 'PROP_NCM');
         const un = fams.filter(([, v]) => v.unid).reduceRight((acc, [f, v]) => `IF($C$21=${q(f)},${q(v.unid)},${acc})`, 'IF(PROP_UNIDADE="","CJ",PROP_UNIDADE)');
-        s.cells.set('G7', '=' + ncm); s.cells.set('H21', '=IF($C$21="","",' + un + ')');
+        // bomba centrífuga de vazão até 300 l/min (18 m³/h) é 8413.70.80 na TIPI (IPI 3,25%), não 8413.70.90; AR4 = vazão nominal da bomba principal em gpm (×0,2271247 = m³/h)
+        const ncmV = `IF(AND($AR$4>0,$AR$4*0.2271247<=18,(${ncm})="8413.70.90"),"8413.70.80",${ncm})`;
+        s.cells.set('G7', '=' + ncmV); s.cells.set('H21', '=IF($C$21="","",' + un + ')');
       }
       wb.invalidate();
     };
