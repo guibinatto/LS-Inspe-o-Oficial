@@ -45,6 +45,6 @@ const PDF = process.env.FD_PDF; if (!PDF || !fs.existsSync(PDF)) { console.log('
   const tx = (f) => execSync('pdftotext ' + __dirname + '/' + f + ' - 2>/dev/null').toString();
   const c = tx('cad_classico.pdf'), f = tx('cad_fd.pdf');
   console.log('5 clássico: bomba do cadastro', /Bomba Centr[ií]fuga — SCE 250-450|Centrifugal|Flange/.test(c), '| desenho', /Desenho/.test(c));
-  console.log('6 folha de dados: construtiva do cadastro', /FOLHA DE DADOS CONSTRUTIVA — ITEM 1/.test(f), '| desenho', /DESENHO — ITEM 1/.test(f), '| flange', /Flange de sucção/.test(f));
+  console.log('6 folha de dados: bomba do cadastro dentro da folha de desempenho (sem página construtiva repetida)', /Carcaça|Material/.test(f.split('DESENHO — ITEM 1')[0]) && !/FOLHA DE DADOS CONSTRUTIVA — ITEM 1/.test(f), '| desenho', /DESENHO — ITEM 1/.test(f), '| flange', /Flange de sucção/.test(f));
   console.log('erros', errs); await b.close();
 })();

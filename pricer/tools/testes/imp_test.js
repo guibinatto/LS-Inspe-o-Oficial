@@ -16,7 +16,8 @@ const ok = [], falha = []; const confere = (n, c, d) => (c ? ok : falha).push(n 
   await p.click('[data-view="proposta"]'); await p.waitForTimeout(300); await p.click('.ptab[data-step="2"]'); await p.waitForTimeout(400); await p.click('[data-goitem="1"]'); await p.waitForTimeout(700);
   await p.click('[data-cfget="2"]'); await p.waitForTimeout(500);
   const q = await p.$('#c_ITEM02_C6'); if (q) { await q.fill('2'); await q.dispatchEvent('change'); } else { await p.click('[data-cfget="1"]'); await p.waitForTimeout(300); await p.fill('#c_ITEM02_C6', '2'); await p.dispatchEvent('#c_ITEM02_C6', 'change'); await p.click('[data-cfget="2"]'); }
-  await p.waitForTimeout(800); const antes = await txt('.cfgstep.on');
+  // espera o recálculo e a gravação do rascunho (o app marca a alteração depois de recalcular)
+  await p.waitForFunction(() => /"_sujo":true/.test(localStorage.getItem('lspricer.current') || ''), null, { timeout: 15000 }).catch(() => {}); await p.waitForTimeout(300); const antes = await txt('.cfgstep.on');
   await p.reload(); await p.waitForTimeout(1800);
   const nav = await txt('#nav [aria-current="page"]'), et = await txt('.cfgstep.on'), tit = await txt('#app h1');
   confere('rascunho: recarregar volta ao item e à etapa do configurador', /PROPOSTA ABERTA/i.test(nav) && et === antes && /ITEM 02/.test(await txt('#app')), nav + ' · ' + et + ' · ' + tit.slice(0, 60));

@@ -71,7 +71,34 @@ Agora, quando há folha do fabricante:
 - A tabela "Critérios da NFPA 20" e as notas dela ficam juntas na mesma página.
 - Conferido com as duas folhas reais enviadas (Sempa SCE 200-500 e Peerless), em português e inglês.
 
-## 5. Testes e regressão
+## 5. Unidades, folha construtiva e escopo (ajustes pedidos depois da v63)
+
+**Unidades.** A folha misturava sistemas: alguns valores em polegada, psi, hp e SG convertidos, outros não; potência em kW numa folha e em hp em outra; vazão em m³/h numa tabela e em USgpm na outra. Agora toda a FD usa as unidades da LS Fire, qualquer que seja o fabricante:
+
+| Grandeza | Na folha | Exemplo |
+|---|---|---|
+| Vazão | m³/h, com USgpm entre parênteses quando o fabricante usa gpm (a NFPA 20 classifica as bombas em gpm) | 618,7 m³/h (2.724 USgpm) |
+| Altura (manométrica, NPSH, shutoff, 150%) | mca, como no ponto de trabalho (em inglês, m) | 114,3 mca |
+| Pressão | bar (psi, kPa e MPa convertidos); absoluta como "bar (abs.)" | 192,4 psi.g → 13,3 bar; 2500 kPa → 25,0 bar |
+| Diâmetro | mm | 19,69 in → 500 mm |
+| Potência | HP, com kW entre parênteses (para comparar com o acionador); nas tabelas, só HP | 267,73 kW → 359,0 HP (267,7 kW) |
+| Temperatura | °C | 20,00 °C |
+| Densidade | kg/m³ (SG × 1000) | 998.000 kg/m³ → 998 kg/m³ |
+
+Também:
+- Na mesma unidade, ficam as casas decimais da folha, até 2.
+- Códigos de material depois da barra (1.4301, 2.1050.01) não são mais tratados como número.
+- A curva desenhada não mudou: ela já mostra o eixo de vazão em gpm e m³/h.
+
+**Folha construtiva repetida.** Os dados construtivos da bomba no cadastro (materiais, diâmetros do rotor, pressão da carcaça, vedação) saíam numa página "Folha de dados construtiva" própria, repetindo o que já estava na folha de desempenho. Agora:
+- entram na própria folha de desempenho, nas mesmas seções;
+- o que já veio da folha do fabricante anexada na proposta tem prioridade;
+- o que se repete com outro nome ("Diâmetro do rotor" × "Diâmetro do rotor (projeto)", mesmo valor) sai uma vez só;
+- a página construtiva só continua para o acionador, quando ele tem folha no cadastro.
+
+**Escopo.** A seção "Comercial" (frete e prazo) saía no escopo de cada item, às vezes sozinha numa página. Ela repetia as condições comerciais do resumo, por isso saiu do escopo do item. Além disso, grupo curto do escopo vai inteiro para a página seguinte, sem deixar o título sozinho.
+
+## 6. Testes e regressão
 
 | Verificação | Resultado |
 |---|---|
@@ -79,6 +106,6 @@ Agora, quando há folha do fabricante:
 | SPV/FACTS × REV21 (11 cenários, 24 valores) | 0 diferença |
 | Financeiro pela tela (memorial da proposta de referência, 129 números) × versão anterior | 0 diferença |
 | `derat_test` (novo, 8 verificações) | sem os dados, a frase some; com 1.200 m e 40 °C: frase na PTC, fator certo, coluna na FD, nota contra a curva e frase em inglês |
-| Suíte completa (`tools/testes`) | ver o resultado no fim do commit |
+| Suíte completa (`tools/testes`, 40 testes) | 39 passaram de primeira. O `imp_test` falhou também na v62: ele recarregava a página antes de o rascunho ser gravado. Agora espera a gravação e passa (13/13). Depois dos ajustes da seção 5 foram repetidos `derat`, `cad_fd` (bomba do cadastro dentro da folha de desempenho, sem página construtiva), `sim`, `fd`, `fd_sempa`, `idioma` e `imp`: todos passaram |
 
 Não houve teste em aparelho físico.

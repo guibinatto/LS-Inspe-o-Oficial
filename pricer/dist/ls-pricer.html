@@ -5453,7 +5453,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     'Discharge flange': ['Flange de recalque', 'Brida de descarga'], 'Casing ring': ['Anel da carcaça', 'Anillo de la carcasa'], 'Impeller material': ['Material do rotor', 'Material del impulsor'], 'Impeller Wear Ring': ['Anel de desgaste do rotor', 'Anillo de desgaste del impulsor'],
     Rotation: ['Rotação', 'Rotación'], 'Shaft material': ['Material do eixo', 'Material del eje'], 'Shaft sleeve material': ['Material da luva do eixo', 'Material de la camisa del eje'], 'Packing type': ['Tipo de gaxeta', 'Tipo de empaquetadura'], 'Nameplate units': ['Unidades da placa', 'Unidades de la placa'],
     'Engine voltage': ['Tensão do motor', 'Tensión del motor'], 'Controller brand': ['Marca do painel', 'Marca del tablero'], 'Controller voltage': ['Tensão do painel', 'Tensión del tablero'], 'Controller frequency': ['Frequência do painel', 'Frecuencia del tablero'], Enclosure: ['Invólucro', 'Envolvente'], 'Enclosure type': ['Tipo de invólucro', 'Tipo de envolvente'] };
-  const UNI = 'USgpm|gpm|in|psi\\.?[ga]?|lb|hp|ft|rpm|m|mm|cP|SG|Hz|V|VAC|VDC|V DC|%|deg C|°C|kW|bar|m³/h|hp/100 rpm|psi\\.a';
+  const UNI = 'USgpm|gpm|in|psi\\.?[ga]?|psig|psia|lb|hp|HP|cv|ft|rpm|m|mm|cP|cSt|SG|Hz|V|VAC|VDC|V DC|%|deg C|deg F|°C|°F|kW|bar|kPa|MPa|m³/h|m3/h|l/s|kg/m³|kg/m3|kg|hp/100 rpm|psi\\.a';
   const reMedida = new RegExp('^[-+]?[\\d.,]+(\\s*/\\s*[-+]?[\\d.,]+)?\\s*(' + UNI + ')?$');
   const ehMedida = (v) => reMedida.test(String(v || '').trim().replace(/\s+/g, ' '));
   window.PricerFabricante = { ler, secT, rotT, valT, linhaT, junta, ehMedida };
@@ -5675,11 +5675,39 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     const numL = (s) => (lang !== 'en' || typeof s !== 'string' ? s : s.replace(/\b\d{1,3}(?:\.\d{3})+(?:,\d+)?\b|\b\d+,\d+\b/g, (m) => m.replace(/\./g, '\u0000').replace(',', '.').replace(/\u0000/g, ',')));
     // números do fabricante (formato americano) no formato do idioma, com o equivalente métrico ao lado
     const nEN = (t) => Number(String(t).replace(/,/g, ''));
-    const swap = (t) => (lang === 'en' ? t : String(t).replace(/(^|[^\w.])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+\.\d+)(?![\w.])/g, (m, a, n) => (/(HI|API|ISO|NFPA)\s$/.test(String(t).slice(0, String(t).indexOf(m) + a.length)) ? m : a + nf((n.split('.')[1] || '').length).format(nEN(n)))));
-    const CONV = { USgpm: [0.2271247, 'm³/h', 1], gpm: [0.2271247, 'm³/h', 1], in: [25.4, 'mm', 0], psi: [0.0689476, 'bar', 2], 'psi.g': [0.0689476, 'bar', 2], 'psi.a': [0.0689476, 'bar (abs.)', 2], lb: [0.45359237, 'kg', 0], hp: [0.7457, 'kW', 1], ft: [0.3048, 'm', 2] };
+    const swap = (t) => (lang === 'en' ? t : String(t).replace(/(^|[^\w.])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+\.\d+)(?![\w.])/g, (m, a, n) => (/(HI|API|ISO|NFPA)\s$|\/\s?$/.test(String(t).slice(0, String(t).indexOf(m) + a.length)) ? m : a + nf((n.split('.')[1] || '').length).format(nEN(n)))));
+    // unidades da LS Fire na folha (qualquer fabricante, qualquer idioma): vazão m³/h (USgpm entre parênteses, como a NFPA 20
+    // classifica as bombas), altura m, pressão bar, diâmetro mm, potência HP (kW entre parênteses, para comparar com o acionador),
+    // temperatura °C, densidade kg/m³, massa kg. O que não é dessas grandezas (rpm, %, cP, Hz, V) sai como veio.
+    const UNI_LS = { USgpm: ['q', 0.2271247], gpm: ['q', 0.2271247], 'm³/h': ['q', 1], 'm3/h': ['q', 1], 'l/s': ['q', 3.6], in: ['d', 25.4], mm: ['d', 1], ft: ['h', 0.3048], m: ['h', 1],
+      psi: ['p', 0.0689476], 'psi.g': ['p', 0.0689476], 'psig': ['p', 0.0689476], 'psi.a': ['pa', 0.0689476], 'psia': ['pa', 0.0689476], kPa: ['p', 0.01], MPa: ['p', 10], bar: ['p', 1],
+      hp: ['w', 1], HP: ['w', 1], kW: ['w', 1 / 0.7457], cv: ['w', 0.7355 / 0.7457], lb: ['kg', 0.45359237], kg: ['kg', 1], 'deg C': ['t', 1], '°C': ['t', 1], 'deg F': ['tf', 1], '°F': ['tf', 1],
+      SG: ['dens', 1000], 'kg/m³': ['dens', 1], 'kg/m3': ['dens', 1] };
+    // número do fabricante: "2,724" e "1.00" (americano); "460,00" (vírgula decimal)
+    const numFab = (t) => { t = String(t).trim(); if (/^\d+,\d{1,2}$|^\d+,\d{4,}$/.test(t)) return Number(t.replace(',', '.')); if (/^\d{1,3}(\.\d{3})+,\d+$/.test(t)) return Number(t.replace(/\./g, '').replace(',', '.')); return Number(t.replace(/,/g, '')); };
+    const dec = (v, d) => nf(d).format(v);
+    function convLS(ns, u, ds) {
+      const c = UNI_LS[u]; if (!c || !ns.length || ns.some((n) => !isFinite(n))) return null; const [g, f] = c; const j = (a, un) => a.join(' / ') + ' ' + un;
+      // mesma unidade: as casas decimais da folha (até 2); convertida: as da grandeza
+      const k = (n, d) => (f === 1 && ds !== undefined ? Math.min(2, ds) : d);
+      if (g === 'q') { const q = ns.map((n) => dec(n * f, n === 0 ? 0 : k(n, n * f >= 1000 || (f === 1 && n >= 100) ? 0 : 1))); return j(q, 'm³/h') + (/gpm/i.test(u) ? ' (' + j(ns.map((n) => dec(n, 0)), 'USgpm') + ')' : ''); }
+      if (g === 'd') { const mm = ns.map((n) => n * f); return mm.some((v) => v >= 1000) ? j(mm.map((v) => dec(v / 1000, 2)), 'm') : j(mm.map((v) => dec(v, k(v, v >= 100 || v === 0 ? 0 : 1))), 'mm'); }
+      if (g === 'h') return j(ns.map((n) => dec(n * f, k(n, 1))), lang === 'en' ? 'm' : 'mca'); // altura em metros de coluna d'água, como no ponto de trabalho
+      if (g === 'p' || g === 'pa') return j(ns.map((n) => dec(n * f, k(n, n * f >= 10 ? 1 : 2))), g === 'pa' ? 'bar (abs.)' : 'bar');
+      if (g === 'w') { const hp = ns.map((n) => n * f); return j(hp.map((v) => dec(v, 1)), 'HP') + ' (' + j(hp.map((v) => dec(v * 0.7457, 1)), 'kW') + ')'; }
+      if (g === 'kg') return j(ns.map((n) => dec(n * f, 0)), 'kg');
+      if (g === 't') return j(ns.map((n) => dec(n, k(n, Number.isInteger(n) ? 0 : 1))), '°C');
+      if (g === 'tf') return j(ns.map((n) => dec((n - 32) / 1.8, 1)), '°C');
+      if (g === 'dens') return j(ns.map((n) => dec(n * f, 0)), 'kg/m³');
+      return null;
+    }
+    // número da curva (na unidade da curva) na unidade da LS Fire; potência só em HP quando curto (tabelas)
+    const uLS = (v, u, curto) => { if (v === null || v === undefined || !isFinite(v)) return '—'; const t = convLS([v], u) || dec(v, 1) + ' ' + u; return curto ? t.replace(/\s*\([^)]*kW\)$/, '') : t; };
     function medida(v) {
-      let t = String(v || '').trim().replace(/\bdeg C\b/, '°C'); const m = t.match(/^([\d.,]+)\s*(USgpm|gpm|in|psi\.g|psi\.a|psi|lb|hp|ft)$/);
-      if (m) { const n = nEN(m[1]); const c = CONV[m[2]]; if (isFinite(n) && n !== 0 && c) { let q = n * c[0], u = c[1], d = c[2]; if (u === 'mm' && q >= 1000) { q /= 1000; u = 'm'; d = 1; } return swap(m[1]) + ' ' + m[2] + ' (' + nf(d).format(q) + ' ' + u + ')'; } }
+      const t = String(v || '').trim().replace(/\s+/g, ' ').replace(/\bdeg C\b/, '°C');
+      const m = t.match(/^([-+]?[\d.,]+)(?:\s*\/\s*([-+]?[\d.,]+))?\s*(USgpm|gpm|m³\/h|m3\/h|l\/s|in|mm|ft|m|psi\.g|psi\.a|psig|psia|psi|kPa|MPa|bar|hp|HP|kW|cv|lb|kg\/m³|kg\/m3|kg|°C|deg F|°F|SG)$/);
+      if (m) { const ns = [m[1], m[2]].filter((q) => q !== undefined); const ds = Math.max(...ns.map((q) => (/^\d+,\d{1,2}$/.test(q) ? q.split(',')[1].length : (q.split('.')[1] || '').length)));
+        const r0 = convLS(ns.map(numFab), m[3], ds); if (r0) return r0; }
       return swap(t);
     }
     const fdT = (s) => (typeof s === 'string' && s[0] === '@' ? fdl[s.slice(1)] || I.FD.pt[s.slice(1)] || s.slice(1) : s);
@@ -5766,7 +5794,8 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
     }
     // escopo no formato Qtd | Descrição, com recuo por nível
     function escopo(grupo, linhas, o = {}) {
-      precisa(20); F('bold', 9.6, ESC); T(grupo, X0, y + 4); y += 6;
+      // grupo curto vai inteiro para a página seguinte (título e cabeçalho não ficam sozinhos)
+      F('normal', 7); const alt = 10.8 + linhas.reduce((a, l) => a + quebra(l.t, X1 - (X0 + 14 + Math.min(8, l.n || 0) * 3) - 1).length * 3.05 + 1.1, 0); precisa(Math.min(alt, 40)); F('bold', 9.6, ESC); T(grupo, X0, y + 4); y += 6;
       const hdr = () => { doc.setFillColor(...ESC); doc.rect(X0, y, LW, 4.8, 'F'); F('bold', 6.8, [255, 255, 255]); T(x.qtd, X0 + 1.5, y + 3.3); T(x.descr, X0 + 14, y + 3.3); y += 4.8; };
       hdr();
       for (const l of linhas) {
@@ -5819,14 +5848,13 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       const N = (O.nfpa || {})[it.key]; const res = (v) => (v === null || v === undefined ? '—' : v ? x.atende : x.naoAtende);
       const linhas = []; const notas = [];
       if (N && N.qN && N.hN) {
-        const U = N.U; const gpm = /gpm/i.test(U.q);
-        const fq = (v) => (v === null || v === undefined ? '—' : nv(v, 0) + ' ' + U.q + (gpm ? ' (' + nv(v * 0.2271247, 0) + ' m³/h)' : ''));
-        const fh = (v) => (v === null || v === undefined ? '—' : nv(v, 1) + ' ' + U.h), fp = (v) => (v === null || v === undefined ? '—' : nv(v, 1) + ' ' + U.p);
+        const U = N.U; // na unidade da LS Fire (m³/h, m, HP), qualquer que seja a da curva
+        const fq = (v) => uLS(v, U.q), fh = (v) => uLS(v, U.h), fp = (v) => uLS(v, U.p, true);
         linhas.push([N.base === 'nominal' ? x.nom100 : x.trab100, fq(N.qN), fh(N.hN), fh(N.hN0), fp(N.pN), '']);
         linhas.push([x.v150, fq(N.q150), N.h150Lim ? x.minW + fh(N.h150Lim) + ' (65%)' : '—', fh(N.h150), fp(N.p150), res(N.ok150)]);
         linhas.push([x.shutC, fq(0), N.shLim ? x.maxW + fh(N.shLim) + ' (140%)' : '—', fh(N.sh), fp(N.pSh), res(N.okSh)]);
         if (N.qFim) linhas.push([x.fimC, fq(N.qFim), '—', fh(N.hFim), fp(N.pFim), '']);
-        if (N.pMax) notas.push(x.potMax + ': ' + fp(N.pMax) + '.');
+        if (N.pMax) notas.push(x.potMax + ': ' + uLS(N.pMax, U.p) + '.');
         // motor diesel corrigido para altitude/temperatura do local × potência máxima absorvida na curva (mesma unidade: HP)
         const dl = pts.find((b) => b.potLocal > 0 && !b.jockey);
         if (N.pMax && dl) { const maxHP = /kw/i.test(U.p) ? N.pMax / 0.7457 : /cv/i.test(U.p) ? N.pMax * 0.7355 / 0.7457 : N.pMax; notas.push(x.notaDerat.replace('{loc}', nv(dl.potLocal, 0) + ' HP').replace('{max}', nv(maxHP, 0) + ' HP').replace('{res}', dl.potLocal >= maxHP ? x.atende : x.naoAtende)); }
@@ -5839,7 +5867,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
           linhas.push([x.trab100 + sfx, nv(b.vz) + ' m³/h', nv(b.pr) + ' mca', '—', '—', '']);
           linhas.push([x.v150 + sfx, nv(b.vz * 1.5) + ' m³/h', x.minW + nv(b.pr * 0.65, 1) + ' mca (65%)', '—', '—', '—']);
           linhas.push([x.shutC + sfx, '0 m³/h', x.maxW + nv(b.pr * 1.4, 1) + ' mca (140%)', '—', '—', '—']); });
-        if (N && N.qFim) { const U = N.U; linhas.push([x.fimC, nv(N.qFim, 0) + ' ' + U.q, '—', N.hFim === null ? '—' : nv(N.hFim, 1) + ' ' + U.h, N.pFim === null ? '—' : nv(N.pFim, 1) + ' ' + U.p, '']); if (N.pMax) notas.push(x.potMax + ': ' + nv(N.pMax, 1) + ' ' + U.p + '.'); }
+        if (N && N.qFim) { const U = N.U; linhas.push([x.fimC, uLS(N.qFim, U.q), '—', uLS(N.hFim, U.h), uLS(N.pFim, U.p, true), '']); if (N.pMax) notas.push(x.potMax + ': ' + uLS(N.pMax, U.p) + '.'); }
         if (linhas.length) notas.push(N ? x.notaFora : x.notaSem, x.notaN.split('. ')[0] + '.');
       }
       if (!linhas.length) return;
@@ -5881,22 +5909,27 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       ['pTrab', 'pres', /^Maximum working pressure$|Max\.? Operation Pressure/i], ['pAdm', 'pres', /allowable working pressure|Max\.? Casing Pressure/i], ['pAdmS', 'pres', /allowable suction pressure/i], ['pHid', 'pres', /Hydrostatic test pressure/i],
       ['bSuc', 'constr', /Suction (Nozzle|Flange Diameter)/i], ['bRec', 'constr', /Dis?charge (Nozzle|Flange Diameter)/i], ['sentido', 'constr', /Direction of Rotation/i], ['vedacao', 'constr', /^Seal Type$|^Pump Seal$/i],
       ['qNomF', 'faixa', /^Flow Nominal$/i], ['qMax', 'faixa', /^Flow Max/i], ['qMin', 'faixa', /^Flow Min/i], ['hNomF', 'faixa', /^Head Nominal$/i], ['hQmax', 'faixa', /^Head at Qmax/i], ['hQmin', 'faixa', /^Head at Qmin/i]];
-    const GRUPO_SEC = [[/NFPA/i, 'nfpa'], [/Liquid|L[íi]quido|Fluid/i, 'liq'], [/Material/i, 'mat'], [/Pressure|Press[ãa]o/i, 'pres'], [/Coupling|Seal|Construction|Acoplamento|Veda[çc]/i, 'constr'], [/Operat|Opera[çc]/i, 'cond']];
-    function secoesPadrao(dados, pgs, N, it) {
+    const GRUPO_SEC = [[/NFPA/i, 'nfpa'], [/Impeller|Rotor/i, 'nfpa'], [/Liquid|L[íi]quido|Fluid/i, 'liq'], [/Material/i, 'mat'], [/Pressure|Press[ãa]o/i, 'pres'], [/Coupling|Seal|Construction|Acoplamento|Veda[çc]/i, 'constr'], [/Operat|Opera[çc]/i, 'cond']];
+    // mesmo dado com outro nome: "Diâmetro do rotor" × "Diâmetro do rotor (projeto)" com o mesmo valor; do cadastro, o mesmo nome já preenchido
+    const normR = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\(.*?\)|[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+    const repetido = (L, lb, vv, cad) => L.some(([k, v]) => { const a = normR(k), b = normR(lb); return (cad && a === b) || (v === vv && a && b && (a.startsWith(b) || b.startsWith(a))); });
+    function secoesPadrao(dados, pgs, N, it, extra) {
       const L = PADL[lang] || PADL.pt; const fmt = (v) => (fb && fb.ehMedida(v) ? medida(v) : swap(trF(v, 'val')));
       const nv = (v, d = 1) => (typeof v === 'number' && isFinite(v) ? nf(d).format(v) : null);
       const secs = dados.secoes.filter((s) => pgs.includes(s.pag) && !/Project|Motor|Engine|Driver|Acionador/i.test(s.t));
       const campos = []; for (const s of secs) for (const c of s.campos || []) if (c.on !== false && String(c.v || '').trim()) campos.push({ k: c.k, v: c.v, t: s.t, usado: false });
+      // dados construtivos da bomba no cadastro: completam a folha (a do fabricante anexada na proposta tem prioridade)
+      for (const c of extra || []) campos.push({ k: c.k, v: c.v, t: c.t, usado: false, cad: true });
       const G = { cond: [], nfpa: [], liq: [], mat: [], pres: [], constr: [], faixa: [], outros: [] };
       for (const [k, g, re, secPref, soSec] of PADR) {
         const cands = campos.filter((c) => !c.usado && re.test(String(c.k).trim())); const c = (secPref && cands.find((q) => secPref.test(q.t))) || (soSec ? null : cands[0]);
-        let v = c ? fmt(c.v) : null; if (c) { c.usado = true; for (const q of cands) if (fmt(q.v) === v) q.usado = true; } // o mesmo dado repetido em outro bloco da folha sai uma vez só
+        let v = c ? fmt(c.v) : null; if (c) { c.usado = true; for (const q of cands) if (fmt(q.v) === v || q.cad) q.usado = true; } // o mesmo dado repetido em outro bloco da folha (ou no cadastro) sai uma vez só
         // o que a folha não traz e a curva dá (vazão e altura nominais, 150%, shutoff, potências)
         if (N && N.U) { const U = N.U;
-          if (!v && k === 'qRat' && N.base === 'nominal' && N.qN) v = nv(N.qN, 0) + ' ' + U.q; if (!v && k === 'hRat' && N.base === 'nominal' && N.hN) v = nv(N.hN) + ' ' + U.h;
-          if (!v && k === 'q150' && N.q150) v = nv(N.q150, 0) + ' ' + U.q; if (!v && k === 'p150' && N.p150) v = nv(N.p150) + ' ' + U.p; if (!v && k === 'pPeak' && N.pMax) v = nv(N.pMax) + ' ' + U.p;
-          if (k === 'h150' && N.h150Lim && (!v || !/\//.test(v))) v = (v || (N.h150 !== null && N.h150 !== undefined ? nv(N.h150) + ' ' + U.h : '—')) + ' / ' + nv(N.h150Lim) + ' ' + U.h;
-          if (k === 'hSh' && N.shLim && (!v || !/\//.test(v))) v = (v || (N.sh !== null && N.sh !== undefined ? nv(N.sh) + ' ' + U.h : '—')) + ' / ' + nv(N.shLim) + ' ' + U.h; }
+          if (!v && k === 'qRat' && N.base === 'nominal' && N.qN) v = uLS(N.qN, U.q); if (!v && k === 'hRat' && N.base === 'nominal' && N.hN) v = uLS(N.hN, U.h);
+          if (!v && k === 'q150' && N.q150) v = uLS(N.q150, U.q); if (!v && k === 'p150' && N.p150) v = uLS(N.p150, U.p); if (!v && k === 'pPeak' && N.pMax) v = uLS(N.pMax, U.p);
+          if (k === 'h150' && N.h150Lim && (!v || !/\//.test(v))) v = (v ? v.replace(/ mc?a?$/, '') : N.h150 !== null && N.h150 !== undefined ? uLS(N.h150, U.h).replace(/ mc?a?$/, '') : '—') + ' / ' + uLS(N.h150Lim, U.h);
+          if (k === 'hSh' && N.shLim && (!v || !/\//.test(v))) v = (v ? v.replace(/ mc?a?$/, '') : N.sh !== null && N.sh !== undefined ? uLS(N.sh, U.h).replace(/ mc?a?$/, '') : '—') + ' / ' + uLS(N.shLim, U.h); }
         if (!v && k === 'qRat' && it.vazaoNominal) v = it.vazaoNominal;
         if (v) G[g].push([L[k], v]);
       }
@@ -5908,7 +5941,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
       junta(/Coupling|Acoplamento/i, L.acopl); junta(/Seal|Veda[çc]/i, L.vedacao);
       // o restante vai para o grupo do bloco de onde veio (ou "Outros dados"), com o nome traduzido
       const ja = new Set(Object.values(G).flat().map((q) => q[0] + '|' + q[1]));
-      for (const c of campos.filter((q) => !q.usado)) { const lb = trF(c.k, 'rot') || c.k, vv = fmt(c.v); if (ja.has(lb + '|' + vv)) continue; ja.add(lb + '|' + vv); const g = (GRUPO_SEC.find(([re]) => re.test(c.t)) || [0, /Pump Data|Dados da bomba/i.test(c.t) ? 'faixa' : 'outros'])[1]; G[g].push([lb, vv]); }
+      for (const c of campos.filter((q) => !q.usado)) { const lb = trF(c.k, 'rot') || c.k, vv = fmt(c.v); if (ja.has(lb + '|' + vv) || repetido(Object.values(G).flat(), lb, vv, c.cad)) continue; ja.add(lb + '|' + vv); const g = (GRUPO_SEC.find(([re]) => re.test(c.t)) || [0, /Pump Data|Dados da bomba/i.test(c.t) ? 'faixa' : 'outros'])[1]; G[g].push([lb, vv]); }
       return [['cond', 0], ['nfpa', 0], ['liq', 1], ['mat', 1], ['pres', 1], ['constr', 1], ['faixa', 1], ['outros', 1]].map(([g, col]) => ({ t: L[g], col, pares: G[g] }));
     }
     function itens() {
@@ -5925,11 +5958,15 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         pagina(x.desemp + ' — ' + nItem);
         if (descEq) { F('bold', 8.2, ESC); for (const q of quebra(descEq, LW)) { T(q, X0, y + 3); y += 3.9; } y += 2.5; }
         const sec1 = [{ t: x.ident, pares: ident, col: dados ? 0 : undefined }];
-        if (dados) sec1.push(...secoesPadrao(dados, [pags.length ? pags[0].n : -1].concat(dados.paginas.filter((q) => q.tipo === 'curva').map((q) => q.n)), (O.nfpa || {})[it.key], it));
+        const cadB = ((it.cad || {}).fds || []).filter((f) => f.uso === 'bomba'); const cadCampos = cadB.flatMap((f) => f.secoes.flatMap((q) => q.campos.map(([k, v]) => ({ k, v, t: q.t }))));
+        if (!dados && cadB[0]) { if (cadB[0].desc && !ident.some((q) => q[0] === x.modelo)) ident.push([x.modelo, cadB[0].desc]); if (cadB[0].fabricante) ident.push([x.fabr, cadB[0].fabricante]); }
+        if (dados) sec1.push(...secoesPadrao(dados, [pags.length ? pags[0].n : -1].concat(dados.paginas.filter((q) => q.tipo === 'curva').map((q) => q.n)), (O.nfpa || {})[it.key], it, cadCampos));
         else {
           for (const b of fd.hidraulica || []) sec1.push({ t: x.hidr + ' — ' + r.bomba.replace('{n}', b.n) + ' (' + fdV(b.acion) + (b.cfg ? ' · ' + fdV(b.cfg) : '') + ')', pares: b.dados.filter((d) => d[1]).map((d) => [fdT('@' + d[0]), numL(d[1])]) });
           if ((dfd.bomba || []).length) sec1.push({ t: x.fdB, pares: dfd.bomba.map((d) => [fdT('@' + d[0]), fdV(d[1])]) });
           if ((dfd.motor || []).length) sec1.push({ t: x.fdM, pares: dfd.motor.map((d) => [fdT('@' + d[0]), fdV(d[1])]) });
+          // sem folha do fabricante: os dados construtivos da bomba no cadastro entram aqui, nas mesmas seções (sem repetir o que já está acima)
+          if (cadCampos.length) { const ja = sec1.flatMap((q) => q.pares); for (const q of secoesPadrao({ secoes: [] }, [], null, {}, cadCampos)) { q.pares = q.pares.filter(([k, v]) => !repetido(ja, k, v, true)); ja.push(...q.pares); if (q.pares.length) sec1.push(Object.assign(q, { col: undefined })); } }
         }
         colunas(sec1);
         F('italic', 6.2, CINZA); T(dados ? (dados.fabricante ? x.fonte.replace('{f}', dados.fabricante) : x.fonteSem) : x.semFab, X0, y + 1.5); y += 4;
@@ -5947,7 +5984,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
         if (dados && (dados.tabelas || []).some((t) => t.pag === pags[0]?.n)) { /* tabela da primeira folha: já resumida nas seções */ }
         // 2b) bomba e acionador vindos do cadastro (folha técnica de cada insumo); a folha anexada na proposta tem prioridade
         { const cad = it.cad || {}; const temEng = !!(dados && dados.secoes.some((q) => /Engine|Motor|Driver/i.test(q.t)));
-          const usar = (cad.fds || []).slice(); void temEng;
+          const usar = (cad.fds || []).filter((f) => f.uso !== 'bomba'); void temEng; // a bomba já está na folha de desempenho
           if (usar.length) { pagina(x.constr + ' — ' + nItem);
             // bomba primeiro (construção, materiais, testes, pesos), depois o acionador (informações do motor)
             const ord = usar.slice().sort((a, b) => (a.uso === 'bomba' ? 0 : 1) - (b.uso === 'bomba' ? 0 : 1));
@@ -5971,7 +6008,7 @@ window.PRICER_PROPOSTA_ASSETS={"img": {"capa-seq": "data:image/jpeg;base64,/9j/4
           const L = []; for (const c of g.itens) { L.push({ q: qtdTxt(c.q), n: 0, t: fdT(c.titulo) }); for (const l of c.sub || []) L.push({ n: 1, t: /^#/.test(l) ? fdT('@' + l.slice(1).split('|')[0]) + ': ' + tr(l.split('|').slice(1).join('|')) : tr(l) }); }
           escopo((GRUPO_TR[lang] || {})[g.g] || g.g, L, { titulos: true });
         }
-        { const L = [[r.h_frete, tr(E.frete)], [x.prazo, prazoTxt().join(' · ')]].filter((q) => q[1]); if (L.length && tem('condicoes')) escopo((GRUPO_TR[lang] || {}).Comercial || 'Comercial', L.map(([k, v]) => ({ n: 1, t: k + ': ' + v })), { titulos: true }); }
+        // frete e prazo não entram no escopo do item: já estão nas condições comerciais do resumo
         const nt = I.linhasDe(E.notasItem[it.key]); if (nt.length) { subtitulo(r.notasItem); marcadores(nt.map(tr)); }
       });
     }
@@ -13125,7 +13162,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>05/11/2026 21:42 · commit f374219</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>05/11/2026 22:03 · commit e1d1c3b</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;

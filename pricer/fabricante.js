@@ -380,7 +380,7 @@
     'Discharge flange': ['Flange de recalque', 'Brida de descarga'], 'Casing ring': ['Anel da carcaça', 'Anillo de la carcasa'], 'Impeller material': ['Material do rotor', 'Material del impulsor'], 'Impeller Wear Ring': ['Anel de desgaste do rotor', 'Anillo de desgaste del impulsor'],
     Rotation: ['Rotação', 'Rotación'], 'Shaft material': ['Material do eixo', 'Material del eje'], 'Shaft sleeve material': ['Material da luva do eixo', 'Material de la camisa del eje'], 'Packing type': ['Tipo de gaxeta', 'Tipo de empaquetadura'], 'Nameplate units': ['Unidades da placa', 'Unidades de la placa'],
     'Engine voltage': ['Tensão do motor', 'Tensión del motor'], 'Controller brand': ['Marca do painel', 'Marca del tablero'], 'Controller voltage': ['Tensão do painel', 'Tensión del tablero'], 'Controller frequency': ['Frequência do painel', 'Frecuencia del tablero'], Enclosure: ['Invólucro', 'Envolvente'], 'Enclosure type': ['Tipo de invólucro', 'Tipo de envolvente'] };
-  const UNI = 'USgpm|gpm|in|psi\\.?[ga]?|lb|hp|ft|rpm|m|mm|cP|SG|Hz|V|VAC|VDC|V DC|%|deg C|°C|kW|bar|m³/h|hp/100 rpm|psi\\.a';
+  const UNI = 'USgpm|gpm|in|psi\\.?[ga]?|psig|psia|lb|hp|HP|cv|ft|rpm|m|mm|cP|cSt|SG|Hz|V|VAC|VDC|V DC|%|deg C|deg F|°C|°F|kW|bar|kPa|MPa|m³/h|m3/h|l/s|kg/m³|kg/m3|kg|hp/100 rpm|psi\\.a';
   const reMedida = new RegExp('^[-+]?[\\d.,]+(\\s*/\\s*[-+]?[\\d.,]+)?\\s*(' + UNI + ')?$');
   const ehMedida = (v) => reMedida.test(String(v || '').trim().replace(/\s+/g, ' '));
   window.PricerFabricante = { ler, secT, rotT, valT, linhaT, junta, ehMedida };
