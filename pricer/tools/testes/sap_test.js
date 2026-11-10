@@ -21,6 +21,7 @@ const path = require('path');
   await p.click('.ptab[data-ptcfg]'); await p.waitForTimeout(600);
   confere('aba Configuração abre o configurador do item', /Configurar|Compor|Conferir/.test(await p.$eval('#app', (x) => x.innerText.slice(0, 1500))) && (await p.$eval('.ptab.on span', (x) => x.innerText)).toUpperCase() === 'CONFIGURAÇÃO');
   await p.click('.ptab[data-step="4"]'); await p.waitForTimeout(600);
+  await p.evaluate(() => { const d = document.querySelector('details[data-keep="compos"]'); if (d) d.open = true; });
   const comp = await p.$$eval('.cpreco tbody tr', (x) => x.map((r) => [...r.querySelectorAll('td')].map((t) => t.innerText.trim())));
   const v = (lb) => br((comp.find((r) => r[0].includes(lb)) || [])[1] || 'NaN');
   const soma = v('Custo total') + v('Impostos') + v('Comissões') + v('Margem líquida') + (comp.some((r) => /Outros/.test(r[0])) ? v('Outros') : 0);
