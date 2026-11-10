@@ -49,11 +49,11 @@ const fs = require('fs');
   await shot('4_conferir');
   const inc = await p.$('[data-cfgincluir]'); const dis = await inc.isDisabled(); console.log('12 botão incluir habilitado:', !dis);
   if (!dis) { await inc.click(); await p.waitForTimeout(2500); console.log('13 incluído:', await p.$eval('.cfgincl', (x) => x.innerText.replace(/\s+/g, ' ').slice(0, 160)), '| status:', await p.$eval('#saveSt', (x) => x.innerText).catch(() => ''));
-    const nItens = async () => { await p.click('[data-step="2"]'); await p.waitForTimeout(400); const n = await p.$$eval('[data-goitem]', (x) => x.length); await p.click(`[data-goitem="${n - 1}"]`); await p.waitForTimeout(500); await p.click('[data-cfget="3"]'); await p.waitForTimeout(400); return n; };
+    const nItens = async () => { await p.click('[data-step="2"]'); await p.waitForTimeout(400); const n = await p.$$eval('[data-goitem]', (x) => new Set(x.map((e) => e.dataset.goitem)).size); await p.click(`[data-goitem="${n - 1}"]`); await p.waitForTimeout(500); await p.click('[data-cfget="3"]'); await p.waitForTimeout(400); return n; };
     const n1 = await nItens(); await p.click('[data-cfgincluir]'); await p.waitForTimeout(2500); console.log('14 clicar de novo não duplica: botão diz', await p.$eval('[data-cfgincluir]', (x) => x.innerText.trim()), '| itens na proposta', n1, '→', await nItens()); }
   // reabrir: a inclusão fica registrada com a proposta
   await p.reload(); await p.waitForTimeout(1500); await p.click('[data-view="proposta"]').catch(() => {}); await p.click('[data-step="2"]').catch(() => {}); await p.waitForTimeout(400);
-  const n = await p.$$eval('[data-goitem]', (x) => x.length); await p.click(`[data-goitem="${n - 1}"]`).catch(() => {}); await p.waitForTimeout(600); await p.click('[data-cfget="3"]').catch(() => {}); await p.waitForTimeout(500);
+  const n = await p.$$eval('[data-goitem]', (x) => new Set(x.map((e) => e.dataset.goitem)).size); await p.click(`[data-goitem="${n - 1}"]`).catch(() => {}); await p.waitForTimeout(600); await p.click('[data-cfget="3"]').catch(() => {}); await p.waitForTimeout(500);
   console.log('15 depois de recarregar:', await p.$eval('.cfgincl', (x) => x.innerText.replace(/\s+/g, ' ').slice(0, 120)).catch(() => 'sem a etapa Conferir'));
   // 4) comparação com o fluxo anterior: configurador × Testador de estruturas, para os primeiros modelos prontos
   // (sem o componente adicional do passo 9, que o testador não tem)
