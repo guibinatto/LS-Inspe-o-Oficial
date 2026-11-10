@@ -11,7 +11,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   await p.click('.ptabs [data-step="3"]'); await p.waitForTimeout(500); console.log('custos kpis:', await p.$eval('#app .kpis', (x) => x.innerText.replace(/\s+/g, ' ')));
   await p.click('[data-custofiltro="todos"]'); await p.waitForTimeout(400); console.log('linhas:', await p.$$eval('#app table.t tbody tr:not(.grp)', (x) => x.length));
   // simulador
-  await p.click('.ptabs [data-step="4"]'); await p.waitForTimeout(400); await p.fill('#simAlvo', '4.000.000,00'); await p.click('[data-simrun]'); await p.waitForTimeout(2500);
+  await p.click('.ptabs [data-step="4"]'); await p.waitForTimeout(400); await p.evaluate(() => { const d = document.querySelector('#simAvDet'); if (d) d.open = true; }); await p.fill('#simAlvo', '4.000.000,00'); await p.click('[data-simrun]'); await p.waitForTimeout(2500);
   console.log('simulação:', await p.$eval('#simCard table', (x) => x.innerText.replace(/\t/g, ' | ').split('\n').slice(0, 11).join(' // ')));
   console.log('banner:', await p.$eval('#simCard .banner', (x) => x.innerText));
   console.log('oficial continua:', await p.$eval('.sumbar', (x) => x.innerText.replace(/\s+/g, ' ')));

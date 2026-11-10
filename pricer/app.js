@@ -2255,7 +2255,7 @@
         <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[2] === 'aprovacao' && MG.faseLb ? MG.faseLb('aprovacao') : sit[0])}</span>${spv || fx ? '' : apSelo()}${podeCancelar() ? `<button class="btn sm ghost" data-cancelar data-ico="x" title="${sv ? 'Descartar o que não foi salvo' : 'Desistir da criação desta proposta'}">Cancelar</button>` : ''}</div></div>
       <div class="ctx-kpis sumbar sticky">
         <div class="k"><span>Valor total</span><b>${brl(tot)}</b><em>${ipiTxt}</em></div>
-        <div class="k"><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}</em></div>
+        <div class="k${spv || fx ? '' : ' kneg'}"${spv || fx ? '' : ' data-step="4" data-scrollto="#simMgCard" role="button" tabindex="0" title="Negociar: desconto, margem ou valor final"'}><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}</em></div>
         <div class="k x"><span>Custo</span><b>${brl(custo)}</b><em></em></div>
         <div class="k x"><span>Itens</span><b>${nItens}</b><em></em></div>
         <div class="k kpend" ${spv || fx ? 'data-view="pendencias"' : 'data-step="5"'} role="button" tabindex="0" title="Ver as pendências"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>
@@ -2311,7 +2311,7 @@
           <div class="fields">
             <div class="f span2 req${falta.has('L5') ? ' miss' : ''}"><label for="cnpjIn">CNPJ / CPF</label><div class="cnpjrow"><input id="cnpjIn" value="${esc(fmtDoc(txt(P, 'L5')))}" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off"><button class="btn" id="cnpjGo" type="button">Buscar na Receita</button></div><small class="sub" id="cnpjMsg">${esc(state.cnpjInfo || 'Preenche cliente, local, UF e cadastro fiscal.')}</small></div>
             ${rq('F5', 'Cliente (razão social)', 'span2').replace('<input ', '<input list="dl_clientes" ')}${dlClientesHtml()}${rq('F6', 'Obra / local', 'span2')}${rq('F7', 'UF de destino')}${rq('J5', 'Cadastro fiscal', 'span2')}${rq('F8', 'Segmento')}</div></section>
-        <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta').replace(/<\/label>/, window.LSNumGerar('seq', '#c_PROPOSTA_C5', txt(P, 'C5')) + '</label>')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
+        <section class="card"><h2>Proposta</h2><div class="fields">${rq('C5', 'Nº da proposta').replace(/<\/label>/, window.LSNumGerar('seq', '#c_PROPOSTA_C5', txt(P, 'C5')) + '</label>')}${rq('C6', 'Revisão')}${rq('C7', 'Data')}${rq('C10', 'Validade').replace(/<\/label>/, ' <span class="valdias">' + [15, 30, 60].map((n) => `<button type="button" class="restore" data-valdias="${n}" title="Data da proposta + ${n} dias">${n} dias</button>`).join(' ') + '</span></label>')}${rq('J6', 'Condição de pagamento', 'span2')}${rq('F9', 'Norma')}</div></section>
         ${(() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })()}
         <section class="card"><h2>Vendedor e comissões</h2><div class="fields">
             <div class="f spanall req${falta.has('C8') ? ' miss' : ''}"><label>Vendedor${REG.areaOk('precificacao') ? ' <button type="button" class="restore" data-novovend>+ novo vendedor ou AN</button>' : ''}</label>${chips(vs, 'C8', REG.areaOk('precificacao') ? 'Nenhum vendedor cadastrado: use "+ novo vendedor ou AN".' : 'Nenhum vendedor cadastrado: peça a quem cuida de Precificação.')}</div>
@@ -2325,10 +2325,10 @@
       const fechada = !!(state.id && MG.liberaReal(state.id));
       const cards = items.map((x) => {
         const S = x.s; const al = alertsFor(S); const ok = filled(S);
-        return `<article class="icard"><header><span class="ino">${S.slice(5)}</span><div style="min-width:0"><b>${esc(txt(S, 'C28') || 'Equipamento ainda não escolhido')}</b><code>${esc(txt(S, 'C27'))}</code></div></header>
+        return `<article class="icard"><header data-goitem="${x.i}" style="cursor:pointer" title="Abrir o item"><span class="ino">${S.slice(5)}</span><div style="min-width:0"><b>${esc(txt(S, 'C28') || 'Equipamento ainda não escolhido')}</b><code>${esc(txt(S, 'C27'))}</code></div></header>
           ${ok ? `<div class="itotal"><span>Total c/ IPI</span><b>${brl(val(S, 'D15'))}</b></div><dl class="ifacts"><div><dt>Qtd</dt><dd>${show(S, 'P17')}</dd></div><div><dt>Margem</dt><dd class="${txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO' ? 'bad-t' : ''}">${pct(val(S, 'J15'))}</dd></div><div><dt>Origem</dt><dd>${esc(txt(S, 'P33').slice(0, 3))} ${pct(val(S, 'P32'), 0)}</dd></div></dl>` : '<p class="sub" style="margin:0">Abra para escolher o modelo pronto ou montar o equipamento.</p>'}
           <div>${ok ? countPills(al) : ''}</div>
-          <footer>${fechada ? `<button class="btn sm pri" data-mgreal="${esc(state.id)}" data-mgitem="${S}">Lançar custo real</button><button class="btn sm" data-goitem="${x.i}">Abrir</button>` : `<button class="btn sm pri" data-goitem="${x.i}">Abrir</button>`}<button class="btn sm" data-dup="${x.i}">Duplicar</button>${ok ? `<button class="btn sm" data-modsave="${x.i}" title="Guardar esta configuração para outras propostas">Salvar como modelo</button>` : ''}<button class="btn sm" data-rmitem="${x.i}">Remover</button></footer></article>`;
+          <footer>${fechada ? `<button class="btn sm pri" data-mgreal="${esc(state.id)}" data-mgitem="${S}">Lançar custo real</button><button class="btn sm" data-goitem="${x.i}">Abrir</button>` : `<button class="btn sm pri" data-goitem="${x.i}">Abrir</button>`}<button class="btn sm ghost" data-dup="${x.i}">Duplicar</button>${ok ? `<button class="btn sm ghost" data-modsave="${x.i}" title="Guardar esta configuração para outras propostas">Salvar como modelo</button>` : ''}<button class="btn sm ghost" data-rmitem="${x.i}">Remover</button></footer></article>`;
       }).join('');
       const free = firstFree();
       body = `<div class="icards">${cards}${free >= 0 ? `<button class="icard add" data-additem>+ Adicionar item<small>modelo pronto ou montagem própria</small></button>` : ''}</div>
@@ -2345,19 +2345,18 @@
           <div class="kpi"><span>Margem líquida</span><b class="${typeof margem === 'number' && typeof mMin === 'number' && margem < mMin ? 'bad-t' : ''}">${pct(margem)}</b><em>mínimo ${pct(mMin)}</em></div>
           <div class="kpi"><span>Impostos · comissões</span><b>${sn ? brl(sn.impostos) : '—'}</b><em>${sn ? 'comissões ' + brl(sn.comissao) : ''}</em></div>
           <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
-        ${composicaoPrecoHtml()}
-        ${simMargemHtml()}
-        <section class="card"><h2>Condições comerciais <span class="sub">o que mexe no preço</span></h2><div class="fields">${fieldS(P, 'C9', 'Desconto global')}${fieldS(P, 'J6', 'Condição de pagamento', { cls: 'span2' })}${fieldS(P, 'B13', 'Frete', { cls: 'span2' })}</div>
-          <p class="sub" style="margin:8px 0 0">Comissões: ${esc(txt(P, 'J7') || '—')} (vendedor) · ${esc(txt(P, 'J8') || '—')} (AN) — ajuste em Identificação. Margem-alvo e desconto por item ficam na tela de cada item.</p></section>
-        <section class="card"><h2>Preço por item</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
-        ${vSimulador()}
+        <section class="card"><h2>Preço por item</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th class="n">Qtd</th><th class="n">Unit. c/ IPI</th><th class="n">Total c/ IPI</th><th class="n">Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
+        ${simMargemHtml(true)}
+        ${(() => { const h = composicaoPrecoHtml(); return h ? `<details class="card"${keep('compos')}><summary>Composição do preço <span class="sub">custo, impostos, comissões e margem do memorial</span></summary>${h.replace(/^<section class="card cpreco"><h2>[\s\S]*?<\/h2>/, '<div class="cpreco">').replace(/<\/section>$/, '</div>')}</details>` : ''; })()}
+        <details class="card" id="simAvDet"${ui.simRes ? ' open' : keep('simav')}><summary>Cenários avançados <span class="sub">variação de custo, outra condição de pagamento, comissões, cenários salvos e converter em revisão</span></summary>${vSimulador().replace(/^<section class="card" id="simCard"><h2>[\s\S]*?<\/h2>/, '<div id="simCard">').replace(/<\/section>$/, '</div>')}</details>
         ${(() => { try { return TB.cardProposta(sn || seqSnapshot(), { uf: txt(P, 'F7'), cadfiscal: txt(P, 'J5'), div: 'SEQ' }); } catch (e) { return ''; } })()}
         ${nav(3, 5)}`;
     } else if (step === 5) {
       body = `${vConferenciaCentral()}
         ${(() => { const ai = aprovInfo(); return `<section class="card"><h2>Aprovação da proposta <span class="sub">desconto além da política: peça pela proposta toda, com o valor target</span></h2><div class="aprovbox">${ai.estado ? aprovLinha({ aprov: ai }).replace(/^<br>/, '') : '<small class="sub">Nenhum pedido de aprovação para esta proposta.</small>'}<button class="btn${ai.estado === 'pendente' || ai.estado === 'aprovada' ? '' : ' pri'}" data-alaprov>${ai.estado ? 'Pedir de novo (novo valor target)' : 'Pedir aprovação (valor target)'}</button></div></section>`; })()}
         ${confCard()}
-        ${PN.cardProposta(state.id, docTitle())}
+        ${(() => { const h = PN.cardProposta(state.id, docTitle()); if (!h) return ''; const m = h.match(/<h2>([\s\S]*?)<\/h2>/);
+          return `<details class="card" id="pnProp"${keep('pnprop')}><summary>${m ? m[1] : 'Pendências desta proposta'} <span class="sub">registro com código, prazo e responsável dos avisos acima</span></summary>${h.replace(/^<section class="card" id="pnProp"><h2>[\s\S]*?<\/h2>/, '').replace(/<\/section>$/, '')}</details>`; })()}
         <details class="card"${keep('alertas')}><summary>Alertas por item <span class="sub">${countPills(alerts)}</span></summary>${alertList(alerts, true) || '<p class="ok-t" style="margin:0">Nenhum alerta nos itens.</p>'}</details>
         ${nav(4, 6)}`;
     } else {
@@ -2994,7 +2993,8 @@
     const ed = e.target.closest('[data-edit]');
     if (ed) { uiEdit.add(ed.dataset.edit); render(); const [s, a] = ed.dataset.edit.split('|'); const el = document.getElementById(id(s, a)); if (el) { el.focus(); if (el.select) el.select(); } return; }
     const sp = e.target.closest('[data-step]');
-    if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; if (!ui.simple && sp.closest('.ptabs, .flowbar, #app')) { ui.simple = true; store.set(SK.view, ui); } setView('proposta'); return; }
+    if (sp) { if (+sp.dataset.step > 1 && !cabOk()) { ui.step = 1; ui.reqShow = true; setView('proposta'); toast('Preencha o cabeçalho antes de seguir'); return; } ui.step = +sp.dataset.step; ui.propFull = false; if (!ui.simple && sp.closest('.ptabs, .flowbar, #app')) { ui.simple = true; store.set(SK.view, ui); } setView('proposta');
+      if (sp.dataset.scrollto) setTimeout(() => { const c = $(sp.dataset.scrollto); if (c) { c.scrollIntoView({ block: 'start', behavior: 'smooth' }); const i = $('#smDesc', c); if (i) i.focus({ preventScroll: true }); } }, 60); return; }
     if (e.target.closest('[data-additem]')) { const j = firstFree(); if (j < 0) return; ui.item = j; ui.itemFull = false; cfgEtRestart(j); setView('item'); return; }
     const dp = e.target.closest('[data-dup]'); if (dp) { dupItem(+dp.dataset.dup); return; }
     const rm = e.target.closest('[data-rmitem]');
@@ -5475,16 +5475,26 @@
       <div class="banner ${R.fora || R.margemPct < mMin - 5e-5 ? 'warn' : 'ok'}" style="margin:8px 0 0">${R.fora || R.margemPct < mMin - 5e-5 ? `Com este desconto a proposta <b>precisa de aprovação</b> (margem ${pct(R.margemPct, 1)}, mínimo ${pct(mMin, 0)}${R.fora ? '; ' + R.fora + ' item(ns) abaixo do piso da política' : ''}).` : `Dentro da política: margem ${pct(R.margemPct, 1)} (mínimo ${pct(mMin, 0)}).`}</div>
       <div class="docbar" style="margin-top:8px">${state.verRev ? '' : `<button class="btn pri" data-smaplica data-ico="check">Aplicar à proposta (desconto global ${esc(pct(R.desc, 2))})</button>`}<button class="btn" data-smlimpa>Limpar</button></div>`;
   }
-  function simMargemHtml() {
-    if (isSpv() || isFacts()) return ''; const S = ui.simMg || {};
+  function simMargemHtml(comCond) {
+    if (isSpv() || isFacts()) return ''; const S = ui.simMg || {}; const P = 'PROPOSTA';
     const fv = (k) => (S.modo === k && typeof S.v === 'number' ? esc(NF[2].format(k === 'valor' ? S.v : S.v * 100)) : '');
-    return `<section class="card" id="simMgCard"><h2>Desconto × margem <span class="pill warn">simulação: a proposta só muda em "Aplicar"</span></h2>
-      <p class="sub" style="margin:0 0 8px">Digite o desconto global e veja a margem; ou a margem que você quer; ou o valor final ao cliente. O app mostra o desconto, os valores e a margem. É o mesmo cálculo da proposta (impostos, comissões, frete e start-up), numa cópia.</p>
+    const mMin = val('PARÂMETROS', 'C34'); const dAt = num0(val(P, 'C9'));
+    const qk = [typeof mMin === 'number' ? ['margem', mMin, 'Margem mínima (' + pct(mMin, 0) + ')'] : null, dAt ? ['desc', 0, 'Sem desconto'] : null, ['desc', 0.03, '3% de desconto'], ['desc', 0.05, '5%'], ['desc', 0.10, '10%']].filter(Boolean);
+    return `<section class="card" id="simMgCard"><h2>Negociar <span class="sub">desconto global atual ${esc(pct(dAt, 2))} · margem ${esc(pct(val(P, 'J16'), 1))}</span> <span class="pill warn">a proposta só muda em "Aplicar"</span></h2>
+      <p class="sub" style="margin:0 0 8px">Um clique num atalho, ou digite o desconto, a margem que você quer ou o valor final ao cliente. É o mesmo cálculo da proposta (impostos, comissões, frete e start-up), numa cópia.</p>
+      ${state.verRev ? '' : `<div class="docbar smq" style="margin:0 0 8px">${qk.map(([m, v, lb]) => `<button type="button" class="btn sm" data-smq="${m}|${v}">${esc(lb)}</button>`).join('')}</div>`}
       <div class="fields"><div class="f"><label for="smDesc">Desconto global (%)</label><input id="smDesc" data-sm="desc" inputmode="decimal" value="${fv('desc')}" placeholder="${esc(NF[2].format(num0(val('PROPOSTA', 'C9')) * 100))}"><small class="sub">negativo = acréscimo</small></div>
         <div class="f"><label for="smMg">ou margem líquida desejada (%)</label><input id="smMg" data-sm="margem" inputmode="decimal" value="${fv('margem')}" placeholder="${esc(NF[2].format((val('PROPOSTA', 'J16') || 0) * 100))}"><small class="sub">acha o desconto global que dá essa margem</small></div>
         <div class="f"><label for="smValor">ou valor final ao cliente (R$, com IPI)</label><input id="smValor" data-sm="valor" inputmode="decimal" value="${fv('valor')}" placeholder="${esc(NF[2].format(val('PROPOSTA', 'P43') || 0))}"><small class="sub">acha o desconto global que dá esse valor</small></div></div>
-      <div id="smRes">${simMargemRes()}</div></section>`;
+      <div id="smRes">${simMargemRes()}</div>
+      ${comCond ? `<h3 style="margin:14px 0 6px;font-size:13px">Condições que também mexem no preço</h3><div class="fields">${fieldS(P, 'J6', 'Condição de pagamento', { cls: 'span2' })}${fieldS(P, 'B13', 'Frete', { cls: 'span2' })}</div>
+      <p class="sub" style="margin:6px 0 0">Comissões: ${esc(txt(P, 'J7') || '—')} (vendedor) · ${esc(txt(P, 'J8') || '—')} (AN), em Dados gerais. Margem-alvo e desconto por item ficam na tela de cada item.</p>` : ''}</section>`;
   }
+  // atalhos de um clique: simula e mostra (Aplicar continua sendo um clique à parte)
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-smq]'); if (!b || state.verRev) return; const [modo, v] = b.dataset.smq.split('|'); const n = +v;
+    try { const c = simMargemCalc(modo, n); ui.simMg = { modo, v: n, achou: c.achou, res: resumoSim(Object.assign(c.r, { desc: c.desc })) }; } catch (er) { toast('Não consegui simular: ' + errMsg(er)); return; }
+    const ids = { desc: '#smDesc', margem: '#smMg', valor: '#smValor' }; for (const [k, id] of Object.entries(ids)) { const o = $(id); if (o) o.value = k === modo ? NF[2].format(n * 100) : ''; }
+    const box = $('#smRes'); if (box) { box.innerHTML = simMargemRes(); decorar(box); } });
   let smTimer = null;
   document.addEventListener('input', (e) => {
     const t = e.target; if (!t.dataset || !t.dataset.sm) return; const modo = t.dataset.sm; for (const id of ['#smDesc', '#smMg', '#smValor']) { const o = $(id); if (o && o !== t) o.value = ''; }
@@ -5644,8 +5654,32 @@
     // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas
     state.cabReq = true; const P = 'PROPOSTA'; const hoje = new Date(); commit(P, 'C6', 0); commit(P, 'C7', hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0'));
     commit(P, 'J7', 'SEQ');
+    const rep = repeteUltima();
     if (fam) { commit('ITEM 01', 'C21', fam); ui.famPend = fam; ui.simple = true; } else ui.famPend = null;
-    ui.step = 1; setView('proposta'); toast(fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco'); }
+    ui.step = 1; setView('proposta'); toast((fam ? 'Proposta SEQ nova · ' + (FAM_SEQ_LB[fam] || fam) + ' — comece pelo cabeçalho' : 'Proposta SEQ em branco') + (rep ? '. ' + rep : '')); }
+  // proposta nova: repete as escolhas da última proposta SEQ de quem está criando (pagamento, norma, frete, vendedor,
+  // comissões e prazo de validade). Só valores que ainda estão nas listas; nada é inventado e tudo pode ser trocado.
+  function repeteUltima() {
+    const P = 'PROPOSTA'; const L = (REG.listPropostas() || []).filter((q) => !q.excluida && !q.spv && !q.facts && (q.div || 'SEQ') === 'SEQ' && q.doc && q.doc.PROPOSTA);
+    const minhas = REG.me ? L.filter((q) => q.criadaPor === REG.me) : []; const q = (minhas.length ? minhas : L).slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))[0];
+    const feitos = [];
+    if (q) { const Q = q.doc.PROPOSTA;
+      for (const [a, lb] of [['J6', 'pagamento'], ['F9', 'norma'], ['B13', 'frete']]) { const v = Q[a]; const op = listFor(P, a); if (v && (!op || !op.length || op.includes(v))) { commit(P, a, v); feitos.push(lb); } }
+      const ven = equipeCom(); const tem = (nm, an) => ven.some((x) => x.nome === nm && (an ? x.papel === 'an' : x.papel !== 'an'));
+      if (Q.C8 && tem(Q.C8, false)) { commit(P, 'C8', Q.C8); feitos.push('vendedor'); }
+      if (Q.J8 && Q.J8 !== 'SEM COMISSÃO' && Q.L8 && tem(Q.L8, true)) { commit(P, 'J8', Q.J8); commit(P, 'L8', Q.L8); feitos.push('AN'); }
+      const d0 = lerData(Q.C7), d1 = lerData(Q.C10); const dias = Math.round((d1 - d0) / 864e5);
+      if (dias > 0 && dias <= 365) { validadeDias(dias); feitos.push('validade de ' + dias + ' dias'); } }
+    if (!txt(P, 'C8')) { const vs = equipeCom().filter((x) => x.papel !== 'an'); if (vs.length === 1) { commit(P, 'C8', vs[0].nome); feitos.push('vendedor'); } }
+    return feitos.length ? 'Repetido da sua última proposta: ' + feitos.join(', ') + ' (confira)' : '';
+  }
+  // validade = data da proposta + N dias (atalhos ao lado do campo)
+  // datas do cabeçalho: "2026-09-02", "02/09/2026" ou "até 09/09/2026" (como as propostas gravam a validade)
+  function lerData(v) { const t = String(v ?? ''); let m = t.match(/(\d{4})-(\d{2})-(\d{2})/); if (m) return Date.UTC(+m[1], m[2] - 1, +m[3]);
+    m = t.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? Date.UTC(+m[3], m[2] - 1, +m[1]) : NaN; }
+  function validadeDias(n) { const P = 'PROPOSTA'; const b = lerData(txt(P, 'C7')); const d = new Date(isFinite(b) ? b : Date.now()); d.setUTCDate(d.getUTCDate() + n);
+    commit(P, 'C10', 'até ' + String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear()); }
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-valdias]'); if (!b || state.verRev) return; e.preventDefault(); validadeDias(+b.dataset.valdias); dirty = true; persist(); render(); });
   // ---------- importar proposta feita fora do app: planilha LS PRICER (formação) + PDFs da técnica e da comercial ----------
   const calcDoc = (d) => { const w = new Workbook(MODEL); REG.applyTo(w); w.applyDoc(JSON.parse(JSON.stringify(d || {}))); return w; };
   function importarModal() {

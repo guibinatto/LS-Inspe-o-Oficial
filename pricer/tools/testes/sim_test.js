@@ -75,6 +75,7 @@ const br = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   await p.click('#bSave'); await p.waitForTimeout(800);
   // 4) formação: composição soma o preço; % do memorial ao lado
   await p.click('.ptab[data-step="4"]'); await p.waitForTimeout(700);
+  await p.evaluate(() => { const d = document.querySelector('details[data-keep="compos"]'); if (d) d.open = true; });
   const comp = await p.$$eval('.cpreco tbody tr', (x) => x.map((r) => [...r.cells].map((c) => c.innerText.trim())));
   const vl = (re) => { const r = comp.find((c) => re.test(c[0])); return r ? br(r[1]) : NaN; };
   const soma = vl(/^Custo total/) + vl(/^Impostos/) + vl(/^Comiss/) + vl(/^Margem/); const venda = vl(/^Preço de venda sem IPI/);
