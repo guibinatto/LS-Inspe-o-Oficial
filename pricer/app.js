@@ -2346,6 +2346,7 @@
           <div class="kpi"><span>Impostos · comissões</span><b>${sn ? brl(sn.impostos) : '—'}</b><em>${sn ? 'comissões ' + brl(sn.comissao) : ''}</em></div>
           <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
         ${composicaoPrecoHtml()}
+        ${simMargemHtml()}
         <section class="card"><h2>Condições comerciais <span class="sub">o que mexe no preço</span></h2><div class="fields">${fieldS(P, 'C9', 'Desconto global')}${fieldS(P, 'J6', 'Condição de pagamento', { cls: 'span2' })}${fieldS(P, 'B13', 'Frete', { cls: 'span2' })}</div>
           <p class="sub" style="margin:8px 0 0">Comissões: ${esc(txt(P, 'J7') || '—')} (vendedor) · ${esc(txt(P, 'J8') || '—')} (AN) — ajuste em Identificação. Margem-alvo e desconto por item ficam na tela de cada item.</p></section>
         <section class="card"><h2>Preço por item</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
@@ -2365,7 +2366,7 @@
       body = `<section class="card"><h2>Situação e próximo passo</h2>${sv ? MG.etapasHtml(sv) : '<p class="sub" style="margin:0">Salve a proposta para acompanhar as etapas.</p>'}
           ${nx ? `<div class="docbar" style="margin-top:8px"><button class="btn pri" data-hnext="${esc(sv.id)}|${nx.act}">${esc(nx.lb)}</button></div>` : ''}</section>
         ${propComCard()}
-        <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button><button class="btn" data-view="documentos" data-ico="folder-open">Anexar ou ver todos os documentos</button></div>
+        <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="memorialxlsx">Memorial (Excel)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button><button class="btn" data-view="documentos" data-ico="folder-open">Anexar ou ver todos os documentos</button></div>
           ${docsP.length ? `<div class="tw" style="margin-top:8px"><table class="t"><tbody>${docsP.map((d) => `<tr><td>${esc(d.nome || '')}<br><small class="sub">${esc([d.tipo, d.numero, d.fornecedor, d.rev != null && !isNaN(d.rev) ? 'rev. ' + d.rev : '', d.item, d.etapa].filter(Boolean).join(' · '))}</small></td><td class="sub">${esc(fmtAt(d.at))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:8px 0 0">Nenhum documento ligado ainda (o PDF conferido entra aqui).</p>'}</section>
         <section class="card"><h2>Revisões</h2><div class="docbar">${state.id ? '<button class="btn" data-revs>Ver e comparar revisões</button><button class="btn" data-revisar>Revisar (nova revisão)</button>' : '<span class="sub">Salve a proposta para ter revisões.</span>'}</div></section>
         ${nav(5, 0)}`;
@@ -3068,7 +3069,8 @@
       const bold = /^TOTAL|Margem|Preço de venda com impostos e COM/i.test(lb);
       rows.push(`<tr class="${bold ? 'tot' : ''}"><td>${esc(lb)}</td>${cols.map((c) => `<td class="n">${show(M, c + r)}</td>`).join('')}<td class="n"><b>${show(M, 'M' + r)}</b></td></tr>`);
     }
-    return `<div class="stack"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><div><h1>Memorial de formação de preço</h1><div class="sub">No formato que o financeiro pede: custos, impostos, comissão, margem e o demonstrativo — por item e total da proposta.</div></div><div class="docbar"><span class="sub">Documentos para o financeiro</span><button class="btn sm pri" data-doc="memorial">Memorial (PDF)</button><button class="btn sm" data-doc="fcipdf">FCI (PDF)</button><button class="btn sm" data-doc="fcixlsx">FCI (Excel)</button></div></div>
+    return `<div class="stack"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><div><h1>Memorial de formação de preço</h1><div class="sub">No formato que o financeiro pede: custos, impostos, comissão, margem e o demonstrativo — por item e total da proposta.</div></div><div class="docbar"><span class="sub">Documentos para o financeiro</span><button class="btn sm pri" data-doc="memorial">Memorial (PDF)</button><button class="btn sm" data-doc="memorialxlsx">Memorial (Excel)</button><button class="btn sm" data-doc="fcipdf">FCI (PDF)</button><button class="btn sm" data-doc="fcixlsx">FCI (Excel)</button></div></div>
+      ${simMargemHtml()}
       <section class="card"><div class="tw"><table class="t"><thead><tr><th>Linha</th>${cols.map((c) => `<th>ITEM ${String(colToNum(c) - 2).padStart(2, '0')}</th>`).join('')}<th>Total da proposta</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${notes}</section></div>`;
   }
 
@@ -5429,6 +5431,61 @@
         return `<p class="sub" style="margin:8px 0 0">O indicador <b>Custo total dos itens</b> no alto da aba (célula G16 da planilha) soma o custo dos itens: ${brl(g16)}. O custo total do memorial é ${brl(dif)} maior${bate ? ' — exatamente o start-up e os fretes, que o memorial soma ao custo' : ''}.</p>`; })()}
       <div class="docbar" style="margin-top:8px"><button class="btn sm" data-view="memorial" data-ico="scroll-text">Abrir o memorial de cálculo</button><span class="sub">Valores do motor da planilha (as mesmas fórmulas da REV21); o memorial mostra item por item.</span></div></section>`;
   }
+  // ---------- desconto × margem: digita o desconto global e vê a margem, ou digita a margem e vê o desconto e os valores ----------
+  // mesmo motor de cálculo, numa cópia (simular); a proposta só muda no botão "Aplicar à proposta"
+  function simMargemCalc(modo, v) {
+    if (modo === 'desc') return { desc: v, r: simular({ desc: v }) };
+    // valor final ao cliente (com IPI): o desconto global que leva a ele
+    if (modo === 'valor') { const g = (d) => { const r = simular({ desc: d }); return { r, e: (typeof r.total === 'number' ? r.total : NaN) - v }; };
+      let d0 = num0(val('PROPOSTA', 'C9')), d1 = d0 + 0.03, a = g(d0), b = g(d1);
+      for (let i = 0; i < 25 && Math.abs(b.e) > 0.004 && isFinite(b.e) && b.e !== a.e; i++) { const d2 = Math.max(-0.9, Math.min(0.95, d1 - b.e * (d1 - d0) / (b.e - a.e))); d0 = d1; a = b; d1 = d2; b = g(d1); }
+      return { desc: d1, r: b.r, achou: isFinite(b.e) && Math.abs(b.e) <= 0.01 }; }
+    // margem líquida desejada: procura o desconto global que leva a ela (o preço, os impostos e a comissão mudam juntos)
+    const f = (d) => { const r = simular({ desc: d }); return { r, e: (typeof r.margem === 'number' ? r.margem : NaN) - v }; };
+    let d0 = num0(val('PROPOSTA', 'C9')), d1 = d0 + 0.03, a = f(d0), b = f(d1);
+    for (let i = 0; i < 25 && Math.abs(b.e) > 5e-6 && isFinite(b.e) && b.e !== a.e; i++) { const d2 = Math.max(-0.9, Math.min(0.95, d1 - b.e * (d1 - d0) / (b.e - a.e))); d0 = d1; a = b; d1 = d2; b = f(d1); }
+    return { desc: d1, r: b.r, achou: isFinite(b.e) && Math.abs(b.e) <= 5e-5 };
+  }
+  function simMargemRes() {
+    const P = 'PROPOSTA'; const S = ui.simMg; if (!S || !S.res) return '<p class="sub" style="margin:8px 0 0">Digite um desconto global ou a margem que você quer: os valores aparecem aqui ao lado dos atuais.</p>';
+    const O = resumoSim({ sn: seqSnapshot(), total: val(P, 'P43'), margem: val(P, 'J16'), fora: ITEMS.filter((x) => filled(x)).filter((x) => val(x, 'P84') === 'ABAIXO DO PISO' || txt(x, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val(P, 'C9')) });
+    const R = S.res; const mMin = val('PARÂMETROS', 'C34');
+    const lin = (lb, f, fmt, forte) => { const a = f(O), b = f(R); const d = typeof a === 'number' && typeof b === 'number' ? b - a : null;
+      return `<tr${forte ? ' class="tot"' : ''}><td>${lb}</td><td class="n">${fmt(a)}</td><td class="n"><b>${fmt(b)}</b></td><td class="n">${d === null || Math.abs(d) < 1e-9 ? '' : (d > 0 ? '+' : '−') + fmt(Math.abs(d)).replace('R$ ', '')}</td></tr>`; };
+    const pp = (v) => pct(v, 2);
+    return `<div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th></th><th class="n">Proposta agora</th><th class="n">Simulação</th><th class="n">Diferença</th></tr></thead><tbody>
+      ${lin('Desconto global', (v) => v.desc, pp)}${lin('Preço ao cliente (com IPI)', (v) => v.total, brl, true)}${lin('Preço sem IPI', (v) => v.venda, brl)}${lin('Impostos (sem o IPI)', (v) => v.impostos, brl)}${lin('Comissões', (v) => v.comissao, brl)}${lin('Custo total (memorial)', (v) => v.custo, brl)}
+      ${lin('Margem líquida (R$)', (v) => v.margem, brl, true)}${lin('Margem líquida (%)', (v) => v.margemPct, pp, true)}${lin('Itens fora da política de desconto', (v) => v.fora, (v) => String(v ?? '—'))}</tbody></table></div>
+      ${S.achou === false ? '<div class="banner warn" style="margin:8px 0 0">Não deu para chegar exatamente nesse valor só com o desconto global (veja o mais perto possível acima).</div>' : ''}
+      <div class="banner ${R.fora || R.margemPct < mMin - 5e-5 ? 'warn' : 'ok'}" style="margin:8px 0 0">${R.fora || R.margemPct < mMin - 5e-5 ? `Com este desconto a proposta <b>precisa de aprovação</b> (margem ${pct(R.margemPct, 1)}, mínimo ${pct(mMin, 0)}${R.fora ? '; ' + R.fora + ' item(ns) abaixo do piso da política' : ''}).` : `Dentro da política: margem ${pct(R.margemPct, 1)} (mínimo ${pct(mMin, 0)}).`}</div>
+      <div class="docbar" style="margin-top:8px">${state.verRev ? '' : `<button class="btn pri" data-smaplica data-ico="check">Aplicar à proposta (desconto global ${esc(pct(R.desc, 2))})</button>`}<button class="btn" data-smlimpa>Limpar</button></div>`;
+  }
+  function simMargemHtml() {
+    if (isSpv() || isFacts()) return ''; const S = ui.simMg || {};
+    const fv = (k) => (S.modo === k && typeof S.v === 'number' ? esc(NF[2].format(k === 'valor' ? S.v : S.v * 100)) : '');
+    return `<section class="card" id="simMgCard"><h2>Desconto × margem <span class="pill warn">simulação: a proposta só muda em "Aplicar"</span></h2>
+      <p class="sub" style="margin:0 0 8px">Digite o desconto global e veja a margem; ou a margem que você quer; ou o valor final ao cliente. O app mostra o desconto, os valores e a margem. É o mesmo cálculo da proposta (impostos, comissões, frete e start-up), numa cópia.</p>
+      <div class="fields"><div class="f"><label for="smDesc">Desconto global (%)</label><input id="smDesc" data-sm="desc" inputmode="decimal" value="${fv('desc')}" placeholder="${esc(NF[2].format(num0(val('PROPOSTA', 'C9')) * 100))}"><small class="sub">negativo = acréscimo</small></div>
+        <div class="f"><label for="smMg">ou margem líquida desejada (%)</label><input id="smMg" data-sm="margem" inputmode="decimal" value="${fv('margem')}" placeholder="${esc(NF[2].format((val('PROPOSTA', 'J16') || 0) * 100))}"><small class="sub">acha o desconto global que dá essa margem</small></div>
+        <div class="f"><label for="smValor">ou valor final ao cliente (R$, com IPI)</label><input id="smValor" data-sm="valor" inputmode="decimal" value="${fv('valor')}" placeholder="${esc(NF[2].format(val('PROPOSTA', 'P43') || 0))}"><small class="sub">acha o desconto global que dá esse valor</small></div></div>
+      <div id="smRes">${simMargemRes()}</div></section>`;
+  }
+  let smTimer = null;
+  document.addEventListener('input', (e) => {
+    const t = e.target; if (!t.dataset || !t.dataset.sm) return; const modo = t.dataset.sm; for (const id of ['#smDesc', '#smMg', '#smValor']) { const o = $(id); if (o && o !== t) o.value = ''; }
+    clearTimeout(smTimer); smTimer = setTimeout(() => {
+      const raw = t.value.trim(); const n = raw === '' ? null : parseInput(raw.replace('−', '-'), 'num');
+      const k = modo === 'valor' ? 1 : 100; if (typeof n !== 'number' || !isFinite(n) || (modo === 'valor' && n <= 0)) { ui.simMg = null; } else { try { const c = simMargemCalc(modo, n / k); ui.simMg = { modo, v: n / k, achou: c.achou, res: resumoSim(Object.assign(c.r, { desc: c.desc })) }; } catch (er) { toast('Não consegui simular: ' + errMsg(er)); return; } }
+      const box = $('#smRes'); if (box) box.innerHTML = simMargemRes(); decorar(box); }, 350);
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-smlimpa]')) { ui.simMg = null; render(); return; }
+    if (!e.target.closest('[data-smaplica]') || state.verRev || !ui.simMg || !ui.simMg.res) return;
+    const de = num0(val('PROPOSTA', 'C9')); const para = Math.round(ui.simMg.res.desc * 1e8) / 1e8;
+    commit('PROPOSTA', 'C9', para); dirty = true; persist();
+    logEv({ tipo: 'Proposta — desconto global pela simulação', ref: state.id || docTitle(), desc: docTitle() + ': desconto global ' + pct(de, 2) + ' → ' + pct(para, 2) + ' (margem ' + pct(val('PROPOSTA', 'J16'), 2) + ')', mudancas: [{ campo: 'Desconto global', de, para }] });
+    ui.simMg = null; render(); toast('Desconto global aplicado: ' + pct(para, 2) + ' · margem ' + pct(val('PROPOSTA', 'J16'), 2));
+  });
   function memRows() { const m = {}; for (let r = 3; r <= 38; r++) { const lb = txt('MEMORIAL', 'B' + r); for (const [k, l] of Object.entries(MEM_KEYS)) if (lb === l && !m[k]) m[k] = r; } return m; }
   function seqSnapshot() {
     const rows = memRows(); const n = (x) => (typeof x === 'number' && isFinite(x) ? x : 0);
@@ -5789,6 +5846,7 @@
     const b = e.target.closest('[data-doc]'); if (!b) return;
     const it = b.dataset.docitem || null;
     if (b.dataset.doc === 'memorial') DOCS.memorialPdf();
+    if (b.dataset.doc === 'memorialxlsx') DOCS.memorialXlsx();
     if (b.dataset.doc === 'fcipdf') DOCS.fciPdf(it);
     if (b.dataset.doc === 'fcixlsx') DOCS.fciXlsx(it);
   });

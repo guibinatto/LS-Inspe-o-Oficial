@@ -83,7 +83,32 @@ O que precisa de atenção:
 
 **Como cadastrar esta proposta no seu app:** Nova → Importar proposta antiga → escolha os três arquivos → Criar a proposta → Salvar. Leva uns 4 segundos. O app não tem acesso aos dados gravados no seu navegador, por isso a importação precisa ser feita aí.
 
-## 5. Testes e regressão
+## 5. Custo 556.097,20 × 626.451,20 e o simulador "Desconto × margem"
+
+**Os dois custos estão certos; medem coisas diferentes.**
+- **R$ 556.097,20** é o custo dos itens: peças, materiais e serviços de fabricação. É o que a planilha mostra em H69 e o app mostra em "Custo total dos itens" (G16).
+- **R$ 626.451,20** é o custo total do memorial, que soma também o start-up (R$ 18.354,00) e o frete CIF (R$ 52.000,00). A diferença é exatamente R$ 70.354,00, e a própria tela explica isso abaixo da composição.
+
+Na planilha antiga a conta era outra:
+- o frete entrava no resultado como R$ 42.497,55 (52.000 ÷ fator de frete 1,2236);
+- o start-up não entrava como custo.
+
+Por isso a margem da planilha antiga (32,7%) parece maior. O app (REV21) desconta o frete inteiro e o start-up, e mostra 32,5% neste caso.
+
+**Novo: cartão "Desconto × margem"** em Formação de preço (etapa 4), logo abaixo da composição do preço, e também no alto da página do Memorial de cálculo:
+- **Desconto global (%)**: mostra na hora preço, impostos, comissões, custo e margem (R$ e %), ao lado dos valores atuais e da diferença. Negativo = acréscimo.
+- **Margem líquida desejada (%)**: procura o desconto global que dá essa margem (menos de 1 segundo) e mostra os mesmos valores.
+- **Valor final ao cliente (R$, com IPI)**: procura o desconto global que leva a esse valor, com diferença de até 1 centavo, e mostra a margem.
+- Avisa se a proposta passaria a precisar de aprovação (margem abaixo do mínimo ou item abaixo do piso da política).
+- Nada muda até **Aplicar à proposta**, que grava o desconto global e registra no histórico.
+
+O cálculo é o mesmo da proposta, numa cópia; nenhuma fórmula mudou.
+
+**Novo: Memorial (Excel)**, ao lado do Memorial (PDF), no Memorial de cálculo e em Documentos da proposta. É o mesmo conteúdo do PDF, com os valores como número (dá para somar e filtrar), R$ e % formatados, e duas abas:
+- **Memorial**: dados da proposta, resumo e as linhas do memorial por item e total, com o cabeçalho fixo;
+- **Itens**: código, descrição, quantidade, preços, IPI, origem e margem.
+
+## 6. Testes e regressão
 
 | Verificação | Resultado |
 |---|---|
@@ -92,5 +117,6 @@ O que precisa de atenção:
 | Financeiro pela tela × versão anterior | 0 diferença |
 | `importa_test` (novo, com os arquivos da Ipiranga) | 20/20 |
 | `sim`, `imp`, `idioma`, `derat`, `cad_fd`, `fd`, `varredura` | todos passaram |
+| `simmargem_test` (novo) | 9/9: desconto 5% → margem 29,78%; margem 30% → desconto 4,69% em 0,7 s; valor final R$ 4.000.000,00 → desconto 6,09% e margem 28,99%; cartão também no Memorial; Memorial (Excel) com 2 abas e valores numéricos; proposta intacta até aplicar; aplicado, margem 30,0% |
 
 Não houve teste em aparelho físico.

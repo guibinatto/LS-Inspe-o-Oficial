@@ -293,6 +293,51 @@
       dv(26, 'Aliquotas!$A$2:$A$28'); dv(27, 'Aliquotas!$A$2:$A$28'); dv(28, 'Aliquotas!$F$2:$F$3'); dv(29, 'Aliquotas!$F$6:$F$7'); dv(30, 'Aliquotas!$F$10:$F$11');
       for (let i = 0; i < n; i++) ws.getRow(FIRST + i).getCell(4).dataValidation = { type: 'list', allowBlank: true, formulae: ['"IMP,NAC"'] };
     }
+    // memorial em Excel: os mesmos números do PDF, como número (dá para somar e filtrar), com formato de R$ e de %
+    async function memorialXlsx() {
+      const ExcelJS = await excelLib(); const book = new ExcelJS.Workbook(); book.creator = 'LS Pricer';
+      const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => filled(x.s)); if (!items.length) { toast('Nenhum item preenchido para o memorial'); return; }
+      const ws = book.addWorksheet('Memorial', { views: [{ state: 'frozen', ySplit: 0 }], pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+      const FMT_R = '"R$" #,##0.00;[Red]-"R$" #,##0.00', FMT_P = '0.00%', FMT_N = '#,##0.####';
+      const ESC = 'FF1E1F21', LAR = 'FFE8570A', CLARO = 'FFFFF1E8', CINZA = 'FF6B6E73';
+      // valor da célula como número, com o formato que a tela usa (R$, % ou número); texto fica texto
+      // dinheiro: tudo o que não é % nem quantidade (o memorial mostra os valores sem o "R$")
+      const cel = (sh, a, qtd) => { const v = val(sh, a); const t = show(sh, a); if (typeof v !== 'number' || !isFinite(v)) return { v: t || null }; return { v, f: /%\s*$/.test(t) ? FMT_P : qtd ? FMT_N : FMT_R }; };
+      const put = (c, x) => { c.value = x.v === '' ? null : x.v; if (x.f) c.numFmt = x.f; };
+      const nCols = items.length + 2;
+      ws.columns = [{ width: 58 }].concat(items.map(() => ({ width: 18 })), [{ width: 20 }]);
+      let r = 1;
+      ws.mergeCells(r, 1, r, nCols); Object.assign(ws.getCell(r, 1), { value: 'Memorial de formação de preço — Proposta ' + propNum() + (txt(P, 'C6') ? ' · rev. ' + txt(P, 'C6') : ''), font: { bold: true, size: 14, color: { argb: LAR } } }); r += 2;
+      const dados = [['Cliente', txt(P, 'F5')], ['Obra / local', txt(P, 'F6')], ['UF de destino', txt(P, 'F7')], ['Segmento', txt(P, 'F8')], ['Data', txt(P, 'C7')], ['Validade', txt(P, 'C10')], ['Vendedor', txt(P, 'C8')], ['Cadastro fiscal', txt(P, 'J5')], ['Condição de pagamento', txt(P, 'J6')], ['Frete', txt(P, 'B13')], ['Norma', txt(P, 'F9')], ['NCM', txt(P, 'J9')]];
+      for (const [k, v] of dados) { if (!v) continue; ws.getCell(r, 1).value = k; ws.getCell(r, 1).font = { color: { argb: CINZA } }; ws.mergeCells(r, 2, r, nCols); ws.getCell(r, 2).value = v; ws.getCell(r, 2).font = { bold: true }; r++; }
+      r++;
+      const resumo = [['Preço total (com IPI)', cel(P, 'P43')], ['Custo total', cel(P, 'Q43')], ['Margem líquida', cel(P, 'E62')]];
+      for (const [k, x] of resumo) { ws.getCell(r, 1).value = k; ws.getCell(r, 1).font = { bold: true }; const c = ws.getCell(r, 2); put(c, x); c.font = { bold: true, color: { argb: LAR } }; r++; }
+      r++;
+      // memorial (aba MEMORIAL): uma coluna por item e o total da proposta
+      const M = 'MEMORIAL'; const cols = items.map(({ i }) => String.fromCharCode(67 + i));
+      const hdr = ws.getRow(r); hdr.values = ['Memorial de formação de preço', ...items.map(({ s }) => s), 'Total da proposta'];
+      hdr.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ESC } }; c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; });
+      ws.views = [{ state: 'frozen', ySplit: r, xSplit: 1 }]; r++;
+      for (let k = 3; k <= 38; k++) {
+        const lb = txt(M, 'B' + k); if (!lb) continue;
+        if (val(M, 'M' + k) === null && val(M, 'C' + k) === null) { ws.mergeCells(r, 1, r, nCols); Object.assign(ws.getCell(r, 1), { value: lb, font: { bold: true, color: { argb: LAR } } }); r++; continue; }
+        const q = /Quantidade|^Qtd/i.test(lb); const row = ws.getRow(r); row.getCell(1).value = lb; cols.forEach((c, j) => put(row.getCell(2 + j), cel(M, c + k, q))); put(row.getCell(nCols), cel(M, 'M' + k, q));
+        row.getCell(nCols).font = { bold: true };
+        if (/^TOTAL|Margem|com impostos e COM IPI/i.test(lb)) row.eachCell({ includeEmpty: true }, (c) => { c.font = { bold: true }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CLARO } }; });
+        row.eachCell({ includeEmpty: true }, (c) => { c.border = { bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } } }; });
+        r++;
+      }
+      r++; for (let k = 39; k <= 48; k++) { const t = txt(M, 'B' + k); if (!t) continue; ws.mergeCells(r, 1, r, nCols); Object.assign(ws.getCell(r, 1), { value: t, font: { italic: true, size: 9, color: { argb: CINZA } }, alignment: { wrapText: true, vertical: 'top' } }); ws.getRow(r).height = Math.min(90, 14 * Math.ceil(t.length / 140)); r++; }
+      // itens da proposta
+      const wi = book.addWorksheet('Itens'); const cab = ['Item', 'Código', 'Descrição', 'Qtd', 'Unit. c/ impostos s/ IPI', 'IPI', 'Total c/ IPI', 'Origem', 'Margem'];
+      wi.columns = [10, 40, 70, 8, 22, 10, 22, 14, 12].map((w) => ({ width: w }));
+      const h2 = wi.getRow(1); h2.values = cab; h2.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ESC } }; });
+      items.forEach(({ s, i }, n) => { const rr = 33 + i; const row = wi.getRow(2 + n); row.getCell(1).value = s; row.getCell(2).value = txt(P, 'C' + rr); row.getCell(3).value = txt(P, 'D' + rr);
+        [['F', 4, true], ['L', 5], ['U', 6], ['P', 7], ['X', 9]].forEach(([c, j, q]) => put(row.getCell(j), cel(P, c + rr, q))); row.getCell(8).value = txt(P, 'H' + rr); row.getCell(3).alignment = { wrapText: true, vertical: 'top' }; });
+      const out = await book.xlsx.writeBuffer();
+      return deliver(fileBase('Memorial') + '.xlsx', out, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
     async function fciXlsx(only) {
       const list = fciItems(only); if (!list.length) { toast('Nenhum item preenchido para a FCI'); return; }
       if (!window.FCI_TEMPLATE_B64) throw new Error('Template da FCI não encontrado no app.');
@@ -314,6 +359,7 @@
 
     return {
       memorialPdf: () => run(memorialPdf),
+      memorialXlsx: () => run(memorialXlsx),
       fciPdf: (only) => run(() => fciPdf(only)),
       fciXlsx: (only) => run(() => fciXlsx(only)),
     };

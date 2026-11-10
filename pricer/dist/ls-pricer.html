@@ -2585,6 +2585,51 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
       dv(26, 'Aliquotas!$A$2:$A$28'); dv(27, 'Aliquotas!$A$2:$A$28'); dv(28, 'Aliquotas!$F$2:$F$3'); dv(29, 'Aliquotas!$F$6:$F$7'); dv(30, 'Aliquotas!$F$10:$F$11');
       for (let i = 0; i < n; i++) ws.getRow(FIRST + i).getCell(4).dataValidation = { type: 'list', allowBlank: true, formulae: ['"IMP,NAC"'] };
     }
+    // memorial em Excel: os mesmos números do PDF, como número (dá para somar e filtrar), com formato de R$ e de %
+    async function memorialXlsx() {
+      const ExcelJS = await excelLib(); const book = new ExcelJS.Workbook(); book.creator = 'LS Pricer';
+      const items = ITEMS.map((s, i) => ({ s, i })).filter((x) => filled(x.s)); if (!items.length) { toast('Nenhum item preenchido para o memorial'); return; }
+      const ws = book.addWorksheet('Memorial', { views: [{ state: 'frozen', ySplit: 0 }], pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+      const FMT_R = '"R$" #,##0.00;[Red]-"R$" #,##0.00', FMT_P = '0.00%', FMT_N = '#,##0.####';
+      const ESC = 'FF1E1F21', LAR = 'FFE8570A', CLARO = 'FFFFF1E8', CINZA = 'FF6B6E73';
+      // valor da célula como número, com o formato que a tela usa (R$, % ou número); texto fica texto
+      // dinheiro: tudo o que não é % nem quantidade (o memorial mostra os valores sem o "R$")
+      const cel = (sh, a, qtd) => { const v = val(sh, a); const t = show(sh, a); if (typeof v !== 'number' || !isFinite(v)) return { v: t || null }; return { v, f: /%\s*$/.test(t) ? FMT_P : qtd ? FMT_N : FMT_R }; };
+      const put = (c, x) => { c.value = x.v === '' ? null : x.v; if (x.f) c.numFmt = x.f; };
+      const nCols = items.length + 2;
+      ws.columns = [{ width: 58 }].concat(items.map(() => ({ width: 18 })), [{ width: 20 }]);
+      let r = 1;
+      ws.mergeCells(r, 1, r, nCols); Object.assign(ws.getCell(r, 1), { value: 'Memorial de formação de preço — Proposta ' + propNum() + (txt(P, 'C6') ? ' · rev. ' + txt(P, 'C6') : ''), font: { bold: true, size: 14, color: { argb: LAR } } }); r += 2;
+      const dados = [['Cliente', txt(P, 'F5')], ['Obra / local', txt(P, 'F6')], ['UF de destino', txt(P, 'F7')], ['Segmento', txt(P, 'F8')], ['Data', txt(P, 'C7')], ['Validade', txt(P, 'C10')], ['Vendedor', txt(P, 'C8')], ['Cadastro fiscal', txt(P, 'J5')], ['Condição de pagamento', txt(P, 'J6')], ['Frete', txt(P, 'B13')], ['Norma', txt(P, 'F9')], ['NCM', txt(P, 'J9')]];
+      for (const [k, v] of dados) { if (!v) continue; ws.getCell(r, 1).value = k; ws.getCell(r, 1).font = { color: { argb: CINZA } }; ws.mergeCells(r, 2, r, nCols); ws.getCell(r, 2).value = v; ws.getCell(r, 2).font = { bold: true }; r++; }
+      r++;
+      const resumo = [['Preço total (com IPI)', cel(P, 'P43')], ['Custo total', cel(P, 'Q43')], ['Margem líquida', cel(P, 'E62')]];
+      for (const [k, x] of resumo) { ws.getCell(r, 1).value = k; ws.getCell(r, 1).font = { bold: true }; const c = ws.getCell(r, 2); put(c, x); c.font = { bold: true, color: { argb: LAR } }; r++; }
+      r++;
+      // memorial (aba MEMORIAL): uma coluna por item e o total da proposta
+      const M = 'MEMORIAL'; const cols = items.map(({ i }) => String.fromCharCode(67 + i));
+      const hdr = ws.getRow(r); hdr.values = ['Memorial de formação de preço', ...items.map(({ s }) => s), 'Total da proposta'];
+      hdr.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ESC } }; c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; });
+      ws.views = [{ state: 'frozen', ySplit: r, xSplit: 1 }]; r++;
+      for (let k = 3; k <= 38; k++) {
+        const lb = txt(M, 'B' + k); if (!lb) continue;
+        if (val(M, 'M' + k) === null && val(M, 'C' + k) === null) { ws.mergeCells(r, 1, r, nCols); Object.assign(ws.getCell(r, 1), { value: lb, font: { bold: true, color: { argb: LAR } } }); r++; continue; }
+        const q = /Quantidade|^Qtd/i.test(lb); const row = ws.getRow(r); row.getCell(1).value = lb; cols.forEach((c, j) => put(row.getCell(2 + j), cel(M, c + k, q))); put(row.getCell(nCols), cel(M, 'M' + k, q));
+        row.getCell(nCols).font = { bold: true };
+        if (/^TOTAL|Margem|com impostos e COM IPI/i.test(lb)) row.eachCell({ includeEmpty: true }, (c) => { c.font = { bold: true }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CLARO } }; });
+        row.eachCell({ includeEmpty: true }, (c) => { c.border = { bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } } }; });
+        r++;
+      }
+      r++; for (let k = 39; k <= 48; k++) { const t = txt(M, 'B' + k); if (!t) continue; ws.mergeCells(r, 1, r, nCols); Object.assign(ws.getCell(r, 1), { value: t, font: { italic: true, size: 9, color: { argb: CINZA } }, alignment: { wrapText: true, vertical: 'top' } }); ws.getRow(r).height = Math.min(90, 14 * Math.ceil(t.length / 140)); r++; }
+      // itens da proposta
+      const wi = book.addWorksheet('Itens'); const cab = ['Item', 'Código', 'Descrição', 'Qtd', 'Unit. c/ impostos s/ IPI', 'IPI', 'Total c/ IPI', 'Origem', 'Margem'];
+      wi.columns = [10, 40, 70, 8, 22, 10, 22, 14, 12].map((w) => ({ width: w }));
+      const h2 = wi.getRow(1); h2.values = cab; h2.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ESC } }; });
+      items.forEach(({ s, i }, n) => { const rr = 33 + i; const row = wi.getRow(2 + n); row.getCell(1).value = s; row.getCell(2).value = txt(P, 'C' + rr); row.getCell(3).value = txt(P, 'D' + rr);
+        [['F', 4, true], ['L', 5], ['U', 6], ['P', 7], ['X', 9]].forEach(([c, j, q]) => put(row.getCell(j), cel(P, c + rr, q))); row.getCell(8).value = txt(P, 'H' + rr); row.getCell(3).alignment = { wrapText: true, vertical: 'top' }; });
+      const out = await book.xlsx.writeBuffer();
+      return deliver(fileBase('Memorial') + '.xlsx', out, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
     async function fciXlsx(only) {
       const list = fciItems(only); if (!list.length) { toast('Nenhum item preenchido para a FCI'); return; }
       if (!window.FCI_TEMPLATE_B64) throw new Error('Template da FCI não encontrado no app.');
@@ -2606,6 +2651,7 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
 
     return {
       memorialPdf: () => run(memorialPdf),
+      memorialXlsx: () => run(memorialXlsx),
       fciPdf: (only) => run(() => fciPdf(only)),
       fciXlsx: (only) => run(() => fciXlsx(only)),
     };
@@ -10404,6 +10450,7 @@ window.PRICER_ESCOPO_PADRAO = {
           <div class="kpi"><span>Impostos · comissões</span><b>${sn ? brl(sn.impostos) : '—'}</b><em>${sn ? 'comissões ' + brl(sn.comissao) : ''}</em></div>
           <div class="kpi"><span>DIFAL do cliente (fora do preço)</span><b>${brl(val(P, 'E84'))}</b></div></div>
         ${composicaoPrecoHtml()}
+        ${simMargemHtml()}
         <section class="card"><h2>Condições comerciais <span class="sub">o que mexe no preço</span></h2><div class="fields">${fieldS(P, 'C9', 'Desconto global')}${fieldS(P, 'J6', 'Condição de pagamento', { cls: 'span2' })}${fieldS(P, 'B13', 'Frete', { cls: 'span2' })}</div>
           <p class="sub" style="margin:8px 0 0">Comissões: ${esc(txt(P, 'J7') || '—')} (vendedor) · ${esc(txt(P, 'J8') || '—')} (AN) — ajuste em Identificação. Margem-alvo e desconto por item ficam na tela de cada item.</p></section>
         <section class="card"><h2>Preço por item</h2><div class="tw"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Qtd</th><th>Unit. c/ IPI</th><th>Total c/ IPI</th><th>Margem</th><th>Situação</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="4">Total da proposta</td><td class="n">${brl(val(P, 'P43'))}</td><td class="n">${pct(margem)}</td><td></td></tr></tbody></table></div></section>
@@ -10423,7 +10470,7 @@ window.PRICER_ESCOPO_PADRAO = {
       body = `<section class="card"><h2>Situação e próximo passo</h2>${sv ? MG.etapasHtml(sv) : '<p class="sub" style="margin:0">Salve a proposta para acompanhar as etapas.</p>'}
           ${nx ? `<div class="docbar" style="margin-top:8px"><button class="btn pri" data-hnext="${esc(sv.id)}|${nx.act}">${esc(nx.lb)}</button></div>` : ''}</section>
         ${propComCard()}
-        <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button><button class="btn" data-view="documentos" data-ico="folder-open">Anexar ou ver todos os documentos</button></div>
+        <section class="card"><h2>Documentos da proposta</h2><div class="docbar"><button class="btn pri" data-doc="memorial">Memorial (PDF)</button><button class="btn" data-doc="memorialxlsx">Memorial (Excel)</button><button class="btn" data-doc="fcipdf">FCI (PDF)</button><button class="btn" data-doc="fcixlsx">FCI (Excel)</button><button class="btn" data-propfull>Ver todas as colunas</button><button class="btn" data-view="documentos" data-ico="folder-open">Anexar ou ver todos os documentos</button></div>
           ${docsP.length ? `<div class="tw" style="margin-top:8px"><table class="t"><tbody>${docsP.map((d) => `<tr><td>${esc(d.nome || '')}<br><small class="sub">${esc([d.tipo, d.numero, d.fornecedor, d.rev != null && !isNaN(d.rev) ? 'rev. ' + d.rev : '', d.item, d.etapa].filter(Boolean).join(' · '))}</small></td><td class="sub">${esc(fmtAt(d.at))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub" style="margin:8px 0 0">Nenhum documento ligado ainda (o PDF conferido entra aqui).</p>'}</section>
         <section class="card"><h2>Revisões</h2><div class="docbar">${state.id ? '<button class="btn" data-revs>Ver e comparar revisões</button><button class="btn" data-revisar>Revisar (nova revisão)</button>' : '<span class="sub">Salve a proposta para ter revisões.</span>'}</div></section>
         ${nav(5, 0)}`;
@@ -11126,7 +11173,8 @@ window.PRICER_ESCOPO_PADRAO = {
       const bold = /^TOTAL|Margem|Preço de venda com impostos e COM/i.test(lb);
       rows.push(`<tr class="${bold ? 'tot' : ''}"><td>${esc(lb)}</td>${cols.map((c) => `<td class="n">${show(M, c + r)}</td>`).join('')}<td class="n"><b>${show(M, 'M' + r)}</b></td></tr>`);
     }
-    return `<div class="stack"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><div><h1>Memorial de formação de preço</h1><div class="sub">No formato que o financeiro pede: custos, impostos, comissão, margem e o demonstrativo — por item e total da proposta.</div></div><div class="docbar"><span class="sub">Documentos para o financeiro</span><button class="btn sm pri" data-doc="memorial">Memorial (PDF)</button><button class="btn sm" data-doc="fcipdf">FCI (PDF)</button><button class="btn sm" data-doc="fcixlsx">FCI (Excel)</button></div></div>
+    return `<div class="stack"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><div><h1>Memorial de formação de preço</h1><div class="sub">No formato que o financeiro pede: custos, impostos, comissão, margem e o demonstrativo — por item e total da proposta.</div></div><div class="docbar"><span class="sub">Documentos para o financeiro</span><button class="btn sm pri" data-doc="memorial">Memorial (PDF)</button><button class="btn sm" data-doc="memorialxlsx">Memorial (Excel)</button><button class="btn sm" data-doc="fcipdf">FCI (PDF)</button><button class="btn sm" data-doc="fcixlsx">FCI (Excel)</button></div></div>
+      ${simMargemHtml()}
       <section class="card"><div class="tw"><table class="t"><thead><tr><th>Linha</th>${cols.map((c) => `<th>ITEM ${String(colToNum(c) - 2).padStart(2, '0')}</th>`).join('')}<th>Total da proposta</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${notes}</section></div>`;
   }
 
@@ -13446,7 +13494,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>10/11/2026 15:06 · commit 40a0563</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>10/11/2026 15:51 · commit ce14c00</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -13487,6 +13535,61 @@ window.PRICER_ESCOPO_PADRAO = {
         return `<p class="sub" style="margin:8px 0 0">O indicador <b>Custo total dos itens</b> no alto da aba (célula G16 da planilha) soma o custo dos itens: ${brl(g16)}. O custo total do memorial é ${brl(dif)} maior${bate ? ' — exatamente o start-up e os fretes, que o memorial soma ao custo' : ''}.</p>`; })()}
       <div class="docbar" style="margin-top:8px"><button class="btn sm" data-view="memorial" data-ico="scroll-text">Abrir o memorial de cálculo</button><span class="sub">Valores do motor da planilha (as mesmas fórmulas da REV21); o memorial mostra item por item.</span></div></section>`;
   }
+  // ---------- desconto × margem: digita o desconto global e vê a margem, ou digita a margem e vê o desconto e os valores ----------
+  // mesmo motor de cálculo, numa cópia (simular); a proposta só muda no botão "Aplicar à proposta"
+  function simMargemCalc(modo, v) {
+    if (modo === 'desc') return { desc: v, r: simular({ desc: v }) };
+    // valor final ao cliente (com IPI): o desconto global que leva a ele
+    if (modo === 'valor') { const g = (d) => { const r = simular({ desc: d }); return { r, e: (typeof r.total === 'number' ? r.total : NaN) - v }; };
+      let d0 = num0(val('PROPOSTA', 'C9')), d1 = d0 + 0.03, a = g(d0), b = g(d1);
+      for (let i = 0; i < 25 && Math.abs(b.e) > 0.004 && isFinite(b.e) && b.e !== a.e; i++) { const d2 = Math.max(-0.9, Math.min(0.95, d1 - b.e * (d1 - d0) / (b.e - a.e))); d0 = d1; a = b; d1 = d2; b = g(d1); }
+      return { desc: d1, r: b.r, achou: isFinite(b.e) && Math.abs(b.e) <= 0.01 }; }
+    // margem líquida desejada: procura o desconto global que leva a ela (o preço, os impostos e a comissão mudam juntos)
+    const f = (d) => { const r = simular({ desc: d }); return { r, e: (typeof r.margem === 'number' ? r.margem : NaN) - v }; };
+    let d0 = num0(val('PROPOSTA', 'C9')), d1 = d0 + 0.03, a = f(d0), b = f(d1);
+    for (let i = 0; i < 25 && Math.abs(b.e) > 5e-6 && isFinite(b.e) && b.e !== a.e; i++) { const d2 = Math.max(-0.9, Math.min(0.95, d1 - b.e * (d1 - d0) / (b.e - a.e))); d0 = d1; a = b; d1 = d2; b = f(d1); }
+    return { desc: d1, r: b.r, achou: isFinite(b.e) && Math.abs(b.e) <= 5e-5 };
+  }
+  function simMargemRes() {
+    const P = 'PROPOSTA'; const S = ui.simMg; if (!S || !S.res) return '<p class="sub" style="margin:8px 0 0">Digite um desconto global ou a margem que você quer: os valores aparecem aqui ao lado dos atuais.</p>';
+    const O = resumoSim({ sn: seqSnapshot(), total: val(P, 'P43'), margem: val(P, 'J16'), fora: ITEMS.filter((x) => filled(x)).filter((x) => val(x, 'P84') === 'ABAIXO DO PISO' || txt(x, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val(P, 'C9')) });
+    const R = S.res; const mMin = val('PARÂMETROS', 'C34');
+    const lin = (lb, f, fmt, forte) => { const a = f(O), b = f(R); const d = typeof a === 'number' && typeof b === 'number' ? b - a : null;
+      return `<tr${forte ? ' class="tot"' : ''}><td>${lb}</td><td class="n">${fmt(a)}</td><td class="n"><b>${fmt(b)}</b></td><td class="n">${d === null || Math.abs(d) < 1e-9 ? '' : (d > 0 ? '+' : '−') + fmt(Math.abs(d)).replace('R$ ', '')}</td></tr>`; };
+    const pp = (v) => pct(v, 2);
+    return `<div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th></th><th class="n">Proposta agora</th><th class="n">Simulação</th><th class="n">Diferença</th></tr></thead><tbody>
+      ${lin('Desconto global', (v) => v.desc, pp)}${lin('Preço ao cliente (com IPI)', (v) => v.total, brl, true)}${lin('Preço sem IPI', (v) => v.venda, brl)}${lin('Impostos (sem o IPI)', (v) => v.impostos, brl)}${lin('Comissões', (v) => v.comissao, brl)}${lin('Custo total (memorial)', (v) => v.custo, brl)}
+      ${lin('Margem líquida (R$)', (v) => v.margem, brl, true)}${lin('Margem líquida (%)', (v) => v.margemPct, pp, true)}${lin('Itens fora da política de desconto', (v) => v.fora, (v) => String(v ?? '—'))}</tbody></table></div>
+      ${S.achou === false ? '<div class="banner warn" style="margin:8px 0 0">Não deu para chegar exatamente nesse valor só com o desconto global (veja o mais perto possível acima).</div>' : ''}
+      <div class="banner ${R.fora || R.margemPct < mMin - 5e-5 ? 'warn' : 'ok'}" style="margin:8px 0 0">${R.fora || R.margemPct < mMin - 5e-5 ? `Com este desconto a proposta <b>precisa de aprovação</b> (margem ${pct(R.margemPct, 1)}, mínimo ${pct(mMin, 0)}${R.fora ? '; ' + R.fora + ' item(ns) abaixo do piso da política' : ''}).` : `Dentro da política: margem ${pct(R.margemPct, 1)} (mínimo ${pct(mMin, 0)}).`}</div>
+      <div class="docbar" style="margin-top:8px">${state.verRev ? '' : `<button class="btn pri" data-smaplica data-ico="check">Aplicar à proposta (desconto global ${esc(pct(R.desc, 2))})</button>`}<button class="btn" data-smlimpa>Limpar</button></div>`;
+  }
+  function simMargemHtml() {
+    if (isSpv() || isFacts()) return ''; const S = ui.simMg || {};
+    const fv = (k) => (S.modo === k && typeof S.v === 'number' ? esc(NF[2].format(k === 'valor' ? S.v : S.v * 100)) : '');
+    return `<section class="card" id="simMgCard"><h2>Desconto × margem <span class="pill warn">simulação: a proposta só muda em "Aplicar"</span></h2>
+      <p class="sub" style="margin:0 0 8px">Digite o desconto global e veja a margem; ou a margem que você quer; ou o valor final ao cliente. O app mostra o desconto, os valores e a margem. É o mesmo cálculo da proposta (impostos, comissões, frete e start-up), numa cópia.</p>
+      <div class="fields"><div class="f"><label for="smDesc">Desconto global (%)</label><input id="smDesc" data-sm="desc" inputmode="decimal" value="${fv('desc')}" placeholder="${esc(NF[2].format(num0(val('PROPOSTA', 'C9')) * 100))}"><small class="sub">negativo = acréscimo</small></div>
+        <div class="f"><label for="smMg">ou margem líquida desejada (%)</label><input id="smMg" data-sm="margem" inputmode="decimal" value="${fv('margem')}" placeholder="${esc(NF[2].format((val('PROPOSTA', 'J16') || 0) * 100))}"><small class="sub">acha o desconto global que dá essa margem</small></div>
+        <div class="f"><label for="smValor">ou valor final ao cliente (R$, com IPI)</label><input id="smValor" data-sm="valor" inputmode="decimal" value="${fv('valor')}" placeholder="${esc(NF[2].format(val('PROPOSTA', 'P43') || 0))}"><small class="sub">acha o desconto global que dá esse valor</small></div></div>
+      <div id="smRes">${simMargemRes()}</div></section>`;
+  }
+  let smTimer = null;
+  document.addEventListener('input', (e) => {
+    const t = e.target; if (!t.dataset || !t.dataset.sm) return; const modo = t.dataset.sm; for (const id of ['#smDesc', '#smMg', '#smValor']) { const o = $(id); if (o && o !== t) o.value = ''; }
+    clearTimeout(smTimer); smTimer = setTimeout(() => {
+      const raw = t.value.trim(); const n = raw === '' ? null : parseInput(raw.replace('−', '-'), 'num');
+      const k = modo === 'valor' ? 1 : 100; if (typeof n !== 'number' || !isFinite(n) || (modo === 'valor' && n <= 0)) { ui.simMg = null; } else { try { const c = simMargemCalc(modo, n / k); ui.simMg = { modo, v: n / k, achou: c.achou, res: resumoSim(Object.assign(c.r, { desc: c.desc })) }; } catch (er) { toast('Não consegui simular: ' + errMsg(er)); return; } }
+      const box = $('#smRes'); if (box) box.innerHTML = simMargemRes(); decorar(box); }, 350);
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-smlimpa]')) { ui.simMg = null; render(); return; }
+    if (!e.target.closest('[data-smaplica]') || state.verRev || !ui.simMg || !ui.simMg.res) return;
+    const de = num0(val('PROPOSTA', 'C9')); const para = Math.round(ui.simMg.res.desc * 1e8) / 1e8;
+    commit('PROPOSTA', 'C9', para); dirty = true; persist();
+    logEv({ tipo: 'Proposta — desconto global pela simulação', ref: state.id || docTitle(), desc: docTitle() + ': desconto global ' + pct(de, 2) + ' → ' + pct(para, 2) + ' (margem ' + pct(val('PROPOSTA', 'J16'), 2) + ')', mudancas: [{ campo: 'Desconto global', de, para }] });
+    ui.simMg = null; render(); toast('Desconto global aplicado: ' + pct(para, 2) + ' · margem ' + pct(val('PROPOSTA', 'J16'), 2));
+  });
   function memRows() { const m = {}; for (let r = 3; r <= 38; r++) { const lb = txt('MEMORIAL', 'B' + r); for (const [k, l] of Object.entries(MEM_KEYS)) if (lb === l && !m[k]) m[k] = r; } return m; }
   function seqSnapshot() {
     const rows = memRows(); const n = (x) => (typeof x === 'number' && isFinite(x) ? x : 0);
@@ -13847,6 +13950,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const b = e.target.closest('[data-doc]'); if (!b) return;
     const it = b.dataset.docitem || null;
     if (b.dataset.doc === 'memorial') DOCS.memorialPdf();
+    if (b.dataset.doc === 'memorialxlsx') DOCS.memorialXlsx();
     if (b.dataset.doc === 'fcipdf') DOCS.fciPdf(it);
     if (b.dataset.doc === 'fcixlsx') DOCS.fciXlsx(it);
   });
