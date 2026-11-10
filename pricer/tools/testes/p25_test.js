@@ -10,13 +10,13 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   console.log('1 automáticas após salvar:', await pend());
   // etapa 5: cartão de pendências da proposta
   await p.click('[data-view="proposta"]'); await p.waitForTimeout(200); await p.click('[data-step="5"]'); await p.waitForTimeout(300);
-  console.log('2 cartão:', await p.$eval('#pnProp h2', (x) => x.innerText).catch(() => 'SEM CARTÃO'));
+  await p.evaluate(() => { const d = document.querySelector('details#pnProp'); if (d) d.open = true; }); console.log('2 cartão:', await p.$eval('#pnProp summary', (x) => x.innerText).catch(() => 'SEM CARTÃO'));
   // nova manual
-  await p.click('#pnProp [data-pnnova]'); await p.waitForTimeout(200);
+  await p.evaluate(() => { const d = document.querySelector('details#pnProp'); if (d) d.open = true; }); await p.click('#pnProp [data-pnnova]'); await p.waitForTimeout(200);
   await p.fill('#pnTit', 'Confirmar pressão com o cliente'); await p.selectOption('#pnDep', 'Engenharia'); await p.fill('#pnResp', 'Ana'); await p.click('#pnOk'); await p.waitForTimeout(400);
   console.log('3 manual:', await toast(), (await pend()).filter((x) => /pressão/.test(x)));
   // resolver sem solução → bloqueia; com solução → grava com histórico
-  await p.click('#pnProp [data-pnabre]'); await p.waitForTimeout(200); const cod = await p.$eval('.modal h2', (x) => x.innerText);
+  await p.evaluate(() => { const d = document.querySelector('details#pnProp'); if (d) d.open = true; }); await p.click('#pnProp [data-pnabre]'); await p.waitForTimeout(200); const cod = await p.$eval('.modal h2', (x) => x.innerText);
   await p.selectOption('#pnSt', 'resolvida'); await p.click('#pnOk'); await p.waitForTimeout(200); console.log('4 sem solução:', await toast());
   await p.fill('#pnSol', 'Ajustado no cabeçalho'); await p.fill('#pnCom', 'feito'); await p.click('#pnOk'); await p.waitForTimeout(300);
   console.log('5 resolvida:', cod, await p.evaluate(() => Object.values(JSON.parse(localStorage.getItem('lspricer.pendencias.v1'))).filter((x) => x.status === 'resolvida').map((x) => x.historico.map((h) => h.texto + ' ' + (h.campos || []).map((c) => c.campo + ':' + c.de + '→' + c.para).join(',')))));
@@ -32,7 +32,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
   // revisões: revisar e comparar
   await p.click('[data-view="proposta"]'); await p.waitForTimeout(200); await p.click('[data-step="6"]'); await p.waitForTimeout(200);
   await p.click('#app [data-revisar]'); await p.waitForTimeout(200); await p.fill('#rvMot', 'novo desconto'); await p.click('#rvOk'); await p.waitForTimeout(1500);
-  await p.click('[data-step="4"]'); await p.waitForTimeout(200); await p.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+  await p.click('[data-step="1"]'); await p.waitForTimeout(200); await p.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
   await p.fill('[id$="PROPOSTA_C9"]', '5'); await p.press('[id$="PROPOSTA_C9"]', 'Tab'); await p.waitForTimeout(300); await p.click('#bSave'); await p.waitForTimeout(800);
   await p.click('[data-step="6"]'); await p.waitForTimeout(200); await p.click('#app [data-revs]'); await p.waitForTimeout(500); await p.click('[data-revcmp]'); await p.waitForTimeout(400);
   console.log('8 comparação:', await p.$eval('.modal', (x) => x.innerText.replace(/\s+/g, ' ').slice(0, 700)));
