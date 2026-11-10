@@ -873,6 +873,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .bnav button{min-height:44px;flex-direction:row;gap:6px}
   main{padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
 }
+
+/* títulos das colunas de números alinhados com os valores (à direita), em todas as tabelas */
+.t th.n,.t th.num,table.t th.n,table.t th.num{text-align:right}
 </style>
 </head>
 <body>
@@ -10247,7 +10250,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div class="f span2"><label for="simPag">Condição de pagamento</label><select id="simPag"><option value="">igual à proposta</option>${pags.map((o) => `<option${sc.pag === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></div>
         <div class="f span2"><label>Comissões</label><div class="seg"><label><input type="checkbox" id="simComV"${sc.comV ?? (txt(P, 'J7') !== 'SEM COMISSÃO' && txt(P, 'J7') !== '') ? ' checked' : ''}>Vendedor</label><label><input type="checkbox" id="simComA"${sc.comA ?? (txt(P, 'J8') !== 'SEM COMISSÃO' && txt(P, 'J8') !== '') ? ' checked' : ''}>AN</label></div></div></div>
       <div class="docbar" style="margin-top:8px"><button class="btn pri" data-simrun>Simular</button>${Sres ? '<button class="btn" data-simsave>Salvar cenário</button><button class="btn" data-simrev>Converter em revisão</button>' : ''}<button class="btn" data-simclear>Restaurar o original</button></div>
-      ${Sres ? `<div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th></th><th>Proposta oficial</th><th>Simulação</th><th>Diferença</th></tr></thead><tbody>
+      ${Sres ? `<div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th></th><th class="n">Proposta oficial</th><th class="n">Simulação</th><th class="n">Diferença</th></tr></thead><tbody>
         ${lin('Total ao cliente (com IPI)', (v) => v.total, brl)}${lin('Venda sem IPI', (v) => v.venda, brl)}${lin('Custo', (v) => v.custo, brl)}${lin('Impostos', (v) => v.impostos, brl)}${lin('Comissões', (v) => v.comissao, brl)}${lin('Resultado (margem líquida R$)', (v) => v.margem, brl)}
         ${lin('Margem líquida', (v) => v.margemPct, (v) => pct(v, 1))}${lin('Markup (venda ÷ custo)', (v) => v.markup, x)}${lin('Desconto global', (v) => v.desc, (v) => pct(v, 1))}${lin('Itens fora da política', (v) => v.fora, (v) => String(v ?? '—'))}</tbody></table></div>
         <div class="banner ${Sres.fora || Sres.margemPct < mMin - 5e-4 ? 'warn' : 'ok'}" style="margin:8px 0 0">${Sres.fora || Sres.margemPct < mMin - 5e-4 ? `Este cenário <b>precisa de aprovação</b> da Diretoria e do Financeiro (margem ${pct(Sres.margemPct, 1)}, mínimo ${pct(mMin, 0)}). <button class="restore" data-simaprov>pedir aprovação com este valor</button>` : 'Este cenário fica dentro da política.'}</div>` : ''}
@@ -11175,7 +11178,7 @@ window.PRICER_ESCOPO_PADRAO = {
     }
     return `<div class="stack"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><div><h1>Memorial de formação de preço</h1><div class="sub">No formato que o financeiro pede: custos, impostos, comissão, margem e o demonstrativo — por item e total da proposta.</div></div><div class="docbar"><span class="sub">Documentos para o financeiro</span><button class="btn sm pri" data-doc="memorial">Memorial (PDF)</button><button class="btn sm" data-doc="memorialxlsx">Memorial (Excel)</button><button class="btn sm" data-doc="fcipdf">FCI (PDF)</button><button class="btn sm" data-doc="fcixlsx">FCI (Excel)</button></div></div>
       ${simMargemHtml()}
-      <section class="card"><div class="tw"><table class="t"><thead><tr><th>Linha</th>${cols.map((c) => `<th>ITEM ${String(colToNum(c) - 2).padStart(2, '0')}</th>`).join('')}<th>Total da proposta</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${notes}</section></div>`;
+      <section class="card"><div class="tw"><table class="t"><thead><tr><th>Linha</th>${cols.map((c) => `<th class="n">ITEM ${String(colToNum(c) - 2).padStart(2, '0')}</th>`).join('')}<th class="n">Total da proposta</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${notes}</section></div>`;
   }
 
   // ---------- cadastro: insumos, kits, importação, histórico e demais tabelas ----------
@@ -13494,7 +13497,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>10/11/2026 15:51 · commit ce14c00</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>10/11/2026 16:00 · commit 0657df9</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
