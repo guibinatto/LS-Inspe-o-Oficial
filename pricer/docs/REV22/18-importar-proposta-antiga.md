@@ -114,6 +114,15 @@ O cálculo é o mesmo da proposta, numa cópia; nenhuma fórmula mudou.
 
 É só leitura: não entra em nenhuma conta do memorial. Na Ipiranga dá 1,5295, igual à planilha antiga.
 
+**Os dois fatores** aparecem no simulador Desconto × margem (agora × simulação) e no memorial (tela, PDF e Excel), com uma nota que explica cada um:
+- **Fator praticado = subtotal negociado ÷ custo dos itens.**
+  - O subtotal é o custo dos itens × o fator de tabela da família, menos os descontos, antes de frete, start-up e impostos.
+  - O custo dos itens é peças, materiais e serviços de fabricação, sem frete nem start-up.
+  - É a régua da política de desconto, comparada ao piso da família. Não é margem.
+- **Fator sobre o preço final = preço ao cliente (com impostos, IPI, frete e start-up) ÷ custo total (itens + start-up + frete).** Mostra quantas vezes o custo o cliente paga, com tudo dentro.
+
+Na Ipiranga: fator praticado 1,5295. Com o preço da planilha (R$ 1.090.070,53), o fator sobre o preço final é 1,7401; recalculado pelo app (R$ 1.058.132,15), 1,6891.
+
 ## 6. Testes e regressão
 
 | Verificação | Resultado |

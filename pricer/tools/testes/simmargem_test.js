@@ -16,6 +16,8 @@ const ok = [], falha = []; const confere = (n, c, d) => (c ? ok : falha).push(n 
   await p.fill('#smDesc', '5'); await p.waitForTimeout(1500);
   const m5 = await linha('Margem líquida (%)'), d5 = await linha('Desconto global'), t5 = await linha('Preço ao cliente (com IPI)');
   confere('desconto 5%: mostra a margem e o preço simulados', m5 && d5 && /5,00%/.test(d5[1]) && pc(m5[1]) < pc(m5[0]), JSON.stringify([d5, m5, t5]));
+  const fp = await linha('Fator praticado (subtotal ÷ custo dos itens)'), ff = await linha('Fator sobre o preço final (preço com IPI ÷ custo total)');
+  confere('fatores no simulador: praticado e sobre o preço final, com a nota', fp && ff && /\d,\d{4}/.test(fp[1]) && /\d,\d{4}/.test(ff[1]) && /Os dois fatores/.test(await p.evaluate(() => document.getElementById('smRes').innerText)), JSON.stringify([fp, ff]));
   confere('a proposta não mudou', doc0 === await p.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('lspricer.current')).doc)));
   const t0 = Date.now(); await p.fill('#smMg', '30'); await p.waitForTimeout(500); await p.waitForFunction(() => /30,00%/.test((document.getElementById('smRes') || {}).innerText || ''), null, { timeout: 15000 }).catch(() => {});
   const m30 = await linha('Margem líquida (%)'), d30 = await linha('Desconto global');

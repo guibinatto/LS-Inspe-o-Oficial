@@ -2120,13 +2120,13 @@
       if (Math.abs(k - 1) > 1e-9) { for (const [sh, cols] of [['CADASTRO', ['G']], ['KIT MOTORES DIESEL', ['U', 'V']], ['KIT BOMBA', ['I', 'J']]]) { const s = w2.sheet(sh); for (const [a, v] of s.cells) if (typeof v === 'number' && cols.includes(a.replace(/\d+/, '')) && +a.replace(/\D/g, '') > 1) s.cells.set(a, v * k); }
         for (const S of ITEMS) if (d[S]) for (let r = 34; r <= 112; r++) if (typeof d[S]['G' + r] === 'number') d[S]['G' + r] *= k; }
       w2.applyDoc(d); return w2; };
-    const ler = (w2) => { const keep = wb; wb = w2; listCache = new Map(); try { const sn = seqSnapshot(); return { sn, total: val('PROPOSTA', 'P43'), margem: val('PROPOSTA', 'J16'), fora: ITEMS.filter((S) => filled(S)).filter((S) => val(S, 'P84') === 'ABAIXO DO PISO' || txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val('PROPOSTA', 'C9')) }; } finally { wb = keep; listCache = new Map(); } };
+    const ler = (w2) => { const keep = wb; wb = w2; listCache = new Map(); try { const sn = seqSnapshot(); return { sn, total: val('PROPOSTA', 'P43'), margem: val('PROPOSTA', 'J16'), fora: ITEMS.filter((S) => filled(S)).filter((S) => val(S, 'P84') === 'ABAIXO DO PISO' || txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val('PROPOSTA', 'C9')), fator: fatorPraticado().total }; } finally { wb = keep; listCache = new Map(); } };
     let w2 = monta(JSON.parse(JSON.stringify(doc))); let r = ler(w2);
     // valor final negociado: acha o desconto global que leva a esse total (com IPI)
     if (typeof sc.alvo === 'number' && sc.alvo > 0) { for (let i = 0; i < 10 && Math.abs(r.total - sc.alvo) > 0.5; i++) { const d = num0(doc.PROPOSTA.C9); doc.PROPOSTA.C9 = Math.min(0.95, 1 - (1 - d) * sc.alvo / r.total); w2 = monta(JSON.parse(JSON.stringify(doc))); r = ler(w2); } }
     r.docSim = doc; return r;
   }
-  const resumoSim = (r) => { const s = r.sn; const custo = s.custo; return { total: r.total, venda: s.venda, custo, impostos: s.impostos, comissao: s.comissao, margem: s.margem, margemPct: r.margem, markup: custo ? s.venda / custo : null, fora: r.fora, desc: r.desc }; };
+  const resumoSim = (r) => { const s = r.sn; const custo = s.custo; return { total: r.total, venda: s.venda, custo, impostos: s.impostos, comissao: s.comissao, margem: s.margem, margemPct: r.margem, markup: custo ? s.venda / custo : null, fora: r.fora, desc: r.desc, fator: r.fator, fatorFinal: custo && typeof r.total === 'number' ? r.total / custo : null }; };
   function vSimulador() {
     const P = 'PROPOSTA'; const sc = ui.sim || {}; const O = resumoSim({ sn: seqSnapshot(), total: val(P, 'P43'), margem: val(P, 'J16'), fora: ITEMS.filter((S) => filled(S)).filter((S) => val(S, 'P84') === 'ABAIXO DO PISO' || txt(S, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val(P, 'C9')) });
     let Sres = null; if (ui.simRes) Sres = ui.simRes;
@@ -3056,6 +3056,9 @@
     return h;
   }
 
+  const NOTA_FATORES = `<div class="sub nota-fat" style="margin:8px 0 0"><b>Os dois fatores</b><br>
+    <b>Fator praticado</b> = subtotal negociado ÷ custo dos itens. O subtotal é o custo dos itens × o fator de tabela da família, menos os descontos, antes de frete, start-up e impostos; o custo dos itens é peças, materiais e serviços de fabricação, sem frete nem start-up. É a régua da política de desconto: comparado ao piso da família, diz se o desconto cabe. Não é margem.<br>
+    <b>Fator sobre o preço final</b> = preço ao cliente (com impostos, IPI, frete e start-up) ÷ custo total (itens + start-up + frete). Mostra quantas vezes o custo o cliente paga, com tudo dentro.</div>`;
   // fator praticado de cada item (ITEM!P83 = subtotal ÷ custo) e o da proposta (soma dos subtotais ÷ soma dos custos)
   function fatorPraticado() { const itens = {}; let sub = 0, cus = 0;
     for (const S of ITEMS) { if (!filled(S)) continue; itens[S] = val(S, 'P83'); const q = num0(val(S, 'P17')) || 1, a = num0(val(S, 'P56')), c = num0(val(S, 'H114')); sub += a * q; cus += c * q; }
@@ -3075,11 +3078,14 @@
       // fator praticado (subtotal negociado ÷ custo dos itens), logo depois da margem: o da aba de cada item; no total,
       // a soma dos subtotais ÷ a soma dos custos. Só leitura: não entra em nenhuma conta do memorial.
       if (r === 18) { const F = fatorPraticado(); const fx = (v) => (typeof v === 'number' && isFinite(v) && v ? NF[4].format(v) : '—');
-        rows.push(`<tr><td title="Subtotal negociado (itens × fator − descontos) ÷ custo dos itens — a régua da política de desconto, não é margem">Fator praticado (subtotal ÷ custo)</td>${cols.map((c) => `<td class="n">${fx(F.itens[ITEMS[colToNum(c) - 3]])}</td>`).join('')}<td class="n"><b>${fx(F.total)}</b></td></tr>`); }
+        rows.push(`<tr><td title="Subtotal negociado (itens × fator − descontos) ÷ custo dos itens — a régua da política de desconto, não é margem">Fator praticado (subtotal ÷ custo dos itens)</td>${cols.map((c) => `<td class="n">${fx(F.itens[ITEMS[colToNum(c) - 3]])}</td>`).join('')}<td class="n"><b>${fx(F.total)}</b></td></tr>`);
+        // preço final com tudo (impostos, IPI, frete, start-up) ÷ custo total do memorial
+        const ff = (c) => { const pv = val(M, c + '26'), cu = val(M, c + '7'); return typeof pv === 'number' && typeof cu === 'number' && cu ? pv / cu : null; };
+        rows.push(`<tr><td title="Preço de venda com impostos e com IPI ÷ total de custos (itens + start-up + frete)">Fator sobre o preço final (preço com IPI ÷ custo total)</td>${cols.map((c) => `<td class="n">${fx(ff(c))}</td>`).join('')}<td class="n"><b>${fx(ff('M'))}</b></td></tr>`); }
     }
     return `<div class="stack"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><div><h1>Memorial de formação de preço</h1><div class="sub">No formato que o financeiro pede: custos, impostos, comissão, margem e o demonstrativo — por item e total da proposta.</div></div><div class="docbar"><span class="sub">Documentos para o financeiro</span><button class="btn sm pri" data-doc="memorial">Memorial (PDF)</button><button class="btn sm" data-doc="memorialxlsx">Memorial (Excel)</button><button class="btn sm" data-doc="fcipdf">FCI (PDF)</button><button class="btn sm" data-doc="fcixlsx">FCI (Excel)</button></div></div>
       ${simMargemHtml()}
-      <section class="card"><div class="tw"><table class="t"><thead><tr><th>Linha</th>${cols.map((c) => `<th class="n">ITEM ${String(colToNum(c) - 2).padStart(2, '0')}</th>`).join('')}<th class="n">Total da proposta</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${notes}</section></div>`;
+      <section class="card"><div class="tw"><table class="t"><thead><tr><th>Linha</th>${cols.map((c) => `<th class="n">ITEM ${String(colToNum(c) - 2).padStart(2, '0')}</th>`).join('')}<th class="n">Total da proposta</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>${NOTA_FATORES}${notes}</section></div>`;
   }
 
   // ---------- cadastro: insumos, kits, importação, histórico e demais tabelas ----------
@@ -5456,14 +5462,15 @@
   }
   function simMargemRes() {
     const P = 'PROPOSTA'; const S = ui.simMg; if (!S || !S.res) return '<p class="sub" style="margin:8px 0 0">Digite um desconto global ou a margem que você quer: os valores aparecem aqui ao lado dos atuais.</p>';
-    const O = resumoSim({ sn: seqSnapshot(), total: val(P, 'P43'), margem: val(P, 'J16'), fora: ITEMS.filter((x) => filled(x)).filter((x) => val(x, 'P84') === 'ABAIXO DO PISO' || txt(x, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val(P, 'C9')) });
+    const O = resumoSim({ sn: seqSnapshot(), total: val(P, 'P43'), margem: val(P, 'J16'), fora: ITEMS.filter((x) => filled(x)).filter((x) => val(x, 'P84') === 'ABAIXO DO PISO' || txt(x, 'P91') === 'MARGEM ABAIXO DO MÍNIMO').length, desc: num0(val(P, 'C9')), fator: fatorPraticado().total });
     const R = S.res; const mMin = val('PARÂMETROS', 'C34');
     const lin = (lb, f, fmt, forte) => { const a = f(O), b = f(R); const d = typeof a === 'number' && typeof b === 'number' ? b - a : null;
       return `<tr${forte ? ' class="tot"' : ''}><td>${lb}</td><td class="n">${fmt(a)}</td><td class="n"><b>${fmt(b)}</b></td><td class="n">${d === null || Math.abs(d) < 1e-9 ? '' : (d > 0 ? '+' : '−') + fmt(Math.abs(d)).replace('R$ ', '')}</td></tr>`; };
-    const pp = (v) => pct(v, 2);
+    const pp = (v) => pct(v, 2); const fx4 = (v) => (typeof v === 'number' && isFinite(v) && v ? NF[4].format(v) : '—');
     return `<div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th></th><th class="n">Proposta agora</th><th class="n">Simulação</th><th class="n">Diferença</th></tr></thead><tbody>
       ${lin('Desconto global', (v) => v.desc, pp)}${lin('Preço ao cliente (com IPI)', (v) => v.total, brl, true)}${lin('Preço sem IPI', (v) => v.venda, brl)}${lin('Impostos (sem o IPI)', (v) => v.impostos, brl)}${lin('Comissões', (v) => v.comissao, brl)}${lin('Custo total (memorial)', (v) => v.custo, brl)}
-      ${lin('Margem líquida (R$)', (v) => v.margem, brl, true)}${lin('Margem líquida (%)', (v) => v.margemPct, pp, true)}${lin('Itens fora da política de desconto', (v) => v.fora, (v) => String(v ?? '—'))}</tbody></table></div>
+      ${lin('Margem líquida (R$)', (v) => v.margem, brl, true)}${lin('Margem líquida (%)', (v) => v.margemPct, pp, true)}${lin('Fator praticado (subtotal ÷ custo dos itens)', (v) => v.fator, fx4)}${lin('Fator sobre o preço final (preço com IPI ÷ custo total)', (v) => v.fatorFinal, fx4)}${lin('Itens fora da política de desconto', (v) => v.fora, (v) => String(v ?? '—'))}</tbody></table></div>
+      ${NOTA_FATORES}
       ${S.achou === false ? '<div class="banner warn" style="margin:8px 0 0">Não deu para chegar exatamente nesse valor só com o desconto global (veja o mais perto possível acima).</div>' : ''}
       <div class="banner ${R.fora || R.margemPct < mMin - 5e-5 ? 'warn' : 'ok'}" style="margin:8px 0 0">${R.fora || R.margemPct < mMin - 5e-5 ? `Com este desconto a proposta <b>precisa de aprovação</b> (margem ${pct(R.margemPct, 1)}, mínimo ${pct(mMin, 0)}${R.fora ? '; ' + R.fora + ' item(ns) abaixo do piso da política' : ''}).` : `Dentro da política: margem ${pct(R.margemPct, 1)} (mínimo ${pct(mMin, 0)}).`}</div>
       <div class="docbar" style="margin-top:8px">${state.verRev ? '' : `<button class="btn pri" data-smaplica data-ico="check">Aplicar à proposta (desconto global ${esc(pct(R.desc, 2))})</button>`}<button class="btn" data-smlimpa>Limpar</button></div>`;
