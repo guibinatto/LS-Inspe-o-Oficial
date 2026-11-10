@@ -108,6 +108,12 @@ O cálculo é o mesmo da proposta, numa cópia; nenhuma fórmula mudou.
 - **Memorial**: dados da proposta, resumo e as linhas do memorial por item e total, com o cabeçalho fixo;
 - **Itens**: código, descrição, quantidade, preços, IPI, origem e margem.
 
+**Fator praticado no memorial.** O memorial tem uma linha nova, **Fator praticado (subtotal ÷ custo)**, logo depois da Margem líquida, na tela, no PDF e no Excel:
+- por item, é o mesmo número da aba do item (ITEM!P83);
+- no total da proposta, é a soma dos subtotais ÷ a soma dos custos.
+
+É só leitura: não entra em nenhuma conta do memorial. Na Ipiranga dá 1,5295, igual à planilha antiga.
+
 ## 6. Testes e regressão
 
 | Verificação | Resultado |

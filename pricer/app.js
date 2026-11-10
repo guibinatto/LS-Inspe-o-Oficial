@@ -3056,6 +3056,10 @@
     return h;
   }
 
+  // fator praticado de cada item (ITEM!P83 = subtotal ÷ custo) e o da proposta (soma dos subtotais ÷ soma dos custos)
+  function fatorPraticado() { const itens = {}; let sub = 0, cus = 0;
+    for (const S of ITEMS) { if (!filled(S)) continue; itens[S] = val(S, 'P83'); const q = num0(val(S, 'P17')) || 1, a = num0(val(S, 'P56')), c = num0(val(S, 'H114')); sub += a * q; cus += c * q; }
+    return { itens, total: cus ? sub / cus : null }; }
   function vMemorial() {
     const M = 'MEMORIAL';
     const cols = []; for (let i = 0; i < 10; i++) if (filled(ITEMS[i])) cols.push(numToCol(3 + i));
@@ -3068,6 +3072,10 @@
       if (val(M, 'M' + r) === null && val(M, 'C' + r) === null) { rows.push(`<tr><td colspan="${cols.length + 2}" style="font-weight:700;color:var(--or-ink)">${esc(lb)}</td></tr>`); continue; }
       const bold = /^TOTAL|Margem|Preço de venda com impostos e COM/i.test(lb);
       rows.push(`<tr class="${bold ? 'tot' : ''}"><td>${esc(lb)}</td>${cols.map((c) => `<td class="n">${show(M, c + r)}</td>`).join('')}<td class="n"><b>${show(M, 'M' + r)}</b></td></tr>`);
+      // fator praticado (subtotal negociado ÷ custo dos itens), logo depois da margem: o da aba de cada item; no total,
+      // a soma dos subtotais ÷ a soma dos custos. Só leitura: não entra em nenhuma conta do memorial.
+      if (r === 18) { const F = fatorPraticado(); const fx = (v) => (typeof v === 'number' && isFinite(v) && v ? NF[4].format(v) : '—');
+        rows.push(`<tr><td title="Subtotal negociado (itens × fator − descontos) ÷ custo dos itens — a régua da política de desconto, não é margem">Fator praticado (subtotal ÷ custo)</td>${cols.map((c) => `<td class="n">${fx(F.itens[ITEMS[colToNum(c) - 3]])}</td>`).join('')}<td class="n"><b>${fx(F.total)}</b></td></tr>`); }
     }
     return `<div class="stack"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end"><div><h1>Memorial de formação de preço</h1><div class="sub">No formato que o financeiro pede: custos, impostos, comissão, margem e o demonstrativo — por item e total da proposta.</div></div><div class="docbar"><span class="sub">Documentos para o financeiro</span><button class="btn sm pri" data-doc="memorial">Memorial (PDF)</button><button class="btn sm" data-doc="memorialxlsx">Memorial (Excel)</button><button class="btn sm" data-doc="fcipdf">FCI (PDF)</button><button class="btn sm" data-doc="fcixlsx">FCI (Excel)</button></div></div>
       ${simMargemHtml()}
@@ -5841,7 +5849,7 @@
     }
   });
 
-  const DOCS = window.PricerDocs({ val, txt, show, fmtNum, brl, pct, ITEMS, filled, save: REG.save, toast, wb: () => wb, fciHidden });
+  const DOCS = window.PricerDocs({ val, txt, show, fmtNum, brl, pct, ITEMS, filled, save: REG.save, toast, wb: () => wb, fciHidden, fatorPraticado: () => fatorPraticado() });
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-doc]'); if (!b) return;
     const it = b.dataset.docitem || null;

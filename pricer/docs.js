@@ -32,7 +32,7 @@
   const safe = (s) => String(s ?? '').replace(/[‑‒–]/g, '-').replace(/—/g, '—').replace(/[^\x00-\xFF—–’“”•…]/g, '');
 
   function Docs(ctx) {
-    const { val, txt, show, fmtNum, brl, pct, ITEMS, filled, save, toast, wb, fciHidden } = ctx;
+    const { val, txt, show, fmtNum, brl, pct, ITEMS, filled, save, toast, wb, fciHidden, fatorPraticado } = ctx;
     const today = () => new Date().toLocaleDateString('pt-BR');
     const P = 'PROPOSTA';
     const propNum = () => txt(P, 'C5') || 'sem número';
@@ -122,6 +122,7 @@
         const row = [lb, ...cols.map((c) => show(M, c + r)), show(M, 'M' + r)].map(safe);
         if (isBold) bold.push(body.length);
         body.push(row);
+        if (r === 18 && fatorPraticado) { const F = fatorPraticado(); const fx = (v) => (typeof v === 'number' && isFinite(v) && v ? v.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : '-'); body.push(['Fator praticado (subtotal / custo)', ...items.map(({ s }) => fx(F.itens[s])), fx(F.total)].map(safe)); }
       }
       doc.addPage();
       doc.autoTable(Object.assign({}, tableStyle, {
@@ -327,6 +328,9 @@
         if (/^TOTAL|Margem|com impostos e COM IPI/i.test(lb)) row.eachCell({ includeEmpty: true }, (c) => { c.font = { bold: true }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CLARO } }; });
         row.eachCell({ includeEmpty: true }, (c) => { c.border = { bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } } }; });
         r++;
+        if (k === 18 && fatorPraticado) { const F = fatorPraticado(); const fr = ws.getRow(r); fr.getCell(1).value = 'Fator praticado (subtotal ÷ custo)';
+          items.forEach(({ s }, j) => { const v = F.itens[s]; if (typeof v === 'number' && isFinite(v) && v) { fr.getCell(2 + j).value = v; fr.getCell(2 + j).numFmt = '0.0000'; } });
+          if (typeof F.total === 'number' && isFinite(F.total)) { const c = fr.getCell(nCols); c.value = F.total; c.numFmt = '0.0000'; c.font = { bold: true }; } r++; }
       }
       r++; for (let k = 39; k <= 48; k++) { const t = txt(M, 'B' + k); if (!t) continue; ws.mergeCells(r, 1, r, nCols); Object.assign(ws.getCell(r, 1), { value: t, font: { italic: true, size: 9, color: { argb: CINZA } }, alignment: { wrapText: true, vertical: 'top' } }); ws.getRow(r).height = Math.min(90, 14 * Math.ceil(t.length / 140)); r++; }
       // itens da proposta
