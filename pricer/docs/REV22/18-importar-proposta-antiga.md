@@ -123,7 +123,41 @@ O cálculo é o mesmo da proposta, numa cópia; nenhuma fórmula mudou.
 
 Na Ipiranga: fator praticado 1,5295. Com o preço da planilha (R$ 1.090.070,53), o fator sobre o preço final é 1,7401; recalculado pelo app (R$ 1.058.132,15), 1,6891.
 
-## 6. Testes e regressão
+## 6. Serviços e peças (SPV)
+
+Usa o mesmo botão: Nova → **Importar proposta antiga**. O app reconhece que é serviço ou peça por três sinais:
+- a planilha de serviços **PRECIFICAÇÃO SERVIÇOS MASTERDOC** (abas Produto ATP e Markup);
+- a família do item na LS PRICER (serviços, peças, inspeções, contratos, locação…);
+- o formato do PDF (código SERV-…, seção "Notas e desvios").
+
+**O que vem de cada arquivo:**
+
+| Origem | No app |
+|---|---|
+| MASTERDOC, aba Produto ATP | Equipe (diárias por técnico), km, passagem aérea, locação de carro, hotel, alimentação, ART, frete de insumos e outros. A troca de insumos entra em "outros". As quantidades ficam fixas, como na planilha. |
+| MASTERDOC, aba Markup | Multiplicador (1 + margem bruta), PIS, COFINS, IRPJ, ISS, comissões e pagamento a prazo. |
+| MASTERDOC, aba Insumos | Peças da proposta, quando houver. |
+| LS PRICER (formação) | Preço do serviço e de cada peça; custo da peça (linha do escopo). |
+| PDF | Número, revisão, data, validade, razão social, CNPJ do cliente, contato, obra, cidade/UF, código (SERV-017, 033-06130), descrição breve, escopo, pagamento, prazo, frete, notas, desvios e exclusões. |
+
+**Tipo da proposta:** com serviço, sai SMC (ou SMF, se a família for de fábrica); só com peças, sai PAR.
+
+**Preço:**
+- Manter o da planilha ou o do PDF: o app ajusta o multiplicador do serviço e o fator de cada peça para chegar no valor.
+- Ou recalcular pelas regras do app.
+
+**WEG Tintas** (teste `importa_spv_test`, 11/11):
+
+| Proposta | Arquivos | Custo | Preço mantido | Regras do app |
+|---|---|---|---|---|
+| 10.339 — serviço de troca do radiador (SMC, SERV-017) | MASTERDOC + LS PRICER VALORES + PDF | R$ 2.530,00 (Yago 2 diárias, 100 km, 2 alimentações, R$ 800 de insumos), igual à MASTERDOC | R$ 5.233,49 | R$ 7.590,00 (multiplicador 3 da MASTERDOC) |
+| 10.342 — radiador 7006121C91E (PAR, 033-06130) | LS PRICER VALORES + PDF | R$ 17.999,69 | R$ 37.233,71 | R$ 26.999,53 (fator 1,5) |
+
+O que conferir:
+- **Na planilha de preços do PDF, os impostos saem pelas regras do app** (no serviço, ISS 5%; na peça, ICMS de SC 17% e PIS/COFINS 3,65%). O PDF antigo mostrava 0,00%. O preço total é o mesmo.
+- **O multiplicador que dá o preço da planilha (2,07) fica abaixo do da MASTERDOC (3).** O lucro líquido sai abaixo dos 40% que a MASTERDOC pede, e o app avisa na proposta.
+
+## 7. Testes e regressão
 
 | Verificação | Resultado |
 |---|---|

@@ -3216,18 +3216,35 @@ window.FCI_TEMPLATE_B64="UEsDBBQABgAIAAAAIQAr1zSmtQEAAHQIAAATAAgCW0NvbnRlbnRfVHl
     }
 
     // dados para a proposta técnica e comercial (modelo PTC): um item para o serviço e um por peça
+    // proposta feita fora do app (planilha MASTERDOC / LS PRICER + PDF da proposta): monta o SPV com os custos de lá e,
+    // quando pedido, o multiplicador do serviço e o fator de cada peça que levam ao preço do documento
+    function deImportacao(d) {
+      const c = cfg(); const tipo = d.tipo || 'SMC'; const ini = TIPO_INI[tipo] || { equipe: 1, pecas: 1 }; const pcs = d.pecas || [];
+      const s = { tipo, cliente: d.cliente || '', razao: d.razao || '', cnpj: d.cnpj || '', contato: d.contato || '', local: d.local || '', uf: d.uf || 'SC', numero: d.numero || '', revisao: String(d.revisao ?? '0'),
+        data: d.data || new Date().toISOString().slice(0, 10), validade: num(d.validade) || 15, vendedor: d.vendedor || '', titulo: d.titulo || '', codServico: d.codServico || '', descricao: d.descricao || '', exclusoes: d.exclusoes || '',
+        pagamento: d.pagamento || '', prazo_exec: d.prazo || '', frete: d.frete || '', blocos: { equipe: !!d.servico, pecas: pcs.length > 0, contrato: false },
+        equipe: (d.equipe || []).map((e) => { const t = c.tecnicos.find((x) => norm(x.nome).includes(norm(e.nome)) || norm(e.nome).includes(norm(x.nome))); return { tec: t ? t.nome : e.nome, diaria: num(e.diaria), dias: num(e.dias) }; }),
+        dist: 0, ov: Object.assign({}, d.ov || {}), precos: Object.assign(precosCad(), d.precos || {}), campo: ini.campo !== 0,
+        pecas: pcs.map((x) => ({ desc: x.desc || '', cod: x.cod || '', forn: x.forn || '', qtd: num(x.qtd) || 1, un: x.un || '', unit: num(x.unit), moeda: 'BRL', ipi: 0, ncm: x.ncm || '', fator: x.fator ?? undefined })),
+        contrato: { visitas: 12, meses: 12, reajuste: 'IPCA' }, mk: Object.assign({ mult: c.mk.mult }, d.mk || {}), status: 'rascunho' };
+      if (d.alvoServico > 0) { const r = calc(s); if (r.custoServ > 0) s.mk.mult = d.alvoServico / r.custoServ; }
+      (d.alvoPecas || []).forEach((a, i) => { if (!(a > 0) || !s.pecas[i]) return; const p = calc(s).pecas[i]; if (p && p.custo > 0) s.pecas[i].fator = a / p.custo; });
+      return s;
+    }
     function propostaDados(s) {
       s = s || S(); const r = calc(s); const sn = snapshot(s); const mk = r.mk; const nV = r.ct ? r.ct.nV : 1;
-      const mod = (cfg().modelos || []).find((m) => m.id === s.modelo); const tit = (mod && mod.nome) || (TIPO_INI[s.tipo] || {}).titulo || tipoInfo(s.tipo).nome;
+      const mod = (cfg().modelos || []).find((m) => m.id === s.modelo); const tit = s.titulo || (mod && mod.nome) || (TIPO_INI[s.tipo] || {}).titulo || tipoInfo(s.tipo).nome;
       const tx = num(mk.pis) + num(mk.cofins); const itens = []; const sv = sn.itens.find((x) => x.n === 'servico');
       if (sv) itens.push({ key: 'servico', codigo: s.codServico || '', qtd: 1, un: 'Un', pisCofins: tx, icms: num(mk.iss), ipi: 0, ncm: '', unit: sv.venda, total: sv.venda,
         breve: (tit + (r.ct ? ' — contrato de ' + num(s.contrato.meses) + ' meses' : '')).toUpperCase(), escopo: String(s.descricao || '').split('\n').map((x) => x.trim()).filter(Boolean) });
       let primeira = true;
       if (s.blocos.pecas) r.pecas.forEach((p, i) => { if (p.incluso === false || !(p.venda > 0)) return; const q = num(p.qtd) * nV; const tot = p.venda * nV;
-        itens.push({ key: 'pc' + i, codigo: p.cod || '', qtd: q, un: p.un || 'Un', pisCofins: tx, icms: r.icms, ipi: null, ncm: p.ncm || '', unit: q ? tot / q : tot, total: tot, breve: p.desc || '', escopo: [], escopoPecas: primeira }); primeira = false; });
+        // só peças (sem serviço): o texto de escopo da proposta vai na primeira peça, no lugar do escopo padrão de peças
+        const escP = primeira && !sv && String(s.descricao || '').trim() ? String(s.descricao).split('\n').map((x) => x.trim()).filter(Boolean) : [];
+        itens.push({ key: 'pc' + i, codigo: p.cod || '', qtd: q, un: p.un || 'Un', pisCofins: tx, icms: r.icms, ipi: null, ncm: p.ncm || '', unit: q ? tot / q : tot, total: tot, breve: p.desc || '', escopo: escP, escopoPecas: primeira && !escP.length }); primeira = false; });
       const venc = (() => { const d = new Date((s.data || new Date().toISOString().slice(0, 10)) + 'T12:00'); d.setDate(d.getDate() + (num(s.validade) || 15)); return d.toISOString().slice(0, 10); })();
-      return { tipo: 'SPV', numero: s.numero || '', rev: s.revisao ?? '0', data: s.data, validade: venc, cliente: s.cliente || '', razao: s.cliente || '', cnpj: s.cnpj || '', contato: s.contato || '', obra: s.local || '', cidade: '',
-        pagamento: s.pagamento || '', frete: sv && !r.Vp ? 'Não aplicável' : '', prazo: s.prazo_exec || '', exclusoes: s.exclusoes || '', vendedor: s.vendedor || '', total: r.total, itens,
+      return { tipo: 'SPV', numero: s.numero || '', rev: s.revisao ?? '0', data: s.data, validade: venc, cliente: s.cliente || '', razao: s.razao || s.cliente || '', cnpj: s.cnpj || '', contato: s.contato || '', obra: s.local || '', cidade: '',
+        pagamento: s.pagamento || '', frete: s.frete || (sv && !r.Vp ? 'Não aplicável' : ''), prazo: s.prazo_exec || '', exclusoes: s.exclusoes || '', vendedor: s.vendedor || '', total: r.total, itens,
         flags: { pecas: !primeira, soPecas: !sv, contrato: !!r.ct, campo: s.campo !== false, fabrica: s.campo === false, meses: r.ct ? num(s.contrato.meses) : '', visitas: r.ct ? Math.round(nV) : '' } };
     }
 
@@ -3760,7 +3777,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
 
     const docList2 = (list) => (list.length ? docList(list) : '<p class="sub" style="margin:0">Nenhum documento ligado.</p>');
     const blobDoc = async (id) => { const d = docs.find((x) => x.id === id); if (!d) return null; try { return d.assetId ? await (await fetch('/_blob/' + d.assetId)).blob() : await idbGet(d.id); } catch (e) { return null; } };
-    return { propostaDados, blobDoc, abrirDoc, docsDoInsumo: (id) => docList2(docs.filter((d) => (d.insumos || []).includes(id))), cfg, vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
+    return { deImportacao, propostaDados, blobDoc, abrirDoc, docsDoInsumo: (id) => docList2(docs.filter((d) => (d.insumos || []).includes(id))), cfg, vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
   }
   window.PricerSPV = SPV;
 })();
@@ -7955,7 +7972,10 @@ window.PRICER_ESCOPO_PADRAO = {
         const g = num(ent(S, 'G' + r)), h = num(ent(S, 'H' + r)), ac = num(val(S, 'AC' + r));
         const u = h !== null && f ? h / f : g !== null ? g : ac; if (u !== null) D['G' + t] = Math.round(u * 1e6) / 1e6;
         if (h !== null && g !== null && f && Math.abs(h / f - g) > 0.005) avisos.push(nome + ', linha ' + (r - 18) + ' (' + d.slice(0, 40) + '): custo total digitado por cima (' + h + ' para ' + f + ' un.) — importado como ' + (Math.round(h / f * 100) / 100) + ' por unidade.'); });
-      ref.itens.push({ sheet: nome, qtd, unit: num(val(S, 'B15')), total: num(val(S, 'D15')), semImp: num(val(S, 'P71')), custo: num(val(S, 'H69')), margem: num(val(S, 'J15')), desc: txt(val(S, 'C4')), linhas: Math.min(45, linhas.length) });
+      ref.itens.push({ sheet: nome, qtd, unit: num(val(S, 'B15')), total: num(val(S, 'D15')), semImp: num(val(S, 'P71')), custo: num(val(S, 'H69')), margem: num(val(S, 'J15')), desc: txt(val(S, 'C4')), linhas: Math.min(45, linhas.length),
+        // para serviços e peças: família de produto, UF e pagamento digitados no item e as linhas com o custo de cada uma
+        familia: txt(val(S, 'C5')), uf: txt(ent(S, 'G5')), pagamento: txt(ent(S, 'K4')),
+        custos: linhas.map((r) => { const f = num(val(S, 'F' + r)) || 1, g = num(ent(S, 'G' + r)), h = num(ent(S, 'H' + r)), ac = num(val(S, 'AC' + r)); return { desc: txt(val(S, 'D' + r)), forn: txt(val(S, 'E' + r)), qtd: f, unit: h !== null ? h / f : g !== null ? g : ac || 0 }; }) });
     }
     if (mod) doc.PROPOSTA.B13 = mod; if (frete) doc.PROPOSTA.F13 = Math.round(frete * 100) / 100; else { if (km !== null) doc.PROPOSTA.D13 = km; if (rkm !== null) doc.PROPOSTA.E13 = rkm; }
     ref.total = num(val(P, 'K27')); ref.custo = num(val(P, 'L27'));
@@ -7978,6 +7998,39 @@ window.PRICER_ESCOPO_PADRAO = {
     avisos.push('Planilha no layout do app: as células digitadas foram copiadas como estão.');
   }
 
+  // ---------------- planilha de serviços (PRECIFICAÇÃO SERVIÇOS MASTERDOC) ----------------
+  // aba "Produto ATP": diárias da equipe, deslocamento, hotel, alimentação, ART, insumos e outros (valor × quantidade);
+  // aba "Markup": multiplicador (custo + margem bruta), impostos e comissões; aba "Insumos": peças e ferramentas
+  const ehMasterdoc = (sheets) => !!(sheets && sheets['Produto ATP'] && sheets.Markup);
+  function daMasterdoc(sheets) {
+    const A = sheets['Produto ATP']; const MK = sheets.Markup; const I = sheets.Insumos || {}; const avisos = [];
+    const equipe = [], ov = { km: 0, aereo_qtd: 0, carro_dias: 0, hotel_noites: 0, alim_qtd: 0, art_qtd: 0, frete: 0, outros: 0 }, precos = {}; const linhas = [];
+    let custoTotal = null;
+    for (let r = 3; r <= 40; r++) {
+      const lb = txt(val(A, 'B' + r)); const cu = num(val(A, 'C' + r)), q = num(val(A, 'D' + r)), tot = num(val(A, 'E' + r));
+      if (/CUSTO TOTAL/i.test(txt(val(A, 'C' + r)) + lb)) { custoTotal = num(val(A, 'E' + r)); continue; }
+      if (!lb) continue; const L = lb.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (tot) linhas.push({ lb, unit: cu, qtd: q, total: tot });
+      const m = L.match(/^DIARIA\s+(.+)$/); if (m) { if (q > 0) equipe.push({ nome: m[1].trim(), diaria: cu, dias: q }); continue; }
+      if (/DESLOCAMENTO\s*-\s*KM/.test(L)) { ov.km = q || 0; if (cu) precos.rkm = cu; continue; }
+      if (/DESLOCAMENTO AEREO/.test(L)) { ov.aereo_qtd += q || 0; if (cu) precos.aereo = cu; continue; }
+      if (/LOCACAO DE AUTOMOVEL/.test(L)) { ov.carro_dias = q || 0; if (cu) precos.carro = cu; continue; }
+      if (/^HOTEL/.test(L)) { ov.hotel_noites = q || 0; if (cu) precos.hotel = cu; continue; }
+      if (/ALIMENTACAO/.test(L)) { ov.alim_qtd = q || 0; if (cu) precos.alim = cu; continue; }
+      if (/^ART\b/.test(L)) { ov.art_qtd = q || 0; if (cu) precos.art = cu; continue; }
+      if (/FRETE/.test(L)) { ov.frete += tot || 0; continue; }
+      ov.outros += tot || 0; // troca de insumos, outros e o que mais vier
+    }
+    const insumos = []; for (let r = 2; r <= 60; r++) { const d = txt(val(I, 'A' + r)); const q = num(val(I, 'D' + r)), u = num(val(I, 'E' + r)); if (d && (q || u)) insumos.push({ desc: d, forn: txt(val(I, 'B' + r)), cod: txt(val(I, 'C' + r)), qtd: q || 1, unit: u || 0 }); }
+    const pct = (k) => { const v = num(val(MK, k)); return v === null ? undefined : v; };
+    const mk = { mult: 1 + (num(val(MK, 'D6')) || 0), pis: pct('D8'), cofins: pct('D9'), irpj: pct('D10'), iss: pct('D11'), fin: pct('D12'), com_rep: pct('D13'), com_capt: pct('D14'), com_orc: pct('D15'), prazo: pct('D16') };
+    for (const k of Object.keys(mk)) if (mk[k] === undefined || mk[k] === null) delete mk[k];
+    const soma = equipe.reduce((t, e) => t + e.diaria * e.dias, 0) + linhas.filter((l) => !/^DI[ÁA]RIA/i.test(l.lb)).reduce((t, l) => t + l.total, 0);
+    if (custoTotal !== null && Math.abs(soma - custoTotal) > 0.01) avisos.push('Planilha de serviços: a soma das linhas (' + soma.toFixed(2) + ') não bate com o CUSTO TOTAL (' + custoTotal.toFixed(2) + ').');
+    if (insumos.length) avisos.push('Planilha de serviços: ' + insumos.length + ' insumo(s) da aba Insumos entraram como peças da proposta.');
+    return { custoTotal: custoTotal !== null ? custoTotal : soma, equipe, ov, precos, linhas, insumos, mk, venda: num(val(MK, 'E7')), avisos };
+  }
+
   // ---------------- PDFs ----------------
   // linhas de cada página: itens na mesma altura juntam; colunas distantes ficam separadas por " | "
   function linhasDe(pgs) {
@@ -7997,7 +8050,7 @@ window.PRICER_ESCOPO_PADRAO = {
   }
   // cabeçalho e rodapé repetidos em toda página do documento LS Fire
   const RUIDO = [/www\.lsfire\.com\.br/i, /^Cliente:.*Data:/i, /^Proposta N[º°o]/i, /^\d{1,3}(\.\d{3})?-Rev\.?\s*\d*$/i, /^\d+\s*\|?\s*Validade:/i, /^Validade:/i, /^\d+$/, /^\d+\/\d+$/];
-  const SECOES = /^(CONHE[ÇC]A A LS FIRE|FOLHA DE DADOS|NOTAS,? DESVIOS E OBSERVA[ÇC][ÕO]ES|COMISSIONAMENTO E START-UP|ESCOPO DE DOCUMENTOS|CONTATOS|PLANILHA DE PRE[ÇC]OS|CONDI[ÇC][ÕO]ES|PRAZOS E CONDI[ÇC][ÕO]ES|TERMOS E CONDI[ÇC][ÕO]ES|ESCOPO DE FORNECIMENTO|SOLU[ÇC][ÕO]ES LS FIRE)$/i;
+  const SECOES = /^(CONHE[ÇC]A A LS FIRE|FOLHA DE DADOS|NOTAS,? DESVIOS E OBSERVA[ÇC][ÕO]ES|NOTAS E DESVIOS|PLANILHA DE PRE[ÇC]OS E CONDI[ÇC][ÕO]ES|COMISSIONAMENTO E START-UP|ESCOPO DE DOCUMENTOS|CONTATOS|PLANILHA DE PRE[ÇC]OS|CONDI[ÇC][ÕO]ES|PRAZOS E CONDI[ÇC][ÕO]ES|TERMOS E CONDI[ÇC][ÕO]ES|ESCOPO DE FORNECIMENTO|SOLU[ÇC][ÕO]ES LS FIRE)$/i;
   // junta as linhas de um trecho em parágrafos (quebra quando há espaço maior entre as linhas ou recuo diferente)
   function paragrafos(L) {
     const out = []; let cur = null;
@@ -8022,20 +8075,24 @@ window.PRICER_ESCOPO_PADRAO = {
       r.numero = r.numero || busca(/N[úu]mero:\s*([\d.\/ ]+\d)/i); r.rev = r.rev || busca(/Revis[ãa]o:\s*(\d+)/i);
       r.validade = r.validade || busca(/Validade:\s*(\d{2}\/\d{2}\/\d{4})/i); r.data = r.data || busca(/Data:\s*(\d{2}\/\d{2}\/\d{4})/i);
       r.aosCuidados = r.aosCuidados || busca(/Aos cuidados de:\s*([^\n|]+)/i); r.cidade = r.cidade || busca(/Cidade da obra:\s*([^\n|]+)/i);
-      r.obra = r.obra || busca(/Projeto\/Obra:\s*([^\n|]+)/i);
+      r.obra = r.obra || busca(/Projeto\/Obra:\s*([^\n|]+(?:\|\s*[^\n|:]+)?)/i).replace(/\s*\|\s*/g, ' | ');
+      r.razao = r.razao || busca(/Raz[ãa]o Social:\s*([^\n|]+)/i); r.cnpj = r.cnpj || busca(/(?:^|\n)CNPJ:\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i); // o do cliente (o da LS Fire está no rodapé)
+      if (/\nNOTAS E DESVIOS\n/i.test('\n' + all + '\n') || /\bSERV-\d+/.test(all)) r.spv = true;
       if (!r.obra) { const i = L0.findIndex((l) => /^Obra\/Projeto:/i.test(l.t)); if (i >= 0 && L0[i + 1]) r.obra = L0[i + 1].cols[0]; }
       if (!r.cliente) { const i = L0.findIndex((l) => /^Cliente:\s*\|?\s*Aos cuidados|^Cliente:$/i.test(l.t)); if (i >= 0 && L0[i + 1]) r.cliente = L0[i + 1].cols[0]; }
       // trechos: do título até o próximo título
       const trecho = (ini, fim) => { const i = L.findIndex((l) => ini.test(l.t)); if (i < 0) return null; let j = L.findIndex((l, k) => k > i && fim.test(l.t)); if (j < 0) j = L.length; return L.slice(i + 1, j).filter((l) => !SECOES.test(l.t)); };
       if (tipo !== 'tec') {
         // planilha de preços: uma linha por item ("1 | 008-00167 | 1 | UN | 3,65% …  R$ x | R$ y") e os dados embaixo
-        L.forEach((l, i) => { const m = l.t.replace(/\s*\|\s*/g, ' ').match(/^(\d{1,2})\s+(\S+)\s+([\d.,]+)\s+([A-Z]{1,4})\s+.*?R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)$/); if (!m) return;
-          const it = { n: +m[1], codigo: m[2], qtd: nBR(m[3]), un: m[4], unit: nBR(m[5]), total: nBR(m[6]) };
+        L.forEach((l, i) => { const m = l.t.replace(/\s*\|\s*/g, ' ').match(/^(\d{1,2})\s+(\S+)\s+([\d.,]+)\s+(?:([A-Za-z]{1,4})\s+)?[\d,]+%.*?R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)$/); if (!m) return;
+          const it = { n: +m[1], codigo: m[2], qtd: nBR(m[3]), un: m[4] || '', unit: nBR(m[5]), total: nBR(m[6]) };
           const mNcm = l.t.match(/(\d{4}\.\d{2}\.\d{2})/); if (mNcm) it.ncm = mNcm[1];
-          const ate = L.findIndex((q, k) => k > i && (/^\d{1,2}\s*\|?\s*\S+\s*\|?\s*[\d.,]+\s*\|?\s*[A-Z]{1,4}\b.*R\$/.test(q.t) || /^TOTAL:/i.test(q.t.replace(/^.*\|\s*/, '')) || /TOTAL:\s*\|?\s*R\$/i.test(q.t)));
+          const ate = L.findIndex((q, k) => k > i && (/^\d{1,2}\s*\|?\s*\S+\s*\|?\s*[\d.,]+\s*\|?\s*(?:[A-Za-z]{1,4}\s*\|?\s*)?[\d,]+%.*R\$/.test(q.t) || /^TOTAL:/i.test(q.t.replace(/^.*\|\s*/, '')) || /TOTAL:\s*\|?\s*R\$/i.test(q.t)));
           const bloco = L.slice(i + 1, ate < 0 ? L.length : ate).map((q) => q.t.replace(/\s*\|\s*/g, ' ')).join('\n');
           const campo = (rot, prox) => { const m2 = bloco.match(new RegExp(rot + '\\s*([\\s\\S]*?)(?=\\n(?:' + prox + ')|$)', 'i')); return m2 ? m2[1].replace(/\s+/g, ' ').trim() : ''; };
-          it.breve = campo('Descri[çc][ãa]o breve:', 'Descri[çc][ãa]o completa:|Condi[çc][ãa]o projeto:'); it.completa = campo('Descri[çc][ãa]o completa:', 'Condi[çc][ãa]o projeto:|Vaz[ãa]o nominal');
+          it.breve = campo('Descri[çc][ãa]o breve:', 'Descri[çc][ãa]o completa:|Condi[çc][ãa]o projeto:|Escopo:');
+          // escopo do item (propostas de serviço e peças): as linhas depois de "Escopo:", até o total
+          { const lin = L.slice(i + 1, ate < 0 ? L.length : ate); const k0 = lin.findIndex((q) => /^Escopo:/i.test(q.t)); if (k0 >= 0) it.escopo = paragrafos(lin.slice(k0 + 1).filter((q) => !/TOTAL:/i.test(q.t))); } it.completa = campo('Descri[çc][ãa]o completa:', 'Condi[çc][ãa]o projeto:|Vaz[ãa]o nominal');
           it.condicao = campo('Condi[çc][ãa]o projeto:', 'Vaz[ãa]o nominal|Escopo:'); it.vazaoNominal = campo('Vaz[ãa]o nominal da bomba:', 'Escopo:|\\S');
           if (!r.itens.some((q) => q.n === it.n)) r.itens.push(it); });
         const tot = all.match(/TOTAL:\s*\|?\s*R\$\s*([\d.,]+)/i); if (tot) r.total = nBR(tot[1]);
@@ -8049,7 +8106,7 @@ window.PRICER_ESCOPO_PADRAO = {
       if (!r.desvios) { const d = trecho(/^Desvios$/i, /^Exclus[õo]es$/i); if (d) { const ps = paragrafos(d); r.desviosEsp = []; const resto = [];
         for (const p of ps) { const m = p.match(/^Item\s+([\d.]+)\s+da especifica[çc][ãa]o t[ée]cnica\s*[,:;\-–]?\s*(.+)$/i); if (m) r.desviosEsp.push({ ref: m[1], texto: m[2].charAt(0).toUpperCase() + m[2].slice(1) }); else resto.push(p); }
         r.desvios = resto.join('\n'); } }
-      if (!r.exclusoes) { const e = trecho(/^Exclus[õo]es$/i, /^(O que est[áa] incluso|Comissionamento e Start-up|Entreg[áa]vel|Base de Prazo|À disposi[çc][ãa]o)/i); if (e) r.exclusoes = paragrafos(e).join('\n'); }
+      if (!r.exclusoes) { const e = trecho(/^Exclus[õo]es$/i, /^(O que est[áa] incluso|Comissionamento e Start-up|Entreg[áa]vel|Base de Prazo|À disposi[çc][ãa]o|TERMOS E CONDI|1\.\s*Prazos)/i); if (e) r.exclusoes = paragrafos(e).join('\n'); }
     }
     r.tipos = [...new Set(r.tipos)];
     return r;
@@ -8112,7 +8169,44 @@ window.PRICER_ESCOPO_PADRAO = {
       d[sh].C8 = Math.round(x1 * 1e10) / 1e10; res[sh] = { c8: d[sh].C8, erro: f(d[sh].C8) }; }
     return { doc: d, res };
   }
-  window.PricerImportador = { montar, calibrar, daPlanilha, dosPdfs, linhasDe, paragrafos, observacoes, conferir, famApp, nBR };
+  // ---------------- serviços e peças (SPV) ----------------
+  const RE_SPV_FAM = /SERVI[ÇC]O|PE[ÇC]AS|SOBRESSALENTE|INSPE[ÇC]|CONTRATO|LOCA[ÇC][ÃA]O|TREINAMENTO|FIRECONNECT|FILTRAGEM/i;
+  const ehSpvPlanilha = (pl) => !!(pl && pl.ref && pl.ref.itens.length && pl.ref.itens.every((it) => RE_SPV_FAM.test(it.familia || '')));
+  const diasEntre = (a, b) => { const A = new Date(dataISO(a) + 'T12:00'), B = new Date(dataISO(b) + 'T12:00'); const d = Math.round((B - A) / 864e5); return isFinite(d) && d > 0 ? d : null; };
+  // monta os dados da proposta SPV: o serviço (custo da MASTERDOC ou da planilha) e as peças (custo da planilha), com os
+  // textos e os preços do PDF. Devolve também os preços de referência (planilha e PDF) para a escolha do preço.
+  function montarSpv(pl, pdf, md) {
+    pdf = pdf || {}; const avisos = [].concat((md && md.avisos) || []); const refs = (pl && pl.ref && pl.ref.itens) || [];
+    const itPdf = pdf.itens || [];
+    const ehServ = (o) => /^SERV-/i.test(o.codigo || '') || (!o.ncm && /servi[çc]o|manuten[çc]|m[ãa]o de obra|inspe[çc]|treinamento/i.test((o.breve || '') + ' ' + (o.escopo || []).join(' ') + ' ' + (o.desc || '')));
+    // o que é cada item: pelo PDF; sem PDF, pela família da planilha
+    const itens = (itPdf.length ? itPdf : refs.map((r) => ({ breve: r.desc, desc: (r.custos[0] || {}).desc, familia: r.familia }))).map((o, i) => ({ o, ref: refs[i] || null, serv: itPdf.length ? ehServ(o) : /SERVI[ÇC]O|MANUTEN/i.test(o.familia || '') && !/PE[ÇC]A/i.test((o.desc || '') + '') }));
+    const sv = itens.find((x) => x.serv); const pcs = itens.filter((x) => !x.serv);
+    const d = { servico: !!sv, equipe: [], ov: {}, precos: {}, pecas: [], mk: {} };
+    if (sv) {
+      if (md) { d.equipe = md.equipe; d.ov = md.ov; d.precos = md.precos; d.mk = Object.assign({}, md.mk); }
+      else { const c = sv.ref ? sv.ref.custo : null; d.ov = { km: 0, aereo_qtd: 0, carro_dias: 0, hotel_noites: 0, alim_qtd: 0, art_qtd: 0, frete: 0, outros: c || 0 }; if (!c) avisos.push('Serviço sem planilha de custos: o custo ficou zerado — informe a equipe e o deslocamento na proposta.'); }
+      d.titulo = sv.o.breve || ''; d.codServico = /^SERV-/i.test(sv.o.codigo || '') ? sv.o.codigo : ''; d.descricao = (sv.o.escopo || []).join('\n');
+    }
+    pcs.forEach((x, k) => { const c0 = (x.ref && x.ref.custos && x.ref.custos.length === 1) ? x.ref.custos[0] : null; const custo = c0 ? c0.unit : x.ref && x.ref.custo ? x.ref.custo / (x.ref.qtd || 1) : 0;
+      if (!custo) avisos.push('Peça "' + (x.o.breve || x.o.desc || '') + '" sem custo na planilha: informe o custo na proposta.');
+      d.pecas.push({ desc: x.o.breve || (c0 && c0.desc) || x.o.desc || '', cod: x.o.codigo || '', forn: c0 ? c0.forn : '', qtd: x.o.qtd || (x.ref && x.ref.qtd) || 1, un: x.o.un || '', unit: custo, ncm: x.o.ncm || '' }); });
+    if (!sv && pcs.length && pcs[0].o.escopo && pcs[0].o.escopo.length) d.descricao = pcs[0].o.escopo.join('\n');
+    for (const p of (md && md.insumos) || []) d.pecas.push({ desc: p.desc, cod: p.cod, forn: p.forn, qtd: p.qtd, unit: p.unit });
+    // cabeçalho
+    const uf = (String(pdf.cidade || '').match(/[-\/]\s*([A-Z]{2})\s*$/) || [])[1] || (refs[0] && refs[0].uf) || '';
+    Object.assign(d, { tipo: sv ? (/F[ÁA]BRICA/i.test((refs[0] || {}).familia || '') ? 'SMF' : 'SMC') : 'PAR', cliente: pdf.cliente || '', razao: pdf.razao || '', cnpj: pdf.cnpj || '', contato: pdf.aosCuidados || '', local: pdf.obra || '', uf: uf || 'SC',
+      numero: pdf.numero || ((pl && pl.doc.PROPOSTA.C5) || ''), revisao: pdf.rev || ((pl && pl.doc.PROPOSTA.C6) || '0'), data: pdf.data ? dataISO(pdf.data) : (pl && pl.doc.PROPOSTA.C7) || '', validade: pdf.data && pdf.validade ? diasEntre(pdf.data, pdf.validade) : null,
+      pagamento: pdf.pagamento || (refs[0] && /[A-Za-z]/.test(refs[0].pagamento || '') ? refs[0].pagamento : ''), prazo: pdf.prazoFab ? pdf.prazoFab + ' dias' : '', frete: pdf.frete || '', exclusoes: pdf.exclusoes || '' });
+    // preços de referência: por item (serviço e cada peça), da planilha e do PDF
+    const precoDe = (x, fonte) => (fonte === 'pdf' ? (x.o.total || null) : x.ref ? x.ref.total || x.ref.unit : null);
+    const alvos = { planilha: { alvoServico: sv ? precoDe(sv, 'planilha') : null, alvoPecas: pcs.map((x) => precoDe(x, 'planilha')) }, pdf: { alvoServico: sv ? precoDe(sv, 'pdf') : null, alvoPecas: pcs.map((x) => precoDe(x, 'pdf')) } };
+    // observações: as do PDF (vazio = sem observações, em vez das observações padrão de serviço)
+    const pc = { observacoes: pdf.observacoes || '' }; if (pdf.notas) pc.notas = pdf.notas; if (pdf.desvios) pc.desvios = pdf.desvios; if ((pdf.desviosEsp || []).length) pc.desviosEsp = pdf.desviosEsp;
+    if (pdf.aosCuidados) pc.aosCuidados = pdf.aosCuidados; if (pdf.cidade) pc.cidade = pdf.cidade;
+    return { d, alvos, pc, avisos, itens: itens.map((x) => ({ serv: x.serv, desc: x.o.breve || x.o.desc || '', codigo: x.o.codigo || '', planilha: precoDe(x, 'planilha'), pdf: precoDe(x, 'pdf') })) };
+  }
+  window.PricerImportador = { montarSpv, ehSpvPlanilha, ehMasterdoc, daMasterdoc, montar, calibrar, daPlanilha, dosPdfs, linhasDe, paragrafos, observacoes, conferir, famApp, nBR };
 })();
 
 </script>
@@ -13523,7 +13617,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>10/11/2026 16:37 · commit 7b6cad2</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>10/11/2026 23:10 · commit 038d87c</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -13770,7 +13864,7 @@ window.PRICER_ESCOPO_PADRAO = {
   function importarModal() {
     const IMP = window.PricerImportador; let R = null;
     modal(`<h2>Importar proposta antiga</h2>
-      <p class="sub">Escolha a planilha LS PRICER da proposta (.xlsx) e, se tiver, os PDFs da proposta técnica e da comercial. A planilha traz a formação (itens, escopo e custos de cada linha); os PDFs trazem número, revisão, validade, descrições, ponto de trabalho, condição de pagamento, prazos, notas, desvios, exclusões e observações. Nada é gravado até você confirmar e salvar.</p>
+      <p class="sub">Escolha a planilha LS PRICER da proposta (.xlsx) e, se tiver, os PDFs da proposta técnica e da comercial. Para serviços e peças, junte também a planilha de serviços (PRECIFICAÇÃO SERVIÇOS MASTERDOC). A planilha traz a formação (itens, escopo e custos de cada linha); os PDFs trazem número, revisão, validade, descrições, ponto de trabalho, condição de pagamento, prazos, notas, desvios, exclusões e observações. Nada é gravado até você confirmar e salvar.</p>
       <div class="f"><label for="impArq">Arquivos</label><input type="file" id="impArq" multiple accept=".xlsx,.xlsm,.pdf"></div>
       <div id="impPrev" class="impgrid" style="margin-top:10px"></div>
       <div class="docbar" style="margin-top:12px"><button class="btn pri" id="impOk" disabled>Criar a proposta</button><button class="btn" data-close>Cancelar</button></div>`,
@@ -13780,10 +13874,16 @@ window.PRICER_ESCOPO_PADRAO = {
       $('#impArq', o).onchange = async (e) => {
         const files = [...e.target.files]; if (!files.length) return; $('#impOk', o).disabled = true; prev.innerHTML = '<p class="sub">Lendo os arquivos…</p>';
         try {
-          const xl = files.find((f) => /\.xls[xm]$/i.test(f.name)); const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
-          const pl = xl ? IMP.daPlanilha(await window.PricerLeitor.planilha(xl, (n) => /^(GUIA|PROPOSTA|ITEM \d\d)$/.test(n)), MODEL) : null;
+          const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
+          // planilhas: a LS PRICER (formação) e/ou a de serviços (MASTERDOC: equipe, deslocamento e markup)
+          let pl = null, md = null, xl = null;
+          for (const f of files.filter((q) => /\.xls[xm]$/i.test(q.name))) { const sh = await window.PricerLeitor.planilha(f, (n) => /^(GUIA|PROPOSTA|ITEM \d\d|Produto ATP|Insumos|Markup)$/.test(n));
+            if (IMP.ehMasterdoc(sh)) md = Object.assign(IMP.daMasterdoc(sh), { nome: f.name }); else if (sh.PROPOSTA) { pl = IMP.daPlanilha(sh, MODEL); xl = f; } }
           const arqs = []; for (const f of pdfs) arqs.push({ nome: f.name, pgs: await window.PricerLeitor.itensPdf(f, 40, toast) });
-          const pdf = arqs.length ? IMP.dosPdfs(arqs) : null; const mt = IMP.montar(pl, pdf); const w = calcDoc(mt.doc);
+          const pdf = arqs.length ? IMP.dosPdfs(arqs) : null;
+          // serviços e peças (SPV): pela planilha de serviços, pela família do item ou pelo formato do PDF
+          if (md || IMP.ehSpvPlanilha(pl) || (pdf && pdf.spv)) { R = Object.assign(importaSpvPrevia(pl, pdf, md, xl, pdfs), { spv: true, nomes: files.map((f) => f.name) }); prev.innerHTML = R.html; $('#impOk', o).disabled = false; return; }
+          const mt = IMP.montar(pl, pdf); const w = calcDoc(mt.doc);
           const its = ((pl && pl.ref.itens) || []).map((it, i) => ({ it, pdf: ((pdf || {}).itens || [])[i] || {}, app: w.value(it.sheet, 'B15'), custoApp: w.value(it.sheet, 'H114') }));
           R = { pl, pdf, mt, its, nomes: files.map((f) => f.name) };
           const P = mt.doc.PROPOSTA; const pc = mt.pc;
@@ -13805,6 +13905,10 @@ window.PRICER_ESCOPO_PADRAO = {
       };
       $('#impOk', o).onclick = async () => {
         if (!R) return; const modo = (o.querySelector('[name=impPreco]:checked') || {}).value || 'app';
+        if (R.spv) { const spv = SPV.deImportacao(Object.assign({}, R.mt.d, modo === 'app' ? {} : R.mt.alvos[modo] || {})); close();
+          state = Object.assign({ doc: {} }, { id: null, uid: newUid(), div: 'SPV', name: '', spv, status: 'rascunho', propCom: R.mt.pc, importada: { em: new Date().toISOString(), arquivos: R.nomes, preco: modo } }); build(); persist(); dirty = true;
+          logEv({ tipo: 'Proposta — importada', ref: docTitle(), desc: 'Importada (serviços e peças) de ' + R.nomes.join(', ') + ' · preço: ' + ({ planilha: 'o da planilha', pdf: 'o do PDF', app: 'recalculado pelo app' })[modo], mudancas: [] });
+          setView('proposta'); toast('Proposta de ' + (spv.blocos.equipe ? 'serviço' : 'peças') + ' importada. Confira e salve.'); return; }
         let doc = R.mt.doc; const alvos = {};
         if (modo !== 'app') R.its.forEach((q) => { const a = modo === 'pdf' ? q.pdf.unit : q.it.unit; if (a > 0) alvos[q.it.sheet] = a; });
         if (Object.keys(alvos).length) doc = IMP.calibrar(calcDoc, doc, alvos).doc;
@@ -13813,6 +13917,28 @@ window.PRICER_ESCOPO_PADRAO = {
         dirty = true; persist(); ui.step = 1; setView('proposta'); toast('Proposta importada. Confira e salve.');
       };
     });
+  }
+  // prévia da importação de serviços e peças: o que virou serviço e peça, custo, preço da planilha, do PDF e pelas regras do app
+  function importaSpvPrevia(pl, pdf, md, xl, pdfs) {
+    const IMP = window.PricerImportador; const mt = IMP.montarSpv(pl, pdf, md); const s0 = SPV.deImportacao(mt.d); const r = SPV.calc(s0);
+    const din = (v) => (typeof v === 'number' && isFinite(v) ? 'R$ ' + NF[2].format(v) : '—'); let ip = 0;
+    const linhas = mt.itens.map((x) => { const app = x.serv ? r.Vs : (r.pecas[ip] || {}).venda; const custo = x.serv ? r.custoServ : (r.pecas[ip] || {}).custo; if (!x.serv) ip++;
+      return `<tr><td>${x.serv ? 'Serviço' : 'Peça'}</td><td>${esc((x.codigo ? x.codigo + ' — ' : '') + x.desc)}</td><td class="num">${din(custo)}</td><td class="num">${din(x.planilha)}</td><td class="num">${din(x.pdf)}</td><td class="num">${din(app)}</td></tr>`; }).join('');
+    const temPl = mt.itens.some((x) => x.planilha), temPdf = mt.itens.some((x) => x.pdf); const d = mt.d;
+    const conta = (k) => (mt.pc[k] ? String(mt.pc[k]).split('\n').filter(Boolean).length : 0);
+    const html = `<div class="kv pcro"><div>Tipo</div><div>${esc(d.tipo === 'PAR' ? 'PAR · Peças e sobressalentes' : d.tipo + ' · Serviço' + (d.pecas.length ? ' + peças' : ''))}</div>
+        <div>Planilhas</div><div>${esc([xl ? xl.name + (pl && pl.versao ? ' · REV' + pl.versao : '') : '', md ? md.nome + ' · serviços (MASTERDOC)' : ''].filter(Boolean).join(' · ') || 'nenhuma')}</div>
+        <div>PDFs</div><div>${esc(pdfs.map((f) => f.name).join(', ') || 'nenhum')}</div>
+        <div>Proposta</div><div>${esc([d.numero, 'rev. ' + d.revisao, d.cliente || d.razao, d.local].filter(Boolean).join(' · ') || '—')}</div>
+        ${md ? `<div>Custo do serviço</div><div>${esc(md.equipe.map((e) => e.nome + ' ' + e.dias + ' diária(s)').concat(md.ov.km ? [md.ov.km + ' km'] : [], md.ov.alim_qtd ? [md.ov.alim_qtd + ' alimentação'] : [], md.ov.outros ? ['outros R$ ' + NF[2].format(md.ov.outros)] : []).join(' · '))} · total ${esc(din(md.custoTotal))} · multiplicador da planilha ${esc(NF[2].format(md.mk.mult || 0))}</div>` : ''}
+        <div>Textos</div><div>${['notas', 'desvios'].map((k) => conta(k) ? k + ' ' + conta(k) : '').filter(Boolean).concat(d.exclusoes ? ['exclusões ' + d.exclusoes.split('\n').filter(Boolean).length] : [], d.descricao ? ['escopo ' + d.descricao.split('\n').filter(Boolean).length + ' linhas'] : []).join(' · ') || '—'}</div></div>
+      <div class="tw"><table class="t"><thead><tr><th></th><th>Item</th><th class="num">Custo</th><th class="num">Preço na planilha</th><th class="num">Preço no PDF</th><th class="num">Preço com as regras do app</th></tr></thead><tbody>${linhas}</tbody></table></div>
+      <fieldset class="impradio"><legend>Preço da proposta</legend>
+        ${temPl ? `<label><input type="radio" name="impPreco" value="planilha" checked> <span>Manter o preço da planilha (o multiplicador do serviço e o fator das peças são ajustados para chegar nele)</span></label>` : ''}
+        ${temPdf ? `<label><input type="radio" name="impPreco" value="pdf"${temPl ? '' : ' checked'}> <span>Manter o preço do PDF</span></label>` : ''}
+        <label><input type="radio" name="impPreco" value="app"${temPl || temPdf ? '' : ' checked'}> <span>Recalcular com as regras do app (multiplicador ${esc(NF[2].format(r.mult))} do serviço e fator ${esc(NF[2].format(r.mk.fator_pecas))} das peças)</span></label></fieldset>
+      ${mt.avisos.map((a) => `<div class="banner warn" style="margin:4px 0">${esc(a)}</div>`).join('')}`;
+    return { mt, html };
   }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));

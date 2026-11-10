@@ -5651,7 +5651,7 @@
   function importarModal() {
     const IMP = window.PricerImportador; let R = null;
     modal(`<h2>Importar proposta antiga</h2>
-      <p class="sub">Escolha a planilha LS PRICER da proposta (.xlsx) e, se tiver, os PDFs da proposta técnica e da comercial. A planilha traz a formação (itens, escopo e custos de cada linha); os PDFs trazem número, revisão, validade, descrições, ponto de trabalho, condição de pagamento, prazos, notas, desvios, exclusões e observações. Nada é gravado até você confirmar e salvar.</p>
+      <p class="sub">Escolha a planilha LS PRICER da proposta (.xlsx) e, se tiver, os PDFs da proposta técnica e da comercial. Para serviços e peças, junte também a planilha de serviços (PRECIFICAÇÃO SERVIÇOS MASTERDOC). A planilha traz a formação (itens, escopo e custos de cada linha); os PDFs trazem número, revisão, validade, descrições, ponto de trabalho, condição de pagamento, prazos, notas, desvios, exclusões e observações. Nada é gravado até você confirmar e salvar.</p>
       <div class="f"><label for="impArq">Arquivos</label><input type="file" id="impArq" multiple accept=".xlsx,.xlsm,.pdf"></div>
       <div id="impPrev" class="impgrid" style="margin-top:10px"></div>
       <div class="docbar" style="margin-top:12px"><button class="btn pri" id="impOk" disabled>Criar a proposta</button><button class="btn" data-close>Cancelar</button></div>`,
@@ -5661,10 +5661,16 @@
       $('#impArq', o).onchange = async (e) => {
         const files = [...e.target.files]; if (!files.length) return; $('#impOk', o).disabled = true; prev.innerHTML = '<p class="sub">Lendo os arquivos…</p>';
         try {
-          const xl = files.find((f) => /\.xls[xm]$/i.test(f.name)); const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
-          const pl = xl ? IMP.daPlanilha(await window.PricerLeitor.planilha(xl, (n) => /^(GUIA|PROPOSTA|ITEM \d\d)$/.test(n)), MODEL) : null;
+          const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
+          // planilhas: a LS PRICER (formação) e/ou a de serviços (MASTERDOC: equipe, deslocamento e markup)
+          let pl = null, md = null, xl = null;
+          for (const f of files.filter((q) => /\.xls[xm]$/i.test(q.name))) { const sh = await window.PricerLeitor.planilha(f, (n) => /^(GUIA|PROPOSTA|ITEM \d\d|Produto ATP|Insumos|Markup)$/.test(n));
+            if (IMP.ehMasterdoc(sh)) md = Object.assign(IMP.daMasterdoc(sh), { nome: f.name }); else if (sh.PROPOSTA) { pl = IMP.daPlanilha(sh, MODEL); xl = f; } }
           const arqs = []; for (const f of pdfs) arqs.push({ nome: f.name, pgs: await window.PricerLeitor.itensPdf(f, 40, toast) });
-          const pdf = arqs.length ? IMP.dosPdfs(arqs) : null; const mt = IMP.montar(pl, pdf); const w = calcDoc(mt.doc);
+          const pdf = arqs.length ? IMP.dosPdfs(arqs) : null;
+          // serviços e peças (SPV): pela planilha de serviços, pela família do item ou pelo formato do PDF
+          if (md || IMP.ehSpvPlanilha(pl) || (pdf && pdf.spv)) { R = Object.assign(importaSpvPrevia(pl, pdf, md, xl, pdfs), { spv: true, nomes: files.map((f) => f.name) }); prev.innerHTML = R.html; $('#impOk', o).disabled = false; return; }
+          const mt = IMP.montar(pl, pdf); const w = calcDoc(mt.doc);
           const its = ((pl && pl.ref.itens) || []).map((it, i) => ({ it, pdf: ((pdf || {}).itens || [])[i] || {}, app: w.value(it.sheet, 'B15'), custoApp: w.value(it.sheet, 'H114') }));
           R = { pl, pdf, mt, its, nomes: files.map((f) => f.name) };
           const P = mt.doc.PROPOSTA; const pc = mt.pc;
@@ -5686,6 +5692,10 @@
       };
       $('#impOk', o).onclick = async () => {
         if (!R) return; const modo = (o.querySelector('[name=impPreco]:checked') || {}).value || 'app';
+        if (R.spv) { const spv = SPV.deImportacao(Object.assign({}, R.mt.d, modo === 'app' ? {} : R.mt.alvos[modo] || {})); close();
+          state = Object.assign({ doc: {} }, { id: null, uid: newUid(), div: 'SPV', name: '', spv, status: 'rascunho', propCom: R.mt.pc, importada: { em: new Date().toISOString(), arquivos: R.nomes, preco: modo } }); build(); persist(); dirty = true;
+          logEv({ tipo: 'Proposta — importada', ref: docTitle(), desc: 'Importada (serviços e peças) de ' + R.nomes.join(', ') + ' · preço: ' + ({ planilha: 'o da planilha', pdf: 'o do PDF', app: 'recalculado pelo app' })[modo], mudancas: [] });
+          setView('proposta'); toast('Proposta de ' + (spv.blocos.equipe ? 'serviço' : 'peças') + ' importada. Confira e salve.'); return; }
         let doc = R.mt.doc; const alvos = {};
         if (modo !== 'app') R.its.forEach((q) => { const a = modo === 'pdf' ? q.pdf.unit : q.it.unit; if (a > 0) alvos[q.it.sheet] = a; });
         if (Object.keys(alvos).length) doc = IMP.calibrar(calcDoc, doc, alvos).doc;
@@ -5694,6 +5704,28 @@
         dirty = true; persist(); ui.step = 1; setView('proposta'); toast('Proposta importada. Confira e salve.');
       };
     });
+  }
+  // prévia da importação de serviços e peças: o que virou serviço e peça, custo, preço da planilha, do PDF e pelas regras do app
+  function importaSpvPrevia(pl, pdf, md, xl, pdfs) {
+    const IMP = window.PricerImportador; const mt = IMP.montarSpv(pl, pdf, md); const s0 = SPV.deImportacao(mt.d); const r = SPV.calc(s0);
+    const din = (v) => (typeof v === 'number' && isFinite(v) ? 'R$ ' + NF[2].format(v) : '—'); let ip = 0;
+    const linhas = mt.itens.map((x) => { const app = x.serv ? r.Vs : (r.pecas[ip] || {}).venda; const custo = x.serv ? r.custoServ : (r.pecas[ip] || {}).custo; if (!x.serv) ip++;
+      return `<tr><td>${x.serv ? 'Serviço' : 'Peça'}</td><td>${esc((x.codigo ? x.codigo + ' — ' : '') + x.desc)}</td><td class="num">${din(custo)}</td><td class="num">${din(x.planilha)}</td><td class="num">${din(x.pdf)}</td><td class="num">${din(app)}</td></tr>`; }).join('');
+    const temPl = mt.itens.some((x) => x.planilha), temPdf = mt.itens.some((x) => x.pdf); const d = mt.d;
+    const conta = (k) => (mt.pc[k] ? String(mt.pc[k]).split('\n').filter(Boolean).length : 0);
+    const html = `<div class="kv pcro"><div>Tipo</div><div>${esc(d.tipo === 'PAR' ? 'PAR · Peças e sobressalentes' : d.tipo + ' · Serviço' + (d.pecas.length ? ' + peças' : ''))}</div>
+        <div>Planilhas</div><div>${esc([xl ? xl.name + (pl && pl.versao ? ' · REV' + pl.versao : '') : '', md ? md.nome + ' · serviços (MASTERDOC)' : ''].filter(Boolean).join(' · ') || 'nenhuma')}</div>
+        <div>PDFs</div><div>${esc(pdfs.map((f) => f.name).join(', ') || 'nenhum')}</div>
+        <div>Proposta</div><div>${esc([d.numero, 'rev. ' + d.revisao, d.cliente || d.razao, d.local].filter(Boolean).join(' · ') || '—')}</div>
+        ${md ? `<div>Custo do serviço</div><div>${esc(md.equipe.map((e) => e.nome + ' ' + e.dias + ' diária(s)').concat(md.ov.km ? [md.ov.km + ' km'] : [], md.ov.alim_qtd ? [md.ov.alim_qtd + ' alimentação'] : [], md.ov.outros ? ['outros R$ ' + NF[2].format(md.ov.outros)] : []).join(' · '))} · total ${esc(din(md.custoTotal))} · multiplicador da planilha ${esc(NF[2].format(md.mk.mult || 0))}</div>` : ''}
+        <div>Textos</div><div>${['notas', 'desvios'].map((k) => conta(k) ? k + ' ' + conta(k) : '').filter(Boolean).concat(d.exclusoes ? ['exclusões ' + d.exclusoes.split('\n').filter(Boolean).length] : [], d.descricao ? ['escopo ' + d.descricao.split('\n').filter(Boolean).length + ' linhas'] : []).join(' · ') || '—'}</div></div>
+      <div class="tw"><table class="t"><thead><tr><th></th><th>Item</th><th class="num">Custo</th><th class="num">Preço na planilha</th><th class="num">Preço no PDF</th><th class="num">Preço com as regras do app</th></tr></thead><tbody>${linhas}</tbody></table></div>
+      <fieldset class="impradio"><legend>Preço da proposta</legend>
+        ${temPl ? `<label><input type="radio" name="impPreco" value="planilha" checked> <span>Manter o preço da planilha (o multiplicador do serviço e o fator das peças são ajustados para chegar nele)</span></label>` : ''}
+        ${temPdf ? `<label><input type="radio" name="impPreco" value="pdf"${temPl ? '' : ' checked'}> <span>Manter o preço do PDF</span></label>` : ''}
+        <label><input type="radio" name="impPreco" value="app"${temPl || temPdf ? '' : ' checked'}> <span>Recalcular com as regras do app (multiplicador ${esc(NF[2].format(r.mult))} do serviço e fator ${esc(NF[2].format(r.mk.fator_pecas))} das peças)</span></label></fieldset>
+      ${mt.avisos.map((a) => `<div class="banner warn" style="margin:4px 0">${esc(a)}</div>`).join('')}`;
+    return { mt, html };
   }
   const FAM_CURTO = { 'CONJUNTO MOTOBOMBA': 'CMB · Conjunto motobomba', SKID: 'SKD · Skid', CONTAINER: 'CON · Container', ESPECIAL: 'ESP · Especial', 'BOMBA JOCKEY + PAINEL': 'CMB · Jockey + painel' };
   const famsHome = () => famsEquip().filter((f) => f[2] !== 'FABRICANTES').map(([k, lb, fam]) => ({ fam, lb: FAM_CURTO[fam] || FAM_SEQ_LB[fam] || lb, titulo: FAM_SEQ_LB[fam] || lb }));

@@ -54,7 +54,10 @@
         const g = num(ent(S, 'G' + r)), h = num(ent(S, 'H' + r)), ac = num(val(S, 'AC' + r));
         const u = h !== null && f ? h / f : g !== null ? g : ac; if (u !== null) D['G' + t] = Math.round(u * 1e6) / 1e6;
         if (h !== null && g !== null && f && Math.abs(h / f - g) > 0.005) avisos.push(nome + ', linha ' + (r - 18) + ' (' + d.slice(0, 40) + '): custo total digitado por cima (' + h + ' para ' + f + ' un.) — importado como ' + (Math.round(h / f * 100) / 100) + ' por unidade.'); });
-      ref.itens.push({ sheet: nome, qtd, unit: num(val(S, 'B15')), total: num(val(S, 'D15')), semImp: num(val(S, 'P71')), custo: num(val(S, 'H69')), margem: num(val(S, 'J15')), desc: txt(val(S, 'C4')), linhas: Math.min(45, linhas.length) });
+      ref.itens.push({ sheet: nome, qtd, unit: num(val(S, 'B15')), total: num(val(S, 'D15')), semImp: num(val(S, 'P71')), custo: num(val(S, 'H69')), margem: num(val(S, 'J15')), desc: txt(val(S, 'C4')), linhas: Math.min(45, linhas.length),
+        // para serviços e peças: família de produto, UF e pagamento digitados no item e as linhas com o custo de cada uma
+        familia: txt(val(S, 'C5')), uf: txt(ent(S, 'G5')), pagamento: txt(ent(S, 'K4')),
+        custos: linhas.map((r) => { const f = num(val(S, 'F' + r)) || 1, g = num(ent(S, 'G' + r)), h = num(ent(S, 'H' + r)), ac = num(val(S, 'AC' + r)); return { desc: txt(val(S, 'D' + r)), forn: txt(val(S, 'E' + r)), qtd: f, unit: h !== null ? h / f : g !== null ? g : ac || 0 }; }) });
     }
     if (mod) doc.PROPOSTA.B13 = mod; if (frete) doc.PROPOSTA.F13 = Math.round(frete * 100) / 100; else { if (km !== null) doc.PROPOSTA.D13 = km; if (rkm !== null) doc.PROPOSTA.E13 = rkm; }
     ref.total = num(val(P, 'K27')); ref.custo = num(val(P, 'L27'));
@@ -77,6 +80,39 @@
     avisos.push('Planilha no layout do app: as células digitadas foram copiadas como estão.');
   }
 
+  // ---------------- planilha de serviços (PRECIFICAÇÃO SERVIÇOS MASTERDOC) ----------------
+  // aba "Produto ATP": diárias da equipe, deslocamento, hotel, alimentação, ART, insumos e outros (valor × quantidade);
+  // aba "Markup": multiplicador (custo + margem bruta), impostos e comissões; aba "Insumos": peças e ferramentas
+  const ehMasterdoc = (sheets) => !!(sheets && sheets['Produto ATP'] && sheets.Markup);
+  function daMasterdoc(sheets) {
+    const A = sheets['Produto ATP']; const MK = sheets.Markup; const I = sheets.Insumos || {}; const avisos = [];
+    const equipe = [], ov = { km: 0, aereo_qtd: 0, carro_dias: 0, hotel_noites: 0, alim_qtd: 0, art_qtd: 0, frete: 0, outros: 0 }, precos = {}; const linhas = [];
+    let custoTotal = null;
+    for (let r = 3; r <= 40; r++) {
+      const lb = txt(val(A, 'B' + r)); const cu = num(val(A, 'C' + r)), q = num(val(A, 'D' + r)), tot = num(val(A, 'E' + r));
+      if (/CUSTO TOTAL/i.test(txt(val(A, 'C' + r)) + lb)) { custoTotal = num(val(A, 'E' + r)); continue; }
+      if (!lb) continue; const L = lb.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (tot) linhas.push({ lb, unit: cu, qtd: q, total: tot });
+      const m = L.match(/^DIARIA\s+(.+)$/); if (m) { if (q > 0) equipe.push({ nome: m[1].trim(), diaria: cu, dias: q }); continue; }
+      if (/DESLOCAMENTO\s*-\s*KM/.test(L)) { ov.km = q || 0; if (cu) precos.rkm = cu; continue; }
+      if (/DESLOCAMENTO AEREO/.test(L)) { ov.aereo_qtd += q || 0; if (cu) precos.aereo = cu; continue; }
+      if (/LOCACAO DE AUTOMOVEL/.test(L)) { ov.carro_dias = q || 0; if (cu) precos.carro = cu; continue; }
+      if (/^HOTEL/.test(L)) { ov.hotel_noites = q || 0; if (cu) precos.hotel = cu; continue; }
+      if (/ALIMENTACAO/.test(L)) { ov.alim_qtd = q || 0; if (cu) precos.alim = cu; continue; }
+      if (/^ART\b/.test(L)) { ov.art_qtd = q || 0; if (cu) precos.art = cu; continue; }
+      if (/FRETE/.test(L)) { ov.frete += tot || 0; continue; }
+      ov.outros += tot || 0; // troca de insumos, outros e o que mais vier
+    }
+    const insumos = []; for (let r = 2; r <= 60; r++) { const d = txt(val(I, 'A' + r)); const q = num(val(I, 'D' + r)), u = num(val(I, 'E' + r)); if (d && (q || u)) insumos.push({ desc: d, forn: txt(val(I, 'B' + r)), cod: txt(val(I, 'C' + r)), qtd: q || 1, unit: u || 0 }); }
+    const pct = (k) => { const v = num(val(MK, k)); return v === null ? undefined : v; };
+    const mk = { mult: 1 + (num(val(MK, 'D6')) || 0), pis: pct('D8'), cofins: pct('D9'), irpj: pct('D10'), iss: pct('D11'), fin: pct('D12'), com_rep: pct('D13'), com_capt: pct('D14'), com_orc: pct('D15'), prazo: pct('D16') };
+    for (const k of Object.keys(mk)) if (mk[k] === undefined || mk[k] === null) delete mk[k];
+    const soma = equipe.reduce((t, e) => t + e.diaria * e.dias, 0) + linhas.filter((l) => !/^DI[ÁA]RIA/i.test(l.lb)).reduce((t, l) => t + l.total, 0);
+    if (custoTotal !== null && Math.abs(soma - custoTotal) > 0.01) avisos.push('Planilha de serviços: a soma das linhas (' + soma.toFixed(2) + ') não bate com o CUSTO TOTAL (' + custoTotal.toFixed(2) + ').');
+    if (insumos.length) avisos.push('Planilha de serviços: ' + insumos.length + ' insumo(s) da aba Insumos entraram como peças da proposta.');
+    return { custoTotal: custoTotal !== null ? custoTotal : soma, equipe, ov, precos, linhas, insumos, mk, venda: num(val(MK, 'E7')), avisos };
+  }
+
   // ---------------- PDFs ----------------
   // linhas de cada página: itens na mesma altura juntam; colunas distantes ficam separadas por " | "
   function linhasDe(pgs) {
@@ -96,7 +132,7 @@
   }
   // cabeçalho e rodapé repetidos em toda página do documento LS Fire
   const RUIDO = [/www\.lsfire\.com\.br/i, /^Cliente:.*Data:/i, /^Proposta N[º°o]/i, /^\d{1,3}(\.\d{3})?-Rev\.?\s*\d*$/i, /^\d+\s*\|?\s*Validade:/i, /^Validade:/i, /^\d+$/, /^\d+\/\d+$/];
-  const SECOES = /^(CONHE[ÇC]A A LS FIRE|FOLHA DE DADOS|NOTAS,? DESVIOS E OBSERVA[ÇC][ÕO]ES|COMISSIONAMENTO E START-UP|ESCOPO DE DOCUMENTOS|CONTATOS|PLANILHA DE PRE[ÇC]OS|CONDI[ÇC][ÕO]ES|PRAZOS E CONDI[ÇC][ÕO]ES|TERMOS E CONDI[ÇC][ÕO]ES|ESCOPO DE FORNECIMENTO|SOLU[ÇC][ÕO]ES LS FIRE)$/i;
+  const SECOES = /^(CONHE[ÇC]A A LS FIRE|FOLHA DE DADOS|NOTAS,? DESVIOS E OBSERVA[ÇC][ÕO]ES|NOTAS E DESVIOS|PLANILHA DE PRE[ÇC]OS E CONDI[ÇC][ÕO]ES|COMISSIONAMENTO E START-UP|ESCOPO DE DOCUMENTOS|CONTATOS|PLANILHA DE PRE[ÇC]OS|CONDI[ÇC][ÕO]ES|PRAZOS E CONDI[ÇC][ÕO]ES|TERMOS E CONDI[ÇC][ÕO]ES|ESCOPO DE FORNECIMENTO|SOLU[ÇC][ÕO]ES LS FIRE)$/i;
   // junta as linhas de um trecho em parágrafos (quebra quando há espaço maior entre as linhas ou recuo diferente)
   function paragrafos(L) {
     const out = []; let cur = null;
@@ -121,20 +157,24 @@
       r.numero = r.numero || busca(/N[úu]mero:\s*([\d.\/ ]+\d)/i); r.rev = r.rev || busca(/Revis[ãa]o:\s*(\d+)/i);
       r.validade = r.validade || busca(/Validade:\s*(\d{2}\/\d{2}\/\d{4})/i); r.data = r.data || busca(/Data:\s*(\d{2}\/\d{2}\/\d{4})/i);
       r.aosCuidados = r.aosCuidados || busca(/Aos cuidados de:\s*([^\n|]+)/i); r.cidade = r.cidade || busca(/Cidade da obra:\s*([^\n|]+)/i);
-      r.obra = r.obra || busca(/Projeto\/Obra:\s*([^\n|]+)/i);
+      r.obra = r.obra || busca(/Projeto\/Obra:\s*([^\n|]+(?:\|\s*[^\n|:]+)?)/i).replace(/\s*\|\s*/g, ' | ');
+      r.razao = r.razao || busca(/Raz[ãa]o Social:\s*([^\n|]+)/i); r.cnpj = r.cnpj || busca(/(?:^|\n)CNPJ:\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i); // o do cliente (o da LS Fire está no rodapé)
+      if (/\nNOTAS E DESVIOS\n/i.test('\n' + all + '\n') || /\bSERV-\d+/.test(all)) r.spv = true;
       if (!r.obra) { const i = L0.findIndex((l) => /^Obra\/Projeto:/i.test(l.t)); if (i >= 0 && L0[i + 1]) r.obra = L0[i + 1].cols[0]; }
       if (!r.cliente) { const i = L0.findIndex((l) => /^Cliente:\s*\|?\s*Aos cuidados|^Cliente:$/i.test(l.t)); if (i >= 0 && L0[i + 1]) r.cliente = L0[i + 1].cols[0]; }
       // trechos: do título até o próximo título
       const trecho = (ini, fim) => { const i = L.findIndex((l) => ini.test(l.t)); if (i < 0) return null; let j = L.findIndex((l, k) => k > i && fim.test(l.t)); if (j < 0) j = L.length; return L.slice(i + 1, j).filter((l) => !SECOES.test(l.t)); };
       if (tipo !== 'tec') {
         // planilha de preços: uma linha por item ("1 | 008-00167 | 1 | UN | 3,65% …  R$ x | R$ y") e os dados embaixo
-        L.forEach((l, i) => { const m = l.t.replace(/\s*\|\s*/g, ' ').match(/^(\d{1,2})\s+(\S+)\s+([\d.,]+)\s+([A-Z]{1,4})\s+.*?R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)$/); if (!m) return;
-          const it = { n: +m[1], codigo: m[2], qtd: nBR(m[3]), un: m[4], unit: nBR(m[5]), total: nBR(m[6]) };
+        L.forEach((l, i) => { const m = l.t.replace(/\s*\|\s*/g, ' ').match(/^(\d{1,2})\s+(\S+)\s+([\d.,]+)\s+(?:([A-Za-z]{1,4})\s+)?[\d,]+%.*?R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)$/); if (!m) return;
+          const it = { n: +m[1], codigo: m[2], qtd: nBR(m[3]), un: m[4] || '', unit: nBR(m[5]), total: nBR(m[6]) };
           const mNcm = l.t.match(/(\d{4}\.\d{2}\.\d{2})/); if (mNcm) it.ncm = mNcm[1];
-          const ate = L.findIndex((q, k) => k > i && (/^\d{1,2}\s*\|?\s*\S+\s*\|?\s*[\d.,]+\s*\|?\s*[A-Z]{1,4}\b.*R\$/.test(q.t) || /^TOTAL:/i.test(q.t.replace(/^.*\|\s*/, '')) || /TOTAL:\s*\|?\s*R\$/i.test(q.t)));
+          const ate = L.findIndex((q, k) => k > i && (/^\d{1,2}\s*\|?\s*\S+\s*\|?\s*[\d.,]+\s*\|?\s*(?:[A-Za-z]{1,4}\s*\|?\s*)?[\d,]+%.*R\$/.test(q.t) || /^TOTAL:/i.test(q.t.replace(/^.*\|\s*/, '')) || /TOTAL:\s*\|?\s*R\$/i.test(q.t)));
           const bloco = L.slice(i + 1, ate < 0 ? L.length : ate).map((q) => q.t.replace(/\s*\|\s*/g, ' ')).join('\n');
           const campo = (rot, prox) => { const m2 = bloco.match(new RegExp(rot + '\\s*([\\s\\S]*?)(?=\\n(?:' + prox + ')|$)', 'i')); return m2 ? m2[1].replace(/\s+/g, ' ').trim() : ''; };
-          it.breve = campo('Descri[çc][ãa]o breve:', 'Descri[çc][ãa]o completa:|Condi[çc][ãa]o projeto:'); it.completa = campo('Descri[çc][ãa]o completa:', 'Condi[çc][ãa]o projeto:|Vaz[ãa]o nominal');
+          it.breve = campo('Descri[çc][ãa]o breve:', 'Descri[çc][ãa]o completa:|Condi[çc][ãa]o projeto:|Escopo:');
+          // escopo do item (propostas de serviço e peças): as linhas depois de "Escopo:", até o total
+          { const lin = L.slice(i + 1, ate < 0 ? L.length : ate); const k0 = lin.findIndex((q) => /^Escopo:/i.test(q.t)); if (k0 >= 0) it.escopo = paragrafos(lin.slice(k0 + 1).filter((q) => !/TOTAL:/i.test(q.t))); } it.completa = campo('Descri[çc][ãa]o completa:', 'Condi[çc][ãa]o projeto:|Vaz[ãa]o nominal');
           it.condicao = campo('Condi[çc][ãa]o projeto:', 'Vaz[ãa]o nominal|Escopo:'); it.vazaoNominal = campo('Vaz[ãa]o nominal da bomba:', 'Escopo:|\\S');
           if (!r.itens.some((q) => q.n === it.n)) r.itens.push(it); });
         const tot = all.match(/TOTAL:\s*\|?\s*R\$\s*([\d.,]+)/i); if (tot) r.total = nBR(tot[1]);
@@ -148,7 +188,7 @@
       if (!r.desvios) { const d = trecho(/^Desvios$/i, /^Exclus[õo]es$/i); if (d) { const ps = paragrafos(d); r.desviosEsp = []; const resto = [];
         for (const p of ps) { const m = p.match(/^Item\s+([\d.]+)\s+da especifica[çc][ãa]o t[ée]cnica\s*[,:;\-–]?\s*(.+)$/i); if (m) r.desviosEsp.push({ ref: m[1], texto: m[2].charAt(0).toUpperCase() + m[2].slice(1) }); else resto.push(p); }
         r.desvios = resto.join('\n'); } }
-      if (!r.exclusoes) { const e = trecho(/^Exclus[õo]es$/i, /^(O que est[áa] incluso|Comissionamento e Start-up|Entreg[áa]vel|Base de Prazo|À disposi[çc][ãa]o)/i); if (e) r.exclusoes = paragrafos(e).join('\n'); }
+      if (!r.exclusoes) { const e = trecho(/^Exclus[õo]es$/i, /^(O que est[áa] incluso|Comissionamento e Start-up|Entreg[áa]vel|Base de Prazo|À disposi[çc][ãa]o|TERMOS E CONDI|1\.\s*Prazos)/i); if (e) r.exclusoes = paragrafos(e).join('\n'); }
     }
     r.tipos = [...new Set(r.tipos)];
     return r;
@@ -211,5 +251,42 @@
       d[sh].C8 = Math.round(x1 * 1e10) / 1e10; res[sh] = { c8: d[sh].C8, erro: f(d[sh].C8) }; }
     return { doc: d, res };
   }
-  window.PricerImportador = { montar, calibrar, daPlanilha, dosPdfs, linhasDe, paragrafos, observacoes, conferir, famApp, nBR };
+  // ---------------- serviços e peças (SPV) ----------------
+  const RE_SPV_FAM = /SERVI[ÇC]O|PE[ÇC]AS|SOBRESSALENTE|INSPE[ÇC]|CONTRATO|LOCA[ÇC][ÃA]O|TREINAMENTO|FIRECONNECT|FILTRAGEM/i;
+  const ehSpvPlanilha = (pl) => !!(pl && pl.ref && pl.ref.itens.length && pl.ref.itens.every((it) => RE_SPV_FAM.test(it.familia || '')));
+  const diasEntre = (a, b) => { const A = new Date(dataISO(a) + 'T12:00'), B = new Date(dataISO(b) + 'T12:00'); const d = Math.round((B - A) / 864e5); return isFinite(d) && d > 0 ? d : null; };
+  // monta os dados da proposta SPV: o serviço (custo da MASTERDOC ou da planilha) e as peças (custo da planilha), com os
+  // textos e os preços do PDF. Devolve também os preços de referência (planilha e PDF) para a escolha do preço.
+  function montarSpv(pl, pdf, md) {
+    pdf = pdf || {}; const avisos = [].concat((md && md.avisos) || []); const refs = (pl && pl.ref && pl.ref.itens) || [];
+    const itPdf = pdf.itens || [];
+    const ehServ = (o) => /^SERV-/i.test(o.codigo || '') || (!o.ncm && /servi[çc]o|manuten[çc]|m[ãa]o de obra|inspe[çc]|treinamento/i.test((o.breve || '') + ' ' + (o.escopo || []).join(' ') + ' ' + (o.desc || '')));
+    // o que é cada item: pelo PDF; sem PDF, pela família da planilha
+    const itens = (itPdf.length ? itPdf : refs.map((r) => ({ breve: r.desc, desc: (r.custos[0] || {}).desc, familia: r.familia }))).map((o, i) => ({ o, ref: refs[i] || null, serv: itPdf.length ? ehServ(o) : /SERVI[ÇC]O|MANUTEN/i.test(o.familia || '') && !/PE[ÇC]A/i.test((o.desc || '') + '') }));
+    const sv = itens.find((x) => x.serv); const pcs = itens.filter((x) => !x.serv);
+    const d = { servico: !!sv, equipe: [], ov: {}, precos: {}, pecas: [], mk: {} };
+    if (sv) {
+      if (md) { d.equipe = md.equipe; d.ov = md.ov; d.precos = md.precos; d.mk = Object.assign({}, md.mk); }
+      else { const c = sv.ref ? sv.ref.custo : null; d.ov = { km: 0, aereo_qtd: 0, carro_dias: 0, hotel_noites: 0, alim_qtd: 0, art_qtd: 0, frete: 0, outros: c || 0 }; if (!c) avisos.push('Serviço sem planilha de custos: o custo ficou zerado — informe a equipe e o deslocamento na proposta.'); }
+      d.titulo = sv.o.breve || ''; d.codServico = /^SERV-/i.test(sv.o.codigo || '') ? sv.o.codigo : ''; d.descricao = (sv.o.escopo || []).join('\n');
+    }
+    pcs.forEach((x, k) => { const c0 = (x.ref && x.ref.custos && x.ref.custos.length === 1) ? x.ref.custos[0] : null; const custo = c0 ? c0.unit : x.ref && x.ref.custo ? x.ref.custo / (x.ref.qtd || 1) : 0;
+      if (!custo) avisos.push('Peça "' + (x.o.breve || x.o.desc || '') + '" sem custo na planilha: informe o custo na proposta.');
+      d.pecas.push({ desc: x.o.breve || (c0 && c0.desc) || x.o.desc || '', cod: x.o.codigo || '', forn: c0 ? c0.forn : '', qtd: x.o.qtd || (x.ref && x.ref.qtd) || 1, un: x.o.un || '', unit: custo, ncm: x.o.ncm || '' }); });
+    if (!sv && pcs.length && pcs[0].o.escopo && pcs[0].o.escopo.length) d.descricao = pcs[0].o.escopo.join('\n');
+    for (const p of (md && md.insumos) || []) d.pecas.push({ desc: p.desc, cod: p.cod, forn: p.forn, qtd: p.qtd, unit: p.unit });
+    // cabeçalho
+    const uf = (String(pdf.cidade || '').match(/[-\/]\s*([A-Z]{2})\s*$/) || [])[1] || (refs[0] && refs[0].uf) || '';
+    Object.assign(d, { tipo: sv ? (/F[ÁA]BRICA/i.test((refs[0] || {}).familia || '') ? 'SMF' : 'SMC') : 'PAR', cliente: pdf.cliente || '', razao: pdf.razao || '', cnpj: pdf.cnpj || '', contato: pdf.aosCuidados || '', local: pdf.obra || '', uf: uf || 'SC',
+      numero: pdf.numero || ((pl && pl.doc.PROPOSTA.C5) || ''), revisao: pdf.rev || ((pl && pl.doc.PROPOSTA.C6) || '0'), data: pdf.data ? dataISO(pdf.data) : (pl && pl.doc.PROPOSTA.C7) || '', validade: pdf.data && pdf.validade ? diasEntre(pdf.data, pdf.validade) : null,
+      pagamento: pdf.pagamento || (refs[0] && /[A-Za-z]/.test(refs[0].pagamento || '') ? refs[0].pagamento : ''), prazo: pdf.prazoFab ? pdf.prazoFab + ' dias' : '', frete: pdf.frete || '', exclusoes: pdf.exclusoes || '' });
+    // preços de referência: por item (serviço e cada peça), da planilha e do PDF
+    const precoDe = (x, fonte) => (fonte === 'pdf' ? (x.o.total || null) : x.ref ? x.ref.total || x.ref.unit : null);
+    const alvos = { planilha: { alvoServico: sv ? precoDe(sv, 'planilha') : null, alvoPecas: pcs.map((x) => precoDe(x, 'planilha')) }, pdf: { alvoServico: sv ? precoDe(sv, 'pdf') : null, alvoPecas: pcs.map((x) => precoDe(x, 'pdf')) } };
+    // observações: as do PDF (vazio = sem observações, em vez das observações padrão de serviço)
+    const pc = { observacoes: pdf.observacoes || '' }; if (pdf.notas) pc.notas = pdf.notas; if (pdf.desvios) pc.desvios = pdf.desvios; if ((pdf.desviosEsp || []).length) pc.desviosEsp = pdf.desviosEsp;
+    if (pdf.aosCuidados) pc.aosCuidados = pdf.aosCuidados; if (pdf.cidade) pc.cidade = pdf.cidade;
+    return { d, alvos, pc, avisos, itens: itens.map((x) => ({ serv: x.serv, desc: x.o.breve || x.o.desc || '', codigo: x.o.codigo || '', planilha: precoDe(x, 'planilha'), pdf: precoDe(x, 'pdf') })) };
+  }
+  window.PricerImportador = { montarSpv, ehSpvPlanilha, ehMasterdoc, daMasterdoc, montar, calibrar, daPlanilha, dosPdfs, linhasDe, paragrafos, observacoes, conferir, famApp, nBR };
 })();
