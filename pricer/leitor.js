@@ -301,5 +301,15 @@
     for (let i = 1; i <= Math.min(pdf.numPages, max || 16); i++) { const pg = await pdf.getPage(i); const vp = pg.getViewport({ scale: 0.32 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: g, viewport: vp }).promise; out.push({ n: i, url: c.toDataURL('image/jpeg', 0.7) }); }
     return out;
   }
-  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR, partes, paginaImagem, paginasImagem, itensPdf, recorte, miniaturas };
+  // planilha inteira (abas escolhidas): { aba: { C5: { v, f } } } — v é o valor (o calculado, nas fórmulas), f diz se era fórmula
+  async function planilha(file, abas) {
+    await load(CDN.exceljs); const wb = new window.ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer()); const out = {};
+    for (const ws of wb.worksheets) { if (abas && !abas(ws.name)) continue; const S = {}; out[ws.name] = S;
+      ws.eachRow({ includeEmpty: false }, (row) => row.eachCell({ includeEmpty: false }, (c) => { let v = c.value, f = false;
+        if (v && typeof v === 'object' && !(v instanceof Date)) { if ('formula' in v || 'sharedFormula' in v) { f = true; v = v.result; } else if (v.richText) v = v.richText.map((q) => q.text).join(''); else if ('text' in v) v = v.text; else if ('error' in v) v = null; }
+        if (v && typeof v === 'object' && !(v instanceof Date) && 'error' in v) v = null;
+        S[c.address] = { v: v instanceof Date ? v.toISOString().slice(0, 10) : v, f }; })); }
+    return out;
+  }
+  window.PricerLeitor = { ler, linhas, lerTexto, lerXml, numBR, partes, paginaImagem, paginasImagem, itensPdf, recorte, miniaturas, planilha };
 })();

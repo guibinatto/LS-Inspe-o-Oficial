@@ -45,7 +45,7 @@
       incluso: 'O que está incluso', comTit: 'Comissionamento e Start-up', servAd: 'Serviços adicionais', foraEsc: '(fora do escopo e sob consulta)', resp: 'Responsabilidades do cliente', notas: 'Notas', desvios: 'Desvios', exclusoes: 'Exclusões',
       compTit: 'Composição do Prazo Total', pFab: 'Prazo de Fabricação', pEnt: 'Prazo de entrega (CIF)', pTot: 'Prazo Total', dias: 'dias', sigla: ['Sigla', 'Significado', 'Aplica-se a'], inicio: 'Condições para início da contagem (DAPC)', susp: 'Hipóteses de suspensão do prazo',
       basePrazo: 'Base de Prazo', tipoEnt: 'Tipo de Entrega', adSob: 'Adicionais (sob consulta — solicitar à LS Fire)', disp: 'À disposição para esclarecimentos,', comCert: 'com certificação UL e FM', semCert: 'sem certificação UL e FM', diaria1: '1 diária inclusa', diariaN: '{n} diárias inclusas',
-      moeda: 'Valores em dólares americanos (US$), convertidos à taxa de R$ {taxa} por US$ 1,00{data}.', moedaData: ' de {d}', bomba: 'Bomba {n}', deratAlt: 'altitude {v} m', deratTemp: 'temperatura ambiente {v} °C', deratPar: 'de {a} HP para {b} HP', derat: 'Potência do motor diesel corrigida para as condições do local ({cond}), conforme a NFPA 20 (−3% a cada 300 m acima de 91 m e −1% a cada 5,6 °C acima de 25 °C): {pot}.' },
+      h_parcelas: 'Parcelas de pagamento', parcPrazo: 'Todas as parcelas terão prazo de pagamento de {p}, conforme os marcos abaixo.', parcMarcos: 'Parcelas conforme os marcos abaixo.', thParc: ['Parcela', 'Marco'], h_volumes: 'Dimensões e pesos para transporte', thVol: ['Volume', 'Comprimento', 'Largura', 'Altura', 'Peso estimado'], h_opcao: 'Opção de fornecimento', opcAbat: 'A escolha desta opção resulta em um abatimento de {v} sobre o valor total da proposta.', opcAcr: 'A escolha desta opção resulta em um acréscimo de {v} sobre o valor total da proposta.', itemEsp: 'Item {ref} da especificação técnica: {t}', moeda: 'Valores em dólares americanos (US$), convertidos à taxa de R$ {taxa} por US$ 1,00{data}.', moedaData: ' de {d}', bomba: 'Bomba {n}', deratAlt: 'altitude {v} m', deratTemp: 'temperatura ambiente {v} °C', deratPar: 'de {a} HP para {b} HP', derat: 'Potência do motor diesel corrigida para as condições do local ({cond}), conforme a NFPA 20 (−3% a cada 300 m acima de 91 m e −1% a cada 5,6 °C acima de 25 °C): {pot}.' },
     en: { t_conheca: 'MEET LS FIRE', t_solucoes: 'LS FIRE SOLUTIONS', t_planilha: 'PRICE SCHEDULE', t_planilhaCond: 'PRICE SCHEDULE AND CONDITIONS', t_escopo: 'SCOPE OF SUPPLY', t_condicoes: 'CONDITIONS', t_folha: 'DATA SHEET', t_comiss: 'COMMISSIONING AND START-UP', t_notasSeq: 'NOTES, DEVIATIONS AND REMARKS', t_notasSpv: 'NOTES AND DEVIATIONS', t_prazos: 'LEAD TIMES AND CONDITIONS', t_docs: 'DOCUMENT SCOPE', t_termos: 'TERMS AND CONDITIONS', t_contatos: 'CONTACTS',
       cliente: 'Customer:', data: 'Date:', propNo: 'Proposal No.:', validade: 'Valid until:', capaProposta: 'PROPOSAL', capa_tc: 'TECHNICAL AND COMMERCIAL', capa_com: 'COMMERCIAL', capa_tec: 'TECHNICAL', obraProj: 'Project/Site:', aosCuid: 'Attention:', numero: 'Number:', revisao: 'Revision:', somos: 'WE ARE ',
       razao: 'Company name:', cnpj: 'Tax ID (CNPJ):', projObra: 'Project/Site:', cidade: 'Site city:', h_planilha: 'Price schedule', h_escopo: 'Scope of supply', th: ['Item', 'Code', 'Qty.', 'Unit', 'PIS/|COFINS', 'ICMS', 'ICMS/|ISS', 'IPI', 'NCM', 'Unit Price|(Incl. Taxes)', 'Total Price|(Incl. Taxes)', 'Short description'],
@@ -55,7 +55,7 @@
       incluso: "What's included", comTit: 'Commissioning and Start-up', servAd: 'Additional services', foraEsc: '(out of scope, upon request)', resp: 'Customer responsibilities', notas: 'Notes', desvios: 'Deviations', exclusoes: 'Exclusions',
       compTit: 'Total Lead Time Breakdown', pFab: 'Manufacturing time', pEnt: 'Delivery time (CIF)', pTot: 'Total lead time', dias: 'days', sigla: ['Code', 'Meaning', 'Applies to'], inicio: 'Conditions to start counting (DAPC)', susp: 'Lead time suspension events',
       basePrazo: 'Lead time basis', tipoEnt: 'Delivery type', adSob: 'Additional (upon request — ask LS Fire)', disp: 'We remain at your disposal for any clarification,', comCert: 'with UL and FM certification', semCert: 'without UL and FM certification', diaria1: '1 day included', diariaN: '{n} days included',
-      moeda: 'Prices in US dollars (US$), converted at R$ {taxa} per US$ 1.00{data}.', moedaData: ' on {d}', bomba: 'Pump {n}', deratAlt: 'altitude {v} m', deratTemp: 'ambient temperature {v} °C', deratPar: 'from {a} HP to {b} HP', derat: 'Diesel engine power derated for site conditions ({cond}) per NFPA 20 (−3% per 300 m above 91 m and −1% per 5.6 °C above 25 °C): {pot}.' },
+      h_parcelas: 'Payment installments', parcPrazo: 'All installments are payable within {p}, according to the milestones below.', parcMarcos: 'Installments according to the milestones below.', thParc: ['Installment', 'Milestone'], h_volumes: 'Shipping dimensions and weights', thVol: ['Package', 'Length', 'Width', 'Height', 'Estimated weight'], h_opcao: 'Supply option', opcAbat: 'Choosing this option results in a reduction of {v} on the total proposal value.', opcAcr: 'Choosing this option results in an increase of {v} on the total proposal value.', itemEsp: 'Item {ref} of the technical specification: {t}', moeda: 'Prices in US dollars (US$), converted at R$ {taxa} per US$ 1.00{data}.', moedaData: ' on {d}', bomba: 'Pump {n}', deratAlt: 'altitude {v} m', deratTemp: 'ambient temperature {v} °C', deratPar: 'from {a} HP to {b} HP', derat: 'Diesel engine power derated for site conditions ({cond}) per NFPA 20 (−3% per 300 m above 91 m and −1% per 5.6 °C above 25 °C): {pot}.' },
     es: { t_conheca: 'CONOZCA LS FIRE', t_solucoes: 'SOLUCIONES LS FIRE', t_planilha: 'PLANILLA DE PRECIOS', t_planilhaCond: 'PLANILLA DE PRECIOS Y CONDICIONES', t_escopo: 'ALCANCE DEL SUMINISTRO', t_condicoes: 'CONDICIONES', t_folha: 'HOJA DE DATOS', t_comiss: 'COMISIONAMIENTO Y PUESTA EN MARCHA', t_notasSeq: 'NOTAS, DESVÍOS Y OBSERVACIONES', t_notasSpv: 'NOTAS Y DESVÍOS', t_prazos: 'PLAZOS Y CONDICIONES', t_docs: 'ALCANCE DE DOCUMENTOS', t_termos: 'TÉRMINOS Y CONDICIONES', t_contatos: 'CONTACTOS',
       cliente: 'Cliente:', data: 'Fecha:', propNo: 'Propuesta N.º:', validade: 'Validez:', capaProposta: 'PROPUESTA', capa_tc: 'TÉCNICA Y COMERCIAL', capa_com: 'COMERCIAL', capa_tec: 'TÉCNICA', obraProj: 'Obra/Proyecto:', aosCuid: 'A la atención de:', numero: 'Número:', revisao: 'Revisión:', somos: 'SOMOS ',
       razao: 'Razón social:', cnpj: 'CNPJ:', projObra: 'Proyecto/Obra:', cidade: 'Ciudad de la obra:', h_planilha: 'Planilla de precios', h_escopo: 'Alcance del suministro', th: ['Ítem', 'Código', 'Cant.', 'Unid.', 'PIS/|COFINS', 'ICMS', 'ICMS/|ISS', 'IPI', 'NCM', 'Valor Unit.|(C/ Impuestos)', 'Valor Total|(C/ Impuestos)', 'Descripción breve'],
@@ -65,7 +65,7 @@
       incluso: 'Qué está incluido', comTit: 'Comisionamiento y puesta en marcha', servAd: 'Servicios adicionales', foraEsc: '(fuera del alcance y bajo consulta)', resp: 'Responsabilidades del cliente', notas: 'Notas', desvios: 'Desvíos', exclusoes: 'Exclusiones',
       compTit: 'Composición del Plazo Total', pFab: 'Plazo de fabricación', pEnt: 'Plazo de entrega (CIF)', pTot: 'Plazo total', dias: 'días', sigla: ['Sigla', 'Significado', 'Se aplica a'], inicio: 'Condiciones para el inicio del conteo (DAPC)', susp: 'Hipótesis de suspensión del plazo',
       basePrazo: 'Base del plazo', tipoEnt: 'Tipo de entrega', adSob: 'Adicionales (bajo consulta — solicitar a LS Fire)', disp: 'Quedamos a su disposición para cualquier aclaración,', comCert: 'con certificación UL y FM', semCert: 'sin certificación UL y FM', diaria1: '1 jornada incluida', diariaN: '{n} jornadas incluidas',
-      moeda: 'Valores en dólares estadounidenses (US$), convertidos a R$ {taxa} por US$ 1,00{data}.', moedaData: ' del {d}', bomba: 'Bomba {n}', deratAlt: 'altitud {v} m', deratTemp: 'temperatura ambiente {v} °C', deratPar: 'de {a} HP a {b} HP', derat: 'Potencia del motor diésel corregida para las condiciones del sitio ({cond}), según la NFPA 20 (−3% cada 300 m por encima de 91 m y −1% cada 5,6 °C por encima de 25 °C): {pot}.' },
+      h_parcelas: 'Cuotas de pago', parcPrazo: 'Todas las cuotas tendrán plazo de pago de {p}, según los hitos abajo.', parcMarcos: 'Cuotas según los hitos abajo.', thParc: ['Cuota', 'Hito'], h_volumes: 'Dimensiones y pesos para transporte', thVol: ['Bulto', 'Largo', 'Ancho', 'Alto', 'Peso estimado'], h_opcao: 'Opción de suministro', opcAbat: 'La elección de esta opción resulta en una reducción de {v} sobre el valor total de la propuesta.', opcAcr: 'La elección de esta opción resulta en un aumento de {v} sobre el valor total de la propuesta.', itemEsp: 'Ítem {ref} de la especificación técnica: {t}', moeda: 'Valores en dólares estadounidenses (US$), convertidos a R$ {taxa} por US$ 1,00{data}.', moedaData: ' del {d}', bomba: 'Bomba {n}', deratAlt: 'altitud {v} m', deratTemp: 'temperatura ambiente {v} °C', deratPar: 'de {a} HP a {b} HP', derat: 'Potencia del motor diésel corregida para las condiciones del sitio ({cond}), según la NFPA 20 (−3% cada 300 m por encima de 91 m y −1% cada 5,6 °C por encima de 25 °C): {pot}.' },
   };
   // folha de dados: títulos (@chave), rótulos e valores (#chave) que o app manda já classificados
   const FD = {
@@ -150,8 +150,9 @@
       cliente: v('clienteCurto', '') || D.cliente || '', razao: D.razao || D.cliente || '', cnpj: D.cnpj || '', aosCuidados: v('aosCuidados', '') || D.contato || '',
       obra: D.obra || '', cidade: v('cidade', '') || D.cidade || '', pagamento: D.pagamento || '', frete: D.frete || '',
       prazoFab: v('prazoFab', ''), prazoEnt: v('prazoEnt', ''), prazoTexto: v('prazoTexto', '') || D.prazo || '',
-      observacoes: vt('observacoes', obsPad.join('\n')), notas: vt('notas', notasPad.join('\n')), desvios: vt('desvios', desviosPad.join('\n')), exclusoes: vt('exclusoes', exclPad.join('\n')),
+      observacoes: vt('observacoes', obsPad.join('\n')), notas: vt('notas', notasPad.join('\n')), desvios: [vt('desvios', desviosPad.join('\n'))].concat((pc.desviosEsp || []).filter((d) => d && d.texto).map((d) => (R[lang] || R.pt).itemEsp.replace('{ref}', d.ref || '—').replace('{t}', d.texto))).filter(Boolean).join('\n'), exclusoes: vt('exclusoes', exclPad.join('\n')),
       ajustados: { observacoes: ajustado('observacoes'), notas: ajustado('notas'), desvios: ajustado('desvios'), exclusoes: ajustado('exclusoes') },
+      parcelas: (pc.parcelas || []).filter((q) => q && (q.pct || q.marco)), parcelasPrazo: pc.parcelasPrazo || '', volumes: (pc.volumes || []).filter((q) => q && q.nome), opcoes: (pc.opcoes || []).filter((q) => q && (q.titulo || q.texto)),
       codigos: Object.assign({}, pc.codigos || {}), notasItem: Object.assign({}, pc.notasItem || {}), contatos: v('contatos', contatosPad),
     };
   }
@@ -159,7 +160,7 @@
   function dinamicos(D, pc) {
     const out = new Set(); const add = (s) => { s = String(s || '').trim(); if (s && /[A-Za-zÀ-ú]{3}/.test(s)) out.add(s); };
     const E = efetivo(D, pc, modeloVazio(), 'pt');
-    [D.obra, D.pagamento, D.frete, E.prazoTexto].forEach(add);
+    [D.obra, D.pagamento, D.frete, E.prazoTexto].forEach(add); (pc.parcelas || []).forEach((q) => add(q && q.marco)); (pc.opcoes || []).forEach((q) => { if (q) { add(q.titulo); String(q.texto || '').split('\n').forEach(add); } }); (pc.desviosEsp || []).forEach((q) => add(q && q.texto)); add(pc.parcelasPrazo);
     for (const k of ['observacoes', 'notas', 'desvios', 'exclusoes']) if (E.ajustados[k]) linhasDe(pc[k]).forEach(add);
     linhasDe(D.exclusoes).forEach(add);
     for (const it of D.itens || []) { add(it.completa); if (D.tipo !== 'SEQ') add(it.breve); (it.escopo || []).forEach(add); linhasDe((pc.notasItem || {})[it.key]).forEach(add); for (const g of it.espec || []) for (const l of g.linhas || []) add(l[1]); for (const g of it.escopoG || []) for (const c of g.itens || []) for (const l of c.sub || []) add(/^#/.test(l) ? l.split('|').slice(1).join('|') : l); }
@@ -238,6 +239,27 @@
     function marcadores(lista, o = {}) {
       const sz = o.sz || 8.2, lh = o.lh || sz * 0.5, x = (o.x ?? X0) + 4, w = (o.w ?? LW) - 4;
       for (const it of lista) { F(MONO, 'normal', sz, o.cor); const L = quebra(it, w); if (precisa(lh * Math.min(L.length, 2))) F(MONO, 'normal', sz, o.cor); T('•', x - 3.6, y + lh * 0.78); L.forEach((l) => { if (precisa(lh)) F(MONO, 'normal', sz, o.cor); linhaJust(l, x, y + lh * 0.78, w, false); y += lh; }); y += o.gap ?? 0.6; }
+    }
+    // tabela simples (cabeçalho escuro, linhas com borda): parcelas e volumes
+    function tabelaS(cab, linhas, larg, al) {
+      const xs = [X0]; for (const w of larg) xs.push(xs[xs.length - 1] + w); const ax = (i) => (al[i] === 'r' ? xs[i + 1] - 1.4 : al[i] === 'c' ? (xs[i] + xs[i + 1]) / 2 : xs[i] + 1.4); const an = (i) => (al[i] === 'r' ? 'right' : al[i] === 'c' ? 'center' : 'left');
+      const hdr = () => { precisa(12); doc.setFillColor(...ESC); doc.rect(X0, y, xs[xs.length - 1] - X0, 6, 'F'); F(MONO, 'bold', 7.8, [255, 255, 255]); cab.forEach((t, i) => T(t, ax(i), y + 4, { align: an(i) })); y += 6; };
+      hdr();
+      for (const ln of linhas) { F(MONO, 'normal', 8.2); const cel = ln.map((t, i) => quebra(String(t ?? ''), larg[i] - 2.8)); const h = Math.max(...cel.map((q) => q.length)) * 3.7 + 2.2;
+        if (y + h > LIM) { pagina(titulo); hdr(); }
+        doc.setDrawColor(...BORDA); doc.setLineWidth(0.2); doc.rect(X0, y, xs[xs.length - 1] - X0, h); for (let c = 1; c < xs.length - 1; c++) doc.line(xs[c], y, xs[c], y + h);
+        F(MONO, 'normal', 8.2); cel.forEach((q, i) => q.forEach((t, k) => T(t, ax(i), y + 3.9 + k * 3.7, { align: an(i) }))); y += h; }
+      y += 4;
+    }
+    // condições do documento comercial: parcelas por marco, volumes para transporte e opções de fornecimento
+    function extrasComerciais() {
+      if (!comPreco) return; const n0 = (v) => (typeof v === 'number' ? new Intl.NumberFormat(LOC[lang], { maximumFractionDigits: 2 }).format(v) : String(v || ''));
+      if (E.parcelas.length) { titulo2(r.h_parcelas); paragrafo(E.parcelasPrazo ? r.parcPrazo.replace('{p}', tr(E.parcelasPrazo)) : r.parcMarcos, { depois: 1.6 });
+        tabelaS(r.thParc, E.parcelas.map((q) => [n0(q.pct) + '%', tr(q.marco || '')]), [30, LW - 30], ['c', 'l']); }
+      if (E.volumes.length) { titulo2(r.h_volumes); tabelaS(r.thVol, E.volumes.map((q) => [tr(q.nome), q.c ? n0(q.c) + ' mm' : '—', q.l ? n0(q.l) + ' mm' : '—', q.a ? n0(q.a) + ' mm' : '—', q.peso ? n0(q.peso) + ' kg' : '—']), [LW - 4 * 37, 37, 37, 37, 37], ['l', 'c', 'c', 'c', 'c']); }
+      for (const op of E.opcoes) { titulo2((r.h_opcao + (op.titulo ? ' — ' + tr(op.titulo) : '')).toUpperCase().slice(0, 90));
+        for (const l of linhasDe(op.texto)) paragrafo(tr(l), { just: true, depois: 0.8 });
+        if (typeof op.valor === 'number' && op.valor) paragrafo((op.valor < 0 ? r.opcAbat : r.opcAcr).replace('{v}', din(Math.abs(op.valor))), { st: 'bold', depois: 3 }); }
     }
     function atencao() {
       precisa(16); y += 2; doc.setFillColor(...ATN); doc.rect(X0, y, LW, 10.9, 'F'); doc.setFillColor(...ATN2); doc.rect(11.6, y, 1.5, 10.9, 'F');
@@ -334,8 +356,9 @@
           if (!L.length) L.push(r.combinar);
           for (const l of L) paragrafo(l, { depois: 0.3 }); y += 3.7; }
         titulo2(r.h_frete); paragrafo(tr(E.frete) || '—', { depois: 4 });
-        titulo2(r.h_obs);
+        if (linhasDe(E.observacoes).length) titulo2(r.h_obs);
         { const L = linhasDe(E.observacoes).map((l) => (E.ajustados.observacoes ? tr(l) : l)); if (D.tipo === 'SPV' && L.length) marcadores(L, { sz: 7.4, lh: 3.7 }); else for (const l of L) paragrafo(l, { just: true, depois: 0.6 }); y += 2; }
+        extrasComerciais();
         atencao();
       },
       folha() {

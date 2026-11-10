@@ -204,6 +204,12 @@
       if (comPreco) { precisa(12); doc.setFillColor(...LAR); doc.rect(X0, y, LW, 8, 'F'); F('bold', 9.4, [255, 255, 255]); T(x.valorTotal.toUpperCase(), X0 + 3, y + 5.4); T(din(D.total), X1 - 3, y + 5.4, { align: 'right' }); y += 11;
         if (usd) { const nt = r.moeda.replace('{taxa}', nf(4).format(Number(O.moeda.taxa))).replace('{data}', O.moeda.data ? r.moedaData.replace('{d}', I.dataLang(O.moeda.data, lang)) : ''); paragrafo(nt, { sz: 6.6, cor: CINZA }); } }
       if (tem('condicoes')) { y += 2; colunas([{ t: x.cond, larga: true, pares: [[x.pagamento, tr(E.pagamento) || '—'], [x.frete, tr(E.frete) || '—'], [x.prazo, prazoTxt().join(' · ') || r.combinar], [x.validade, I.dataLang(D.validade, lang) || '—']] }]); }
+      // parcelas por marco, volumes para transporte e opções de fornecimento (só no documento com preços)
+      if (tem('condicoes') && comPreco) { const n0 = (v) => (typeof v === 'number' ? new Intl.NumberFormat(I.LOC[lang], { maximumFractionDigits: 2 }).format(v) : String(v || ''));
+        if ((E.parcelas || []).length) { y += 2; precisa(24); faixa(r.h_parcelas, X0, LW); paragrafo(E.parcelasPrazo ? r.parcPrazo.replace('{p}', tr(E.parcelasPrazo)) : r.parcMarcos, { sz: 7.2 }); tabela(r.thParc, E.parcelas.map((q) => [n0(q.pct) + '%', tr(q.marco || '')]), [24, LW - 24], { esq: [1], centro: [0] }); }
+        if ((E.volumes || []).length) { y += 1; precisa(24); faixa(r.h_volumes, X0, LW); tabela(r.thVol, E.volumes.map((q) => [tr(q.nome), q.c ? n0(q.c) + ' mm' : '—', q.l ? n0(q.l) + ' mm' : '—', q.a ? n0(q.a) + ' mm' : '—', q.peso ? n0(q.peso) + ' kg' : '—']), [LW - 4 * 34, 34, 34, 34, 34], { centro: [1, 2, 3, 4] }); }
+        for (const op of E.opcoes || []) { y += 1; precisa(22); faixa(r.h_opcao + (op.titulo ? ' — ' + tr(op.titulo) : ''), X0, LW); for (const l of I.linhasDe(op.texto)) paragrafo(tr(l), { sz: 7.4 });
+          if (typeof op.valor === 'number' && op.valor) paragrafo((op.valor < 0 ? r.opcAbat : r.opcAcr).replace('{v}', din(Math.abs(op.valor))), { sz: 7.4, st: 'bold' }); } }
       if (tem('conheca') && (M.somos || []).length) { y += 3; precisa(30); faixa(x.sobre, X0, LW); paragrafo((M.somos || [])[0], { sz: 7.4, lh: 3.5 }); }
       const selos = (O.img && O.img.selos) || AS.img.selos; if (selos && y < LIM - 26) { const p = doc.getImageProperties(selos); const w = 56, h = w * p.height / p.width; doc.addImage(selos, fmtImg(selos), X1 - w, LIM - h - 1, w, h, 'selos', 'FAST'); }
     }
