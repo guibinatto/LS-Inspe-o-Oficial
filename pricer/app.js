@@ -1389,8 +1389,31 @@
     return `<section class="card"><h2>Para o documento da proposta <span class="sub">vai no PDF gerado na aba ${seq ? 'Documentos' : 'da proposta'}</span></h2><div class="fields">
       ${pcCampo('clienteCurto', 'Nome do cliente no topo das páginas', { cls: 'span2', ph: D.cliente || 'igual ao cliente', dica: 'ex.: COCAMAR SEDE; vazio = nome do cliente' })}${pcCampo('aosCuidados', 'Aos cuidados de', { ph: D.contato || 'nome do contato' })}${pcCampo('cidade', 'Cidade da obra', { ph: 'ex.: MARINGÁ-PR' }) + (seq ? pcCampo('altitude', 'Altitude da instalação (m)', { num: true, ph: 'ex.: 550', dica: 'motor diesel: −3% a cada 300 m acima de 91 m (NFPA 20)' }) + pcCampo('tempAmb', 'Temperatura ambiente máx. (°C)', { num: true, ph: 'ex.: 38', dica: 'motor diesel: −1% a cada 5,6 °C acima de 25 °C (NFPA 20)' }) : '')}
       ${seq ? pcCampo('prazoFab', 'Prazo de fabricação (dias, DAPC)', { num: true }) + pcCampo('prazoEnt', 'Prazo de entrega (dias, DAE)', { num: true }) : ''}${pcCampo('prazoTexto', seq ? 'Prazo — texto livre (opcional)' : 'Prazo na proposta (opcional)', { area: true, ph: seq ? 'Fabricação + entrega viram "Prazo Total: N dias."' : D.prazo || 'ex.: Prazo para primeira visita: 40 dias.' })}
-      ${seq ? pcCampo('observacoes', 'Observações da proposta', { area: true, rows: 3, ph: 'ex.: o detalhe da condição de pagamento' }) : ''}</div>
-      ${seq ? pcExtras() : ''}</section>`;
+      ${seq ? pcCampo('observacoes', 'Observações da proposta', { area: true, rows: 3, ph: 'ex.: o detalhe da condição de pagamento' }) : ''}
+      ${D.tipo === 'SPV' && (D.flags || {}).pecas ? pcCampo('prazoFab', 'Entrega das peças (dias após o pedido)', { num: true }) : ''}</div>
+      ${seq ? pcExtras() : D.tipo === 'SPV' ? servCampos(D) : ''}</section>`;
+  }
+  // SPV: o que o comprador de uma empresa grande procura numa proposta de serviço em campo. Só sai no PDF o que for marcado ou escrito
+  function servCampos(D) {
+    const pc = pcGet(); const ro = state.verRev ? ' disabled' : ''; const O = PRP.OPC_SERV; const servico = !(D.flags || {}).soPecas;
+    const chk = (g, lb, extra, phExtra) => `<div class="f spanall"><label>${esc(lb)}</label><div class="chkcol">${O[g].map(([k, t]) => `<label class="chkl"><input type="checkbox" data-pcchk="${g}|${k}"${(pc[g] || []).includes(k) ? ' checked' : ''}${ro}> ${esc(t)}</label>`).join('')}</div>
+      <textarea data-pc="${extra}" rows="1" placeholder="${esc(phExtra)}" aria-label="${esc(lb)}: outros"${ro}>${esc(pc[extra] || '')}</textarea></div>`;
+    const nCampos = ['prazoMobil', 'equipe', 'duracao', 'horario', 'seg', 'segOutros', 'foraOp', 'resp', 'respOutros', 'entreg', 'entregOutros', 'garantia', 'lc116', 'nbs', 'issMun', 'issRet', 'relacionadas'].filter((k) => { const v = pc[k]; return Array.isArray(v) ? v.length : v !== undefined && v !== '' && v !== false; }).length;
+    return `${servico ? `<details class="sub2"${nCampos ? ' open' : ''}><summary>Execução do serviço <span class="sub">equipe, segurança, sistema fora de operação, responsabilidades do cliente, entregáveis, garantia e dados fiscais${nCampos ? ' · ' + nCampos + ' preenchido(s)' : ''}</span></summary>
+      <p class="sub" style="margin:4px 0 8px">Marque só o que vale para este serviço. O que ficar em branco não sai no PDF.</p>
+      <div class="fields">
+        ${pcCampo('prazoMobil', 'Início dos serviços (dias após o pedido)', { num: true })}${pcCampo('equipe', 'Equipe', { ph: 'ex.: 02 técnicos especializados' })}${pcCampo('duracao', 'Duração estimada no local', { ph: 'ex.: 1 dia (8 horas)' })}${pcCampo('horario', 'Horário de trabalho', { ph: 'ex.: segunda a sexta, 8h às 17h' })}
+        ${chk('seg', 'Segurança e acesso ao local', 'segOutros', 'outros requisitos, um por linha')}
+        <div class="f spanall"><label class="chkl"><input type="checkbox" data-pcbool="foraOp"${pc.foraOp ? ' checked' : ''}${ro}> O serviço deixa o sistema de incêndio fora de operação</label><small class="sub">Sai o aviso para o cliente seguir o procedimento de sistema fora de operação (NFPA 25): seguradora, brigada e proteção alternativa.</small></div>
+        ${pc.foraOp ? pcCampo('foraObj', 'O que fica fora de operação', { ph: 'a bomba de incêndio' }) + pcCampo('foraHoras', 'Por quanto tempo', { ph: 'ex.: 6 horas' }) : ''}
+        ${chk('resp', 'Responsabilidades do cliente', 'respOutros', 'outras, uma por linha')}
+        ${chk('entreg', 'Entregáveis', 'entregOutros', 'outros, um por linha')}
+        ${pcCampo('garantia', 'Garantia do serviço', { cls: 'spanall', ph: 'ex.: 90 dias a partir da conclusão, para defeitos de execução' })}
+        ${pcCampo('lc116', 'Item da lista de serviços (LC 116)', { ph: 'ex.: 14.01' })}${pcCampo('nbs', 'Código NBS', { ph: 'da NFS-e nacional' })}${pcCampo('issMun', 'ISS devido em', { ph: 'ex.: Guaramirim-SC' })}
+        <div class="f"><label for="pcf_issRet">ISS retido pelo tomador</label><select id="pcf_issRet" data-pc="issRet"${ro}><option value="">—</option><option value="sim"${pc.issRet === 'sim' ? ' selected' : ''}>sim</option><option value="nao"${pc.issRet === 'nao' ? ' selected' : ''}>não</option></select></div>
+      </div></details>` : ''}
+      <div class="fields" style="margin-top:8px">${pcCampo('relacionadas', 'Propostas relacionadas', { area: true, ph: 'ex.: Radiador fornecido conforme a PTC 10.342 (cobrado à parte)', dica: 'deixa claro o que está em outra proposta (peça × mão de obra)' })}
+        <div class="f spanall"><label class="chkl"><input type="checkbox" data-pcbool="termosAnexo"${pc.termosAnexo ? ' checked' : ''}${ro}> Termos e condições em anexo (PDF à parte), em vez de 6 páginas dentro da proposta</label><small class="sub">A proposta cita o anexo; ao gerar, sai também o PDF dos termos.</small></div></div>`;
   }
   // condições que viram tabela no PDF comercial: parcelas por marco, volumes para transporte, opções de fornecimento
   // (abatimento ou acréscimo) e desvios ligados a um item da especificação do cliente
@@ -1447,7 +1470,7 @@
         ${usd ? `<div class="f"><label for="pc_taxa">R$ por US$ 1,00</label><input id="pc_taxa" data-pcmoeda="taxa" inputmode="decimal" value="${esc(moeda.taxa ? NF[4].format(moeda.taxa) : '')}" placeholder="${esc(cambioPadrao() ? NF[4].format(cambioPadrao()) : '')}"${ro}><small class="sub">vazio = câmbio do cadastro (${esc(cambioPadrao() ? NF[4].format(cambioPadrao()) : 'não definido')})</small></div><div class="f"><label for="pc_taxad">Data da taxa</label><input id="pc_taxad" type="date" data-pcmoeda="data" value="${esc(moeda.data || hojeISO())}"${ro}></div>` : ''}
       </div>
       ${faltam.length ? `<div class="banner warn" style="margin:8px 0">Falta preencher: ${esc(faltam.join(', '))}. ${seq ? 'Preencha em Dados gerais.' : 'Preencha nos dados da proposta, acima.'}</div>` : ''}
-      <div class="docbar" style="margin:8px 0 4px"><button class="btn" data-pcimprimir data-ico="printer" title="Resumo em A4: imprimir ou salvar como PDF pelo navegador">Imprimir (A4)</button><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button>${seq ? '<button class="btn" data-pcgerar2 data-ico="file-down" title="Dois arquivos: a técnica, sem preços, e a comercial, com a planilha de preços e as condições">Técnica + Comercial (2 PDFs)</button>' : ''}<span class="sub">${D.itens.length} item(ns) · total ${esc(din(D.total))}${usd && taxa > 0 ? ' (R$ ' + esc(nfL.format(D.total || 0)) + ' a ' + esc(NF[4].format(taxa)) + ')' : ''} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
+      <div class="docbar" style="margin:8px 0 4px"><button class="btn" data-pcimprimir data-ico="printer" title="Resumo em A4: imprimir ou salvar como PDF pelo navegador">Imprimir (A4)</button><button class="btn pri" data-pcgerar data-ico="file-down">Gerar proposta ${esc(TIPO_LB[tipo].toLowerCase())} (PDF${lang !== 'pt' ? ', ' + esc(LANG_LB[lang]) : ''}${usd ? ', US$' : ''})</button>${seq ? '<button class="btn" data-pcgerar2 data-ico="file-down" title="Dois arquivos: a técnica, sem preços, e a comercial, com a planilha de preços e as condições">Técnica + Comercial (2 PDFs)</button>' : ''}<button class="btn" data-pchtml data-ico="globe" title="Página para abrir no navegador ou no celular: imagens, curva e dados com rolagem. O PDF oficial vai dentro dela e é o documento que vale">Versão interativa (HTML)</button><span class="sub">${D.itens.length} item(ns) · total ${esc(din(D.total))}${usd && taxa > 0 ? ' (R$ ' + esc(nfL.format(D.total || 0)) + ' a ' + esc(NF[4].format(taxa)) + ')' : ''} · ${SEC.length} seções${tipo !== 'tec' && lang === 'pt' && !usd ? (salva && !dirty ? ' · o PDF é conferido com a formação e guardado nos documentos' : ' · salve a proposta para o PDF ser conferido e guardado nos documentos') : ' · o PDF é guardado nos documentos'}</span></div>
       ${lang !== 'pt' || faltaTr || tradEm ? `<div class="banner ${tradEm === lang ? 'info' : faltaTr ? 'warn' : 'ok'}" style="margin:0 0 6px">${tradEm === lang ? 'Traduzindo descrições e condições desta proposta…' : faltaTr ? `${faltaTr} texto(s) desta proposta ainda em português. ${ro ? '' : '<button class="btn sm" data-pctraduz data-ico="refresh-cw">Traduzir agora</button>'}` : 'Textos desta proposta traduzidos: confira abaixo (original em cinza) e, se precisar, ajuste em "Traduções desta proposta", mais abaixo.'} ${lang !== 'pt' ? 'Textos padrão e rótulos saem traduzidos com o modelo.' : 'No padrão Folha de dados, o que vem do fabricante em inglês é traduzido para o português.'}</div>` : ''}
       <details class="sub2"${openSet.pc_cab === false ? '' : ' open'} data-keep="pc_cab"><summary>Cabeçalho e condições <span class="sub">vêm de ${seq ? 'Dados gerais e da formação' : 'dados da proposta'}</span></summary>
         <div class="kv pcro">${kvs.map(([lb, v]) => `<div>${esc(lb)}</div><div>${['Projeto/Obra', 'Condição de pagamento', 'Frete'].includes(lb) ? dupla(v) : v ? esc(v) : '<span class="sub">—</span>'}</div>`).join('')}</div>
@@ -1773,7 +1796,7 @@
     }
     return { tr: (s) => cache[s] || s, aviso };
   }
-  async function gerarProposta(tipoForcado) {
+  async function gerarProposta(tipoForcado, opt = {}) {
     const pc = pcGet(); const tipo = tipoForcado || pc.tipoDoc || 'tc', lang = pc.idioma || 'pt';
     const D = propostaDados(); if (!D.itens.length) { toast('Nenhum item com preço para a proposta'); return; }
     const M = PRP.modelo(REG, lang); toast('Montando a proposta…');
@@ -1809,18 +1832,33 @@
       try { const b = await docBlob(dz.id); if (!b) continue; const file = new File([b], dz.nome || 'desenho', { type: b.type || (/\.pdf$/i.test(dz.nome || '') ? 'application/pdf' : 'image/png') });
         if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) { const n = (await window.PricerLeitor.paginaImagem(file, 1, 0.2)).paginas; for (let k = 1; k <= Math.min(n, 4); k++) (desenhos[it.key] = desenhos[it.key] || []).push(await window.PricerLeitor.recorte(file, k, null, 2.2)); }
         else (desenhos[it.key] = desenhos[it.key] || []).push(await blobURL(b)); } catch (er) { toast('Não consegui preparar o desenho ' + (dz.nome || '') + ': ' + errMsg(er)); } }
-    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, nfpa, tr, fab, trFab: tr, desenhos }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos });
+    // termos e condições em anexo: PDF à parte, citado pelo nome na proposta (a técnica não leva termos)
+    const rt = pcGet().termosAnexo && tipo !== 'tec' && (M.termos || []).length ? await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, tr, soTermos: true }) : null;
+    const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, nfpa, tr, fab, trFab: tr, desenhos, termosArq: rt && rt.nome }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos, termosArq: rt && rt.nome });
     const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
     logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
     const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });
     if (p && !dirty && !state.verRev && tipo !== 'tec' && lang === 'pt' && moeda.cod === 'BRL') await CF.rodar(file);
     else if (p && !state.verRev) { try { await SPV.salvarDoc({ tipo: 'proposta', nome: r.nome, propUid: p.uid || null, propNome: p.name || '', numero: (p.numero || '') + ' rev. ' + revAtual(), rev: revAtual(), etapa: 'Emissão', notas: 'Proposta ' + TIPO_LB[tipo].toLowerCase() + ' gerada pelo app (' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$' : '') + ')', itens: [] }, file); } catch (er) { /* o download já foi feito */ } toast((ok ? 'PDF gerado (' + r.paginas + ' páginas) e guardado nos documentos' : 'Download cancelado') + (aviso ? '. ' + aviso : '')); }
     else toast((ok ? 'PDF gerado (' + r.paginas + ' páginas). Salve a proposta para guardar o PDF nos documentos.' : 'Download cancelado') + (aviso ? ' ' + aviso : ''));
+    if (rt) { await REG.save(rt.nome, rt.bytes, 'application/pdf');
+      if (p && !state.verRev) { try { await SPV.salvarDoc({ tipo: 'proposta', nome: rt.nome, propUid: p.uid || null, propNome: p.name || '', numero: (p.numero || '') + ' rev. ' + revAtual(), rev: revAtual(), etapa: 'Emissão', notas: 'Termos e condições (anexo da proposta ' + r.nome + ')', itens: [] }, new File([rt.bytes], rt.nome, { type: 'application/pdf' })); } catch (er) { /* o download já foi feito */ } }
+      logEv({ tipo: 'Proposta — termos em anexo', ref: state.id || docTitle(), desc: rt.nome + ' (' + rt.paginas + ' páginas), citado em ' + r.nome, mudancas: [] }); }
+    // versão interativa: HTML de um arquivo só, com o PDF oficial dentro (o PDF continua sendo o documento que vale)
+    if (opt.html && window.PricerPropostaHtml) {
+      const html = await window.PricerPropostaHtml.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, desenhos, tr, pdf: { bytes: r.bytes, nome: r.nome } });
+      const nomeH = r.nome.replace(/\.pdf$/i, '') + '_interativa.html'; const okH = await REG.save(nomeH, html, 'text/html');
+      if (okH && p && !state.verRev) { try { await SPV.salvarDoc({ tipo: 'proposta', nome: nomeH, propUid: p.uid || null, propNome: p.name || '', numero: (p.numero || '') + ' rev. ' + revAtual(), rev: revAtual(), etapa: 'Emissão', notas: 'Versão interativa (HTML) da proposta ' + r.nome + ', com o PDF oficial dentro', itens: [] }, new File([html], nomeH, { type: 'text/html' })); } catch (er) { /* segue */ } }
+      logEv({ tipo: 'Proposta — versão interativa', ref: state.id || docTitle(), desc: nomeH + ' (' + Math.round(html.length / 1024) + ' KB, com ' + r.nome + ' dentro)', mudancas: [] });
+      if (okH) toast('Versão interativa gerada: ' + nomeH + '. O PDF oficial vai dentro dela.');
+    }
     render();
   }
   document.addEventListener('change', (e) => {
     const t = e.target; if (!t.dataset || state.verRev) return;
-    if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } if (k === 'altitude' || k === 'tempAmb') { const n = v.trim() === '' ? NaN : Number(v.replace(/\./g, '').replace(',', '.')); v = isFinite(n) ? n : ''; } if (v === '' && ['clienteCurto', 'aosCuidados', 'cidade', 'prazoFab', 'prazoEnt', 'prazoTexto', 'observacoes', 'altitude', 'tempAmb'].includes(k)) v = undefined; pcSet(k, v); if (t.closest('#pcCard')) render(); return; }
+    if (t.dataset.pc) { const k = t.dataset.pc; let v = t.value; if (k === 'prazoFab' || k === 'prazoEnt' || k === 'prazoMobil') { v = v.trim() === '' ? '' : parseInt(v.replace(/\D/g, ''), 10); if (Number.isNaN(v)) v = ''; } if (k === 'altitude' || k === 'tempAmb') { const n = v.trim() === '' ? NaN : Number(v.replace(/\./g, '').replace(',', '.')); v = isFinite(n) ? n : ''; } if (v === '' && ['clienteCurto', 'aosCuidados', 'cidade', 'prazoFab', 'prazoEnt', 'prazoTexto', 'observacoes', 'altitude', 'tempAmb', 'prazoMobil', 'equipe', 'duracao', 'horario', 'segOutros', 'respOutros', 'entregOutros', 'foraObj', 'foraHoras', 'garantia', 'lc116', 'nbs', 'issMun', 'issRet', 'relacionadas'].includes(k)) v = undefined; pcSet(k, v); if (t.closest('#pcCard')) render(); return; }
+    if (t.dataset.pcchk) { const [g, k] = t.dataset.pcchk.split('|'); const L = new Set(pcGet()[g] || []); if (t.checked) L.add(k); else L.delete(k); const arr = (PRP.OPC_SERV[g] || []).map((x) => x[0]).filter((q) => L.has(q)); pcSet(g, arr.length ? arr : undefined); render(); return; }
+    if (t.dataset.pcbool) { pcSet(t.dataset.pcbool, t.checked ? true : undefined); render(); return; }
     if (t.dataset.pcopt) { const k = t.dataset.pcopt; if (k === 'moeda') pcSet('moeda', Object.assign({}, pcGet().moeda || {}, { cod: t.value })); else pcSet(k === 'tipoDoc' ? 'tipoDoc' : k === 'estilo' ? 'estilo' : 'idioma', t.value); render(); if (k === 'idioma' || k === 'estilo') traduzirAgora(); return; }
     if (t.dataset.pcmoeda) { const m = Object.assign({}, pcGet().moeda || {}); if (t.dataset.pcmoeda === 'taxa') { const n = parseInput(t.value, 'num'); m.taxa = typeof n === 'number' && n > 0 ? n : undefined; } else m.data = t.value; pcSet('moeda', m); render(); return; }
     if (t.dataset.pclist) { const [k, i, c] = t.dataset.pclist.split('|'); const L = JSON.parse(JSON.stringify(pcGet()[k] || [])); if (!L[+i]) return; const tp = ((PC_LISTAS[k].cols.find((q) => q[0] === c)) || [])[2];
@@ -1842,6 +1880,7 @@
     if (e.target.closest('[data-pcmodelo]')) { ui.cad = 'propmodelo'; setView('config'); return; }
     // técnica e comercial como dois PDFs separados, um depois do outro (cada um guardado nos documentos da proposta)
     if (e.target.closest('[data-pcgerar2]')) { try { await gerarProposta('tec'); await gerarProposta('com'); toast('Técnica e comercial geradas (2 PDFs)'); } catch (er) { toast(errMsg(er)); } return; }
+    if (e.target.closest('[data-pchtml]')) { try { await gerarProposta(undefined, { html: true }); } catch (er) { toast(errMsg(er)); } return; }
     if (!e.target.closest('[data-pcgerar]')) return;
     try { await gerarProposta(); } catch (er) { toast(errMsg(er)); }
   });

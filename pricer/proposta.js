@@ -26,12 +26,13 @@
   // ---------- tipos, seções e imagens ----------
   const TIPOS = [['tc', 'Técnica e comercial'], ['com', 'Comercial'], ['tec', 'Técnica']];
   const IDIOMAS = [['pt', 'Português'], ['en', 'English'], ['es', 'Español']];
-  const SECOES = [['capa', 'Capa'], ['conheca', 'Conheça a LS Fire'], ['solucoes', 'Soluções LS Fire (CMB, skid e container)'], ['planilha', 'Planilha de preços (na técnica: escopo de fornecimento, sem preços)'], ['condicoes', 'Condições: pagamento, prazo, frete e observações'], ['folha', 'Folha de dados de cada item'], ['comiss', 'Comissionamento e start-up'], ['notas', 'Notas, desvios e exclusões'], ['prazos', 'Prazos e condições'], ['docs', 'Escopo de documentos'], ['termos', 'Termos e condições'], ['contatos', 'Contatos']];
+  const SECOES = [['capa', 'Capa'], ['conheca', 'Conheça a LS Fire'], ['solucoes', 'Soluções LS Fire (CMB, skid e container)'], ['planilha', 'Planilha de preços (na técnica: escopo de fornecimento, sem preços)'], ['condicoes', 'Condições: pagamento, prazo, frete e observações'], ['execucao', 'Execução do serviço (SPV): equipe, segurança, entregáveis, garantia e dados fiscais'], ['folha', 'Folha de dados de cada item'], ['comiss', 'Comissionamento e start-up'], ['notas', 'Notas, desvios e exclusões'], ['prazos', 'Prazos e condições'], ['docs', 'Escopo de documentos'], ['termos', 'Termos e condições'], ['contatos', 'Contatos']];
   const SO_SEQ = new Set(['solucoes', 'folha', 'comiss', 'prazos', 'docs']);
+  const SO_SPV = new Set(['execucao']);
   const LAYOUT = { ordem: SECOES.map((x) => x[0]), tipos: {
     tc: Object.fromEntries(SECOES.map((x) => [x[0], true])),
-    com: { capa: true, conheca: true, solucoes: false, planilha: true, condicoes: true, folha: false, comiss: false, notas: true, prazos: false, docs: false, termos: true, contatos: true },
-    tec: { capa: true, conheca: true, solucoes: true, planilha: true, condicoes: false, folha: true, comiss: true, notas: true, prazos: true, docs: true, termos: false, contatos: true } } };
+    com: { capa: true, conheca: true, solucoes: false, planilha: true, condicoes: true, execucao: true, folha: false, comiss: false, notas: true, prazos: false, docs: false, termos: true, contatos: true },
+    tec: { capa: true, conheca: true, solucoes: true, planilha: true, condicoes: false, execucao: true, folha: true, comiss: true, notas: true, prazos: true, docs: true, termos: false, contatos: true } } };
   const SLOTS = [['capa-seq', 'Capa — equipamentos', [0, 210]], ['capa-spv', 'Capa — serviços', [0, 210]], ['conheca-seq', 'Conheça a LS Fire — equipamentos', [X0, X1]], ['conheca-spv', 'Conheça a LS Fire — serviços', [X0, X1]], ['sol-cmb', 'Soluções: CMB', [X0, 107]], ['sol-skid', 'Soluções: Skid', [X0, 107]], ['sol-container', 'Soluções: Container', [X0, 107]], ['comiss-tecnico', 'Comissionamento: técnico', [110, X1]], ['comiss-etapas', 'Comissionamento: etapas', [X0, X1]], ['selos', 'Selos da capa', [105, X1]], ['slogan', 'Slogan (contatos)', [X0, X1]], ['logo-cab', 'Logo do cabeçalho', [0, 60]]];
 
   // ---------- rótulos fixos nos três idiomas ----------
@@ -80,6 +81,44 @@
       radiador: 'Radiador', trocador: 'Intercambiador de calor', mecanica: 'Mecánica', eletronica: 'Electrónica', endsuction: 'De succión axial (end-suction)', splitcase: 'Bipartida (split case)', monobloco: 'Monobloque', inline: 'En línea', vertical: 'Turbina vertical', diesel: 'diésel', eletrica: 'eléctrica', jockeyA: 'jockey' },
   };
   const LOC = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' };
+  // ---------- proposta de serviço (SPV): rótulos e opções marcadas pelo vendedor ----------
+  // as opções ficam guardadas pela chave; o texto sai no idioma do documento
+  const OPC_SERV = {
+    seg: [['nr10', 'Técnicos com treinamento NR-10 (segurança em instalações elétricas)', 'Technicians trained in NR-10 (electrical safety)', 'Técnicos con capacitación NR-10 (seguridad en instalaciones eléctricas)'],
+      ['nr12', 'Técnicos com treinamento NR-12 (máquinas e equipamentos)', 'Technicians trained in NR-12 (machinery and equipment safety)', 'Técnicos con capacitación NR-12 (máquinas y equipos)'],
+      ['nr33', 'Técnicos com treinamento NR-33 (espaço confinado)', 'Technicians trained in NR-33 (confined spaces)', 'Técnicos con capacitación NR-33 (espacios confinados)'],
+      ['nr35', 'Técnicos com treinamento NR-35 (trabalho em altura)', 'Technicians trained in NR-35 (work at height)', 'Técnicos con capacitación NR-35 (trabajo en altura)'],
+      ['aso', 'ASO (atestado de saúde ocupacional) dos técnicos em dia', 'Technicians with valid occupational health certificates (ASO)', 'ASO (certificado de salud ocupacional) de los técnicos vigente'],
+      ['integ', 'Participação na integração de segurança do cliente', 'Attendance at the customer\'s safety induction', 'Participación en la inducción de seguridad del cliente'],
+      ['apr', 'Análise de risco (APR) e permissão de trabalho antes do início', 'Job safety analysis (APR) and work permit before starting', 'Análisis de riesgos (APR) y permiso de trabajo antes del inicio'],
+      ['docseg', 'Documentação de segurança enviada antes da mobilização, conforme a lista do cliente', 'Safety documentation sent before mobilization, according to the customer\'s list', 'Documentación de seguridad enviada antes de la movilización, según la lista del cliente']],
+    resp: [['acesso', 'Acesso liberado ao local e ao equipamento na data combinada', 'Access to the site and equipment on the agreed date', 'Acceso liberado al sitio y al equipo en la fecha acordada'],
+      ['utilid', 'Energia elétrica e água no local do serviço', 'Electrical power and water at the work site', 'Energía eléctrica y agua en el lugar del servicio'],
+      ['area', 'Área isolada e liberada para o serviço', 'Work area isolated and released for the service', 'Área aislada y liberada para el servicio'],
+      ['acomp', 'Um responsável do cliente acompanhando o serviço', 'A customer representative following the service', 'Un responsable del cliente acompañando el servicio'],
+      ['guarda', 'Local para guarda de ferramentas e materiais', 'A place to store tools and materials', 'Lugar para guardar herramientas y materiales']],
+    entreg: [['relat', 'Relatório técnico do serviço com registro fotográfico', 'Technical service report with photographs', 'Informe técnico del servicio con registro fotográfico'],
+      ['teste', 'Registro do teste de funcionamento após o serviço', 'Record of the operational test after the service', 'Registro de la prueba de funcionamiento tras el servicio'],
+      ['art', 'ART (Anotação de Responsabilidade Técnica) do serviço', 'ART (Technical Responsibility Record) for the service', 'ART (Anotación de Responsabilidad Técnica) del servicio'],
+      ['nfpa25', 'Checklist de inspeção conforme a NFPA 25', 'Inspection checklist according to NFPA 25', 'Lista de inspección según la NFPA 25']],
+  };
+  const opcTxt = (grupo, k, lang) => { const o = (OPC_SERV[grupo] || []).find((x) => x[0] === k); return o ? o[{ pt: 1, en: 2, es: 3 }[lang] || 1] : ''; };
+  const RS = {
+    pt: { t_exec: 'EXECUÇÃO DO SERVIÇO', h_exec: 'Execução do serviço', equipe: 'Equipe:', duracao: 'Duração estimada no local:', horario: 'Horário de trabalho:', mobil: 'Início dos serviços: {n} dias após o pedido de compra.', prazoN: 'Prazo: {n} dias após o pedido de compra.', entPecas: 'Entrega das peças: {n} dias após o pedido de compra.',
+      h_seg: 'Segurança e acesso ao local', h_fora: 'Sistema de incêndio fora de operação', foraTxt: 'Durante o serviço, {o} ficará fora de operação{h}. O cliente deve seguir o seu procedimento para sistema fora de operação (NFPA 25 — impairments): avisar a seguradora, a brigada e os responsáveis pelo local e manter medidas de proteção alternativas durante o período.', foraH: ' por aproximadamente {h}', foraObj: 'a bomba de incêndio',
+      h_resp: 'Responsabilidades do cliente', h_entreg: 'Entregáveis', h_garantia: 'Garantia do serviço', h_fiscal: 'Dados fiscais do serviço', lc116: 'Item da lista de serviços (LC 116/2003):', nbs: 'Código NBS:', issMun: 'ISS devido em:', issRet: 'ISS retido pelo tomador:', sim: 'sim', nao: 'não', h_relac: 'Propostas relacionadas',
+      t_termosAnexo: 'Termos e condições', termosRef: 'Aplicam-se os Termos e Condições Gerais de Fornecimento da LS Fire, enviados como anexo a esta proposta{arq}.', t_termosDoc: 'TERMOS E CONDIÇÕES GERAIS DE FORNECIMENTO' },
+    en: { t_exec: 'SERVICE EXECUTION', h_exec: 'Service execution', equipe: 'Team:', duracao: 'Estimated time on site:', horario: 'Working hours:', mobil: 'Start of services: {n} days after the purchase order.', prazoN: 'Lead time: {n} days after the purchase order.', entPecas: 'Parts delivery: {n} days after the purchase order.',
+      h_seg: 'Safety and site access', h_fora: 'Fire protection system out of service', foraTxt: 'During the service, {o} will be out of service{h}. The customer shall follow its impairment procedure (NFPA 25 — impairments): notify the insurer, the fire brigade and the site managers and keep alternative protection measures in place during the period.', foraH: ' for approximately {h}', foraObj: 'the fire pump',
+      h_resp: 'Customer responsibilities', h_entreg: 'Deliverables', h_garantia: 'Service warranty', h_fiscal: 'Service tax data', lc116: 'Service list item (LC 116/2003):', nbs: 'NBS code:', issMun: 'ISS due in:', issRet: 'ISS withheld by the customer:', sim: 'yes', nao: 'no', h_relac: 'Related proposals',
+      t_termosAnexo: 'Terms and conditions', termosRef: 'LS Fire General Terms and Conditions of Supply apply, sent as an attachment to this proposal{arq}.', t_termosDoc: 'GENERAL TERMS AND CONDITIONS OF SUPPLY' },
+    es: { t_exec: 'EJECUCIÓN DEL SERVICIO', h_exec: 'Ejecución del servicio', equipe: 'Equipo:', duracao: 'Duración estimada en el sitio:', horario: 'Horario de trabajo:', mobil: 'Inicio de los servicios: {n} días tras la orden de compra.', prazoN: 'Plazo: {n} días tras la orden de compra.', entPecas: 'Entrega de las piezas: {n} días tras la orden de compra.',
+      h_seg: 'Seguridad y acceso al sitio', h_fora: 'Sistema contra incendios fuera de operación', foraTxt: 'Durante el servicio, {o} quedará fuera de operación{h}. El cliente debe seguir su procedimiento para sistemas fuera de operación (NFPA 25 — impairments): avisar a la aseguradora, a la brigada y a los responsables del sitio y mantener medidas de protección alternativas durante el período.', foraH: ' por aproximadamente {h}', foraObj: 'la bomba contra incendios',
+      h_resp: 'Responsabilidades del cliente', h_entreg: 'Entregables', h_garantia: 'Garantía del servicio', h_fiscal: 'Datos fiscales del servicio', lc116: 'Ítem de la lista de servicios (LC 116/2003):', nbs: 'Código NBS:', issMun: 'ISS adeudado en:', issRet: 'ISS retenido por el tomador:', sim: 'sí', nao: 'no', h_relac: 'Propuestas relacionadas',
+      t_termosAnexo: 'Términos y condiciones', termosRef: 'Se aplican los Términos y Condiciones Generales de Suministro de LS Fire, enviados como anexo a esta propuesta{arq}.', t_termosDoc: 'TÉRMINOS Y CONDICIONES GENERALES DE SUMINISTRO' },
+  };
+  // campos de texto livre da execução do serviço (traduzidos no PDF em inglês/espanhol)
+  const SERV_TXT = ['equipe', 'duracao', 'horario', 'garantia', 'segOutros', 'respOutros', 'entregOutros', 'foraHoras', 'foraObj', 'relacionadas', 'issMun'];
 
   // ---------- textos do modelo (no idioma pedido) ----------
   // ordem: texto original (pt) → tradução que vem com o app → o que foi salvo no Modelo da proposta para aquele idioma
@@ -127,10 +166,12 @@
 
   // seções que entram no documento: o modelo define por tipo; a proposta pode ligar ou desligar
   function secoes(D, pc, M, tipoDoc) {
-    const L = M.layout || LAYOUT; const ordem = (L.ordem || LAYOUT.ordem).filter((k) => SECOES.some((s) => s[0] === k)).concat(LAYOUT.ordem.filter((k) => !(L.ordem || []).includes(k)));
+    const L = M.layout || LAYOUT; const ordem = (L.ordem || LAYOUT.ordem).filter((k) => SECOES.some((s) => s[0] === k));
+    // seção que não existia quando o layout foi salvo entra logo depois da que vem antes dela no padrão
+    for (const k of LAYOUT.ordem) if (!ordem.includes(k)) { const i = LAYOUT.ordem.indexOf(k); const ant = LAYOUT.ordem.slice(0, i).reverse().find((q) => ordem.includes(q)); ordem.splice(ant ? ordem.indexOf(ant) + 1 : 0, 0, k); }
     const base = Object.assign({}, LAYOUT.tipos[tipoDoc], (L.tipos || {})[tipoDoc] || {}); const own = ((pc.secoes || {})[tipoDoc]) || {};
     const f = D.flags || {};
-    return ordem.filter((k) => (k === 'capa' || k === 'planilha' || (own[k] ?? base[k])) && !(D.tipo !== 'SEQ' && SO_SEQ.has(k)) && !(k === 'comiss' && !f.startup) && !(k === 'condicoes' && tipoDoc === 'tec' && !(own[k] ?? base[k])));
+    return ordem.filter((k) => (k === 'capa' || k === 'planilha' || (own[k] ?? base[k])) && !(D.tipo !== 'SEQ' && SO_SEQ.has(k)) && !(D.tipo !== 'SPV' && SO_SPV.has(k)) && !(k === 'comiss' && !f.startup) && !(k === 'condicoes' && tipoDoc === 'tec' && !(own[k] ?? base[k])));
   }
 
   // ---------- valores efetivos: cabeçalho vem da proposta (Dados gerais/itens); textos do documento podem ser ajustados ----------
@@ -154,7 +195,16 @@
       ajustados: { observacoes: ajustado('observacoes'), notas: ajustado('notas'), desvios: ajustado('desvios'), exclusoes: ajustado('exclusoes') },
       parcelas: (pc.parcelas || []).filter((q) => q && (q.pct || q.marco)), parcelasPrazo: pc.parcelasPrazo || '', volumes: (pc.volumes || []).filter((q) => q && q.nome), opcoes: (pc.opcoes || []).filter((q) => q && (q.titulo || q.texto)),
       codigos: Object.assign({}, pc.codigos || {}), notasItem: Object.assign({}, pc.notasItem || {}), contatos: v('contatos', contatosPad),
+      serv: servico ? servDados(pc, lang) : null, termosAnexo: !!pc.termosAnexo,
     };
+  }
+  // execução do serviço: o que o vendedor marcou e escreveu; vazio = nada no documento
+  function servDados(pc, lang) {
+    const t = (k) => String(pc[k] ?? '').trim(); const L = (g, extra) => (Array.isArray(pc[g]) ? pc[g] : []).map((k) => opcTxt(g, k, lang)).filter(Boolean).concat(linhasDe(pc[extra]));
+    const S = { prazoMobil: Number(pc.prazoMobil) || 0, equipe: t('equipe'), duracao: t('duracao'), horario: t('horario'), seg: L('seg', 'segOutros'), resp: L('resp', 'respOutros'), entreg: L('entreg', 'entregOutros'),
+      fora: !!pc.foraOp, foraHoras: t('foraHoras'), foraObj: t('foraObj'), garantia: t('garantia'), lc116: t('lc116'), nbs: t('nbs'), issMun: t('issMun'), issRet: pc.issRet === 'sim' || pc.issRet === 'nao' ? pc.issRet : '', relacionadas: linhasDe(pc.relacionadas) };
+    S.vazio = !(S.equipe || S.duracao || S.horario || S.seg.length || S.resp.length || S.entreg.length || S.fora || S.garantia || S.lc116 || S.nbs || S.issMun || S.issRet || S.relacionadas.length);
+    return S;
   }
   // textos da proposta que não vêm traduzidos com o modelo (descrições, pagamento, frete, notas ajustadas…)
   function dinamicos(D, pc) {
@@ -162,6 +212,7 @@
     const E = efetivo(D, pc, modeloVazio(), 'pt');
     [D.obra, D.pagamento, D.frete, E.prazoTexto].forEach(add); (pc.parcelas || []).forEach((q) => add(q && q.marco)); (pc.opcoes || []).forEach((q) => { if (q) { add(q.titulo); String(q.texto || '').split('\n').forEach(add); } }); (pc.desviosEsp || []).forEach((q) => add(q && q.texto)); add(pc.parcelasPrazo);
     for (const k of ['observacoes', 'notas', 'desvios', 'exclusoes']) if (E.ajustados[k]) linhasDe(pc[k]).forEach(add);
+    if (D.tipo === 'SPV') for (const k of SERV_TXT) linhasDe(pc[k]).forEach(add);
     linhasDe(D.exclusoes).forEach(add);
     for (const it of D.itens || []) { add(it.completa); if (D.tipo !== 'SEQ') add(it.breve); (it.escopo || []).forEach(add); linhasDe((pc.notasItem || {})[it.key]).forEach(add); for (const g of it.espec || []) for (const l of g.linhas || []) add(l[1]); for (const g of it.escopoG || []) for (const c of g.itens || []) for (const l of c.sub || []) add(/^#/.test(l) ? l.split('|').slice(1).join('|') : l); }
     return [...out];
@@ -175,7 +226,8 @@
     const lang = O.lang, r = R[lang] || R.pt, fdl = FD[lang] || FD.pt, tr = (s) => (lang === 'pt' || !s ? s : O.tr(s) || s);
     const jsPDF = await lib();
     const AS = window.PRICER_PROPOSTA_ASSETS; if (!AS) throw new Error('Imagens e fontes da proposta não encontradas no app.');
-    const E = efetivo(D, pc, M, lang); const f = D.flags || {}; const SEC = secoes(D, pc, M, O.tipo); const tem = (k) => SEC.includes(k);
+    const E = efetivo(D, pc, M, lang); const f = D.flags || {}; const SEC = O.soTermos ? ['termos'] : secoes(D, pc, M, O.tipo); const tem = (k) => SEC.includes(k);
+    const rs = Object.assign({}, RS.pt, RS[lang] || {}); const spv = D.tipo === 'SPV';
     const comPreco = O.tipo !== 'tec';
     const nf = (d) => new Intl.NumberFormat(LOC[lang], { minimumFractionDigits: d, maximumFractionDigits: d });
     const usd = O.moeda && O.moeda.cod === 'USD' && Number(O.moeda.taxa) > 0;
@@ -345,13 +397,31 @@
           if (usd) { F(MONO, 'normal', 7.4, TXT2); const nt = r.moeda.replace('{taxa}', nf(4).format(Number(O.moeda.taxa))).replace('{data}', O.moeda.data ? r.moedaData.replace('{d}', dataLang(O.moeda.data, lang)) : ''); for (const q of quebra(nt, LW)) { T(q, X1, y + 3, { align: 'right' }); y += 3.6; } }
           y += 4; }
       },
+      execucao() {
+        const S = E.serv; if (!S || S.vazio) return;
+        // continua na página das condições quando vem logo depois dela
+        if (SEC.indexOf('execucao') === SEC.indexOf('condicoes') + 1 && titulo) { precisa(30); separador(y); y += 5; } else pagina(rs.t_exec);
+        const lista = (tit, L) => { if (!L.length) return; precisa(14); titulo2(tit); marcadores(L.map((l) => tr(l)), { sz: 8.2, lh: 4, gap: 0.5 }); y += 3; };
+        if (S.equipe || S.duracao || S.horario) { precisa(18); titulo2(rs.h_exec); kv([[rs.equipe, tr(S.equipe)], [rs.duracao, tr(S.duracao)], [rs.horario, tr(S.horario)]]); }
+        lista(rs.h_seg, S.seg);
+        if (S.fora) { precisa(22); titulo2(rs.h_fora); paragrafo(rs.foraTxt.replace('{o}', S.foraObj ? tr(S.foraObj) : rs.foraObj).replace('{h}', S.foraHoras ? rs.foraH.replace('{h}', tr(S.foraHoras)) : ''), { just: true, depois: 3 }); }
+        lista(rs.h_resp, S.resp); lista(rs.h_entreg, S.entreg);
+        if (S.garantia) { precisa(14); titulo2(rs.h_garantia); paragrafo(tr(S.garantia), { just: true, depois: 3 }); }
+        if (S.lc116 || S.nbs || S.issMun || S.issRet) { precisa(18); titulo2(rs.h_fiscal); kv([[rs.lc116, S.lc116], [rs.nbs, S.nbs], [rs.issMun, tr(S.issMun)], [rs.issRet, S.issRet ? rs[S.issRet] : '']]); }
+        lista(rs.h_relac, S.relacionadas);
+        if (SEC.indexOf('execucao') === SEC.indexOf('condicoes') + 1 && tem('condicoes')) atencao();
+      },
       condicoes() {
         if (!juntas || titulo === null || !(SEC.indexOf('condicoes') === SEC.indexOf('planilha') + 1)) { pagina(r.t_condicoes); kv([[r.projObra, tr(E.obra)], [r.aosCuid, E.aosCuidados]]); y += 2; }
         titulo2(r.h_pag); paragrafo(tr(E.pagamento) || '—', { depois: 0.8 });
-        F(MONO, 'normal', 9.1); paragrafo(r.nota + ' ' + (M.notaPagamento || ''), { just: true, depois: 4 });
+        // a nota fala de marcos de fabricação (desenho técnico, aviso de pronto para expedição): não vale para serviço e peças
+        if (!spv) { F(MONO, 'normal', 9.1); paragrafo(r.nota + ' ' + (M.notaPagamento || ''), { just: true, depois: 4 }); } else y += 3.2;
         titulo2(r.h_prazo, tem('prazos') && D.tipo === 'SEQ' ? r.vide : '');
         { const fab = Number(E.prazoFab) || 0, ent = Number(E.prazoEnt) || 0; const L = [];
-          if (fab) L.push(r.fab.replace('{n}', fab)); if (ent) L.push(r.ent.replace('{n}', ent)); if (fab || ent) L.push(r.tot.replace('{n}', fab + ent));
+          if (spv) { // serviço: início no local; peças: entrega. Nada de "fabricação" numa proposta de serviço
+            if (E.serv && E.serv.prazoMobil) L.push(rs.mobil.replace('{n}', E.serv.prazoMobil));
+            if (fab) L.push((f.pecas ? rs.entPecas : rs.prazoN).replace('{n}', fab));
+          } else { if (fab) L.push(r.fab.replace('{n}', fab)); if (ent) L.push(r.ent.replace('{n}', ent)); if (fab || ent) L.push(r.tot.replace('{n}', fab + ent)); }
           for (const l of linhasDe(E.prazoTexto)) L.push(tr(l));
           if (!L.length) L.push(r.combinar);
           for (const l of L) paragrafo(l, { depois: 0.3 }); y += 3.7; }
@@ -359,7 +429,8 @@
         if (linhasDe(E.observacoes).length) titulo2(r.h_obs);
         { const L = linhasDe(E.observacoes).map((l) => (E.ajustados.observacoes ? tr(l) : l)); if (D.tipo === 'SPV' && L.length) marcadores(L, { sz: 7.4, lh: 3.7 }); else for (const l of L) paragrafo(l, { just: true, depois: 0.6 }); y += 2; }
         extrasComerciais();
-        atencao();
+        // com a execução do serviço logo depois, o aviso vai para o fim dela
+        if (!(spv && E.serv && !E.serv.vazio && SEC.indexOf('execucao') === SEC.indexOf('condicoes') + 1)) atencao();
       },
       folha() {
         D.itens.forEach((it, i) => {
@@ -427,8 +498,10 @@
       notas() {
         pagina(D.tipo === 'SEQ' ? r.t_notasSeq : r.t_notasSpv);
         for (const [rot, txt, k] of [[r.notas, E.notas, 'notas'], [r.desvios, E.desvios, 'desvios'], [r.exclusoes, E.exclusoes, 'exclusoes']]) {
-          faixa(rot, { sz: 8.2 }); const L = linhasDe(txt).map((l) => (E.ajustados[k] || (k === 'exclusoes' && linhasDe(D.exclusoes).includes(l)) ? tr(l) : l));
-          caixa(() => { if (!L.length) { y += 4; return; } marcadores(L.map((l) => l.replace(/^[•\-–]\s*/, '')), { sz: 7.4, lh: 3.7, gap: 0.5, x: X0 + 1, w: LW - 2 }); }, { pad: 1.2, borda: LINHA });
+          const L = linhasDe(txt).map((l) => (E.ajustados[k] || (k === 'exclusoes' && linhasDe(D.exclusoes).includes(l)) ? tr(l) : l));
+          if (!L.length) continue; // bloco vazio não sai (caixa em branco parece esquecimento)
+          faixa(rot, { sz: 8.2 });
+          caixa(() => { marcadores(L.map((l) => l.replace(/^[•\-–]\s*/, '')), { sz: 7.4, lh: 3.7, gap: 0.5, x: X0 + 1, w: LW - 2 }); }, { pad: 1.2, borda: LINHA });
           y += 4;
         }
       },
@@ -470,7 +543,9 @@
       },
       termos() {
         if (!(M.termos || []).length) return;
-        pagina(r.t_termos);
+        // termos em anexo (PDF à parte): no lugar das páginas, uma referência curta
+        if (E.termosAnexo && !O.soTermos) { precisa(22); y += 4; titulo2(rs.t_termosAnexo); paragrafo(rs.termosRef.replace('{arq}', O.termosArq ? ' (' + O.termosArq + ')' : ''), { just: true, depois: 3 }); return; }
+        pagina(O.soTermos ? rs.t_termosDoc : r.t_termos);
         const cw = 88.5, xs = [X0, X0 + cw + 8], lh = 3.35, sz = 7.2; let colN = 0;
         const L = [];
         for (const c of M.termos) { L.push(['t', c.t]); for (const p of c.p || []) { F(MONO, 'normal', sz); const q = quebra(p, cw); q.forEach((s, k) => L.push(['p', s, k < q.length - 1])); L.push(['g']); } L.push(['g']); }
@@ -496,7 +571,7 @@
     const n = doc.getNumberOfPages();
     for (let i = 2; i <= n; i++) { doc.setPage(i); F(MONO, 'normal', 7, CINZA); T(i + '/' + n, X1, 290.6, { align: 'right' }); }
     const cli = (E.cliente || '').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 50);
-    const pre = { tc: 'PTC', com: 'PC', tec: 'PT' }[O.tipo] || 'PTC';
+    const pre = O.soTermos ? 'TERMOS' : { tc: 'PTC', com: 'PC', tec: 'PT' }[O.tipo] || 'PTC';
     const nome = (pre + '_' + numero.replace(/\s*\/\s*/g, '_').replace(/\s+/g, '') + (lang !== 'pt' ? '_' + lang.toUpperCase() : '') + (usd ? '_USD' : '') + (cli ? '_' + cli : '')).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9.\-]+/g, '_').replace(/_+/g, '_').replace(/_$/, '') + '.pdf';
     return { bytes: doc.output('arraybuffer'), nome, paginas: n, secoes: SEC };
   }
@@ -528,7 +603,7 @@
     const ordem = C.map((x) => x[0]); return [...achados.entries()].sort((a, b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0])).map(([k, v]) => ({ k, v, on: true }));
   }
 
-  window.PricerProposta = { lerFolhaDados, montar, efetivo, modelo, aplica, normaTxt, dataBR, secoes, dinamicos, TIPOS, IDIOMAS, SECOES, SO_SEQ, LAYOUT, SLOTS,
+  window.PricerProposta = { lerFolhaDados, montar, efetivo, OPC_SERV, RS, servDados, modelo, aplica, normaTxt, dataBR, secoes, dinamicos, TIPOS, IDIOMAS, SECOES, SO_SEQ, LAYOUT, SLOTS,
     // usados pelo padrão Folha de dados (proposta-express.js)
     _i: { lib, limpa, linhasDe, R, FD, LOC, dataLang, MONO, MONT } };
 })();

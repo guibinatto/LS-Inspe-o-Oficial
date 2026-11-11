@@ -49,6 +49,7 @@ Cada teste imprime o que verificou. A última linha é `erros [...]`, com os err
 | `importa_spv_test` | importar serviço e peça (SPV): com `IMP_SPV_SERV` (MASTERDOC;LS PRICER;PDF) e `IMP_SPV_PECA` (LS PRICER;PDF), confere tipo SMC/PAR, custo, preço mantido, CNPJ do cliente, código, escopo, notas e o PDF |
 | `simmargem_test` | Formação → Negociar: desconto mostra a margem, margem desejada acha o desconto, a proposta não muda até Aplicar e, aplicada, fica com a margem pedida |
 | `ux_test` | Menos cliques: proposta nova repete pagamento, norma, frete e validade da última; atalho "30 dias" da validade; Formação com uma só área Negociar (atalhos Margem mínima e 5%, sem alterar a proposta), composição e cenários avançados recolhidos; margem do topo leva à negociação; pendências da conferência recolhidas |
+| `servico_html_test` | (1) Versão interativa: sai com o PDF oficial, o PDF dentro do HTML é o mesmo byte a byte, SHA-256 no rodapé, abre sem chamada externa, sem rolagem lateral no celular. (2) Com `IMP_SPV_SERV`: PDF de serviço sem "Fabricação" nem nota de DTC, execução do serviço completa, termos em PDF à parte e proposta mais curta |
 | `varredura_test` | todas as telas do menu no computador e no celular (erro, tela vazia, rolagem lateral); os 10 tipos SPV/FACTS até o PDF conferido; "Ajustar à margem mínima" em 12 modelos prontos (margem final 30,0%); Primeira Maiúscula nos nomes |
 | `sap_test` | menu, abas da proposta, composição do preço, listas (Modelo A), ficha (Modelo B), painel do componente |
 
