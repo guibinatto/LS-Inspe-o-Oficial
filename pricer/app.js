@@ -1835,7 +1835,8 @@
     // termos e condições em anexo: PDF à parte, citado pelo nome na proposta (a técnica não leva termos)
     const rt = pcGet().termosAnexo && tipo !== 'tec' && (M.termos || []).length ? await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, tr, soTermos: true }) : null;
     const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, nfpa, tr, fab, trFab: tr, desenhos, termosArq: rt && rt.nome }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos, termosArq: rt && rt.nome });
-    const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
+    // versão interativa: um download só (o HTML leva o PDF oficial dentro); o PDF continua guardado nos documentos
+    const ok = opt.html ? true : await REG.save(r.nome, r.bytes, 'application/pdf');
     logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
     const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });
     if (p && !dirty && !state.verRev && tipo !== 'tec' && lang === 'pt' && moeda.cod === 'BRL') await CF.rodar(file);

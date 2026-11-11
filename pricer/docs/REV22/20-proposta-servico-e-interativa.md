@@ -46,7 +46,7 @@ O texto dos termos não mudou.
 
 ## 2. Versão interativa (HTML)
 
-Botão **Versão interativa (HTML)** em Documentos, ao lado de "Gerar proposta". Ele gera o PDF oficial, como sempre, e um arquivo `.html`:
+Botão **Versão interativa (HTML)** em Documentos, ao lado de "Gerar proposta". Ele gera o PDF oficial e o guarda nos documentos da proposta, como sempre. O único download é o arquivo `.html`, que já leva o PDF dentro:
 
 - **É um arquivo só.** Imagens, fontes e o próprio PDF oficial vão dentro dele. Abre sem internet, no computador ou no celular, e não chama nenhum endereço de fora: sem rastreamento e sem fontes externas.
 - **Conteúdo:**
@@ -74,11 +74,25 @@ O app gera o arquivo; ele não hospeda a página. Para o cliente abrir por link,
 
 Recomendação de uso: em propostas grandes (SEQ), mandar o PDF como documento formal e a versão interativa como apresentação. Em serviço pequeno, só o PDF.
 
-## 3. Testes
+## 3. Correção depois do primeiro uso no celular
+
+No app publicado, ao clicar em "Versão interativa", só saía o PDF.
+
+**Causa:** o "salvar arquivo" do claude.ai fica com o conteúdo que recebe. Depois do primeiro download, os bytes do PDF ficavam vazios para o app, e a montagem do HTML com o PDF dentro falhava. O mesmo esvaziamento já existia antes, ao guardar nos documentos o PDF que acabava de ser baixado.
+
+**Correção:**
+- O app passa ao "salvar arquivo" uma cópia do conteúdo, e o original continua disponível.
+- Se a plataforma pedir para esperar, porque já há uma janela de salvar aberta, o app tenta de novo, até 3 vezes.
+- A versão interativa pede um download só, o HTML, em vez de dois. No celular isso é uma confirmação a menos.
+
+O teste agora simula esse comportamento do claude.ai.
+
+## 4. Testes
 
 | Verificação | Resultado |
 |---|---|
-| `servico_html_test` (novo) | ver o resultado na entrega |
+| `servico_html_test` (novo, 28 verificações) | todas passaram, incluindo uma simulação do "salvar arquivo" do claude.ai |
+| Suíte de proposta e jornada (24 testes) | todas passaram |
 | Cálculo | nada de cálculo mudou. Motor, SPV/FACTS e financeiro pela tela repetidos depois da mudança |
 
 Não houve teste em aparelho físico.

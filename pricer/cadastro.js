@@ -483,7 +483,10 @@
 
     // ---- arquivo para baixar ----
     R.save = async (filename, data, mime) => {
-      if (R.downloads) { try { await R.downloads.save({ filename, data }); return true; } catch (e) { if (e && e.code === 'declined') return false; } }
+      // o salvar do claude.ai TRANSFERE um ArrayBuffer (ele fica vazio para quem chamou): vai uma cópia em Blob,
+      // para o mesmo conteúdo poder ser guardado nos documentos e embutido na versão interativa depois do download
+      const dado = data instanceof ArrayBuffer || ArrayBuffer.isView(data) ? new Blob([data], { type: mime || 'application/octet-stream' }) : data;
+      if (R.downloads) { for (let k = 0; k < 4; k++) { try { await R.downloads.save({ filename, data: dado }); return true; } catch (e) { if (e && e.code === 'declined') return false; if (e && e.code === 'rate_limited' && k < 3) { await new Promise((ok) => setTimeout(ok, 1500)); continue; } break; } } }
       try { const b = new Blob([data], { type: mime || 'application/octet-stream' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = filename; a.click(); return true; } catch (e) { return false; }
     };
 

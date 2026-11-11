@@ -2227,7 +2227,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
     // ---- arquivo para baixar ----
     R.save = async (filename, data, mime) => {
-      if (R.downloads) { try { await R.downloads.save({ filename, data }); return true; } catch (e) { if (e && e.code === 'declined') return false; } }
+      // o salvar do claude.ai TRANSFERE um ArrayBuffer (ele fica vazio para quem chamou): vai uma cópia em Blob,
+      // para o mesmo conteúdo poder ser guardado nos documentos e embutido na versão interativa depois do download
+      const dado = data instanceof ArrayBuffer || ArrayBuffer.isView(data) ? new Blob([data], { type: mime || 'application/octet-stream' }) : data;
+      if (R.downloads) { for (let k = 0; k < 4; k++) { try { await R.downloads.save({ filename, data: dado }); return true; } catch (e) { if (e && e.code === 'declined') return false; if (e && e.code === 'rate_limited' && k < 3) { await new Promise((ok) => setTimeout(ok, 1500)); continue; } break; } } }
       try { const b = new Blob([data], { type: mime || 'application/octet-stream' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = filename; a.click(); return true; } catch (e) { return false; }
     };
 
@@ -10302,7 +10305,8 @@ window.PRICER_ESCOPO_PADRAO = {
     // termos e condições em anexo: PDF à parte, citado pelo nome na proposta (a técnica não leva termos)
     const rt = pcGet().termosAnexo && tipo !== 'tec' && (M.termos || []).length ? await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, tr, soTermos: true }) : null;
     const r = fd && window.PricerPropostaFD ? await window.PricerPropostaFD.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, nfpa, tr, fab, trFab: tr, desenhos, termosArq: rt && rt.nome }) : await PRP.montar(D, pcGet(), M, { tipo, lang, moeda, img, curvas, tr, desenhos, termosArq: rt && rt.nome });
-    const ok = await REG.save(r.nome, r.bytes, 'application/pdf');
+    // versão interativa: um download só (o HTML leva o PDF oficial dentro); o PDF continua guardado nos documentos
+    const ok = opt.html ? true : await REG.save(r.nome, r.bytes, 'application/pdf');
     logEv({ tipo: 'Proposta — PDF gerado', ref: state.id || docTitle(), desc: docTitle() + ' rev. ' + revAtual() + ': ' + r.nome + ' (' + TIPO_LB[tipo] + ', ' + LANG_LB[lang] + (moeda.cod === 'USD' ? ', US$ a R$ ' + NF[4].format(moeda.taxa) : '') + ', ' + r.paginas + ' páginas)', mudancas: [] });
     const p = propostaAtual(); const file = new File([r.bytes], r.nome, { type: 'application/pdf' });
     if (p && !dirty && !state.verRev && tipo !== 'tec' && lang === 'pt' && moeda.cod === 'BRL') await CF.rodar(file);
@@ -13910,7 +13914,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>11/11/2026 00:34 · commit 004bea9</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>11/11/2026 00:54 · commit a14889b</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;

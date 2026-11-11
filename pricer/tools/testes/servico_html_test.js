@@ -19,14 +19,14 @@ const SERV = (process.env.IMP_SPV_SERV || '').split(';').filter(Boolean);
   await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(900); await p.click('#bSave'); await p.waitForTimeout(800);
   await p.click('[data-view="proposta"]'); await p.evaluate(() => [...document.querySelectorAll('.ptab')].find((e) => /DOCUMENTOS/i.test(e.innerText)).click()); await p.waitForTimeout(800);
   confere('botão "Versão interativa (HTML)" em Documentos', !!(await p.$('[data-pchtml]')));
-  const ds = await baixa(2, () => p.click('[data-pchtml]'));
-  const pdfD = ds.find((d) => /\.pdf$/i.test(d.suggestedFilename())), htmlD = ds.find((d) => /\.html$/i.test(d.suggestedFilename()));
-  confere('saem o PDF oficial e o HTML', !!pdfD && !!htmlD, ds.map((d) => d.suggestedFilename()).join(' + '));
-  if (pdfD && htmlD) {
-    const fp = path.join(__dirname, 'interativa.pdf'), fh = path.join(__dirname, 'interativa.html'); await pdfD.saveAs(fp); await htmlD.saveAs(fh);
-    const html = fs.readFileSync(fh, 'utf8'); const pdf = fs.readFileSync(fp); const sha = crypto.createHash('sha256').update(pdf).digest('hex');
-    const m = html.match(/data:application\/pdf;base64,([A-Za-z0-9+/=]+)/); const dentro = m ? Buffer.from(m[1], 'base64') : null;
-    confere('o PDF dentro do HTML é o mesmo PDF oficial (byte a byte)', !!dentro && dentro.equals(pdf), dentro ? dentro.length + ' bytes' : 'sem PDF');
+  const ds = await baixa(1, () => p.click('[data-pchtml]'));
+  const htmlD = ds.find((d) => /\.html$/i.test(d.suggestedFilename()));
+  confere('um download só: o HTML (o PDF oficial vai dentro)', ds.length === 1 && !!htmlD, ds.map((d) => d.suggestedFilename()).join(' + '));
+  if (htmlD) {
+    const fp = path.join(__dirname, 'interativa.pdf'), fh = path.join(__dirname, 'interativa.html'); await htmlD.saveAs(fh);
+    const html = fs.readFileSync(fh, 'utf8'); const m = html.match(/data:application\/pdf;base64,([A-Za-z0-9+/=]+)/); const pdf = m ? Buffer.from(m[1], 'base64') : Buffer.alloc(0); fs.writeFileSync(fp, pdf);
+    const sha = crypto.createHash('sha256').update(pdf).digest('hex'); const tp = pdf.length ? execSync(`pdftotext -layout "${fp}" - 2>/dev/null`).toString() : '';
+    confere('PDF oficial dentro do HTML é um PDF válido da proposta', pdf.slice(0, 5).toString() === '%PDF-' && /COCAMAR/.test(tp) && /4\.258\.300,00/.test(tp), pdf.length + ' bytes');
     confere('SHA-256 do PDF no rodapé', html.includes(sha), sha.slice(0, 16) + '…');
     confere('aviso de que o PDF é o documento oficial', /em caso de divergência, vale o PDF/.test(html));
     confere('tamanho do HTML', html.length < 15e6, Math.round(html.length / 1024) + ' KB');
@@ -86,6 +86,27 @@ const SERV = (process.env.IMP_SPV_SERV || '').split(';').filter(Boolean);
       execSync(`pdftoppm -r 60 -png "${path.join(__dirname, prop.suggestedFilename())}" "${path.join(__dirname, 'servico_pag')}"`);
     }
   }
+  // ---------- (3) como no claude.ai: o "salvar arquivo" da plataforma TRANSFERE o ArrayBuffer (ele fica vazio) ----------
+  { const c3 = await b.newContext({ viewport: { width: 1440, height: 900 } }); const q = await c3.newPage();
+    await c3.route('https://cdnjs.cloudflare.com/**', (r) => { const u = r.request().url(); const f = /jspdf\.umd/.test(u) ? 'jspdf-2.5.1/dist/jspdf.umd.min.js' : /exceljs/.test(u) ? 'exceljs-4.4.0/dist/exceljs.min.js' : u.endsWith('pdf.min.js') ? 'pdfjs-dist-3.11.174/build/pdf.min.js' : u.endsWith('pdf.worker.min.js') ? 'pdfjs-dist-3.11.174/build/pdf.worker.min.js' : null; return f && fs.existsSync(L + f) ? r.fulfill({ path: L + f, contentType: 'text/javascript' }) : r.abort(); });
+    await c3.route('https://fonts.googleapis.com/**', (r) => r.abort());
+    await q.addInitScript(() => { window.__salvos = []; window.claude = { use: async (n) => (n !== 'downloads' ? null : { save: async ({ filename, data }) => {
+      let tam = 0, txt = null; if (data instanceof ArrayBuffer) { tam = data.byteLength; structuredClone(data, { transfer: [data] }); } else if (data instanceof Blob) { tam = data.size; if (/\.html$/.test(filename)) txt = await data.text(); } else if (typeof data === 'string') { tam = data.length; txt = data; }
+      window.__salvos.push({ filename, tam, pdfDentro: txt ? ((txt.match(/data:application\/pdf;base64,([A-Za-z0-9+/=]*)/) || [, ''])[1].length) : null }); } }) }; });
+    const e3 = []; q.on('pageerror', (e) => e3.push(e.message));
+    await q.goto('file://' + path.resolve(__dirname, '../../dist/ls-pricer.html')); await q.waitForTimeout(1800);
+    await q.evaluate(() => document.getElementById('bNew').click()); await q.waitForTimeout(300); await q.evaluate(() => document.getElementById('mExample').click()); await q.waitForTimeout(900);
+    await q.evaluate(() => document.getElementById('bSave').click()); await q.waitForTimeout(800);
+    await q.evaluate(() => { const a = document.querySelector('[data-view="proposta"]'); if (a) a.click(); }); await q.waitForTimeout(300);
+    await q.evaluate(() => { const t = [...document.querySelectorAll('.ptab')].find((e) => /DOCUMENTOS/i.test(e.innerText)); if (t) t.click(); }); await q.waitForTimeout(600);
+    await q.evaluate(() => document.querySelector('[data-pchtml]').click());
+    await q.waitForFunction(() => window.__salvos.some((x) => /\.html$/.test(x.filename)), null, { timeout: 180000 }).catch(() => {});
+    const sv = await q.evaluate(() => window.__salvos);
+    const h3 = sv.find((x) => /\.html$/.test(x.filename));
+    confere('claude.ai: versão interativa sai com um download só (o HTML)', sv.length === 1 && !!h3, sv.map((x) => x.filename + ' ' + x.tam).join(' + '));
+    confere('claude.ai: o PDF dentro do HTML não está vazio', h3 && h3.pdfDentro > 100000, h3 && h3.pdfDentro + ' caracteres em base64');
+    confere('claude.ai: sem erro de JavaScript', !e3.length, e3.join(' | '));
+    await c3.close(); }
   confere('sem erro de JavaScript no app', !errs.length, errs.join(' | '));
   for (const x of ok) console.log('  ✓ ' + x); for (const x of falha) console.log('  ✗ ' + x);
   console.log('FALHA: ' + falha.length); await b.close(); process.exit(falha.length ? 1 : 0);
