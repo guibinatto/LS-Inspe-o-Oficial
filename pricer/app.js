@@ -5656,7 +5656,7 @@
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
     const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null), origemItens: p.origemItens || {}, propCom: p.propCom ? JSON.parse(JSON.stringify(p.propCom)) : {} };
     if (p.div === 'SPV' && p.spv) {
-      const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); }
+      const spv = JSON.parse(JSON.stringify(p.spv)); if (dup) { spv.numero = ''; spv.status = 'rascunho'; spv.data = new Date().toISOString().slice(0, 10); delete spv.vinculo; }
       loadDoc({}, p.name, keepId, Object.assign(extra, { div: 'SPV', spv }));
     } else if (p.facts) {
       const facts = JSON.parse(JSON.stringify(p.facts)); if (dup) facts.numero = '';
@@ -5665,6 +5665,87 @@
     if (dup && !isSpv() && !isFacts()) { if (state.doc.PROPOSTA) delete state.doc.PROPOSTA.C5; build(); persist(); }
     dirty = !!dup; ui.recuperado = null; ui.erroSalvar = null; ui.salvoEm = dup ? null : p.at; ui.step = 1; ui.propFull = false; setView('proposta');
     toast(dup ? 'Cópia criada: dê um número novo e salve' : 'Aberto: ' + (p.name || docTitle()));
+  }
+  // SPV de serviço com peças: separa em duas propostas ligadas, uma de mão de obra e outra de peças, cada uma com o seu
+  // número (como no Ploomes: 10.339 serviço + 10.342 peça). Os valores não mudam: no cálculo da SPV o serviço não usa
+  // as peças e as peças não usam o serviço (impostos e comissões são percentuais sobre cada parte), então MO + peças = total de antes.
+  const SERV_PC = ['prazoMobil', 'equipe', 'duracao', 'horario', 'seg', 'segOutros', 'foraOp', 'foraHoras', 'foraObj', 'resp', 'respOutros', 'entreg', 'entregOutros', 'garantia', 'lc116', 'nbs', 'issMun', 'issRet'];
+  const REL_TXT = {
+    pt: { mo: (n) => 'Peças e materiais conforme a proposta nº ' + n + ' (cobrados à parte).', pecas: (n) => 'Mão de obra conforme a proposta nº ' + n + ' (cobrada à parte).' },
+    en: { mo: (n) => 'Parts and materials as per proposal no. ' + n + ' (charged separately).', pecas: (n) => 'Labor as per proposal no. ' + n + ' (charged separately).' },
+    es: { mo: (n) => 'Piezas y materiales según la propuesta n.º ' + n + ' (cobrados por separado).', pecas: (n) => 'Mano de obra según la propuesta n.º ' + n + ' (cobrada por separado).' },
+  };
+  const relacAdd = (txt, linha) => { const t = String(txt || '').trim(); return t.includes(linha) ? t : (t ? t + '\n' : '') + linha; };
+  const vinculoDe = (uid) => { const p = uid ? (REG.listPropostas() || []).find((x) => x.uid === uid && !x.excluida) : null; return p ? { id: p.id, numero: p.numero || '', total: typeof p.total === 'number' ? p.total : null, status: p.status || 'rascunho' } : null; };
+  function separarMotivo(s) {
+    if (s.vinculo) return 'Esta proposta já está separada (ligada à proposta nº ' + (s.vinculo.numero || '—') + ').';
+    if (s.blocos.contrato) return 'Contrato recorrente não é separado em mão de obra e peças.';
+    if (!s.blocos.equipe || !s.equipe.length) return 'Para separar, a proposta precisa ter equipe (mão de obra).';
+    if (!s.blocos.pecas || !s.pecas.length) return 'Para separar, a proposta precisa ter peças.';
+    return '';
+  }
+  function separarSpv() {
+    if (!isSpv() || state.verRev) return;
+    const s = state.spv; const mot = separarMotivo(s); if (mot) { toast(mot); return; }
+    const salva = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
+    if (salva && ['enviada', 'negociacao', 'ganha', 'perdida'].includes(salva.status)) { toast('Esta proposta já saiu para o cliente (' + salva.status + '). Separe antes de enviar; numa enviada, faça antes uma revisão.'); return; }
+    const r = SPV.calc(s); const nPc = s.pecas.length;
+    modal(`<h2>Separar em duas propostas: mão de obra e peças</h2>
+      <p class="sub" style="margin:0 0 10px">Como no Ploomes: uma proposta para o serviço e outra para as peças, cada uma com o seu número. As peças saem desta proposta e vão para uma proposta nova de <b>Peças e sobressalentes (PAR)</b>, com o mesmo cliente, contato, local, vendedor, pagamento e validade. Os preços não mudam.</p>
+      <div class="fields">
+        <div class="f span2"><label for="sepNumMo">Nº da proposta de mão de obra (esta)</label><input id="sepNumMo" value="${esc(s.numero || '')}" placeholder="ex.: 10.339">${window.LSNumGerar ? window.LSNumGerar('spv', '#sepNumMo', '') : ''}</div>
+        <div class="f span2"><label for="sepNumPc">Nº da proposta de peças (nova)</label><input id="sepNumPc" value="" placeholder="ex.: 10.342">${window.LSNumGerar ? window.LSNumGerar('spv', '#sepNumPc', '') : ''}</div></div>
+      <div class="kv pcro" style="margin-top:10px"><div>Mão de obra</div><div>${brl(r.Vs)} <small class="sub">equipe, deslocamento e ART</small></div>
+        <div>Peças</div><div>${brl(r.Vp)} <small class="sub">${nPc} linha(s)</small></div>
+        <div>Soma</div><div><b>${brl(r.Vs + r.Vp)}</b> <small class="sub">igual ao total de hoje (${brl(r.total)})</small></div></div>
+      <label class="chkl" style="margin-top:10px"><input type="checkbox" id="sepRel" checked> <span>Escrever em <b>Propostas relacionadas</b> de cada uma o número da outra (sai no PDF)</span></label>
+      <p class="sub" style="margin:8px 0 0">As duas ficam salvas e ligadas: cada uma mostra a outra no topo, com o botão Abrir. Cada uma tem o seu PDF, o seu status e a sua aprovação.</p>
+      <div class="docbar" style="margin-top:12px"><button class="btn pri" id="sepOk">Separar e salvar as duas</button><button class="btn" data-close>Cancelar</button></div>`,
+    (o, close) => { $('#sepOk', o).onclick = async () => {
+      const nMo = $('#sepNumMo', o).value.trim(), nP = $('#sepNumPc', o).value.trim();
+      if (!nP) { toast('Informe o número da proposta de peças (ou use "gerar nº").'); $('#sepNumPc', o).focus(); return; }
+      if (!nMo) { toast('Informe o número da proposta de mão de obra.'); $('#sepNumMo', o).focus(); return; }
+      if (nMo.toUpperCase() === nP.toUpperCase()) { toast('Os dois números precisam ser diferentes.'); return; }
+      for (const [n, pid] of [[nMo, state.id], [nP, null]]) if (REG.numeroDuplicado && REG.numeroDuplicado(n, pid)) {
+        if (REG.serieCfg && REG.serieCfg('spv').bloqueio) { toast('O número ' + n + ' já está em outra proposta salva. Troque (ou use "gerar nº").'); return; }
+        if (!await DLG.confirmar('O número ' + n + ' já está em outra proposta salva. Usar assim mesmo?')) return; }
+      const rel = $('#sepRel', o).checked; close(); await separarExec(nMo, nP, rel);
+    }; });
+  }
+  async function separarExec(nMo, nP, rel) {
+    const orig = JSON.parse(JSON.stringify(state)); const origDirty = dirty; const s = orig.spv;
+    const pc0 = orig.propCom || {}; const L = REL_TXT[pc0.idioma] || REL_TXT.pt;
+    const uidMo = orig.uid || newUid(), uidPc = newUid();
+    // peças: proposta nova (PAR), mesmo cliente e condições; sem equipe, deslocamento, escopo e dados fiscais do serviço
+    const sp = JSON.parse(JSON.stringify(s));
+    Object.assign(sp, { tipo: 'PAR', numero: nP, revisao: '0', status: 'rascunho', blocos: { equipe: false, pecas: true, contrato: false }, equipe: [], dist: 0, ov: {}, prazo_exec: '', codServico: '', exclusoes: '',
+      descricao: 'Fornecimento das peças e materiais abaixo, para o serviço da proposta nº ' + nMo + '.', vinculo: { papel: 'pecas', uid: uidMo, numero: nMo } });
+    delete sp.modelo;
+    const pcP = JSON.parse(JSON.stringify(pc0)); SERV_PC.forEach((k) => delete pcP[k]); if (rel) pcP.relacionadas = relacAdd(pcP.relacionadas, L.pecas(nMo));
+    // mão de obra: esta proposta, sem as peças
+    const sm = JSON.parse(JSON.stringify(s)); Object.assign(sm, { numero: nMo, blocos: Object.assign({}, s.blocos, { pecas: false }), pecas: [], vinculo: { papel: 'mo', uid: uidPc, numero: nP } });
+    const pcM = JSON.parse(JSON.stringify(pc0)); if (rel) pcM.relacionadas = relacAdd(pcM.relacionadas, L.mo(nP));
+    let idPc = null;
+    try {
+      state = { doc: {}, id: null, uid: uidPc, div: 'SPV', name: '', spv: sp, status: 'rascunho', propCom: pcP }; build(); persist(); dirty = true;
+      await $('#bSave').onclick();
+      if (!state.id || dirty) throw new Error(ui.erroSalvar ? ui.erroSalvar.msg : 'a proposta de peças não foi salva');
+      idPc = state.id;
+      state = Object.assign({}, orig, { uid: uidMo, spv: sm, propCom: pcM }); build(); persist(); dirty = true;
+      await $('#bSave').onclick();
+      if (!state.id || dirty) throw new Error(ui.erroSalvar ? ui.erroSalvar.msg : 'a proposta de mão de obra não foi salva');
+      logEv({ tipo: 'Proposta separada (MO e peças)', ref: state.id, desc: 'Mão de obra nº ' + nMo + ' · peças nº ' + nP + ' (' + (sp.cliente || '') + ')', mudancas: [{ campo: 'Peças', de: s.pecas.length, para: 0 }] });
+      ui.assinaturaAberta = assinatura(); render(); window.scrollTo(0, 0);
+      toast('Separada e salva: mão de obra nº ' + nMo + ' e peças nº ' + nP);
+    } catch (er) {
+      if (!idPc) { state = orig; build(); persist(); dirty = origDirty; render(); toast('Não separei: ' + errMsg(er) + '. A proposta ficou como estava.'); }
+      else { render(); toast('A proposta de peças nº ' + nP + ' foi salva, mas esta não: ' + errMsg(er) + '. Clique em Salvar para concluir.'); }
+    }
+  }
+  async function abrirVinculo(id) {
+    const p = (REG.listPropostas() || []).find((x) => x.id === id); if (!p) { toast('Proposta vinculada não encontrada.'); return; }
+    if (dirty && assinatura() !== ui.assinaturaAberta) { await $('#bSave').onclick(); if (dirty) return; }
+    openProposta(p, false); render(); window.scrollTo(0, 0);
   }
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
@@ -5812,7 +5893,7 @@
     e.preventDefault(); e.stopImmediatePropagation();
     if (await DLG.confirmar('A proposta aberta tem alterações não salvas. Começar uma nova mesmo assim? (as alterações se perdem)')) { b.dataset.dlgok = '1'; b.click(); }
   }, true);
-  const SPV = window.PricerSPV({ revisar: () => revisarModal(), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ revisar: () => revisarModal(), separar: () => separarSpv(), separarMotivo: (s) => separarMotivo(s), vinculo: (uid) => vinculoDe(uid), abrirVinculo: (id) => abrirVinculo(id), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
