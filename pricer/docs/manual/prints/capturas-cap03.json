@@ -6,7 +6,7 @@
   "titulo": "Janela Nova proposta",
   "vp": "desktop",
   "arquivo": "03-01-proposta-nova-janela.png",
-  "data": "2026-10-31T00:52:14.075Z",
+  "data": "2026-11-11T01:10:53.317Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -43,7 +43,7 @@
   "titulo": "Tela Início: botões para começar uma proposta SEQ",
   "vp": "desktop",
   "arquivo": "03-02-proposta-inicio-familias.png",
-  "data": "2026-10-31T00:52:15.333Z",
+  "data": "2026-11-11T01:10:54.524Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -80,7 +80,7 @@
   "titulo": "Dados gerais, cartão Cliente, com os campos obrigatórios em destaque",
   "vp": "desktop",
   "arquivo": "03-03-proposta-dados-cliente.png",
-  "data": "2026-10-31T00:52:16.419Z",
+  "data": "2026-11-11T01:10:55.548Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -135,7 +135,7 @@
   "titulo": "Dados gerais, cartão Proposta",
   "vp": "desktop",
   "arquivo": "03-04-proposta-dados-proposta.png",
-  "data": "2026-10-31T00:52:18.611Z",
+  "data": "2026-11-11T01:10:57.667Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -159,7 +159,7 @@
    },
    {
     "n": 4,
-    "txt": "Validade da proposta.",
+    "txt": "Validade: atalhos 15, 30 e 60 dias contam da data da proposta.",
     "sel": "label[for=\"c_PROPOSTA_C10\"] > span",
     "ok": true
    },
@@ -184,7 +184,7 @@
   "titulo": "Dados gerais, cartão Vendedor e comissões (vendedor escolhido e AN marcado)",
   "vp": "desktop",
   "arquivo": "03-05-proposta-vendedor-comissoes.png",
-  "data": "2026-10-31T00:52:19.009Z",
+  "data": "2026-11-11T01:10:58.043Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -215,7 +215,7 @@
   "titulo": "Buscar na Receita sem acesso à internet",
   "vp": "desktop",
   "arquivo": "03-06-proposta-receita-sem-conexao.png",
-  "data": "2026-10-31T00:52:25.340Z",
+  "data": "2026-11-11T01:11:04.062Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -246,7 +246,7 @@
   "titulo": "Barra superior: indicador de alterações não salvas",
   "vp": "desktop",
   "arquivo": "03-07-proposta-indicador-salvar.png",
-  "data": "2026-10-31T00:52:27.809Z",
+  "data": "2026-11-11T01:11:06.499Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -283,7 +283,7 @@
   "titulo": "Cabeçalho de contexto da proposta (exemplo salvo)",
   "vp": "desktop",
   "arquivo": "03-08-proposta-cabecalho-contexto.png",
-  "data": "2026-10-31T00:52:28.172Z",
+  "data": "2026-11-11T01:11:06.858Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -332,7 +332,7 @@
   "titulo": "Abas da proposta SEQ, com a situação de cada etapa",
   "vp": "desktop",
   "arquivo": "03-09-proposta-abas.png",
-  "data": "2026-10-31T00:52:31.377Z",
+  "data": "2026-11-11T01:11:09.938Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -393,7 +393,7 @@
   "titulo": "Janela Propostas salvas (botão Abrir)",
   "vp": "desktop",
   "arquivo": "03-10-proposta-abrir-janela.png",
-  "data": "2026-10-31T00:52:31.732Z",
+  "data": "2026-11-11T01:11:10.296Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -448,7 +448,7 @@
   "titulo": "Lista de propostas na tela Início",
   "vp": "desktop",
   "arquivo": "03-11-proposta-inicio-lista.png",
-  "data": "2026-10-31T00:52:33.179Z",
+  "data": "2026-11-11T01:11:11.659Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -497,7 +497,7 @@
   "titulo": "Cópia criada pelo Duplicar: sem número e ainda não salva",
   "vp": "desktop",
   "arquivo": "03-12-proposta-copia-duplicada.png",
-  "data": "2026-10-31T00:52:34.235Z",
+  "data": "2026-11-11T01:11:12.683Z",
   "ok": true,
   "problemas": [],
   "marcas": [

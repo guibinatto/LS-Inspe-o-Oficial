@@ -6,7 +6,7 @@
   "titulo": "Aba Itens da proposta de exemplo",
   "vp": "desktop",
   "arquivo": "04-01-precificacao-itens-lista.png",
-  "data": "2026-10-31T01:05:01.510Z",
+  "data": "2026-11-11T01:11:17.911Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -49,7 +49,7 @@
   "titulo": "Item 02 aberto no configurador: resumo do item e as três etapas",
   "vp": "desktop",
   "arquivo": "04-02-precificacao-item-alerta.png",
-  "data": "2026-10-31T01:05:02.640Z",
+  "data": "2026-11-11T01:11:19.024Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -83,10 +83,10 @@
   "id": "04-03",
   "cap": 4,
   "nome": "precificacao-formacao",
-  "titulo": "Aba Formação: resumo, condições comerciais e preço por item",
+  "titulo": "Aba Formação: indicadores e preço por item",
   "vp": "desktop",
   "arquivo": "04-03-precificacao-formacao.png",
-  "data": "2026-10-31T01:05:04.852Z",
+  "data": "2026-11-11T01:11:21.173Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -116,18 +116,12 @@
    },
    {
     "n": 5,
-    "txt": "Desconto global, condição de pagamento e frete: o que mexe no preço da proposta toda.",
-    "sel": "label[for=\"c_PROPOSTA_C9\"] > span",
-    "ok": true
-   },
-   {
-    "n": 6,
     "txt": "Situação do item: DENTRO DA POLÍTICA, ABAIXO DO PISO, MARGEM ABAIXO DO MÍNIMO.",
     "sel": "#app tr:has([data-goitem=\"2\"]) td:nth-child(7)",
     "ok": true
    },
    {
-    "n": 7,
+    "n": 6,
     "txt": "Botão do item: abre o item para ajustar desconto e margem-alvo.",
     "sel": "#app tr:has([data-goitem=\"0\"]) [data-goitem]",
     "ok": true
@@ -137,48 +131,54 @@
  "04-04": {
   "id": "04-04",
   "cap": 4,
-  "nome": "precificacao-simulador",
-  "titulo": "Simulador de negociação com valor final de R$ 4.000.000,00",
+  "nome": "precificacao-negociar",
+  "titulo": "Negociar: atalho \"Margem mínima\" simulado (a proposta só muda em Aplicar)",
   "vp": "desktop",
-  "arquivo": "04-04-precificacao-simulador.png",
-  "data": "2026-10-31T01:05:06.006Z",
+  "arquivo": "04-04-precificacao-negociar.png",
+  "data": "2026-11-11T01:11:22.290Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
-    "txt": "Simulação: a proposta oficial não muda.",
-    "sel": "#simCard h2 .pill",
+    "txt": "Desconto global e margem atuais da proposta.",
+    "sel": "#simMgCard h2 .sub",
     "ok": true
    },
    {
     "n": 2,
-    "txt": "Desconto global (%) ou valor final negociado com IPI: com o valor, o app acha o desconto que leva a esse total.",
-    "sel": "#simAlvo",
+    "txt": "Atalhos de um clique: margem mínima, sem desconto, 3%, 5% e 10%.",
+    "sel": "#simMgCard .smq",
     "ok": true
    },
    {
     "n": 3,
-    "txt": "Variação de custos (%); ao lado, condição de pagamento e comissões também podem ser testadas.",
-    "sel": "#simCusto",
+    "txt": "Ou digite o desconto global, a margem desejada ou o valor final ao cliente.",
+    "sel": "#smMg",
     "ok": true
    },
    {
     "n": 4,
-    "txt": "Botões: Simular, Salvar cenário, Converter em revisão e Restaurar o original.",
-    "sel": "#simCard [data-simclear]",
+    "txt": "Proposta agora × simulação × diferença, com os dois fatores.",
+    "sel": "#smRes table",
     "ok": true
    },
    {
     "n": 5,
-    "txt": "Proposta oficial × simulação × diferença.",
-    "sel": "#simCard table",
+    "txt": "Dentro da política ou \"precisa de aprovação\".",
+    "sel": "#smRes div.banner",
     "ok": true
    },
    {
     "n": 6,
-    "txt": "Se o cenário sai da política, o app avisa e oferece \"pedir aprovação com este valor\".",
-    "sel": "#simCard .banner",
+    "txt": "Aplicar à proposta: grava o desconto global.",
+    "sel": "[data-smaplica]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Condição de pagamento e frete: também mexem no preço.",
+    "sel": "#simMgCard #c_PROPOSTA_J6",
     "ok": true
    }
   ]
@@ -190,7 +190,7 @@
   "titulo": "Aba Conferência: conferência central e pedido de aprovação",
   "vp": "desktop",
   "arquivo": "04-05-precificacao-conferencia.png",
-  "data": "2026-10-31T01:05:09.999Z",
+  "data": "2026-11-11T01:11:31.167Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -239,7 +239,7 @@
   "titulo": "Item novo: etapa Configurar, escolha da família",
   "vp": "desktop",
   "arquivo": "04-06-precificacao-item-familia.png",
-  "data": "2026-10-31T01:05:11.628Z",
+  "data": "2026-11-11T01:11:32.809Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -276,7 +276,7 @@
   "titulo": "Etapa Configurar: ponto de partida e lista de modelos prontos com pesquisa e filtro",
   "vp": "desktop",
   "arquivo": "04-07-precificacao-item-equipamento.png",
-  "data": "2026-10-31T01:05:13.688Z",
+  "data": "2026-11-11T01:11:34.835Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -319,7 +319,7 @@
   "titulo": "Modelo pronto aplicado: características do equipamento e a origem de cada valor",
   "vp": "desktop",
   "arquivo": "04-08-precificacao-item-modelo-alertas.png",
-  "data": "2026-10-31T01:05:15.841Z",
+  "data": "2026-11-11T01:11:36.987Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -350,7 +350,7 @@
   "titulo": "Etapa Conferir: Condições deste item",
   "vp": "desktop",
   "arquivo": "04-09-precificacao-item-condicoes.png",
-  "data": "2026-10-31T01:05:21.997Z",
+  "data": "2026-11-11T01:11:42.905Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -393,7 +393,7 @@
   "titulo": "Etapa Compor: componentes classificados e o painel \"Por que este componente?\"",
   "vp": "desktop",
   "arquivo": "04-10-precificacao-item-componentes.png",
-  "data": "2026-10-31T01:05:18.027Z",
+  "data": "2026-11-11T01:11:39.099Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -442,7 +442,7 @@
   "titulo": "Aba Custos com o item novo (linhas com informação de cotação)",
   "vp": "desktop",
   "arquivo": "04-11-precificacao-custos.png",
-  "data": "2026-10-31T01:05:25.678Z",
+  "data": "2026-11-11T01:11:46.585Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -503,7 +503,7 @@
   "titulo": "Botão Planilha completa: visão com todas as colunas da proposta",
   "vp": "desktop",
   "arquivo": "04-12-precificacao-planilha-completa.png",
-  "data": "2026-10-31T01:05:26.760Z",
+  "data": "2026-11-11T01:11:47.676Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -546,7 +546,7 @@
   "titulo": "Aba Formação: aviso de preço vencido e o botão Atualizar no cadastro",
   "vp": "desktop",
   "arquivo": "04-13-precificacao-preco-vencido.png",
-  "data": "2026-10-31T01:05:32.893Z",
+  "data": "2026-11-11T01:11:53.686Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -571,7 +571,7 @@
   "titulo": "Etapa Conferir do item 02: alerta de margem com as ações e as confirmações",
   "vp": "desktop",
   "arquivo": "04-14-precificacao-item-conferir-alerta.png",
-  "data": "2026-10-31T01:05:04.032Z",
+  "data": "2026-11-11T01:11:20.382Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -614,7 +614,7 @@
   "titulo": "Etapa Conferir: resumo, custo e preço da planilha e as verificações",
   "vp": "desktop",
   "arquivo": "04-15-precificacao-item-conferir.png",
-  "data": "2026-10-31T01:05:20.324Z",
+  "data": "2026-11-11T01:11:41.316Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -663,7 +663,7 @@
   "titulo": "Incluir na proposta: gravado e registrado, sem duplicar o item",
   "vp": "desktop",
   "arquivo": "04-16-precificacao-item-incluir.png",
-  "data": "2026-10-31T01:05:22.676Z",
+  "data": "2026-11-11T01:11:43.576Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -677,6 +677,55 @@
     "n": 2,
     "txt": "Clicar de novo atualiza o mesmo item (Atualizar na proposta); não cria outro.",
     "sel": "#app [data-cfgincluir]",
+    "ok": true
+   }
+  ]
+ },
+ "04-17": {
+  "id": "04-17",
+  "cap": 4,
+  "nome": "precificacao-cenarios-avancados",
+  "titulo": "Cenários avançados com valor final de R$ 4.000.000,00",
+  "vp": "desktop",
+  "arquivo": "04-17-precificacao-cenarios-avancados.png",
+  "data": "2026-11-11T01:11:26.490Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Cenários avançados: fica recolhido; abre sozinho quando há uma simulação.",
+    "sel": "#simAvDet > summary",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Desconto global (%) ou valor final negociado com IPI.",
+    "sel": "#simAlvo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Variação de custos (%); ao lado, outra condição de pagamento e as comissões.",
+    "sel": "#simCusto",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Simular, Salvar cenário, Converter em revisão e Restaurar o original.",
+    "sel": "#simCard [data-simclear]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Proposta oficial × simulação × diferença.",
+    "sel": "#simCard table",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Fora da política: o app avisa e oferece \"pedir aprovação com este valor\".",
+    "sel": "#simCard .banner",
     "ok": true
    }
   ]

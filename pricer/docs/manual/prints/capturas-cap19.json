@@ -1,0 +1,83 @@
+{
+ "19-01": {
+  "id": "19-01",
+  "cap": 19,
+  "nome": "importar-janela",
+  "titulo": "Nova → Importar proposta antiga: janela para escolher os arquivos",
+  "vp": "desktop",
+  "arquivo": "19-01-importar-janela.png",
+  "data": "2026-11-11T01:17:27.426Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Arquivos: a planilha LS PRICER (.xlsx) e, se tiver, os PDFs da técnica e da comercial. Para serviços, junte a planilha MASTERDOC.",
+    "sel": "#impArq",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Criar a proposta: só libera depois da prévia. Nada é gravado até você salvar.",
+    "sel": "#impOk",
+    "ok": true
+   }
+  ]
+ },
+ "19-02": {
+  "id": "19-02",
+  "cap": 19,
+  "nome": "importar-previa-seq",
+  "titulo": "Prévia de uma proposta SEQ (planilha + PDF técnico + PDF comercial)",
+  "vp": "desktop",
+  "arquivo": "19-02-importar-previa-seq.png",
+  "data": "2026-11-11T01:17:29.559Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O que foi lido: planilha (versão), PDFs (técnica/comercial), número, cliente e textos.",
+    "sel": "#impPrev .kv",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Por item: custo, preço na planilha, no PDF e com as regras do app.",
+    "sel": "#impPrev table",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Preço da proposta: manter o da planilha, o do PDF, ou recalcular.",
+    "sel": "#impPrev .impradio",
+    "ok": true
+   }
+  ]
+ },
+ "19-03": {
+  "id": "19-03",
+  "cap": 19,
+  "nome": "importar-previa-spv",
+  "titulo": "Prévia de uma proposta de serviço (MASTERDOC + LS PRICER + PDF)",
+  "vp": "desktop",
+  "arquivo": "19-03-importar-previa-spv.png",
+  "data": "2026-11-11T01:17:32.926Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O app reconhece serviço ou peça, a equipe e o deslocamento, e mostra custo e preço como na SEQ.",
+    "sel": "#impPrev",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Preço: o da planilha, o do PDF, ou recalcular com as regras do app.",
+    "sel": "#impPrev .impradio",
+    "ok": true
+   }
+  ]
+ }
+}

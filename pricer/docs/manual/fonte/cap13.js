@@ -100,23 +100,23 @@ module.exports = {
         { sel: '#app .aprovbox [data-alaprov]', txt: 'Pedir de novo, com novo valor target.', pos: 'l' },
       ],
       depois: async (p, h) => { await h.clicar('#app [data-apaplica]', 700); await h.salvar(); } },
-    { id: '13-09', nome: 'pendencias-alertas', titulo: 'Alertas por item: corrigir agora ou seguir assim', clip: '#app details.card', pad: 8,
+    { id: '13-09', nome: 'pendencias-alertas', titulo: 'Alertas por item: corrigir agora ou seguir assim', clip: '#app details[data-keep="alertas"]', pad: 8,
       prep: async (p, h) => {
         // regra de atenção cadastrada pela Engenharia, só para gerar um alerta sem aprovação
         await h.nav('cadastro'); await h.cad('estruturas'); await h.cad('regras'); await h.clicar('[data-rgedit="novo"]', 300);
         await p.fill('#rgNome', 'Confirmar a pressão do ponto mais desfavorável'); await p.selectOption('#rgSev', 'aviso'); await p.selectOption('#rgSt', 'publicada');
         await h.clicar('.modal [data-rcrm="0"]', 200); await p.selectOption('#rgEf', 'aviso'); await p.fill('#rgFonte', 'decisão da Engenharia (exemplo de treino)'); await h.clicar('#rgOk', 500);
         await p.click('#nav [data-view="proposta"]'); await h.esperar(300); await h.aba(5);
-        await p.evaluate(() => { const d = document.querySelector('#app details.card'); if (d) d.open = true; });
+        await p.evaluate(() => { const d = document.querySelector('#app details[data-keep="alertas"]'); if (d) d.open = true; });
       },
       marcas: [
-        { sel: '#app details.card summary', txt: 'Alertas por item, com a contagem por tipo.', pos: 'l' },
-        { sel: '#app details.card li.ack', txt: 'Alerta coberto pela aprovação: sem botões.', pos: 'l' },
-        { sel: '#app details.card li.warn [data-alack]', txt: 'Seguir assim: mantém, com justificativa no histórico.', pos: 'tl' },
-        { sel: '#app details.card li.warn [data-goitem]', nth: 2, txt: 'abrir: vai ao item.', pos: 'b' },
+        { sel: '#app details[data-keep="alertas"] summary', txt: 'Alertas por item, com a contagem por tipo.', pos: 'l' },
+        { sel: '#app details[data-keep="alertas"] li.ack', txt: 'Alerta coberto pela aprovação: sem botões.', pos: 'l' },
+        { sel: '#app details[data-keep="alertas"] li.warn [data-alack]', txt: 'Seguir assim: mantém, com justificativa no histórico.', pos: 'tl' },
+        { sel: '#app details[data-keep="alertas"] li.warn [data-goitem]', nth: 2, txt: 'abrir: vai ao item.', pos: 'b' },
       ] },
     { id: '13-10', nome: 'pendencias-seguir-assim', titulo: 'Seguir assim: a justificativa é obrigatória', clip: '.modal .card', pad: 6,
-      prep: async (p, h) => { await h.clicar('#app details.card li.warn [data-alack]', 400); await p.fill('#akMot', 'pressão confirmada pelo cliente em reunião de 28/10'); },
+      prep: async (p, h) => { await h.clicar('#app details[data-keep="alertas"] li.warn [data-alack]', 400); await p.fill('#akMot', 'pressão confirmada pelo cliente em reunião de 28/10'); },
       marcas: [
         { sel: '.modal #akMot', txt: 'Por que seguir assim? (fica no histórico)', pos: 'l' },
         { sel: '.modal #akOk', txt: 'Confirmar. Depois, salve a proposta.', pos: 'l' },
@@ -127,7 +127,7 @@ module.exports = {
     { t: 'p', x: 'Este capítulo cobre o que ainda falta resolver numa proposta e quem precisa decidir. São três mecanismos que conversam entre si: a **conferência da proposta** (aba Conferência), o **acompanhamento de pendências** (menu Pendências) e a **aprovação de desconto com valor target** (Diretoria e Financeiro).' },
     { t: 'tab', cab: ['Mecanismo', 'Onde', 'O que faz'], lin: [
       ['Conferência da proposta', 'Proposta → aba Conferência → quadro "Conferência da proposta"', 'Lista o que impede seguir, o que pede tratamento ou justificativa e o que só informa.'],
-      ['Pendências automáticas', 'Menu Pendências → Acompanhamento; aba Conferência → "Pendências desta proposta"', 'Ao salvar a proposta, cada falha da conferência que impede ou pede atenção vira uma pendência com código, departamento, prazo e prioridade. Não duplica e se resolve sozinha quando a falha some.'],
+      ['Pendências automáticas', 'Menu Pendências → Acompanhamento; aba Conferência → "Pendências desta proposta" (quadro recolhido; clique no título para abrir)', 'Ao salvar a proposta, cada falha da conferência que impede ou pede atenção vira uma pendência com código, departamento, prazo e prioridade. Não duplica e se resolve sozinha quando a falha some.'],
       ['Pendências manuais', 'Botão "+ Nova pendência"', 'Qualquer coisa a resolver, com ou sem proposta.'],
       ['Alertas por item', 'Aba Conferência → "Alertas por item"; tela do item', 'Cada alerta tem a correção possível (por exemplo, Ajustar à margem mínima) ou Seguir assim, com justificativa.'],
       ['Aprovação com valor target', 'Aba Conferência → "Aprovação da proposta"; Margens → Aprovações', 'Pede à Diretoria e ao Financeiro um valor para a proposta toda; depois de aprovado, o valor é aplicado na proposta.'],
@@ -163,7 +163,7 @@ module.exports = {
       quem: 'Qualquer pessoa da equipe que possa gravar (no modo compartilhado, Contribuidor ou acima). No modo local não há controle de acesso.',
       pre: ['Para ligar à proposta, abra-a e use o quadro da aba Conferência.'],
       passos: [
-        'Clique em **+ Nova pendência**: no **Acompanhamento** (pendência geral, sem proposta) ou no quadro **Pendências desta proposta** da aba **Conferência** (ligada à proposta).',
+        'Clique em **+ Nova pendência**: no **Acompanhamento** (pendência geral, sem proposta) ou no quadro **Pendências desta proposta** da aba **Conferência** (ligada à proposta; o quadro fica recolhido, clique no título para abrir).',
         'Descreva em **Pendência** e escolha **Departamento**, **Responsável**, **Prazo**, **Prioridade** e **Criticidade**.',
         'Clique em **Abrir pendência**.',
       ],

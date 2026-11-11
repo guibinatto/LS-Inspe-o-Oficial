@@ -1,7 +1,7 @@
 // Guia rápido de consulta (versão resumida do manual MN · LS Pricer).
 module.exports = {
   intro: [
-    { t: 'p', x: 'Consulta rápida das rotinas mais usadas do **LS Pricer REV22**. O passo a passo completo, com as telas anotadas, está no Manual de Utilização (capítulo indicado entre parênteses).' },
+    { t: 'p', x: 'Consulta rápida das rotinas mais usadas do **LS Pricer REV22**. O passo a passo completo, com as telas anotadas, está nos manuais, com o capítulo entre parênteses: **MU** = Manual do Usuário, **MA** = Manual do Administrador.' },
   ],
   secoes: [
     { titulo: 'Onde fica cada coisa', fig: '01-02', blocos: [
@@ -18,7 +18,7 @@ module.exports = {
         ['Dados gerais', 'Cliente, obra, UF, cadastro fiscal, segmento, número, revisão, pagamento, norma, vendedor e comissões'],
         ['Itens', 'Família, modelo, condições, componentes e quantidade de cada equipamento'],
         ['Custos', 'Origem, data e validade dos preços; "não se aplica"'],
-        ['Formação', 'Preço por item, desconto, margem e simulador'],
+        ['Formação', 'Preço por item, Negociar (desconto, margem ou valor final) e cenários avançados'],
         ['Conferência', 'Impeditivos, alertas, pedido de aprovação, conferência do PDF'],
         ['Memorial', 'Memorial de formação para o financeiro, por item e total'],
         ['Documentos', 'Proposta técnica e comercial (PDF no modelo LS Fire), documentos ligados, memorial em PDF, FCI; **Anexar ou ver todos os documentos** abre a biblioteca'],
@@ -32,7 +32,9 @@ module.exports = {
         ['Nova SPV', 'Início → tipo de serviço, ou **Nova** → **SPV** (cap. 6)'],
         ['Abrir proposta salva', '**Abrir** na barra superior, ou a lista da tela Início (cap. 3)'],
         ['Duplicar', 'Lista da tela Início → **Duplicar**; dê um número novo e salve (cap. 3)'],
-        ['Simular negociação', 'Aba **Formação** → Simulador (cap. 4)'],
+        ['Negociar desconto ou margem', 'Clique na **Margem** do topo da proposta → cartão **Negociar** → atalho ou valor → **Aplicar à proposta** (cap. 4)'],
+        ['Versão interativa (HTML)', 'Aba **Documentos** → **Versão interativa (HTML)** (cap. 20)'],
+        ['Importar proposta antiga', '**Nova** → **Importar proposta antiga (planilha + PDFs)** (cap. 19)'],
         ['Pedir aprovação de valor target', 'Aba **Conferência** → pedido de aprovação (cap. 13)'],
         ['Nova revisão', 'Selo da revisão no cabeçalho → **Revisar**, com o motivo (cap. 15)'],
         ['Comparar revisões', 'Selo da revisão → escolha a revisão → **Comparar** (cap. 15)'],

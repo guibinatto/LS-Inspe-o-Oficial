@@ -12,6 +12,11 @@ const OR = 'FF6600', CZ = '404040', OR_CL = 'FFE5CC', LINHA = 'CCCCCC';
 const A4 = { w: 11906, h: 16838 }, MRG = 1134, UTIL = A4.w - 2 * MRG; // 2 cm de margem
 
 const qual = process.argv[2] || 'manual';
+// manuais por público (meta.manuais): usuario, admin. 'manual' = todos os capítulos num documento só
+const CONF = (META.manuais || {})[qual] || null;
+if (CONF) Object.assign(META, { titulo: CONF.titulo, subtitulo: CONF.subtitulo || META.subtitulo, arquivo: CONF.arquivo, revisoes: CONF.revisoes || META.revisoes });
+// referências "capítulo N" (número do arquivo capNN) viram o número no documento gerado, ou o do outro manual
+let REFS = (t) => t;
 fs.mkdirSync(CACHE, { recursive: true });
 
 // ---------- imagens ----------
@@ -28,7 +33,7 @@ function dimensiona(w, h, maxW, maxH) { const k = Math.min(maxW / w, maxH / h, 1
 // ---------- texto ----------
 function runs(txt, base) {
   base = base || {}; const out = [];
-  String(txt).split(/(\*\*[^*]+\*\*)/).forEach((s) => { if (!s) return; const b = /^\*\*(.+)\*\*$/.exec(s); out.push(new D.TextRun(Object.assign({ text: b ? b[1] : s, font: 'Arial' }, base, b ? { bold: true } : {}))); });
+  REFS(String(txt)).split(/(\*\*[^*]+\*\*)/).forEach((s) => { if (!s) return; const b = /^\*\*(.+)\*\*$/.exec(s); out.push(new D.TextRun(Object.assign({ text: b ? b[1] : s, font: 'Arial' }, base, b ? { bold: true } : {}))); });
   return out;
 }
 const P = (txt, o) => new D.Paragraph(Object.assign({ children: runs(txt, (o || {}).run), spacing: { after: 120, line: 276 } }, o && o.p));
@@ -207,13 +212,21 @@ function capitulos() {
   return fs.readdirSync(FONTE).filter((f) => /^cap\d\d\.js$/.test(f)).sort().map((f) => require(path.join(FONTE, f)));
 }
 function manual() {
-  const caps = capitulos();
-  const F = [...capa(['MANUAL DE UTILIZAÇÃO', 'LS PRICER'], META.subtitulo)];
+  const todos = capitulos(); const porN = new Map(todos.map((c) => [c.n, c]));
+  const lista = CONF ? CONF.caps.map((n) => porN.get(n)).filter(Boolean) : todos;
+  const disp = new Map(lista.map((c, i) => [c.n, i + 1]));
+  if (CONF) {
+    const outro = CONF.outro && META.manuais[CONF.outro]; const dOutro = outro ? new Map(outro.caps.map((n, i) => [n, i + 1])) : new Map();
+    REFS = (t) => t.replace(/([Cc])apítulos? (\d+)(?: e (\d+))?/g, (m, c, a, b) => { const f = (n) => (disp.has(+n) ? String(disp.get(+n)) : dOutro.has(+n) ? dOutro.get(+n) + ' do ' + outro.nome : n);
+      const fa = f(a), fb = b ? f(b) : null; return c + 'apítulo' + (b ? 's ' + fa + ' e ' + fb : ' ' + fa); });
+  }
+  const caps = lista.map((c) => Object.assign({}, c, { n: disp.get(c.n) }));
+  const F = [...capa(CONF ? CONF.capa : ['MANUAL DE UTILIZAÇÃO', 'LS PRICER'], META.subtitulo)];
   // controle do documento
   F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, children: [new D.TextRun('Controle do documento')] }));
   F.push(tabela(['Revisão', 'Data', 'Descrição', 'Elaborado por', 'Aprovado por'], META.revisoes.map((r) => [r.rev, r.data, r.desc, r.elab || '', r.aprov || '']), [900, 1300, 4300, 1570, 1570].map((x) => Math.round(x * UTIL / 9640))));
   F.push(vazio(10));
-  F.push(...semVazioFinal(blocos({ n: 0, capturas: [] }, META.sobre, { fig: 0, tut: 0 })));
+  F.push(...semVazioFinal(blocos({ n: 0, capturas: [] }, (CONF && CONF.intro ? CONF.intro : []).concat(META.sobre), { fig: 0, tut: 0 })));
   F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new D.TextRun('Sumário')] }));
   F.push(new D.TableOfContents('Sumário', { hyperlink: true, headingStyleRange: '1-2' }));
   const gloss = new Map(META.glossario.map(([a, b]) => [a, b]));
@@ -232,6 +245,10 @@ function manual() {
 // ---------- guia rápido ----------
 function guia() {
   const G = require(path.join(FONTE, 'guia-rapido.js'));
+  // "cap. N" (número do arquivo capNN) vira o capítulo do Manual do Usuário (MU) ou do Administrador (MA)
+  if (META.manuais) { const mu = new Map(META.manuais.usuario.caps.map((n, i) => [n, i + 1])), ma = new Map(META.manuais.admin.caps.map((n, i) => [n, i + 1]));
+    const um = (n) => (mu.has(+n) ? 'MU ' + mu.get(+n) : ma.has(+n) ? 'MA ' + ma.get(+n) : 'cap. ' + n);
+    REFS = (t) => t.replace(/cap\. (\d+)(?: (a|e) (\d+))?/g, (m, a, sep, b) => (b ? um(a) + ' ' + sep + ' ' + um(b) : um(a))); }
   const caps = capitulos(); const porId = {}; for (const c of caps) for (const s of c.capturas || []) porId[s.id] = c;
   const F = [];
   F.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, children: [new D.TextRun('Guia rápido — LS Pricer')] }));

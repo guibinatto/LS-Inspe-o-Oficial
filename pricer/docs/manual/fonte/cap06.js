@@ -358,3 +358,58 @@ module.exports.conteudo.push(
   { t: 'fig', id: '06-13' }, { t: 'fig', id: '06-14' },
   { t: 'aviso', x: 'Mudar diária, km, hotel ou alimentação muda o custo de todas as SPV novas. Nas SPV já criadas, os preços de deslocamento continuam os do dia da criação; o cartão avisa quando o cadastro mudou e oferece **Usar os preços atuais**.' },
 );
+
+// ---- Proposta de serviço: execução do serviço e termos em anexo (Rev. 01) ----
+const abreExec = async (p) => { await p.evaluate(() => document.querySelectorAll('details').forEach((d) => { if (d.querySelector('[data-pc="equipe"]')) d.open = true; })); await p.waitForTimeout(300); };
+const pc = async (p, k, v) => { await p.evaluate(([k, v]) => { const e = document.querySelector('[data-pc="' + k + '"]'); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]); await p.waitForTimeout(150); };
+const marca = async (p, sel) => { await p.evaluate((sel) => { const e = document.querySelector(sel); if (e && !e.checked) { e.checked = true; e.dispatchEvent(new Event('change', { bubbles: true })); } }, sel); await p.waitForTimeout(250); };
+module.exports.capturas.push(
+  { id: '06-15', nome: 'spv-execucao-servico', titulo: 'Para o documento da proposta → Execução do serviço (preenchido)', novo: true, alto: 1500,
+    prep: async (p, h) => { await h.clicar('[data-spvnew="SMC"]', 800); await abreExec(p);
+      await pc(p, 'prazoMobil', '5'); await pc(p, 'equipe', '02 técnicos especializados'); await pc(p, 'duracao', '1 dia (8 horas)'); await pc(p, 'horario', 'segunda a sexta, 8h às 17h');
+      for (const k of ['nr10', 'aso', 'integ', 'apr']) await marca(p, '[data-pcchk="seg|' + k + '"]');
+      await marca(p, '[data-pcbool="foraOp"]'); await abreExec(p); await pc(p, 'foraHoras', '6 horas');
+      for (const k of ['acesso', 'utilid']) await marca(p, '[data-pcchk="resp|' + k + '"]'); for (const k of ['relat', 'teste']) await marca(p, '[data-pcchk="entreg|' + k + '"]');
+      await pc(p, 'garantia', '90 dias a partir da conclusão, para defeitos de execução'); await pc(p, 'lc116', '14.01'); await pc(p, 'issMun', 'Curitiba-PR'); await pc(p, 'issRet', 'sim'); await abreExec(p); },
+    clip: 'details:has([data-pc="equipe"])', pad: 8,
+    marcas: [
+      { sel: 'details:has([data-pc="equipe"]) > summary', txt: 'Execução do serviço: recolhido até ter algo preenchido.', pos: 'r' },
+      { sel: '[data-pc="equipe"]', txt: 'Início, equipe, duração no local e horário.', pos: 'b' },
+      { sel: '[data-pcchk="seg|nr10"]', txt: 'Segurança: marque só o que vale para o serviço.', pos: 'l' },
+      { sel: '[data-pcbool="foraOp"]', txt: 'Sistema fora de operação: sai o aviso da NFPA 25 com o tempo informado.', pos: 'l' },
+      { sel: '[data-pcchk="resp|acesso"]', txt: 'Responsabilidades do cliente.', pos: 'l' },
+      { sel: '[data-pcchk="entreg|relat"]', txt: 'Entregáveis.', pos: 'l' },
+      { sel: '[data-pc="garantia"]', txt: 'Garantia do serviço (texto livre).', pos: 'b' },
+      { sel: '[data-pc="lc116"]', txt: 'Dados fiscais: item da LC 116, NBS, município do ISS e ISS retido.', pos: 't' },
+    ] },
+  { id: '06-16', nome: 'spv-termos-anexo', titulo: 'Propostas relacionadas e termos e condições em anexo',
+    prep: async (p) => { await pc(p, 'relacionadas', 'Radiador fornecido conforme a PTC 10.342 (cobrado à parte)'); await marca(p, '[data-pcbool="termosAnexo"]'); },
+    clip: [['.fields:has([data-pc="relacionadas"])', 0]], pad: 8,
+    marcas: [
+      { sel: '[data-pc="relacionadas"]', txt: 'Deixa claro o que está em outra proposta (peça × mão de obra).', pos: 'b' },
+      { sel: '[data-pcbool="termosAnexo"]', txt: 'Termos em anexo: a proposta cita o PDF dos termos, gerado junto.', pos: 'r' },
+    ] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Proposta de serviço: execução do serviço e termos em anexo' },
+  { t: 'p', x: 'Na SPV, o cartão **Para o documento da proposta** tem o bloco **Execução do serviço**. Ele traz o que a área de segurança e o fiscal de um cliente grande pedem para liberar o serviço. **Só sai no PDF o que for marcado ou escrito.** As opções marcadas saem no idioma do PDF.' },
+  { t: 'fig', id: '06-15' },
+  { t: 'tab', cab: ['Bloco', 'O que sai no PDF'], lin: [
+    ['Início, equipe, duração, horário', '"Início dos serviços: N dias após o pedido de compra" e o quadro Execução do serviço. Proposta de serviço não fala em "fabricação"'],
+    ['Segurança e acesso ao local', 'NR-10, NR-12, NR-33, NR-35, ASO, integração, APR e permissão de trabalho, documentação antes da mobilização; mais outros, um por linha'],
+    ['Sistema de incêndio fora de operação', 'Aviso para o cliente seguir o procedimento de sistema fora de operação da NFPA 25 (seguradora, brigada, proteção alternativa), com o tempo informado'],
+    ['Responsabilidades do cliente', 'Acesso, energia e água, área isolada, acompanhante, local para ferramentas; mais outras'],
+    ['Entregáveis', 'Relatório com fotos, registro do teste de funcionamento, ART, checklist NFPA 25; mais outros'],
+    ['Garantia do serviço', 'O texto escrito. O app não sugere prazo'],
+    ['Dados fiscais', 'Item da LC 116, código NBS, município do ISS e ISS retido pelo tomador'],
+    ['Propostas relacionadas', 'Ex.: "Radiador fornecido conforme a PTC 10.342 (cobrado à parte)"'],
+  ] },
+  { t: 'tut', titulo: 'Completar a proposta de serviço para um cliente grande', objetivo: 'Deixar no PDF o que Compras, SSMA e o fiscal do cliente procuram, sem páginas a mais.', quem: 'Contribuidor, Editor ou dono. No modo local não há controle de acesso.', pre: ['SPV de serviço aberta (não vale para "Peças e sobressalentes" só com peças).'], passos: [
+    'Na SPV, vá até o cartão **Para o documento da proposta** e clique em **Execução do serviço** para abrir.',
+    { x: 'Preencha início, equipe, duração e horário. Marque o que vale em **Segurança e acesso ao local**, **Responsabilidades do cliente** e **Entregáveis**.', fig: '06-15' },
+    'Se o serviço deixa o sistema parado, marque **O serviço deixa o sistema de incêndio fora de operação** e informe o que fica parado e por quanto tempo.',
+    'Escreva a **Garantia do serviço** e os **dados fiscais** que o cliente pedir.',
+    { x: 'Em **Propostas relacionadas**, cite a proposta da peça, se houver. Marque **Termos e condições em anexo** para não repetir os termos dentro da proposta.', fig: '06-16' },
+    'Gere o PDF da proposta.',
+  ], resultado: 'O PDF traz a seção de execução do serviço logo depois das condições. Com os termos em anexo, sai também o PDF "TERMOS_…" e a proposta cita esse arquivo pelo nome. No exemplo da WEG (troca de radiador), a proposta caiu de 12 para 6 páginas.', atencao: 'Com os termos em anexo, mande os **dois** PDFs ao cliente. No app publicado, confirme **Salvar arquivo** duas vezes.', dica: 'Caixas de notas, desvios e exclusões vazias não saem no PDF. "Desvios" é só o que difere da especificação do cliente; premissas e exclusões vão nos outros campos.' },
+);

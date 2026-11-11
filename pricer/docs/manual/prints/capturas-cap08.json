@@ -6,7 +6,7 @@
   "titulo": "Cadastro geral → Campos por família",
   "vp": "desktop",
   "arquivo": "08-01-cadastro-campos-por-familia.png",
-  "data": "2026-10-31T01:05:45.150Z",
+  "data": "2026-11-11T01:04:50.019Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -55,7 +55,7 @@
   "titulo": "Campos e modelo de uma família (motor elétrico)",
   "vp": "desktop",
   "arquivo": "08-02-cadastro-campos-modelo.png",
-  "data": "2026-10-31T01:05:47.573Z",
+  "data": "2026-11-11T01:04:52.308Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -113,10 +113,10 @@
   "id": "08-03",
   "cap": 8,
   "nome": "cadastro-descricao-gerada",
-  "titulo": "Aba Técnica: campos da família que montam a descrição",
+  "titulo": "Aba Características técnicas: campos da família que montam a descrição",
   "vp": "desktop",
   "arquivo": "08-03-cadastro-descricao-gerada.png",
-  "data": "2026-10-31T01:05:49.033Z",
+  "data": "2026-11-11T01:04:53.765Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -153,7 +153,7 @@
   "titulo": "Verificação de duplicidade: mesmo produto e semelhantes",
   "vp": "desktop",
   "arquivo": "08-04-cadastro-duplicidade.png",
-  "data": "2026-10-31T01:05:54.317Z",
+  "data": "2026-11-11T01:04:58.890Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -196,7 +196,7 @@
   "titulo": "Descrição fora do padrão: justificativa da exceção",
   "vp": "desktop",
   "arquivo": "08-05-cadastro-excecao-padrao.png",
-  "data": "2026-10-31T01:05:58.364Z",
+  "data": "2026-11-11T01:05:02.874Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -233,7 +233,7 @@
   "titulo": "Cadastro geral → Sinônimos e abreviações",
   "vp": "desktop",
   "arquivo": "08-06-cadastro-sinonimos.png",
-  "data": "2026-10-31T01:05:59.921Z",
+  "data": "2026-11-11T01:05:04.363Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -282,7 +282,7 @@
   "titulo": "Cadastro geral → Padronização de descrições",
   "vp": "desktop",
   "arquivo": "08-07-cadastro-padronizacao.png",
-  "data": "2026-10-31T01:06:01.469Z",
+  "data": "2026-11-11T01:05:05.884Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -343,7 +343,7 @@
   "titulo": "Aba Geral: descrição técnica gerada e descrição comercial sugerida",
   "vp": "desktop",
   "arquivo": "08-08-cadastro-descricao-gerada-geral.png",
-  "data": "2026-10-31T01:05:52.869Z",
+  "data": "2026-11-11T01:04:57.457Z",
   "ok": true,
   "problemas": [],
   "marcas": [

@@ -6,7 +6,7 @@
   "titulo": "Tela inicial e menu lateral",
   "vp": "desktop",
   "arquivo": "02-01-navegacao-tela-inicial.png",
-  "data": "2026-10-31T00:51:50.619Z",
+  "data": "2026-11-11T01:00:01.652Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -31,7 +31,7 @@
    {
     "n": 4,
     "txt": "Grupo (Propostas, Cadastros, Gestão, Administração, Ajuda): clique para abrir ou fechar os atalhos dele.",
-    "sel": "#nav [data-navgt=\"propostas\"]",
+    "sel": "#nav [data-navgt=\"comercial\"]",
     "ok": true
    },
    {
@@ -85,7 +85,7 @@
   "titulo": "Barra superior com a proposta aberta",
   "vp": "desktop",
   "arquivo": "02-02-navegacao-barra-superior.png",
-  "data": "2026-10-31T00:51:51.247Z",
+  "data": "2026-11-11T01:00:02.212Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -140,7 +140,7 @@
   "titulo": "Menu lateral recolhido (só ícones)",
   "vp": "desktop",
   "arquivo": "02-03-navegacao-menu-recolhido.png",
-  "data": "2026-10-31T00:51:53.069Z",
+  "data": "2026-11-11T01:00:03.899Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -165,7 +165,7 @@
   "titulo": "No celular: barra de navegação embaixo e barra superior compacta",
   "vp": "celular",
   "arquivo": "02-04-navegacao-celular.png",
-  "data": "2026-10-31T00:52:01.727Z",
+  "data": "2026-11-11T01:00:11.792Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -220,7 +220,7 @@
   "titulo": "No celular: painel Mais ações",
   "vp": "celular",
   "arquivo": "02-05-navegacao-celular-mais-acoes.png",
-  "data": "2026-10-31T00:52:04.462Z",
+  "data": "2026-11-11T01:00:14.363Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -245,7 +245,7 @@
   "titulo": "No celular: menu completo pelo botão Mais",
   "vp": "celular",
   "arquivo": "02-06-navegacao-celular-menu.png",
-  "data": "2026-10-31T00:52:05.595Z",
+  "data": "2026-11-11T01:00:15.450Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -270,7 +270,7 @@
   "titulo": "No tablet: menu lateral em coluna de ícones com o nome",
   "vp": "tablet",
   "arquivo": "02-07-navegacao-tablet.png",
-  "data": "2026-10-31T00:52:09.090Z",
+  "data": "2026-11-11T01:00:18.583Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -289,7 +289,7 @@
   "titulo": "Grupo Cadastros aberto, com os atalhos para cada cadastro",
   "vp": "desktop",
   "arquivo": "02-08-navegacao-submenu.png",
-  "data": "2026-10-31T00:51:55.180Z",
+  "data": "2026-11-11T01:00:05.904Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -314,7 +314,7 @@
   "titulo": "Busca universal (Ctrl+K)",
   "vp": "desktop",
   "arquivo": "02-09-navegacao-busca.png",
-  "data": "2026-10-31T00:51:57.328Z",
+  "data": "2026-11-11T01:00:07.902Z",
   "ok": true,
   "problemas": [],
   "marcas": [

@@ -1,6 +1,6 @@
 # Relatório de cobertura — Manual de Utilização do LS Pricer
 
-Documento: MN · Revisão 00 · gerado em 31/10/2026 a partir de `docs/manual/fonte` e das capturas em `docs/manual/prints`.
+Documento: MN · Revisão 00 · gerado em 11/11/2026 a partir de `docs/manual/fonte` e das capturas em `docs/manual/prints`.
 
 Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construído do código em `pricer/`), executado no Chromium (Playwright), modo local, janela 1440×900 (computador) e 390×844 (celular), escala 1,5.
 
@@ -8,10 +8,10 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 
 | Indicador | Valor |
 |---|---|
-| Capítulos | 18 |
-| Tutoriais e exercícios (modelo padrão) | 88 |
-| Telas capturadas (cada uma com original e anotada) | 168 |
-| Capturas validadas (todos os marcadores encontrados no elemento real) | 168 de 168 |
+| Capítulos | 20 |
+| Tutoriais e exercícios (modelo padrão) | 95 |
+| Telas capturadas (cada uma com original e anotada) | 181 |
+| Capturas validadas (todos os marcadores encontrados no elemento real) | 181 de 181 |
 | Trechos marcados como "Não validado" | 32 |
 
 ## Módulos documentados
@@ -21,9 +21,9 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | 1 | Apresentação do LS Pricer | 0 | 2 | 2 | 0 |
 | 2 | Primeiro acesso e navegação | 2 | 9 | 9 | 0 |
 | 3 | Criação de proposta | 5 | 12 | 12 | 1 |
-| 4 | Precificação SEQ | 7 | 16 | 16 | 1 |
+| 4 | Precificação SEQ | 8 | 17 | 17 | 1 |
 | 5 | Memorial | 4 | 11 | 11 | 3 |
-| 6 | SPV (serviços e pós-venda) e FACTS | 7 | 14 | 14 | 4 |
+| 6 | SPV (serviços e pós-venda) e FACTS | 8 | 16 | 16 | 4 |
 | 7 | Cadastro de insumos | 9 | 22 | 22 | 3 |
 | 8 | Padronização de descrições | 6 | 8 | 8 | 1 |
 | 9 | Estruturas | 4 | 11 | 11 | 0 |
@@ -35,7 +35,9 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | 15 | Revisões e histórico | 6 | 10 | 10 | 3 |
 | 16 | Configurações e administração | 5 | 11 | 11 | 4 |
 | 17 | Erros comuns e soluções | 0 | 0 | 0 | 0 |
-| 18 | Exercícios práticos | 8 | 0 | 0 | 0 |
+| 18 | Exercícios práticos | 10 | 0 | 0 | 0 |
+| 19 | Importar proposta antiga | 2 | 3 | 3 | 0 |
+| 20 | Versão interativa, memorial em Excel e fatores | 1 | 7 | 7 | 0 |
 
 ## Telas do sistema × capturas
 
@@ -43,7 +45,7 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 
 | Entrada | Capturada |
 |---|---|
-| Início: painel, atalhos e propostas recentes | sim |
+| Página inicial: resumo, propostas recentes, pendências e ações rápidas | sim |
 | Proposta aberta | sim |
 | Cadastros | sim |
 | Pendências | sim |
@@ -133,8 +135,9 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 04-01 | 04-01-precificacao-itens-lista.png | Aba Itens da proposta de exemplo | desktop | validada |
 | 04-02 | 04-02-precificacao-item-alerta.png | Item 02 aberto no configurador: resumo do item e as três etapas | desktop | validada |
 | 04-14 | 04-14-precificacao-item-conferir-alerta.png | Etapa Conferir do item 02: alerta de margem com as ações e as confirmações | desktop | validada |
-| 04-03 | 04-03-precificacao-formacao.png | Aba Formação: resumo, condições comerciais e preço por item | desktop | validada |
-| 04-04 | 04-04-precificacao-simulador.png | Simulador de negociação com valor final de R$ 4.000.000,00 | desktop | validada |
+| 04-03 | 04-03-precificacao-formacao.png | Aba Formação: indicadores e preço por item | desktop | validada |
+| 04-04 | 04-04-precificacao-negociar.png | Negociar: atalho "Margem mínima" simulado (a proposta só muda em Aplicar) | desktop | validada |
+| 04-17 | 04-17-precificacao-cenarios-avancados.png | Cenários avançados com valor final de R$ 4.000.000,00 | desktop | validada |
 | 04-05 | 04-05-precificacao-conferencia.png | Aba Conferência: conferência central e pedido de aprovação | desktop | validada |
 | 04-06 | 04-06-precificacao-item-familia.png | Item novo: etapa Configurar, escolha da família | desktop | validada |
 | 04-07 | 04-07-precificacao-item-equipamento.png | Etapa Configurar: ponto de partida e lista de modelos prontos com pesquisa e filtro | desktop | validada |
@@ -171,14 +174,16 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 06-12 | 06-12-spv-facts-formacao.png | FACTS: formação do preço | desktop | validada |
 | 06-13 | 06-13-spv-cadastro-servicos.png | Cadastros → Serviços: técnicos, deslocamento e modelos de serviço e contrato | desktop | validada |
 | 06-14 | 06-14-spv-cadastro-modelos.png | Cadastros → Serviços: modelos de serviço e contrato | desktop | validada |
+| 06-15 | 06-15-spv-execucao-servico.png | Para o documento da proposta → Execução do serviço (preenchido) | desktop | validada |
+| 06-16 | 06-16-spv-termos-anexo.png | Propostas relacionadas e termos e condições em anexo | desktop | validada |
 | 07-01 | 07-01-cadastro-insumos-lista.png | Lista de insumos com busca, filtros, favorito e ordenação | desktop | validada |
 | 07-20 | 07-20-cadastro-ficha-geral.png | Ficha do produto em abas: aba Geral de um novo insumo | desktop | validada |
-| 07-02 | 07-02-cadastro-ficha-identificacao.png | Aba Técnica: características técnicas da família | desktop | validada |
+| 07-02 | 07-02-cadastro-ficha-identificacao.png | Aba Características técnicas: campos da família | desktop | validada |
 | 07-03 | 07-03-cadastro-ficha-descricoes.png | Descrições do insumo e aviso de itens parecidos | desktop | validada |
-| 07-04 | 07-04-cadastro-ficha-fornecedores.png | Fornecedores e cotações, com o custo total, e equivalentes | desktop | validada |
-| 07-21 | 07-21-cadastro-ficha-equivalentes.png | Aba Técnica: equivalentes técnicos e alternativas | desktop | validada |
+| 07-04 | 07-04-cadastro-ficha-fornecedores.png | Aba Fornecedores: cotações com o custo total | desktop | validada |
+| 07-21 | 07-21-cadastro-ficha-equivalentes.png | Aba Características técnicas: equivalentes técnicos e alternativas | desktop | validada |
 | 07-05 | 07-05-cadastro-ficha-impacto-preco.png | Mudança de preço: aviso e impacto na margem das propostas | desktop | validada |
-| 07-06 | 07-06-cadastro-ficha-onde-usado.png | Aba Estruturas e utilização: onde o insumo é usado | desktop | validada |
+| 07-06 | 07-06-cadastro-ficha-onde-usado.png | Aba Estruturas e kits: onde o insumo é usado | desktop | validada |
 | 07-22 | 07-22-cadastro-ficha-historicos.png | Abas Compras e custos (histórico de preço), Documentos e Histórico | desktop | validada |
 | 07-07 | 07-07-cadastro-renomear.png | Renomear um insumo usado em estrutura: o app mostra o impacto antes | desktop | validada |
 | 07-08 | 07-08-cadastro-edicao-massa.png | Edição em massa: campo, novo valor e prévia | desktop | validada |
@@ -195,7 +200,7 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 07-19 | 07-19-cadastro-precos-vencidos.png | Insumos com preço vencido: indicador, aviso, filtro e coluna Preço atualizado em | desktop | validada |
 | 08-01 | 08-01-cadastro-campos-por-familia.png | Cadastro geral → Campos por família | desktop | validada |
 | 08-02 | 08-02-cadastro-campos-modelo.png | Campos e modelo de uma família (motor elétrico) | desktop | validada |
-| 08-03 | 08-03-cadastro-descricao-gerada.png | Aba Técnica: campos da família que montam a descrição | desktop | validada |
+| 08-03 | 08-03-cadastro-descricao-gerada.png | Aba Características técnicas: campos da família que montam a descrição | desktop | validada |
 | 08-08 | 08-08-cadastro-descricao-gerada-geral.png | Aba Geral: descrição técnica gerada e descrição comercial sugerida | desktop | validada |
 | 08-04 | 08-04-cadastro-duplicidade.png | Verificação de duplicidade: mesmo produto e semelhantes | desktop | validada |
 | 08-05 | 08-05-cadastro-excecao-padrao.png | Descrição fora do padrão: justificativa da exceção | desktop | validada |
@@ -275,6 +280,16 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 16-09 | 16-09-config-tema-escuro.png | Tema escuro (botão de tema na barra superior) | desktop | validada |
 | 16-10 | 16-10-config-cenarios-tributarios.png | Cadastros → Fiscal → Cenários tributários (reforma) | desktop | validada |
 | 16-11 | 16-11-config-numeracao.png | Administração → Numeração e máscaras (série de propostas SEQ ligada) | desktop | validada |
+| 19-01 | 19-01-importar-janela.png | Nova → Importar proposta antiga: janela para escolher os arquivos | desktop | validada |
+| 19-02 | 19-02-importar-previa-seq.png | Prévia de uma proposta SEQ (planilha + PDF técnico + PDF comercial) | desktop | validada |
+| 19-03 | 19-03-importar-previa-spv.png | Prévia de uma proposta de serviço (MASTERDOC + LS PRICER + PDF) | desktop | validada |
+| 20-01 | 20-01-interativa-botoes.png | Aba Documentos: os botões de gerar a proposta | desktop | validada |
+| 20-02 | 20-02-interativa-memorial-excel.png | Memorial de cálculo: Memorial (PDF) e Memorial (Excel) | desktop | validada |
+| 20-03 | 20-03-interativa-fatores.png | Memorial: as linhas dos dois fatores, logo depois da margem | desktop | validada |
+| 20-04 | 20-04-interativa-capa.png | Versão interativa aberta no navegador: capa | desktop | validada |
+| 20-05 | 20-05-interativa-resumo.png | Versão interativa: resumo | desktop | validada |
+| 20-06 | 20-06-interativa-item.png | Versão interativa: um item, com o que está incluso | desktop | validada |
+| 20-07 | 20-07-interativa-rodape.png | Versão interativa: rodapé com o aviso e o SHA-256 do PDF oficial | desktop | validada |
 
 ## Procedimentos testados
 
@@ -332,11 +347,11 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 
 | # | Verificação | Resultado |
 |---|---|---|
-| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 91 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
+| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 99 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
 | 2 | Os menus existem? | Sim: os 7 itens do menu lateral citados no manual são os do arquivo index.html. |
 | 3 | Os caminhos de navegação estão corretos? | Sim: cada caminho foi percorrido pela ferramenta de captura antes de cada foto (os passos clicam nos elementos reais). |
 | 4 | Os prints correspondem aos procedimentos? | Sim: cada figura é gerada pelos passos do próprio tutorial. |
-| 5 | As marcações estão posicionadas corretamente? | 168 de 168 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
+| 5 | As marcações estão posicionadas corretamente? | 181 de 181 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
 | 6 | As descrições dos campos estão corretas? | Conferidas contra o código (rótulos, mensagens e regras). |
 | 7 | Os exemplos usam dados fictícios identificados? | Sim: proposta de exemplo do sistema e dados de treinamento identificados como fictícios no capítulo 18. |
 | 8 | As fórmulas apresentadas são reais? | Sim: só aparecem as fórmulas que o próprio sistema mostra (nota de cálculo do Memorial e "Como cada número é calculado" do painel). |
@@ -355,6 +370,8 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 2 | Ver em cartões |
 | 3 | SEQ — Soluções e equipamentos |
 | 3 | só nos campos vazios |
+| 3 | 60 dias |
+| 3 | última proposta SEQ que você criou |
 | 3 | Salvar como revisão N |
 | 3 | É só correção: salvar na revisão N |
 | 3 | ← <etapa anterior> |
@@ -365,7 +382,8 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 4 | Especificações do fornecimento |
 | 4 | Proposta técnica e comercial deste item |
 | 4 | usar o configurador assistido |
-| 5 | Gerar proposta (PDF) |
+| 4 | Margem mínima (30%) |
+| 4 | Aplicar à proposta (desconto global …) |
 | 5 | Configurações → Modelo da proposta |
 | 5 | Qtd / Descrição |
 | 5 | texto reconhecido na imagem: confira tudo |
@@ -384,6 +402,7 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 6 | Anual · 1×/ano |
 | 6 | Salvar como revisão N |
 | 6 | É só correção: salvar na revisão N |
+| 6 | Salvar arquivo |
 | 7 | modo compartilhado |
 | 7 | vencido · N d |
 | 7 | vence em N d |
@@ -430,3 +449,5 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 17 | Margem e custo do item entre telas |
 | 17 | Exclusão de insumo é definitiva |
 | 18 | proposta de exemplo |
+| 18 | Margem mínima (30%) |
+| 20 | Salvar arquivo |

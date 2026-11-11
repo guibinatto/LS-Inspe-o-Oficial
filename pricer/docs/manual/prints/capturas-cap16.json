@@ -6,7 +6,7 @@
   "titulo": "Menu Configurações e suas quatro abas",
   "vp": "desktop",
   "arquivo": "16-01-config-menu.png",
-  "data": "2026-10-31T01:03:05.271Z",
+  "data": "2026-11-11T01:09:57.049Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -61,7 +61,7 @@
   "titulo": "Histórico com filtro de tipo e busca",
   "vp": "desktop",
   "arquivo": "16-02-config-historico.png",
-  "data": "2026-10-31T01:03:06.443Z",
+  "data": "2026-11-11T01:09:58.198Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -110,7 +110,7 @@
   "titulo": "Perfis e permissões (matriz)",
   "vp": "desktop",
   "arquivo": "16-03-config-perfis.png",
-  "data": "2026-10-31T01:03:07.750Z",
+  "data": "2026-11-11T01:09:59.520Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -159,7 +159,7 @@
   "titulo": "E-mails das áreas",
   "vp": "desktop",
   "arquivo": "16-04-config-emails.png",
-  "data": "2026-10-31T01:03:08.872Z",
+  "data": "2026-11-11T01:10:00.667Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -208,7 +208,7 @@
   "titulo": "Logo da empresa",
   "vp": "desktop",
   "arquivo": "16-05-config-logo.png",
-  "data": "2026-10-31T01:03:09.669Z",
+  "data": "2026-11-11T01:10:01.471Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -233,7 +233,7 @@
   "titulo": "Backup e restauração, com a lixeira",
   "vp": "desktop",
   "arquivo": "16-06-config-backup.png",
-  "data": "2026-10-31T01:03:10.014Z",
+  "data": "2026-11-11T01:10:01.809Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -270,7 +270,7 @@
   "titulo": "Janela de restauração de backup (prévia antes de gravar)",
   "vp": "desktop",
   "arquivo": "16-07-config-restaurar.png",
-  "data": "2026-10-31T01:03:11.087Z",
+  "data": "2026-11-11T01:10:02.896Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -319,7 +319,7 @@
   "titulo": "Planilha (avançado), filtrada",
   "vp": "desktop",
   "arquivo": "16-08-config-planilha.png",
-  "data": "2026-10-31T01:03:13.413Z",
+  "data": "2026-11-11T01:10:05.245Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -362,7 +362,7 @@
   "titulo": "Tema escuro (botão de tema na barra superior)",
   "vp": "desktop",
   "arquivo": "16-09-config-tema-escuro.png",
-  "data": "2026-10-31T01:03:16.234Z",
+  "data": "2026-11-11T01:10:08.039Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -387,7 +387,7 @@
   "titulo": "Cadastros → Fiscal → Cenários tributários (reforma)",
   "vp": "desktop",
   "arquivo": "16-10-config-cenarios-tributarios.png",
-  "data": "2026-10-31T01:03:24.711Z",
+  "data": "2026-11-11T01:10:16.335Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -399,7 +399,7 @@
   "titulo": "Administração → Numeração e máscaras (série de propostas SEQ ligada)",
   "vp": "desktop",
   "arquivo": "16-11-config-numeracao.png",
-  "data": "2026-10-31T01:03:32.760Z",
+  "data": "2026-11-11T01:10:24.064Z",
   "ok": true,
   "problemas": [],
   "marcas": [

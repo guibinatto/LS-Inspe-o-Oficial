@@ -6,7 +6,7 @@
   "titulo": "Tela Documentos: área para soltar o arquivo, busca e filtro por tipo",
   "vp": "desktop",
   "arquivo": "12-01-documentos-biblioteca.png",
-  "data": "2026-10-31T01:07:20.678Z",
+  "data": "2026-11-11T01:06:24.409Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -43,7 +43,7 @@
   "titulo": "Novo documento lido de um XML de NF-e, ligado à proposta, à revisão, ao item e à etapa",
   "vp": "desktop",
   "arquivo": "12-02-documentos-novo.png",
-  "data": "2026-10-31T01:07:22.429Z",
+  "data": "2026-11-11T01:06:26.004Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -104,7 +104,7 @@
   "titulo": "Documento salvo na lista, com a ligação à proposta",
   "vp": "desktop",
   "arquivo": "12-03-documentos-lista.png",
-  "data": "2026-10-31T01:07:25.639Z",
+  "data": "2026-11-11T01:06:29.154Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -147,7 +147,7 @@
   "titulo": "Ficha do insumo: seção Fornecedores e cotações",
   "vp": "desktop",
   "arquivo": "12-04-documentos-ficha-insumo-fornecedores.png",
-  "data": "2026-10-31T01:07:27.238Z",
+  "data": "2026-11-11T01:06:30.735Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -190,7 +190,7 @@
   "titulo": "Cadastros → Custos → Fornecedores e fabricantes",
   "vp": "desktop",
   "arquivo": "12-05-documentos-fornecedores.png",
-  "data": "2026-10-31T01:07:36.738Z",
+  "data": "2026-11-11T01:06:40.195Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -221,7 +221,7 @@
   "titulo": "Conferência do PDF com divergências",
   "vp": "desktop",
   "arquivo": "12-06-documentos-conferencia-divergencias.png",
-  "data": "2026-10-31T01:07:39.122Z",
+  "data": "2026-11-11T01:06:42.362Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -264,7 +264,7 @@
   "titulo": "PDF que confere: proposta marcada como conferida e PDF salvo",
   "vp": "desktop",
   "arquivo": "12-07-documentos-conferencia-ok.png",
-  "data": "2026-10-31T01:07:49.060Z",
+  "data": "2026-11-11T01:06:52.054Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -289,7 +289,7 @@
   "titulo": "Aba Documentos da proposta: documentos ligados e o PDF conferido",
   "vp": "desktop",
   "arquivo": "12-08-documentos-aba-proposta.png",
-  "data": "2026-10-31T01:07:58.853Z",
+  "data": "2026-11-11T01:07:01.538Z",
   "ok": true,
   "problemas": [],
   "marcas": [

@@ -17,6 +17,11 @@ const APP = 'file://' + path.join(RAIZ, 'dist/ls-pricer.html');
 const MAN = path.resolve(__dirname, '..');
 const OUT = { o: path.join(MAN, 'prints/original'), a: path.join(MAN, 'prints/anotado') };
 const FC = process.env.FONTES_CACHE;
+// LIBS_DIR: pasta com as bibliotecas do cdnjs (jspdf-2.5.1/dist, exceljs-4.4.0/dist, pdfjs-dist-3.11.174/build), como tools/testes/libs.
+// Só os capítulos com libs: true usam (os outros continuam mostrando o app sem internet).
+const LIBS = process.env.LIBS_DIR;
+function lib(u) { const f = /jspdf\.umd/.test(u) ? 'jspdf-2.5.1/dist/jspdf.umd.min.js' : /exceljs/.test(u) ? 'exceljs-4.4.0/dist/exceljs.min.js' : u.endsWith('pdf.min.js') ? 'pdfjs-dist-3.11.174/build/pdf.min.js' : u.endsWith('pdf.worker.min.js') ? 'pdfjs-dist-3.11.174/build/pdf.worker.min.js' : null;
+  return f && LIBS && fs.existsSync(path.join(LIBS, f)) ? path.join(LIBS, f) : null; }
 const VP = { desktop: { width: 1440, height: 900 }, celular: { width: 390, height: 844 }, tablet: { width: 768, height: 1024 } };
 const LARANJA = '#FF6600';
 
@@ -147,8 +152,11 @@ async function recorte(p, s, vpBase) {
           const u = r.request().url();
           if (F && u.startsWith('https://fonts.googleapis.com/')) return r.fulfill({ body: F.css, contentType: 'text/css' });
           if (F && F.map[u]) return r.fulfill({ path: path.join(FC, F.map[u]), contentType: 'font/woff2' });
+          if (cap.libs && u.startsWith('https://cdnjs.cloudflare.com/') && lib(u)) return r.fulfill({ path: lib(u), contentType: 'text/javascript' });
           return r.abort();
         });
+        // a regra genérica não pega o cdnjs: regra própria para as bibliotecas (só nos capítulos com libs: true)
+        if (cap.libs && LIBS) await p.route('https://cdnjs.cloudflare.com/**', (r) => { const f = lib(r.request().url()); return f ? r.fulfill({ path: f, contentType: 'text/javascript' }) : r.abort(); });
         await p.goto(APP); await p.waitForTimeout(1500);
         await p.addStyleTag({ content: '.toast{display:none!important} *{caret-color:transparent!important}' + (cap.css || '') });
         g = { ctx, p, erros, h: ajudantes(p, vpn) };

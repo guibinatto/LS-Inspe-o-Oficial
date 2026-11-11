@@ -6,7 +6,7 @@
   "titulo": "Tela Início: botões para começar uma SPV e o FACTS",
   "vp": "desktop",
   "arquivo": "06-01-spv-inicio-botoes.png",
-  "data": "2026-10-31T00:54:06.839Z",
+  "data": "2026-11-11T01:12:05.685Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -55,7 +55,7 @@
   "titulo": "SPV aberta: resumo, abas e barra de preço",
   "vp": "desktop",
   "arquivo": "06-02-spv-cabecalho-abas.png",
-  "data": "2026-10-31T00:54:07.349Z",
+  "data": "2026-11-11T01:12:06.119Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -104,7 +104,7 @@
   "titulo": "Cartão Cliente e escopo preenchido",
   "vp": "desktop",
   "arquivo": "06-03-spv-cliente-escopo.png",
-  "data": "2026-10-31T00:54:08.647Z",
+  "data": "2026-11-11T01:12:07.351Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -159,7 +159,7 @@
   "titulo": "Equipe e deslocamento (300 km só ida; alimentação alterada à mão)",
   "vp": "desktop",
   "arquivo": "06-04-spv-equipe-deslocamento.png",
-  "data": "2026-10-31T00:54:11.849Z",
+  "data": "2026-11-11T01:12:10.524Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -220,7 +220,7 @@
   "titulo": "Peças e materiais depois de importar uma NF-e em XML",
   "vp": "desktop",
   "arquivo": "06-05-spv-pecas-materiais.png",
-  "data": "2026-10-31T00:54:13.329Z",
+  "data": "2026-11-11T01:12:11.932Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -275,7 +275,7 @@
   "titulo": "Lucro abaixo da meta: o app mostra o multiplicador necessário",
   "vp": "desktop",
   "arquivo": "06-06-spv-alerta-lucro.png",
-  "data": "2026-10-31T00:54:15.923Z",
+  "data": "2026-11-11T01:12:14.492Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -312,7 +312,7 @@
   "titulo": "Formação do preço e documentos da proposta",
   "vp": "desktop",
   "arquivo": "06-07-spv-formacao-documentos.png",
-  "data": "2026-10-31T00:54:17.530Z",
+  "data": "2026-11-11T01:12:16.032Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -367,7 +367,7 @@
   "titulo": "Janela de modelo aberta por \"Salvar esta proposta como modelo\"",
   "vp": "desktop",
   "arquivo": "06-08-spv-salvar-modelo.png",
-  "data": "2026-10-31T00:54:18.069Z",
+  "data": "2026-11-11T01:12:16.519Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -416,7 +416,7 @@
   "titulo": "SPV salva na lista de propostas da tela Início",
   "vp": "desktop",
   "arquivo": "06-09-spv-lista-duplicar.png",
-  "data": "2026-10-31T00:54:19.923Z",
+  "data": "2026-11-11T01:12:18.369Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -459,7 +459,7 @@
   "titulo": "Inspeção / contrato: bloco Contrato recorrente",
   "vp": "desktop",
   "arquivo": "06-10-spv-contrato-recorrente.png",
-  "data": "2026-10-31T00:54:22.305Z",
+  "data": "2026-11-11T01:12:20.705Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -514,7 +514,7 @@
   "titulo": "FACTS: configuração de um conjunto (bomba)",
   "vp": "desktop",
   "arquivo": "06-11-spv-facts-conjunto.png",
-  "data": "2026-10-31T00:54:23.623Z",
+  "data": "2026-11-11T01:12:21.987Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -569,7 +569,7 @@
   "titulo": "FACTS: formação do preço",
   "vp": "desktop",
   "arquivo": "06-12-spv-facts-formacao.png",
-  "data": "2026-10-31T00:54:25.655Z",
+  "data": "2026-11-11T01:12:23.991Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -618,7 +618,7 @@
   "titulo": "Cadastros → Serviços: técnicos, deslocamento e modelos de serviço e contrato",
   "vp": "desktop",
   "arquivo": "06-13-spv-cadastro-servicos.png",
-  "data": "2026-10-31T00:54:28.487Z",
+  "data": "2026-11-11T01:12:26.597Z",
   "ok": true,
   "problemas": [],
   "marcas": []
@@ -630,9 +630,95 @@
   "titulo": "Cadastros → Serviços: modelos de serviço e contrato",
   "vp": "desktop",
   "arquivo": "06-14-spv-cadastro-modelos.png",
-  "data": "2026-10-31T00:54:30.345Z",
+  "data": "2026-11-11T01:12:28.304Z",
   "ok": true,
   "problemas": [],
   "marcas": []
+ },
+ "06-15": {
+  "id": "06-15",
+  "cap": 6,
+  "nome": "spv-execucao-servico",
+  "titulo": "Para o documento da proposta → Execução do serviço (preenchido)",
+  "vp": "desktop",
+  "arquivo": "06-15-spv-execucao-servico.png",
+  "data": "2026-11-11T01:12:31.067Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Execução do serviço: recolhido até ter algo preenchido.",
+    "sel": "details:has([data-pc=\"equipe\"]) > summary",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Início, equipe, duração no local e horário.",
+    "sel": "[data-pc=\"equipe\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Segurança: marque só o que vale para o serviço.",
+    "sel": "[data-pcchk=\"seg|nr10\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Sistema fora de operação: sai o aviso da NFPA 25 com o tempo informado.",
+    "sel": "[data-pcbool=\"foraOp\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Responsabilidades do cliente.",
+    "sel": "[data-pcchk=\"resp|acesso\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Entregáveis.",
+    "sel": "[data-pcchk=\"entreg|relat\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Garantia do serviço (texto livre).",
+    "sel": "[data-pc=\"garantia\"]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Dados fiscais: item da LC 116, NBS, município do ISS e ISS retido.",
+    "sel": "[data-pc=\"lc116\"]",
+    "ok": true
+   }
+  ]
+ },
+ "06-16": {
+  "id": "06-16",
+  "cap": 6,
+  "nome": "spv-termos-anexo",
+  "titulo": "Propostas relacionadas e termos e condições em anexo",
+  "vp": "desktop",
+  "arquivo": "06-16-spv-termos-anexo.png",
+  "data": "2026-11-11T01:12:37.260Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Deixa claro o que está em outra proposta (peça × mão de obra).",
+    "sel": "[data-pc=\"relacionadas\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Termos em anexo: a proposta cita o PDF dos termos, gerado junto.",
+    "sel": "[data-pcbool=\"termosAnexo\"]",
+    "ok": true
+   }
+  ]
  }
 }

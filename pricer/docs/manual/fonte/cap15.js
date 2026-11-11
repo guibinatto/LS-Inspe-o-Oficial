@@ -3,7 +3,7 @@
 // → enviada ao cliente (versão congelada) → alteração e Salvar (pergunta revisão ou correção → rev. 5)
 // → lista e comparação → consulta da rev. 3 → restauração → histórico da proposta → histórico geral → lixeira.
 const desconto = async (p, h, v) => {
-  await h.aba(4); await h.abrirDetalhes();
+  await h.aba(1); await h.abrirDetalhes(); // desconto global digitado direto: Dados gerais → Mais opções
   await p.fill('[id$="PROPOSTA_C9"]', String(v)); await p.press('[id$="PROPOSTA_C9"]', 'Tab'); await h.esperar(500);
 };
 module.exports = {

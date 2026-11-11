@@ -18,6 +18,18 @@
   ],
   [
    3,
+   "60 dias"
+  ],
+  [
+   3,
+   "última proposta SEQ que você criou"
+  ],
+  [
+   3,
+   "60 dias"
+  ],
+  [
+   3,
    "Salvar como revisão N"
   ],
   [
@@ -69,8 +81,12 @@
    "usar o configurador assistido"
   ],
   [
-   5,
-   "Gerar proposta (PDF)"
+   4,
+   "Margem mínima (30%)"
+  ],
+  [
+   4,
+   "Aplicar à proposta (desconto global …)"
   ],
   [
    5,
@@ -147,6 +163,10 @@
   [
    6,
    "É só correção: salvar na revisão N"
+  ],
+  [
+   6,
+   "Salvar arquivo"
   ],
   [
    7,
@@ -363,11 +383,23 @@
   [
    18,
    "proposta de exemplo"
+  ],
+  [
+   18,
+   "Margem mínima (30%)"
+  ],
+  [
+   20,
+   "Salvar arquivo"
+  ],
+  [
+   20,
+   "Salvar arquivo"
   ]
  ],
  "faltaCad": [],
- "totFig": 168,
- "totOk": 168,
- "totTut": 88,
+ "totFig": 181,
+ "totOk": 181,
+ "totTut": 95,
  "totNv": 32
 }

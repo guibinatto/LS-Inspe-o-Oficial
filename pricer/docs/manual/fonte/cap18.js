@@ -5,7 +5,7 @@ module.exports = {
   capturas: [],
   conteudo: [
     { t: 'p', x: 'Os exercícios usam a **proposta de exemplo** (Nova → **Exemplo SEQ (Cocamar)**), que já vem no sistema, e dados fictícios criados só para o treinamento. Os resultados esperados foram conferidos no arquivo desta revisão, com o cadastro padrão.' },
-    { t: 'aviso', x: 'Faça os exercícios no **modo local** (arquivo ls-pricer.html aberto no computador, de preferência num navegador ou perfil separado). No modo compartilhado, tudo o que for salvo vai para o banco da equipe. Os exercícios 4, 5 e 6 mexem em cadastros: nunca os faça no ambiente compartilhado.' },
+    { t: 'aviso', x: 'Faça os exercícios no **modo local** (arquivo ls-pricer.html aberto no computador, de preferência num navegador ou perfil separado). No modo compartilhado, tudo o que for salvo vai para o banco da equipe. Os exercícios 6, 7 e 8 mexem em cadastros: nunca os faça no ambiente compartilhado.' },
     { t: 'nota', x: 'Se o seu cadastro de preços for diferente do padrão (por exemplo, preços já atualizados pela equipe), os valores em R$ podem mudar. O caminho e as mensagens continuam os mesmos.' },
     E({ titulo: 'Criar uma proposta SEQ', objetivo: 'Criar uma proposta do zero, preencher os dados gerais e salvar.', quem: 'Qualquer participante do treinamento (modo local).', pre: ['Arquivo ls-pricer.html aberto.', 'Pelo menos um vendedor cadastrado em Cadastros → Precificação → Vendedores e agentes (num navegador novo a lista vem vazia: inclua um vendedor fictício, por exemplo "Vendedor Treino").'], passos: [
       'Clique em **Nova** e depois em **SEQ em branco**.',
@@ -21,11 +21,22 @@ module.exports = {
       'Ajuste a **Quantidade** com os botões − e +.',
       'Salve a proposta.',
     ], resultado: 'O item mostra preço calculado e os componentes montados pela estrutura; o cabeçalho de contexto atualiza valor total, margem, custo e itens.', criterio: 'O participante sabe dizer de onde vêm os componentes (estrutura da família, capítulo 9) e onde ver alertas do item (aba Conferência).' }),
-    E({ titulo: 'Consultar custos, simulador e memorial', objetivo: 'Ler a formação de preço da proposta de exemplo e testar uma negociação sem alterar a proposta oficial.', quem: 'Qualquer participante.', pre: ['Nova → **Exemplo SEQ (Cocamar)** carregado.'], passos: [
-      'Na aba **Formação**, no **Simulador**, digite 4.000.000,00 em "ou valor final negociado (com IPI)" e clique em **Simular**.',
+    E({ titulo: 'Consultar custos, cenários avançados e memorial', objetivo: 'Ler a formação de preço da proposta de exemplo e testar uma negociação sem alterar a proposta oficial.', quem: 'Qualquer participante.', pre: ['Nova → **Exemplo SEQ (Cocamar)** carregado.'], passos: [
+      'Na aba **Formação**, abra **Cenários avançados**, digite 4.000.000,00 em "ou valor final negociado (com IPI)" e clique em **Simular**.',
       'Observe o cabeçalho de contexto: o **Valor total** continua o da proposta.',
       'Abra a aba **Memorial** e vá até o bloco **CONFERÊNCIA CONTRA AS ABAS DE ITEM**.',
     ], resultado: 'Simulação com margem de 29,0%, desconto global de 6,1% e o aviso de que precisa de aprovação (mínimo de 30%). O cabeçalho continua em R$ 4.258.300,00. No Memorial, "Preço do item na Pricer (sem IPI)" do ITEM 02 é 430.514,16 e "Diferença (R$)" é 0,00 em todas as colunas.', criterio: 'O participante explica por que a simulação não muda a proposta oficial e onde conferir que o memorial bate com os itens.' }),
+    E({ titulo: 'Negociar até a margem mínima', objetivo: 'Usar o cartão Negociar para achar o desconto que deixa a proposta na margem mínima e aplicar.', quem: 'Qualquer participante.', pre: ['Nova → **Exemplo SEQ (Cocamar)** carregado.'], passos: [
+      'Clique na **Margem** do resumo no topo da proposta.',
+      'No cartão **Negociar**, clique em **Margem mínima (30%)**.',
+      'Leia, na coluna **Simulação**, o desconto global, o preço ao cliente e a margem.',
+      'Clique em **Aplicar à proposta**.',
+    ], resultado: 'A simulação mostra margem de 30,00% com desconto global de cerca de 4,69% e preço ao cliente de cerca de R$ 4.059.389,43. Depois de Aplicar, o resumo do topo mostra margem de 30,0%.', criterio: 'O participante explica que nada muda antes de **Aplicar** e por que a faixa ainda pode pedir aprovação (itens abaixo do piso da política).' }),
+    E({ titulo: 'Gerar a versão interativa', objetivo: 'Gerar o HTML da proposta com o PDF oficial dentro e conferir o rodapé.', quem: 'Qualquer participante.', pre: ['Exemplo SEQ salvo.'], passos: [
+      'Abra a aba **Documentos** e clique em **Versão interativa (HTML)**.',
+      'Abra o arquivo "_interativa.html" no navegador e role até o fim.',
+      'Clique em **PDF oficial** no topo.',
+    ], resultado: 'A página abre com a capa do cliente, o resumo com o investimento total de R$ 4.258.300,00, os itens, as condições e os contatos. O rodapé diz que vale o PDF e mostra o SHA-256. O botão baixa o PDF da proposta.', criterio: 'O participante sabe explicar a diferença entre o arquivo e um link, e qual dos dois documentos é o oficial.' }),
     E({ titulo: 'Cadastrar um insumo sem criar duplicidade', objetivo: 'Usar a ficha guiada do insumo e ver a verificação de duplicidade em ação.', quem: 'No modo compartilhado, Editor da área Custos ou Cadastro geral. No treinamento, modo local.', pre: ['Modo local.'], passos: [
       'Abra **Cadastros** → **Custos** → **Insumos e preços** e clique em **+ Novo insumo**.',
       'Escolha a família 01.MOTORDIESEL, digite o modelo 6M16G308/6 e saia do campo com Tab.',
