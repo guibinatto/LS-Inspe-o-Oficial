@@ -395,11 +395,55 @@
   [
    20,
    "Salvar arquivo"
+  ],
+  [
+   21,
+   "do começo ao fim"
+  ],
+  [
+   21,
+   "Margem mínima (30%)"
+  ],
+  [
+   21,
+   "Gerar proposta técnica e comercial (PDF)"
+  ],
+  [
+   22,
+   "Manutenção corretiva em campo"
+  ],
+  [
+   22,
+   "Salvar arquivo"
+  ],
+  [
+   22,
+   "Gerar proposta técnica e comercial (PDF)"
+  ],
+  [
+   23,
+   "na primeira vez"
+  ],
+  [
+   23,
+   "rotinas de cadastro"
+  ],
+  [
+   23,
+   "Configurações → Modelo da proposta"
+  ],
+  [
+   23,
+   "Cadastros → Custos → Insumos e preços"
+  ],
+  [
+   23,
+   "Insumos e preços → Importar preços"
   ]
  ],
  "faltaCad": [],
- "totFig": 181,
- "totOk": 181,
- "totTut": 95,
+ "totFig": 240,
+ "totOk": 240,
+ "totTut": 112,
  "totNv": 32
 }

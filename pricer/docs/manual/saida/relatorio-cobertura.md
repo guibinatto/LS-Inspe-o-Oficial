@@ -8,10 +8,10 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 
 | Indicador | Valor |
 |---|---|
-| Capítulos | 20 |
-| Tutoriais e exercícios (modelo padrão) | 95 |
-| Telas capturadas (cada uma com original e anotada) | 181 |
-| Capturas validadas (todos os marcadores encontrados no elemento real) | 181 de 181 |
+| Capítulos | 23 |
+| Tutoriais e exercícios (modelo padrão) | 112 |
+| Telas capturadas (cada uma com original e anotada) | 240 |
+| Capturas validadas (todos os marcadores encontrados no elemento real) | 240 de 240 |
 | Trechos marcados como "Não validado" | 32 |
 
 ## Módulos documentados
@@ -38,6 +38,9 @@ Sistema analisado: **LS Pricer REV22** (`pricer/dist/ls-pricer.html`, construíd
 | 18 | Exercícios práticos | 10 | 0 | 0 | 0 |
 | 19 | Importar proposta antiga | 2 | 3 | 3 | 0 |
 | 20 | Versão interativa, memorial em Excel e fatores | 1 | 7 | 7 | 0 |
+| 21 | Proposta SEQ do zero, tela a tela | 9 | 29 | 29 | 0 |
+| 22 | Proposta de serviço (SPV) do zero, tela a tela | 4 | 12 | 12 | 0 |
+| 23 | Primeira configuração e rotinas do administrador, tela a tela | 4 | 18 | 18 | 0 |
 
 ## Telas do sistema × capturas
 
@@ -290,6 +293,65 @@ Pasta `prints/original` (tela como ela é) e `prints/anotado` (com os números e
 | 20-05 | 20-05-interativa-resumo.png | Versão interativa: resumo | desktop | validada |
 | 20-06 | 20-06-interativa-item.png | Versão interativa: um item, com o que está incluso | desktop | validada |
 | 20-07 | 20-07-interativa-rodape.png | Versão interativa: rodapé com o aviso e o SHA-256 do PDF oficial | desktop | validada |
+| 21-01 | 21-01-zero-vendedor.png | Cadastros → Precificação: incluir o vendedor (uma vez só) | desktop | validada |
+| 21-02 | 21-02-zero-inicio.png | Tela Início: por onde começar | desktop | validada |
+| 21-03 | 21-03-zero-nova.png | Botão Nova: escolha SEQ em branco | desktop | validada |
+| 21-04 | 21-04-zero-cliente.png | Dados gerais → cartão Cliente preenchido | desktop | validada |
+| 21-05 | 21-05-zero-proposta.png | Dados gerais → cartão Proposta preenchido | desktop | validada |
+| 21-06 | 21-06-zero-vendedor-frete.png | Dados gerais → Vendedor e comissões e Frete | desktop | validada |
+| 21-07 | 21-07-zero-proximo.png | Fim de Dados gerais: Próximo | desktop | validada |
+| 21-08 | 21-08-zero-itens-vazio.png | Aba Itens, ainda sem equipamento | desktop | validada |
+| 21-09 | 21-09-zero-familia.png | Item novo: escolher a família | desktop | validada |
+| 21-10 | 21-10-zero-modelo.png | Escolher o modelo pronto (pesquisa "1000") | desktop | validada |
+| 21-11 | 21-11-zero-modelo-aplicado.png | Modelo aplicado: características do equipamento | desktop | validada |
+| 21-12 | 21-12-zero-compor.png | Etapa Compor: os componentes que a estrutura montou | desktop | validada |
+| 21-13 | 21-13-zero-conferir-item.png | Etapa Conferir: preço, custo e verificações do item | desktop | validada |
+| 21-14 | 21-14-zero-incluir.png | Confirmar e Incluir na proposta | desktop | validada |
+| 21-15 | 21-15-zero-itens.png | Aba Itens com o equipamento incluído | desktop | validada |
+| 21-16 | 21-16-zero-custos.png | Aba Custos: origem e validade de cada custo | desktop | validada |
+| 21-17 | 21-17-zero-formacao.png | Aba Formação de preço: indicadores e preço por item | desktop | validada |
+| 21-18 | 21-18-zero-negociar-5.png | Negociar: o cliente pediu 5% — a margem fica abaixo do mínimo | desktop | validada |
+| 21-19 | 21-19-zero-negociar-min.png | Negociar: a margem mínima mostra o desconto possível | desktop | validada |
+| 21-20 | 21-20-zero-aplicado.png | Desconto aplicado: o resumo do topo mostra o novo valor | desktop | validada |
+| 21-21 | 21-21-zero-salvar.png | Salvar | desktop | validada |
+| 21-22 | 21-22-zero-conferencia.png | Aba Conferência: o que falta antes de enviar | desktop | validada |
+| 21-23 | 21-23-zero-para-documento.png | Dados gerais → Para o documento da proposta (contato, cidade e prazos) | desktop | validada |
+| 21-24 | 21-24-zero-documentos.png | Aba Documentos: escolher e gerar a proposta | desktop | validada |
+| 21-25 | 21-25-zero-pdf.png | O PDF gerado: capa e planilha de preços | desktop | validada |
+| 21-26 | 21-26-zero-situacao.png | Situação e próximo passo: PDF conferido, pronto para enviar | desktop | validada |
+| 21-27 | 21-27-zero-enviada.png | Marcada como enviada ao cliente; o próximo passo é dar baixa | desktop | validada |
+| 21-28 | 21-28-zero-baixa.png | Dar baixa: proposta fechada (ganha) | desktop | validada |
+| 21-29 | 21-29-zero-inicio-lista.png | Tela Início: a proposta na lista, com a situação e as etapas | desktop | validada |
+| 22-01 | 22-01-spvzero-inicio.png | Tela Início: escolher o tipo de serviço | desktop | validada |
+| 22-02 | 22-02-spvzero-cliente.png | Cliente e escopo preenchidos | desktop | validada |
+| 22-03 | 22-03-spvzero-equipe.png | Equipe e deslocamento (120 km só ida) | desktop | validada |
+| 22-04 | 22-04-spvzero-peca.png | Peças e materiais: o radiador | desktop | validada |
+| 22-05 | 22-05-spvzero-formacao.png | Formação do preço do serviço | desktop | validada |
+| 22-06 | 22-06-spvzero-execucao.png | Para o documento → Execução do serviço | desktop | validada |
+| 22-07 | 22-07-spvzero-termos.png | Propostas relacionadas e termos em anexo | desktop | validada |
+| 22-08 | 22-08-spvzero-salvar.png | Salvar a SPV | desktop | validada |
+| 22-09 | 22-09-spvzero-gerar.png | Proposta técnica e comercial da SPV: gerar | desktop | validada |
+| 22-10 | 22-10-spvzero-pdf.png | O PDF da proposta de serviço: planilha e execução do serviço | desktop | validada |
+| 22-11 | 22-11-spvzero-termos-pdf.png | O PDF dos termos (anexo) e a referência na proposta | desktop | validada |
+| 22-12 | 22-12-spvzero-lista.png | A SPV na lista da tela Início | desktop | validada |
+| 23-01 | 23-01-adm-configuracoes.png | Configurações: as abas da administração | desktop | validada |
+| 23-02 | 23-02-adm-logo.png | Logo da empresa (sai nos documentos) | desktop | validada |
+| 23-03 | 23-03-adm-emails.png | E-mails das áreas (avisos de baixa, aprovação e custo real) | desktop | validada |
+| 23-04 | 23-04-adm-acessos.png | Perfis e permissões: quem pode o quê | desktop | validada |
+| 23-05 | 23-05-adm-numeracao.png | Administração → Numeração e máscaras: ligar a série de propostas SEQ | desktop | validada |
+| 23-06 | 23-06-adm-backup.png | Backup e restauração (baixar o backup completo) | desktop | validada |
+| 23-07 | 23-07-adm-vendedores.png | Cadastros → Precificação: vendedores e agentes de negócio | desktop | validada |
+| 23-08 | 23-08-adm-servicos.png | Cadastros → Serviços: técnicos, diárias e deslocamento | desktop | validada |
+| 23-09 | 23-09-adm-modelo-proposta.png | Configurações → Modelo da proposta: estrutura, imagens, contatos e textos | desktop | validada |
+| 23-10 | 23-10-adm-insumo-lista.png | Cadastros → Custos → Insumos e preços: + Novo insumo | desktop | validada |
+| 23-11 | 23-11-adm-insumo-geral.png | Ficha do insumo novo: aba Geral | desktop | validada |
+| 23-12 | 23-12-adm-insumo-tecnica.png | Aba Características técnicas: os campos da família | desktop | validada |
+| 23-13 | 23-13-adm-insumo-descricao.png | Aba Geral: as três descrições geradas e o aviso de itens parecidos | desktop | validada |
+| 23-14 | 23-14-adm-insumo-cadastrar.png | Botão Cadastrar (fim da ficha) | desktop | validada |
+| 23-15 | 23-15-adm-pedido.png | Pedido de cadastro (feito por quem precisa do insumo) | desktop | validada |
+| 23-16 | 23-16-adm-pedido-atender.png | Custos atende o pedido: preço e situação | desktop | validada |
+| 23-17 | 23-17-adm-importar-colar.png | Importar preços: colar a lista do fornecedor | desktop | validada |
+| 23-18 | 23-18-adm-importar-aplicar.png | Importar preços: conferir a variação e aplicar | desktop | validada |
 
 ## Procedimentos testados
 
@@ -347,11 +409,11 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 
 | # | Verificação | Resultado |
 |---|---|---|
-| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 99 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
+| 1 | Os nomes dos botões correspondem aos nomes reais? | Verificação automática: cada termo em negrito foi procurado no código do app. 110 termo(s) não aparecem literalmente (lista abaixo); foram revisados um a um — são nomes de dados (insumos, modelos), textos montados pelo app ou descrições, não botões inventados. |
 | 2 | Os menus existem? | Sim: os 7 itens do menu lateral citados no manual são os do arquivo index.html. |
 | 3 | Os caminhos de navegação estão corretos? | Sim: cada caminho foi percorrido pela ferramenta de captura antes de cada foto (os passos clicam nos elementos reais). |
 | 4 | Os prints correspondem aos procedimentos? | Sim: cada figura é gerada pelos passos do próprio tutorial. |
-| 5 | As marcações estão posicionadas corretamente? | 181 de 181 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
+| 5 | As marcações estão posicionadas corretamente? | 240 de 240 capturas com todos os marcadores encontrados no elemento real e dentro da área capturada; cada imagem anotada foi conferida visualmente. |
 | 6 | As descrições dos campos estão corretas? | Conferidas contra o código (rótulos, mensagens e regras). |
 | 7 | Os exemplos usam dados fictícios identificados? | Sim: proposta de exemplo do sistema e dados de treinamento identificados como fictícios no capítulo 18. |
 | 8 | As fórmulas apresentadas são reais? | Sim: só aparecem as fórmulas que o próprio sistema mostra (nota de cálculo do Memorial e "Como cada número é calculado" do painel). |
@@ -451,3 +513,14 @@ Cada tutorial foi executado no sistema pela ferramenta de captura (os passos de 
 | 18 | proposta de exemplo |
 | 18 | Margem mínima (30%) |
 | 20 | Salvar arquivo |
+| 21 | do começo ao fim |
+| 21 | Margem mínima (30%) |
+| 21 | Gerar proposta técnica e comercial (PDF) |
+| 22 | Manutenção corretiva em campo |
+| 22 | Salvar arquivo |
+| 22 | Gerar proposta técnica e comercial (PDF) |
+| 23 | na primeira vez |
+| 23 | rotinas de cadastro |
+| 23 | Configurações → Modelo da proposta |
+| 23 | Cadastros → Custos → Insumos e preços |
+| 23 | Insumos e preços → Importar preços |

@@ -14,15 +14,15 @@ module.exports = {
   // dois manuais por público, gerados dos mesmos capítulos (node tools/gerar.js usuario | admin)
   manuais: {
     usuario: { nome: 'Manual do Usuário', titulo: 'MANUAL DO USUÁRIO — LS PRICER', subtitulo: 'Vendas e Precificação: da proposta ao envio', capa: ['MANUAL DO USUÁRIO', 'LS PRICER'], arquivo: 'MN-LS-Pricer-Manual-do-Usuario-Rev01', outro: 'admin',
-      caps: [1, 2, 3, 4, 5, 20, 6, 19, 13, 14, 15, 17, 18],
+      caps: [1, 2, 21, 22, 3, 4, 5, 20, 6, 19, 13, 14, 15, 17, 18],
       intro: [{ t: 'nota', x: 'Este é o **Manual do Usuário**: proposta SEQ e SPV do começo ao envio, negociação, documentos, pendências, aprovações, margens e revisões. Cadastros, estruturas, modelos, perfis, numeração e backup estão no **Manual do Administrador**.' }] },
     admin: { nome: 'Manual do Administrador', titulo: 'MANUAL DO ADMINISTRADOR — LS PRICER', subtitulo: 'Cadastros, estruturas, modelos e administração do sistema', capa: ['MANUAL DO ADMINISTRADOR', 'LS PRICER'], arquivo: 'MN-LS-Pricer-Manual-do-Administrador-Rev01', outro: 'usuario',
-      caps: [1, 2, 16, 7, 8, 9, 10, 11, 12, 17],
+      caps: [1, 2, 23, 16, 7, 8, 9, 10, 11, 12, 17],
       intro: [{ t: 'nota', x: 'Este é o **Manual do Administrador**: quem mantém o sistema e os cadastros (Custos, Engenharia, Fiscal, Precificação, Serviços e o administrador). Para fazer e negociar propostas, use o **Manual do Usuário**.' }] },
   },
   revisoes: [
     { rev: '00', data: '29/10/2026', desc: 'Emissão inicial. LS Pricer REV22 com a nova navegação (menu lateral, abas da proposta SEQ, Configurações separadas de Cadastros).' },
-    { rev: '01', data: '11/11/2026', desc: 'Separado em Manual do Usuário e Manual do Administrador, com todas as telas capturadas de novo. Novos: Negociar (atalhos de desconto e margem), proposta nova que repete a última, importar proposta antiga, proposta de serviço com execução do serviço e termos em anexo, versão interativa (HTML), memorial em Excel e fatores.' },
+    { rev: '01', data: '11/11/2026', desc: 'Separado em Manual do Usuário e Manual do Administrador, com todas as telas capturadas de novo. Novos: capítulos tela a tela (proposta SEQ do zero, proposta de serviço do zero e primeira configuração e rotinas do administrador), Negociar (atalhos de desconto e margem), proposta nova que repete a última, importar proposta antiga, proposta de serviço com execução do serviço e termos em anexo, versão interativa (HTML), memorial em Excel e fatores.' },
   ],
   sobre: [
     { t: 'h', x: 'Sobre este manual' },

@@ -5,7 +5,9 @@ const path = require('path'), fs = require('fs'), cp = require('child_process');
 const D = require(cp.execSync('npm root -g').toString().trim() + '/docx');
 const MAN = path.resolve(__dirname, '..');
 const FONTE = path.join(MAN, 'fonte'), PRINTS = path.join(MAN, 'prints'), SAIDA = path.join(MAN, 'saida');
-const CACHE = path.join(SAIDA, '.img');
+// LEVE=1: versão para celular (imagens menores e mais comprimidas; arquivo com "-celular" no nome)
+const LEVE = !!process.env.LEVE;
+const CACHE = path.join(SAIDA, LEVE ? '.img-leve' : '.img');
 const META = require(path.join(FONTE, 'meta.js'));
 const LOGO = path.join(MAN, 'fonte', 'logo_lsfire_colorido.jpg');
 const OR = 'FF6600', CZ = '404040', OR_CL = 'FFE5CC', LINHA = 'CCCCCC';
@@ -24,7 +26,7 @@ function imagem(arq) {
   const src = path.join(PRINTS, 'anotado', arq);
   const jpg = path.join(CACHE, arq.replace(/\.png$/, '.jpg'));
   if (!fs.existsSync(jpg) || fs.statSync(jpg).mtimeMs < fs.statSync(src).mtimeMs)
-    cp.execFileSync('convert', [src, '-resize', '1800x>', '-quality', '86', jpg]);
+    cp.execFileSync('convert', [src, '-resize', LEVE ? '1000x>' : '1800x>', '-quality', LEVE ? '55' : '86', jpg]);
   const [w, h] = cp.execFileSync('identify', ['-format', '%w %h', jpg]).toString().split(' ').map(Number);
   return { data: fs.readFileSync(jpg), w, h };
 }
@@ -264,7 +266,7 @@ function guia() {
 
 (async () => {
   const r = qual === 'guia' ? guia() : manual();
-  const nome = qual === 'guia' ? META.arquivoGuia : META.arquivo;
+  const nome = (qual === 'guia' ? META.arquivoGuia : META.arquivo) + (LEVE ? '-celular' : '');
   const tmp = path.join(CACHE, nome + '.tmp.docx');
   fs.writeFileSync(tmp, await D.Packer.toBuffer(r.doc));
   // marca d'água "DOCUMENTO INTERNO" nos cabeçalhos (padrão LS Fire Interno)

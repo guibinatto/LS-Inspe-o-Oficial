@@ -6,10 +6,13 @@ A partir da Rev. 01 são dois manuais, gerados dos mesmos capítulos:
 |---|---|---|
 | **Manual do Usuário** (PDF e Word) | `saida/MN-LS-Pricer-Manual-do-Usuario-Rev01.pdf` / `.docx` | Vendas e Precificação: proposta SEQ e SPV do zero ao envio, negociação, documentos, versão interativa, importação de proposta antiga, pendências, aprovações, margens e revisões |
 | **Manual do Administrador** (PDF e Word) | `saida/MN-LS-Pricer-Manual-do-Administrador-Rev01.pdf` / `.docx` | Quem mantém o sistema: cadastros (insumos, descrições, estruturas, kits, modelos, famílias, fornecedores), configurações, perfis e permissões, numeração, backup |
+| Versões para celular (imagens comprimidas) | os mesmos nomes com `-celular` (ex.: `saida/MN-LS-Pricer-Manual-do-Usuario-Rev01-celular.pdf`) | Para abrir no telefone |
 | Guia rápido (PDF e Word) | `saida/MN-LS-Pricer-Guia-Rapido-Rev01.pdf` / `.docx` | Todos. "MU 4" = Manual do Usuário, capítulo 4; "MA 3" = Manual do Administrador, capítulo 3 |
 | Telas originais e anotadas | `prints/original/`, `prints/anotado/` (nome = capítulo-ordem-módulo-tela) | |
 | Registro de cada captura (validada ou não) | `prints/capturas-capNN.json` | |
 | Relatório de cobertura e auditoria | `saida/relatorio-cobertura.md` | |
+
+Os capítulos "tela a tela" (21: proposta SEQ do zero; 22: proposta de serviço do zero; 23: primeira configuração e rotinas do administrador) fazem cada processo do começo ao fim, com um print a cada passo, e vêm logo no início de cada manual.
 
 Os capítulos de cada manual e a ordem estão em `fonte/meta.js` (`manuais.usuario.caps` e `manuais.admin.caps`). Os números citados nos textos ("capítulo 9") são os dos arquivos `capNN.js`; o gerador troca pelo número do capítulo no manual gerado, ou por "capítulo N do Manual do …" quando o assunto está no outro manual.
 
@@ -26,6 +29,7 @@ FONTES_CACHE=<pasta com fonts.css e map.txt> LIBS_DIR=<pasta libs, como tools/te
 node docs/manual/tools/gerar.js usuario                  # DOCX do Manual do Usuário
 node docs/manual/tools/gerar.js admin                    # DOCX do Manual do Administrador
 node docs/manual/tools/gerar.js guia                     # DOCX do guia rápido
+LEVE=1 node docs/manual/tools/gerar.js usuario           # versão para celular (idem admin e guia; nome com -celular)
 python3 docs/manual/tools/pdf.py docs/manual/saida/<arquivo>.docx docs/manual/saida/<arquivo>.pdf
 node docs/manual/tools/cobertura.js                      # relatório de cobertura e auditoria
 ```

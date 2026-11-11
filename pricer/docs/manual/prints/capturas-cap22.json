@@ -1,0 +1,410 @@
+{
+ "22-01": {
+  "id": "22-01",
+  "cap": 22,
+  "nome": "spvzero-inicio",
+  "titulo": "Tela Início: escolher o tipo de serviço",
+  "vp": "desktop",
+  "arquivo": "22-01-spvzero-inicio.png",
+  "data": "2026-11-11T03:55:52.004Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Manutenção corretiva em campo (o exemplo deste capítulo).",
+    "sel": "[data-spvnew=\"SMC\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Peças e sobressalentes: começa sem equipe.",
+    "sel": "[data-spvnew=\"PAR\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Inspeção / contrato: com o bloco Contrato recorrente.",
+    "sel": "[data-spvnew=\"ITM\"]",
+    "ok": true
+   }
+  ]
+ },
+ "22-02": {
+  "id": "22-02",
+  "cap": 22,
+  "nome": "spvzero-cliente",
+  "titulo": "Cliente e escopo preenchidos",
+  "vp": "desktop",
+  "arquivo": "22-02-spvzero-cliente.png",
+  "data": "2026-11-11T03:55:53.097Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Cliente (sugere os já usados).",
+    "sel": "[data-sp=\"cliente\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "CNPJ.",
+    "sel": "[data-sp=\"cnpj\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Número da proposta.",
+    "sel": "[data-sp=\"numero\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "UF: define o ICMS das peças.",
+    "sel": "[data-sp=\"uf\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Condição de pagamento e validade (dias).",
+    "sel": "[data-sp=\"pagamento\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Escopo do serviço: vai na proposta.",
+    "sel": "textarea[data-sp=\"descricao\"]",
+    "ok": true
+   }
+  ]
+ },
+ "22-03": {
+  "id": "22-03",
+  "cap": 22,
+  "nome": "spvzero-equipe",
+  "titulo": "Equipe e deslocamento (120 km só ida)",
+  "vp": "desktop",
+  "arquivo": "22-03-spvzero-equipe.png",
+  "data": "2026-11-11T03:55:58.090Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Técnico: a diária vem do cadastro.",
+    "sel": "select[data-sp=\"equipe.0.tec\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Dias de trabalho.",
+    "sel": "[data-sp=\"equipe.0.dias\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Distância só ida: o app calcula ida e volta.",
+    "sel": "[data-sp=\"dist\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Hotel, alimentação e ART calculados sozinhos (dá para alterar).",
+    "sel": "[data-sp=\"ov.hotel_noites\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Custo da prestação do serviço.",
+    "sel": "section.card:has([data-sp=\"dist\"]) tr.tot",
+    "ok": true
+   }
+  ]
+ },
+ "22-04": {
+  "id": "22-04",
+  "cap": 22,
+  "nome": "spvzero-peca",
+  "titulo": "Peças e materiais: o radiador",
+  "vp": "desktop",
+  "arquivo": "22-04-spvzero-peca.png",
+  "data": "2026-11-11T03:55:58.995Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Incluso no preço (desmarque se for cobrado em outra proposta).",
+    "sel": "[data-sp=\"pecas.0.incluso\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Descrição da peça.",
+    "sel": "[data-sp=\"pecas.0.desc\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Custo unitário de compra.",
+    "sel": "[data-sp=\"pecas.0.unit\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Fator de venda (padrão do cadastro).",
+    "sel": "[data-sp=\"pecas.0.fator\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Ou importe o orçamento do fornecedor (PDF, XML, Excel ou foto).",
+    "sel": "label[for=\"spImport\"]",
+    "ok": true
+   }
+  ]
+ },
+ "22-05": {
+  "id": "22-05",
+  "cap": 22,
+  "nome": "spvzero-formacao",
+  "titulo": "Formação do preço do serviço",
+  "vp": "desktop",
+  "arquivo": "22-05-spvzero-formacao.png",
+  "data": "2026-11-11T03:56:00.877Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Multiplicador do serviço: custo × multiplicador = venda do serviço.",
+    "sel": "[data-sp=\"mk.mult\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Venda, impostos, comissões e lucro líquido (meta 40%).",
+    "sel": "section.card:has([data-sp=\"mk.mult\"]) .kv",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Pagamento a prazo: soma o encargo financeiro.",
+    "sel": "label.chk:has([data-sp=\"aprazo\"]) input",
+    "ok": true
+   }
+  ]
+ },
+ "22-06": {
+  "id": "22-06",
+  "cap": 22,
+  "nome": "spvzero-execucao",
+  "titulo": "Para o documento → Execução do serviço",
+  "vp": "desktop",
+  "arquivo": "22-06-spvzero-execucao.png",
+  "data": "2026-11-11T03:56:01.317Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Início, equipe, duração e horário.",
+    "sel": "[data-pc=\"equipe\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Segurança e acesso: marque o que vale.",
+    "sel": "[data-pcchk=\"seg|nr10\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Sistema fora de operação (aviso NFPA 25).",
+    "sel": "[data-pcbool=\"foraOp\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Responsabilidades do cliente.",
+    "sel": "[data-pcchk=\"resp|acesso\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Entregáveis.",
+    "sel": "[data-pcchk=\"entreg|relat\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Garantia do serviço.",
+    "sel": "[data-pc=\"garantia\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Dados fiscais do serviço.",
+    "sel": "[data-pc=\"lc116\"]",
+    "ok": true
+   }
+  ]
+ },
+ "22-07": {
+  "id": "22-07",
+  "cap": 22,
+  "nome": "spvzero-termos",
+  "titulo": "Propostas relacionadas e termos em anexo",
+  "vp": "desktop",
+  "arquivo": "22-07-spvzero-termos.png",
+  "data": "2026-11-11T03:56:05.980Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O que está em outra proposta (peça × mão de obra).",
+    "sel": "[data-pc=\"relacionadas\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Termos em PDF à parte: a proposta fica curta.",
+    "sel": "[data-pcbool=\"termosAnexo\"]",
+    "ok": true
+   }
+  ]
+ },
+ "22-08": {
+  "id": "22-08",
+  "cap": 22,
+  "nome": "spvzero-salvar",
+  "titulo": "Salvar a SPV",
+  "vp": "desktop",
+  "arquivo": "22-08-spvzero-salvar.png",
+  "data": "2026-11-11T03:56:06.787Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Valor total, lucro, custo e pendências.",
+    "sel": ".ctxh .ctx-kpis",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "\"Salvo às …\".",
+    "sel": "#saveSt",
+    "ok": true
+   }
+  ]
+ },
+ "22-09": {
+  "id": "22-09",
+  "cap": 22,
+  "nome": "spvzero-gerar",
+  "titulo": "Proposta técnica e comercial da SPV: gerar",
+  "vp": "desktop",
+  "arquivo": "22-09-spvzero-gerar.png",
+  "data": "2026-11-11T03:56:08.522Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Gerar a proposta: saem a proposta e o PDF dos termos.",
+    "sel": "#pcCard [data-pcgerar]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Versão interativa (HTML).",
+    "sel": "#pcCard [data-pchtml]",
+    "ok": true
+   }
+  ]
+ },
+ "22-10": {
+  "id": "22-10",
+  "cap": 22,
+  "nome": "spvzero-pdf",
+  "titulo": "O PDF da proposta de serviço: planilha e execução do serviço",
+  "vp": "desktop",
+  "arquivo": "22-10-spvzero-pdf.png",
+  "data": "2026-11-11T03:56:08.869Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Planilha de preços e condições: início dos serviços, sem \"fabricação\".",
+    "sel": "#pdfPrev img:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Execução do serviço: equipe, segurança, sistema fora de operação, entregáveis, garantia e fiscal.",
+    "sel": "#pdfPrev img:nth-child(2)",
+    "ok": true
+   }
+  ]
+ },
+ "22-11": {
+  "id": "22-11",
+  "cap": 22,
+  "nome": "spvzero-termos-pdf",
+  "titulo": "O PDF dos termos (anexo) e a referência na proposta",
+  "vp": "desktop",
+  "arquivo": "22-11-spvzero-termos-pdf.png",
+  "data": "2026-11-11T03:56:13.221Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Na proposta: \"Aplicam-se os Termos e Condições… (TERMOS_….pdf)\".",
+    "sel": "#pdfPrev img:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "O anexo com os termos completos.",
+    "sel": "#pdfPrev img:nth-child(2)",
+    "ok": true
+   }
+  ]
+ },
+ "22-12": {
+  "id": "22-12",
+  "cap": 22,
+  "nome": "spvzero-lista",
+  "titulo": "A SPV na lista da tela Início",
+  "vp": "desktop",
+  "arquivo": "22-12-spvzero-lista.png",
+  "data": "2026-11-11T03:56:14.912Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Divisão SPV.",
+    "sel": ".home table.t tbody tr:first-child td:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Total.",
+    "sel": ".home table.t tbody tr:first-child td:nth-child(3)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Próxima etapa.",
+    "sel": ".home table.t tbody tr:first-child [data-hnext]",
+    "ok": true
+   }
+  ]
+ }
+}
