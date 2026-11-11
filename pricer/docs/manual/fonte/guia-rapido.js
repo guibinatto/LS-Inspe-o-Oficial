@@ -51,6 +51,116 @@ module.exports = {
         ['Restaurar proposta excluída', 'Configurações → Backup e restauração → Lixeira (cap. 15)'],
       ] },
     ] },
+    // passo a passo com telas: uma rotina por quadro, com a tela anotada (mesmas figuras dos manuais)
+    { titulo: '1. Começar uma proposta', fig: '03-01', ordem: 1, blocos: [
+      { t: 'lista', itens: [
+        'Clique em **Nova** (barra superior).',
+        'Escolha **SEQ em branco**, **SPV**, o **Exemplo SEQ (Cocamar)** ou **Importar proposta antiga**.',
+        'Na proposta nova, pagamento, norma, frete e validade já vêm da sua última proposta: confira.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 3.' },
+    ] },
+    { titulo: '2. Dados gerais', fig: '03-04', ordem: 2, blocos: [
+      { t: 'lista', itens: [
+        'Preencha o cartão **Cliente** (o CNPJ pode buscar na Receita).',
+        'No cartão **Proposta**, informe o número; use os atalhos **15**, **30** ou **60 dias** da validade.',
+        'Escolha o vendedor e a modalidade de frete e clique em **Próximo**.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 3.' },
+    ] },
+    { titulo: '3. Configurar o equipamento', fig: '04-07', ordem: 3, blocos: [
+      { t: 'lista', itens: [
+        'Em **Itens**, clique em **+ Adicionar item** e escolha a família.',
+        'Escolha um modelo pronto (pesquisa e filtro) ou monte o item.',
+        'Siga **Configurar → Compor → Conferir** e clique em **Incluir na proposta**.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 4.' },
+    ] },
+    { titulo: '4. Negociar desconto ou margem', fig: '04-04', ordem: 4, blocos: [
+      { t: 'lista', itens: [
+        'Clique na **Margem** do resumo no topo da proposta.',
+        'No cartão **Negociar**, clique em **Margem mínima (30%)** ou num desconto pronto, ou digite o valor final.',
+        'Compare **Proposta agora** × **Simulação** e clique em **Aplicar à proposta**.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 4.' },
+    ] },
+    { titulo: '5. Conferir antes de enviar', fig: '04-05', ordem: 5, blocos: [
+      { t: 'lista', itens: [
+        'Abra a aba **Conferência**.',
+        'Em cada linha, clique em **Ir** e corrija ou justifique.',
+        'Fora da política: **Pedir aprovação (valor target)**.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 4.' },
+    ] },
+    { titulo: '6. Gerar a proposta e a versão interativa', fig: '20-01', ordem: 6, blocos: [
+      { t: 'lista', itens: [
+        'Abra a aba **Documentos** e escolha documento, idioma e moeda.',
+        'Clique em **Gerar proposta (PDF)**, em **Técnica + Comercial (2 PDFs)** ou em **Versão interativa (HTML)**.',
+        'No app publicado, confirme **Salvar arquivo**.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 20.' },
+    ] },
+    { titulo: '7. A versão interativa aberta', fig: '20-04', ordem: 7, blocos: [
+      { t: 'lista', itens: [
+        'Abra o arquivo "_interativa.html" no navegador ou no celular.',
+        'O botão **PDF oficial** baixa o PDF que vale; o rodapé mostra o SHA-256 dele.',
+        'Para mandar por link, publique o arquivo num endereço da LS Fire.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 20.' },
+    ] },
+    { titulo: '8. Proposta de serviço (SPV)', fig: '06-15', ordem: 8, blocos: [
+      { t: 'lista', itens: [
+        'Na SPV, abra **Para o documento da proposta → Execução do serviço**.',
+        'Preencha equipe e duração e marque segurança, responsabilidades, entregáveis e, se for o caso, sistema fora de operação.',
+        'Marque **Termos e condições em anexo** e gere o PDF (sai também o dos termos).',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 6.' },
+    ] },
+    { titulo: '9. Importar proposta antiga', fig: '19-02', ordem: 9, blocos: [
+      { t: 'lista', itens: [
+        '**Nova** → **Importar proposta antiga (planilha + PDFs)**.',
+        'Escolha a planilha e os PDFs de uma vez e confira a prévia.',
+        'Escolha qual preço manter e clique em **Criar a proposta**; depois, salve.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 19.' },
+    ] },
+    { titulo: '10. Pendências', fig: '13-01', ordem: 10, blocos: [
+      { t: 'lista', itens: [
+        'Menu **Pendências** → **Acompanhamento**.',
+        'Clique em **Abrir** para ver e atualizar uma pendência.',
+        'As automáticas se resolvem sozinhas quando a falha some.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 13.' },
+    ] },
+    { titulo: '11. Revisar a proposta', fig: '15-01', ordem: 11, blocos: [
+      { t: 'lista', itens: [
+        'No cabeçalho, clique em **Revisar** e escreva o motivo.',
+        'Pelo selo **Rev. N**, veja, compare e restaure revisões.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 15.' },
+    ] },
+    { titulo: '12. Cadastrar um insumo (administrador)', fig: '07-20', ordem: 12, blocos: [
+      { t: 'lista', itens: [
+        '**Cadastros** → **Custos** → **Insumos e preços** → **+ Novo insumo**.',
+        'Preencha a ficha por abas; confira o aviso de itens parecidos.',
+        'Clique em **Cadastrar**.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 7.' },
+    ] },
+    { titulo: '13. Estruturas (administrador)', fig: '09-04', ordem: 13, blocos: [
+      { t: 'lista', itens: [
+        '**Cadastros** → **Engenharia** → **Estruturas**.',
+        'Edite em **rascunho**, veja **diferenças e impacto** e **Publicar**.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 9.' },
+    ] },
+    { titulo: '14. Perfis, backup e numeração (administrador)', fig: '16-03', ordem: 14, blocos: [
+      { t: 'lista', itens: [
+        '**Configurações**: perfis e permissões, e-mails das áreas, backup e restauração.',
+        '**Administração** → **Numeração e máscaras** para ligar a série de propostas.',
+      ] },
+      { t: 'nota', x: 'Passo a passo completo: cap. 16.' },
+    ] },
     { titulo: 'Atalhos e sinais', blocos: [
       { t: 'tab', cab: ['Atalho ou sinal', 'Significado'], lin: [
         ['Ctrl+S', 'Salvar a proposta'],
