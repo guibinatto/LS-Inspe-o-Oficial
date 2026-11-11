@@ -33,9 +33,13 @@ const num = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   confere('sem nº de peças não separa', !!(await p.$('#sepOk')));
   await p.fill('#sepNumPc', '10.339'); await p.click('#sepOk'); await p.waitForTimeout(400);
   confere('números iguais não separa', !!(await p.$('#sepOk')));
+  confere('duas seleções de família: MO = a da proposta (SMC), peças = PAR', (await p.inputValue('#sepFamMo')) === 'SMC' && (await p.inputValue('#sepFamPc')) === 'PAR' && (await p.$$eval('#sepFamPc option', (o) => o.length)) > 5);
+  await p.selectOption('#sepFamMo', 'SMF'); await p.selectOption('#sepFamPc', 'PAN');
   await p.fill('#sepNumPc', '10.342'); await p.click('#sepOk'); await p.waitForTimeout(2500);
 
   // mão de obra (esta)
+  const h1Mo = await p.evaluate(() => (document.querySelector('.flowhead h1') || {}).innerText || '');
+  confere('MO: na família escolhida (SMF · Serviço em fábrica)', /Serviço em fábrica/.test(h1Mo) && /10\.339/.test(h1Mo), h1Mo);
   const banMo = await p.evaluate(() => (document.querySelector('[data-vinculo]') || {}).innerText || '');
   confere('MO: aviso de vínculo com a proposta de peças 10.342', /peças deste serviço estão na proposta nº 10\.342/.test(banMo), banMo.slice(0, 90));
   const pMo = num(await preco());
@@ -53,7 +57,7 @@ const num = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   const vinc = await p.$('[data-spvinc]'); confere('MO: botão Abrir a proposta vinculada', !!vinc);
   if (vinc) { await vinc.click(); await p.waitForTimeout(1200); }
   const h1 = await p.evaluate(() => (document.querySelector('.flowhead h1') || {}).innerText || '');
-  confere('peças: abriu a 10.342, tipo Peças e sobressalentes', /10\.342/.test(h1) && /Peças e sobressalentes/.test(h1), h1);
+  confere('peças: abriu a 10.342 na família escolhida (PAN · Painéis)', /10\.342/.test(h1) && /Painéis/.test(h1), h1);
   const banPc = await p.evaluate(() => (document.querySelector('[data-vinculo]') || {}).innerText || '');
   confere('peças: aviso de vínculo com a MO 10.339', /mão de obra destas peças está na proposta nº 10\.339/i.test(banPc), banPc.slice(0, 90));
   const pPc = num(await preco());

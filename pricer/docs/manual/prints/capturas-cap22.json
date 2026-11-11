@@ -6,7 +6,7 @@
   "titulo": "Tela Início: escolher o tipo de serviço",
   "vp": "desktop",
   "arquivo": "22-01-spvzero-inicio.png",
-  "data": "2026-11-11T04:24:17.614Z",
+  "data": "2026-11-11T04:28:13.631Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -37,7 +37,7 @@
   "titulo": "Cliente e escopo preenchidos",
   "vp": "desktop",
   "arquivo": "22-02-spvzero-cliente.png",
-  "data": "2026-11-11T04:24:18.669Z",
+  "data": "2026-11-11T04:28:14.715Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -86,7 +86,7 @@
   "titulo": "Equipe e deslocamento (120 km só ida)",
   "vp": "desktop",
   "arquivo": "22-03-spvzero-equipe.png",
-  "data": "2026-11-11T04:24:23.664Z",
+  "data": "2026-11-11T04:28:19.650Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -129,7 +129,7 @@
   "titulo": "Peças e materiais: o radiador",
   "vp": "desktop",
   "arquivo": "22-04-spvzero-peca.png",
-  "data": "2026-11-11T04:24:24.580Z",
+  "data": "2026-11-11T04:28:20.563Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -172,7 +172,7 @@
   "titulo": "Formação do preço do serviço",
   "vp": "desktop",
   "arquivo": "22-05-spvzero-formacao.png",
-  "data": "2026-11-11T04:24:26.442Z",
+  "data": "2026-11-11T04:28:22.420Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -203,7 +203,7 @@
   "titulo": "Para o documento → Execução do serviço",
   "vp": "desktop",
   "arquivo": "22-06-spvzero-execucao.png",
-  "data": "2026-11-11T04:24:26.881Z",
+  "data": "2026-11-11T04:28:22.851Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -258,7 +258,7 @@
   "titulo": "Propostas relacionadas e termos em anexo",
   "vp": "desktop",
   "arquivo": "22-07-spvzero-termos.png",
-  "data": "2026-11-11T04:24:31.559Z",
+  "data": "2026-11-11T04:28:27.529Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -283,7 +283,7 @@
   "titulo": "Salvar a SPV",
   "vp": "desktop",
   "arquivo": "22-08-spvzero-salvar.png",
-  "data": "2026-11-11T04:24:32.373Z",
+  "data": "2026-11-11T04:28:28.360Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -308,7 +308,7 @@
   "titulo": "Proposta técnica e comercial da SPV: gerar",
   "vp": "desktop",
   "arquivo": "22-09-spvzero-gerar.png",
-  "data": "2026-11-11T04:24:34.099Z",
+  "data": "2026-11-11T04:28:30.111Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -333,7 +333,7 @@
   "titulo": "O PDF da proposta de serviço: planilha e execução do serviço",
   "vp": "desktop",
   "arquivo": "22-10-spvzero-pdf.png",
-  "data": "2026-11-11T04:24:34.460Z",
+  "data": "2026-11-11T04:28:30.460Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -358,7 +358,7 @@
   "titulo": "O PDF dos termos (anexo) e a referência na proposta",
   "vp": "desktop",
   "arquivo": "22-11-spvzero-termos-pdf.png",
-  "data": "2026-11-11T04:24:38.442Z",
+  "data": "2026-11-11T04:28:34.793Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -383,7 +383,7 @@
   "titulo": "A SPV na lista da tela Início",
   "vp": "desktop",
   "arquivo": "22-12-spvzero-lista.png",
-  "data": "2026-11-11T04:24:40.015Z",
+  "data": "2026-11-11T04:28:36.385Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -414,7 +414,7 @@
   "titulo": "Peças e materiais: o botão para separar em duas propostas",
   "vp": "desktop",
   "arquivo": "22-13-spvzero-separar-botao.png",
-  "data": "2026-11-11T04:24:41.048Z",
+  "data": "2026-11-11T04:28:37.407Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -430,45 +430,57 @@
   "id": "22-14",
   "cap": 22,
   "nome": "spvzero-separar-janela",
-  "titulo": "Os dois números e a conferência dos valores",
+  "titulo": "As duas famílias, os dois números e a conferência dos valores",
   "vp": "desktop",
   "arquivo": "22-14-spvzero-separar-janela.png",
-  "data": "2026-11-11T04:24:42.979Z",
+  "data": "2026-11-11T04:28:39.343Z",
   "ok": true,
   "problemas": [],
   "marcas": [
    {
     "n": 1,
+    "txt": "Família da mão de obra: vem da proposta (pode trocar).",
+    "sel": "#sepFamMo",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Família das peças: começa em PAR (pode trocar).",
+    "sel": "#sepFamPc",
+    "ok": true
+   },
+   {
+    "n": 3,
     "txt": "Mão de obra: esta proposta (o número dela).",
     "sel": "#sepNumMo",
     "ok": true
    },
    {
-    "n": 2,
+    "n": 4,
     "txt": "Peças: a proposta nova (digite ou use \"gerar nº\").",
     "sel": "#sepNumPc",
     "ok": true
    },
    {
-    "n": 3,
+    "n": 5,
     "txt": "Valor e lucro de cada parte; a soma é o total de hoje.",
     "sel": "#overlay .kv",
     "ok": true
    },
    {
-    "n": 4,
+    "n": 6,
     "txt": "Separada, a de peças pode ficar abaixo do lucro mínimo.",
     "sel": "[data-sepaviso]",
     "ok": true
    },
    {
-    "n": 5,
+    "n": 7,
     "txt": "Cada uma cita a outra em \"Propostas relacionadas\".",
     "sel": "label.chkl:has(#sepRel) span",
     "ok": true
    },
    {
-    "n": 6,
+    "n": 8,
     "txt": "Separa e salva as duas.",
     "sel": "#sepOk",
     "ok": true
@@ -482,7 +494,7 @@
   "titulo": "A proposta de mão de obra, ligada à de peças",
   "vp": "desktop",
   "arquivo": "22-15-spvzero-separar-mo.png",
-  "data": "2026-11-11T04:24:44.183Z",
+  "data": "2026-11-11T04:28:40.575Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -513,7 +525,7 @@
   "titulo": "A proposta de peças (PAR), ligada à de mão de obra",
   "vp": "desktop",
   "arquivo": "22-16-spvzero-separar-pecas.png",
-  "data": "2026-11-11T04:24:47.199Z",
+  "data": "2026-11-11T04:28:43.584Z",
   "ok": true,
   "problemas": [],
   "marcas": [

@@ -5696,9 +5696,13 @@
     const rMo = SPV.calc(sMo), rPc = SPV.calc(sPc); const min = r.mk.lucro_min;
     const luc = (x) => `<small class="${x.lucroPct < min ? 'bad-t' : 'sub'}">lucro líquido ${pct(x.lucroPct, 1)}</small>`;
     const baixo = [[rMo, 'mão de obra'], [rPc, 'peças']].filter(([x]) => x.lucroPct < min);
+    // família (tipo) de cada proposta: a da mão de obra vem da proposta aberta; a das peças começa em PAR
+    const famOpts = (sel) => SPV.famprod().filter((f) => f.div === 'SPV').map((f) => `<option value="${esc(f.abrev)}"${f.abrev === sel ? ' selected' : ''}>${esc(f.abrev + ' — ' + f.nome)}</option>`).join('');
     modal(`<h2>Separar em duas propostas: mão de obra e peças</h2>
-      <p class="sub" style="margin:0 0 10px">Como no Ploomes: uma proposta para o serviço e outra para as peças, cada uma com o seu número. As peças saem desta proposta e vão para uma proposta nova de <b>Peças e sobressalentes (PAR)</b>, com o mesmo cliente, contato, local, vendedor, pagamento e validade. Os preços não mudam.</p>
+      <p class="sub" style="margin:0 0 10px">Como no Ploomes: uma proposta para o serviço e outra para as peças, cada uma com o seu número. As peças saem desta proposta e vão para uma proposta nova, com a família que você escolher abaixo (padrão: <b>PAR · Peças e sobressalentes</b>), o mesmo cliente, contato, local, vendedor, pagamento e validade. Os preços não mudam.</p>
       <div class="fields">
+        <div class="f span2"><label for="sepFamMo">Família da mão de obra (esta)</label><select id="sepFamMo">${famOpts(s.tipo)}</select></div>
+        <div class="f span2"><label for="sepFamPc">Família das peças (nova)</label><select id="sepFamPc">${famOpts('PAR')}</select></div>
         <div class="f span2"><label for="sepNumMo">Nº da proposta de mão de obra (esta)</label><input id="sepNumMo" value="${esc(s.numero || '')}" placeholder="ex.: 10.339">${window.LSNumGerar ? window.LSNumGerar('spv', '#sepNumMo', '') : ''}</div>
         <div class="f span2"><label for="sepNumPc">Nº da proposta de peças (nova)</label><input id="sepNumPc" value="" placeholder="ex.: 10.342">${window.LSNumGerar ? window.LSNumGerar('spv', '#sepNumPc', '') : ''}</div></div>
       <div class="kv pcro" style="margin-top:10px"><div>Mão de obra</div><div>${brl(rMo.total)} <small class="sub">equipe, deslocamento e ART ·</small> ${luc(rMo)}</div>
@@ -5716,21 +5720,21 @@
       for (const [n, pid] of [[nMo, state.id], [nP, null]]) if (REG.numeroDuplicado && REG.numeroDuplicado(n, pid)) {
         if (REG.serieCfg && REG.serieCfg('spv').bloqueio) { toast('O número ' + n + ' já está em outra proposta salva. Troque (ou use "gerar nº").'); return; }
         if (!await DLG.confirmar('O número ' + n + ' já está em outra proposta salva. Usar assim mesmo?')) return; }
-      const rel = $('#sepRel', o).checked; close(); await separarExec(nMo, nP, rel);
+      const rel = $('#sepRel', o).checked; const fam = { mo: $('#sepFamMo', o).value, pecas: $('#sepFamPc', o).value }; close(); await separarExec(nMo, nP, rel, fam);
     }; });
   }
-  async function separarExec(nMo, nP, rel) {
+  async function separarExec(nMo, nP, rel, fam = {}) {
     const orig = JSON.parse(JSON.stringify(state)); const origDirty = dirty; const s = orig.spv;
     const pc0 = orig.propCom || {}; const L = REL_TXT[pc0.idioma] || REL_TXT.pt;
     const uidMo = orig.uid || newUid(), uidPc = newUid();
     // peças: proposta nova (PAR), mesmo cliente e condições; sem equipe, deslocamento, escopo e dados fiscais do serviço
     const sp = JSON.parse(JSON.stringify(s));
-    Object.assign(sp, { tipo: 'PAR', numero: nP, revisao: '0', status: 'rascunho', blocos: { equipe: false, pecas: true, contrato: false }, equipe: [], dist: 0, ov: {}, prazo_exec: '', codServico: '', exclusoes: '',
+    Object.assign(sp, { tipo: fam.pecas || 'PAR', numero: nP, revisao: '0', status: 'rascunho', blocos: { equipe: false, pecas: true, contrato: false }, equipe: [], dist: 0, ov: {}, prazo_exec: '', codServico: '', exclusoes: '',
       descricao: 'Fornecimento das peças e materiais abaixo, para o serviço da proposta nº ' + nMo + '.', vinculo: { papel: 'pecas', uid: uidMo, numero: nMo } });
     delete sp.modelo;
     const pcP = JSON.parse(JSON.stringify(pc0)); SERV_PC.forEach((k) => delete pcP[k]); if (rel) pcP.relacionadas = relacAdd(pcP.relacionadas, L.pecas(nMo));
     // mão de obra: esta proposta, sem as peças
-    const sm = JSON.parse(JSON.stringify(s)); Object.assign(sm, { numero: nMo, blocos: Object.assign({}, s.blocos, { pecas: false }), pecas: [], vinculo: { papel: 'mo', uid: uidPc, numero: nP } });
+    const sm = JSON.parse(JSON.stringify(s)); Object.assign(sm, { tipo: fam.mo || s.tipo, numero: nMo, blocos: Object.assign({}, s.blocos, { pecas: false }), pecas: [], vinculo: { papel: 'mo', uid: uidPc, numero: nP } });
     const pcM = JSON.parse(JSON.stringify(pc0)); if (rel) pcM.relacionadas = relacAdd(pcM.relacionadas, L.mo(nP));
     let idPc = null;
     try {
@@ -5741,7 +5745,7 @@
       state = Object.assign({}, orig, { uid: uidMo, spv: sm, propCom: pcM }); build(); persist(); dirty = true;
       await $('#bSave').onclick();
       if (!state.id || dirty) throw new Error(ui.erroSalvar ? ui.erroSalvar.msg : 'a proposta de mão de obra não foi salva');
-      logEv({ tipo: 'Proposta separada (MO e peças)', ref: state.id, desc: 'Mão de obra nº ' + nMo + ' · peças nº ' + nP + ' (' + (sp.cliente || '') + ')', mudancas: [{ campo: 'Peças', de: s.pecas.length, para: 0 }] });
+      logEv({ tipo: 'Proposta separada (MO e peças)', ref: state.id, desc: 'Mão de obra nº ' + nMo + ' (' + sm.tipo + ') · peças nº ' + nP + ' (' + sp.tipo + ') · ' + (sp.cliente || ''), mudancas: [{ campo: 'Peças', de: s.pecas.length, para: 0 }].concat(sm.tipo !== s.tipo ? [{ campo: 'Família', de: s.tipo, para: sm.tipo }] : []) });
       ui.assinaturaAberta = assinatura(); render(); window.scrollTo(0, 0);
       toast('Separada e salva: mão de obra nº ' + nMo + ' e peças nº ' + nP);
     } catch (er) {

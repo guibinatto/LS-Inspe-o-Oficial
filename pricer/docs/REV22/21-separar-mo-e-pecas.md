@@ -7,7 +7,13 @@ No Ploomes, serviço com peças vira **duas propostas**: uma de mão de obra (MO
 ## Como funciona
 
 1. Na SPV de serviço (com o bloco **Equipe e deslocamento** e o bloco **Peças e materiais**), o cartão de peças tem o botão **Separar em 2 propostas: mão de obra e peças**.
-2. A janela pede os dois números:
+2. A janela pede as duas **famílias** (o tipo da SPV, que vai para margens e relatórios):
+   - **mão de obra (esta)**: vem com a família da proposta aberta (SMC, SMF, PAN, TAQ…) e pode ser trocada;
+   - **peças (nova)**: começa em **PAR · Peças e sobressalentes**. Pode ser outra família da divisão SPV, por exemplo PAN para peças de painel.
+
+   Na criação da SPV continua uma escolha só, a do tipo de serviço. A segunda família é pedida aqui, porque é aqui que nasce a segunda proposta.
+
+   Depois, a janela pede os dois números:
    - **mão de obra (esta)**: já vem com o número da proposta aberta;
    - **peças (nova)**: digitado, ou pelo botão **gerar nº** quando a série de numeração SPV está ligada (Administração → Numeração e máscaras).
 3. A janela mostra, para a mão de obra e para as peças, o valor e o lucro líquido de cada parte sozinha, e a soma, que é igual ao total de antes. Se uma das partes ficar abaixo do lucro mínimo, aparece um aviso.
@@ -20,7 +26,7 @@ No Ploomes, serviço com peças vira **duas propostas**: uma de mão de obra (MO
 
 | | Proposta de mão de obra (a aberta) | Proposta de peças (nova) |
 |---|---|---|
-| Tipo | o mesmo (SMC, SMF…) | PAR · Peças e sobressalentes |
+| Família (tipo) | a escolhida na janela (padrão: a da proposta) | a escolhida na janela (padrão: PAR · Peças e sobressalentes) |
 | Número | o informado | o informado ou gerado |
 | Cliente, CNPJ, contato, local, UF, vendedor, pagamento, validade, multiplicadores | mantidos | copiados |
 | Equipe, deslocamento, ART, escopo, prazo de execução, não incluso, código do serviço | mantidos | não vão (escopo: "Fornecimento das peças e materiais abaixo, para o serviço da proposta nº …") |
@@ -41,7 +47,7 @@ Depois de separadas, cada proposta mostra no topo um aviso com o número e o val
 
 ## Cálculo
 
-Nada muda nas fórmulas. No cálculo da SPV (`spv.js`, `calc`):
+Nada muda nas fórmulas. A família não entra no cálculo: o tipo de campo ou fábrica, que define hotel e alimentação, fica o da proposta original, mesmo que a família da mão de obra seja trocada. No cálculo da SPV (`spv.js`, `calc`):
 
 - o preço do serviço é custo do serviço × multiplicador;
 - o preço das peças é a soma de custo × fator de cada linha;
@@ -64,10 +70,10 @@ Por isso, MO sozinha + peças sozinhas = total da proposta junta, centavo a cent
 
 ## Teste
 
-`tools/testes/separa_test.js` (20 verificações) faz o caminho inteiro:
+`tools/testes/separa_test.js` (23 verificações) faz o caminho inteiro:
 
 1. monta uma SPV SMC "WEG TINTAS" nº 10.339, com radiador e junta;
 2. confere a soma na janela e recusa número vazio e números iguais;
-3. separa com 10.342 e confere o preço só da MO, o aviso, "Propostas relacionadas" e o PDF da MO, sem as peças;
+3. confere as duas seleções de família (SMC e PAR já escolhidas), troca para SMF e PAN, separa com 10.342 e confere a família de cada uma, o preço só da MO, o aviso, "Propostas relacionadas" e o PDF da MO, sem as peças;
 4. abre a 10.342 pelo aviso e confere o tipo PAR, o mesmo cliente, sem equipe, preço só das peças, MO + peças = total de antes, e o PDF das peças citando a 10.339;
 5. confere as duas na tela inicial, sem erro de JavaScript.

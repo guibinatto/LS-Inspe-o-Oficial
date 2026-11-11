@@ -138,10 +138,12 @@ module.exports = {
       marcas: [
         { sel: '[data-spsep]', txt: 'Separar em 2 propostas: mão de obra e peças, cada uma com o seu número.', pos: 'b' },
       ] },
-    { id: '22-14', nome: 'spvzero-separar-janela', titulo: 'Os dois números e a conferência dos valores',
+    { id: '22-14', nome: 'spvzero-separar-janela', titulo: 'As duas famílias, os dois números e a conferência dos valores',
       prep: async (p, h) => { await h.clicar('[data-spsep]', 500); await p.fill('#sepNumPc', '10.502'); await p.waitForTimeout(200); },
       clip: '#overlay .modal .card', pad: 6,
       marcas: [
+        { sel: '#sepFamMo', txt: 'Família da mão de obra: vem da proposta (pode trocar).', pos: 'r' },
+        { sel: '#sepFamPc', txt: 'Família das peças: começa em PAR (pode trocar).', pos: 'r' },
         { sel: '#sepNumMo', txt: 'Mão de obra: esta proposta (o número dela).', pos: 'r' },
         { sel: '#sepNumPc', txt: 'Peças: a proposta nova (digite ou use "gerar nº").', pos: 'r' },
         { sel: '#overlay .kv', txt: 'Valor e lucro de cada parte; a soma é o total de hoje.', pos: 'r' },
@@ -190,9 +192,9 @@ module.exports = {
     ], resultado: 'Dois PDFs: a proposta (curta) e os termos. Os dois ficam guardados nos documentos da proposta.', atencao: 'Mande os dois PDFs ao cliente. No app publicado, confirme **Salvar arquivo** duas vezes.' },
     { t: 'tut', titulo: 'Passo 5 (quando for o caso) — Separar em duas propostas: mão de obra e peças', objetivo: 'Ter uma proposta para o serviço e outra para as peças, cada uma com o seu número, como no Ploomes (ex.: 10.339 serviço + 10.342 radiador).', quem: 'Vendedor ou Serviços (Contribuidor, Editor ou dono). No modo local não há controle de acesso.', pre: ['SPV com equipe e peças, ainda não enviada ao cliente.', 'Para o botão **gerar nº**: série de numeração SPV ligada (Manual do Administrador).'], passos: [
       { x: 'Abra a SPV e, no cartão **Peças e materiais**, clique em **Separar em 2 propostas: mão de obra e peças**.', fig: '22-13' },
-      { x: 'Confira o número da mão de obra (o desta proposta) e informe o número da proposta de peças. Confira o valor e o lucro líquido de cada parte (a soma dá o total de hoje) e clique em **Separar e salvar as duas**.', fig: '22-14' },
+      { x: 'Escolha a **família** de cada proposta: a da mão de obra vem da proposta aberta (aqui, SMC) e a das peças começa em **PAR · Peças e sobressalentes** (troque, por exemplo, para PAN quando forem peças de painel). Confira o número da mão de obra (o desta proposta) e informe o número da proposta de peças. Confira o valor e o lucro líquido de cada parte (a soma dá o total de hoje) e clique em **Separar e salvar as duas**.', fig: '22-14' },
       { x: 'A proposta aberta fica só com a mão de obra e mostra no topo o número e o valor da de peças. Clique em **Abrir a nº …** para ir à outra.', fig: '22-15' },
-      { x: 'A proposta de peças (tipo **Peças e sobressalentes**) tem o mesmo cliente e as mesmas condições, sem equipe. Gere o PDF de cada uma pela aba **Documentos**, como no passo 4.', fig: '22-16' },
+      { x: 'A proposta de peças (na família escolhida; aqui, **Peças e sobressalentes**) tem o mesmo cliente e as mesmas condições, sem equipe. Gere o PDF de cada uma pela aba **Documentos**, como no passo 4.', fig: '22-16' },
     ], resultado: 'Duas propostas salvas e ligadas, cada uma com o seu número, o seu PDF, o seu status e a sua aprovação. Em **Propostas relacionadas**, cada uma cita a outra ("Peças e materiais conforme a proposta nº …" e "Mão de obra conforme a proposta nº …").', atencao: 'Separadas, cada proposta tem o seu lucro: as peças sozinhas, com o fator padrão, costumam ficar abaixo do mínimo de 40% que a proposta junta alcançava com o serviço. A janela avisa; ajuste o fator das peças antes ou peça aprovação depois. O botão não aparece em contrato recorrente, nem em proposta sem equipe ou sem peças. Numa proposta já enviada, faça antes uma revisão. Se mudar o número de uma delas depois, confira o texto de **Propostas relacionadas** da outra: o aviso do topo mostra o número novo, mas o texto não muda sozinho.' },
   ],
 };
