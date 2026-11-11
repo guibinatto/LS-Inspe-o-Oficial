@@ -13919,7 +13919,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>11/11/2026 04:15 · commit 2942e80</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>11/11/2026 04:22 · commit d88f9d9</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14165,14 +14165,21 @@ window.PRICER_ESCOPO_PADRAO = {
     const salva = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
     if (salva && ['enviada', 'negociacao', 'ganha', 'perdida'].includes(salva.status)) { toast('Esta proposta já saiu para o cliente (' + salva.status + '). Separe antes de enviar; numa enviada, faça antes uma revisão.'); return; }
     const r = SPV.calc(s); const nPc = s.pecas.length;
+    // cada parte sozinha (mesmo cálculo): o lucro de cada uma pode ficar diferente do da proposta junta
+    const sMo = JSON.parse(JSON.stringify(s)); sMo.blocos.pecas = false; sMo.pecas = [];
+    const sPc = JSON.parse(JSON.stringify(s)); Object.assign(sPc, { blocos: { equipe: false, pecas: true, contrato: false }, equipe: [], dist: 0, ov: {} });
+    const rMo = SPV.calc(sMo), rPc = SPV.calc(sPc); const min = r.mk.lucro_min;
+    const luc = (x) => `<small class="${x.lucroPct < min ? 'bad-t' : 'sub'}">lucro líquido ${pct(x.lucroPct, 1)}</small>`;
+    const baixo = [[rMo, 'mão de obra'], [rPc, 'peças']].filter(([x]) => x.lucroPct < min);
     modal(`<h2>Separar em duas propostas: mão de obra e peças</h2>
       <p class="sub" style="margin:0 0 10px">Como no Ploomes: uma proposta para o serviço e outra para as peças, cada uma com o seu número. As peças saem desta proposta e vão para uma proposta nova de <b>Peças e sobressalentes (PAR)</b>, com o mesmo cliente, contato, local, vendedor, pagamento e validade. Os preços não mudam.</p>
       <div class="fields">
         <div class="f span2"><label for="sepNumMo">Nº da proposta de mão de obra (esta)</label><input id="sepNumMo" value="${esc(s.numero || '')}" placeholder="ex.: 10.339">${window.LSNumGerar ? window.LSNumGerar('spv', '#sepNumMo', '') : ''}</div>
         <div class="f span2"><label for="sepNumPc">Nº da proposta de peças (nova)</label><input id="sepNumPc" value="" placeholder="ex.: 10.342">${window.LSNumGerar ? window.LSNumGerar('spv', '#sepNumPc', '') : ''}</div></div>
-      <div class="kv pcro" style="margin-top:10px"><div>Mão de obra</div><div>${brl(r.Vs)} <small class="sub">equipe, deslocamento e ART</small></div>
-        <div>Peças</div><div>${brl(r.Vp)} <small class="sub">${nPc} linha(s)</small></div>
-        <div>Soma</div><div><b>${brl(r.Vs + r.Vp)}</b> <small class="sub">igual ao total de hoje (${brl(r.total)})</small></div></div>
+      <div class="kv pcro" style="margin-top:10px"><div>Mão de obra</div><div>${brl(rMo.total)} <small class="sub">equipe, deslocamento e ART ·</small> ${luc(rMo)}</div>
+        <div>Peças</div><div>${brl(rPc.total)} <small class="sub">${nPc} linha(s) ·</small> ${luc(rPc)}</div>
+        <div>Soma</div><div><b>${brl(rMo.total + rPc.total)}</b> <small class="sub">igual ao total de hoje (${brl(r.total)}) · lucro líquido junto ${pct(r.lucroPct, 1)}</small></div></div>
+      ${baixo.length ? `<div class="banner warn" style="margin-top:8px" data-sepaviso>Separada, a proposta de ${baixo.map(([, n]) => n).join(' e a de ')} fica com lucro líquido abaixo do mínimo de ${pct(min, 0)} (junto, a margem fechava). Ajuste antes ${baixo.some(([, n]) => n === 'peças') ? 'o fator das peças' : 'o multiplicador do serviço'} ou peça aprovação depois de separar.</div>` : ''}
       <label class="chkl" style="margin-top:10px"><input type="checkbox" id="sepRel" checked> <span>Escrever em <b>Propostas relacionadas</b> de cada uma o número da outra (sai no PDF)</span></label>
       <p class="sub" style="margin:8px 0 0">As duas ficam salvas e ligadas: cada uma mostra a outra no topo, com o botão Abrir. Cada uma tem o seu PDF, o seu status e a sua aprovação.</p>
       <div class="docbar" style="margin-top:12px"><button class="btn pri" id="sepOk">Separar e salvar as duas</button><button class="btn" data-close>Cancelar</button></div>`,

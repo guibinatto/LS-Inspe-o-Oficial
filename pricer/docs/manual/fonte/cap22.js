@@ -131,6 +131,40 @@ module.exports = {
         { sel: '.home table.t tbody tr:first-child td:nth-child(3)', txt: 'Total.', pos: 'b' },
         { sel: '.home table.t tbody tr:first-child [data-hnext]', txt: 'Próxima etapa.', pos: 'b' },
       ] },
+    { id: '22-13', nome: 'spvzero-separar-botao', titulo: 'Peças e materiais: o botão para separar em duas propostas',
+      prep: async (p) => { await p.evaluate(() => document.querySelector('.home table.t tbody [data-hopen]').click()); await p.waitForTimeout(1200);
+        await p.evaluate(() => document.querySelector('[data-spsep]').scrollIntoView({ block: 'center' })); await p.waitForTimeout(300); },
+      clip: 'section.card:has([data-spsep])', pad: 8,
+      marcas: [
+        { sel: '[data-spsep]', txt: 'Separar em 2 propostas: mão de obra e peças, cada uma com o seu número.', pos: 'b' },
+      ] },
+    { id: '22-14', nome: 'spvzero-separar-janela', titulo: 'Os dois números e a conferência dos valores',
+      prep: async (p, h) => { await h.clicar('[data-spsep]', 500); await p.fill('#sepNumPc', '10.502'); await p.waitForTimeout(200); },
+      clip: '#overlay .modal .card', pad: 6,
+      marcas: [
+        { sel: '#sepNumMo', txt: 'Mão de obra: esta proposta (o número dela).', pos: 'r' },
+        { sel: '#sepNumPc', txt: 'Peças: a proposta nova (digite ou use "gerar nº").', pos: 'r' },
+        { sel: '#overlay .kv', txt: 'Valor e lucro de cada parte; a soma é o total de hoje.', pos: 'r' },
+        { sel: '[data-sepaviso]', txt: 'Separada, a de peças pode ficar abaixo do lucro mínimo.', pos: 'r' },
+        { sel: 'label.chkl:has(#sepRel) span', txt: 'Cada uma cita a outra em "Propostas relacionadas".', pos: 'r' },
+        { sel: '#sepOk', txt: 'Separa e salva as duas.', pos: 'r' },
+      ] },
+    { id: '22-15', nome: 'spvzero-separar-mo', titulo: 'A proposta de mão de obra, ligada à de peças',
+      prep: async (p, h) => { await h.clicar('#sepOk', 2500); await h.topo(); },
+      clip: ['.ctxh', '[data-vinculo]'], pad: 8,
+      marcas: [
+        { sel: '.ctxh .ctx-kpis .k:first-child', txt: 'Valor total: agora só a mão de obra.', pos: 'b' },
+        { sel: '[data-vinculo] b', txt: 'Número da proposta de peças.', pos: 'b' },
+        { sel: '[data-spvinc]', txt: 'Abrir a proposta de peças.', pos: 'b' },
+      ] },
+    { id: '22-16', nome: 'spvzero-separar-pecas', titulo: 'A proposta de peças (PAR), ligada à de mão de obra',
+      prep: async (p, h) => { await h.clicar('[data-spvinc]', 1500); await h.topo(); },
+      clip: ['.ctxh', '[data-vinculo]'], pad: 8,
+      marcas: [
+        { sel: '.ctxh .ctx-kpis .k:first-child', txt: 'Valor total: só as peças.', pos: 'b' },
+        { sel: '[data-vinculo] b', txt: 'Número da proposta de mão de obra.', pos: 'b' },
+        { sel: '[data-spvinc]', txt: 'Voltar para a de mão de obra.', pos: 'b' },
+      ] },
   ],
   conteudo: [
     { t: 'p', x: 'Este capítulo faz uma proposta de **serviço em campo** do começo ao fim, com uma tela para cada passo: troca do radiador do motor diesel de uma bomba de incêndio, com dois técnicos. Os valores são de treino. Os detalhes de cada bloco estão no capítulo 6.' },
@@ -154,5 +188,11 @@ module.exports = {
       { x: 'Confira a referência aos termos e o PDF dos termos.', fig: '22-11' },
       { x: 'Na tela **Início**, a SPV aparece na lista com a próxima etapa.', fig: '22-12' },
     ], resultado: 'Dois PDFs: a proposta (curta) e os termos. Os dois ficam guardados nos documentos da proposta.', atencao: 'Mande os dois PDFs ao cliente. No app publicado, confirme **Salvar arquivo** duas vezes.' },
+    { t: 'tut', titulo: 'Passo 5 (quando for o caso) — Separar em duas propostas: mão de obra e peças', objetivo: 'Ter uma proposta para o serviço e outra para as peças, cada uma com o seu número, como no Ploomes (ex.: 10.339 serviço + 10.342 radiador).', quem: 'Vendedor ou Serviços (Contribuidor, Editor ou dono). No modo local não há controle de acesso.', pre: ['SPV com equipe e peças, ainda não enviada ao cliente.', 'Para o botão **gerar nº**: série de numeração SPV ligada (Manual do Administrador).'], passos: [
+      { x: 'Abra a SPV e, no cartão **Peças e materiais**, clique em **Separar em 2 propostas: mão de obra e peças**.', fig: '22-13' },
+      { x: 'Confira o número da mão de obra (o desta proposta) e informe o número da proposta de peças. Confira o valor e o lucro líquido de cada parte (a soma dá o total de hoje) e clique em **Separar e salvar as duas**.', fig: '22-14' },
+      { x: 'A proposta aberta fica só com a mão de obra e mostra no topo o número e o valor da de peças. Clique em **Abrir a nº …** para ir à outra.', fig: '22-15' },
+      { x: 'A proposta de peças (tipo **Peças e sobressalentes**) tem o mesmo cliente e as mesmas condições, sem equipe. Gere o PDF de cada uma pela aba **Documentos**, como no passo 4.', fig: '22-16' },
+    ], resultado: 'Duas propostas salvas e ligadas, cada uma com o seu número, o seu PDF, o seu status e a sua aprovação. Em **Propostas relacionadas**, cada uma cita a outra ("Peças e materiais conforme a proposta nº …" e "Mão de obra conforme a proposta nº …").', atencao: 'Separadas, cada proposta tem o seu lucro: as peças sozinhas, com o fator padrão, costumam ficar abaixo do mínimo de 40% que a proposta junta alcançava com o serviço. A janela avisa; ajuste o fator das peças antes ou peça aprovação depois. O botão não aparece em contrato recorrente, nem em proposta sem equipe ou sem peças. Numa proposta já enviada, faça antes uma revisão. Se mudar o número de uma delas depois, confira o texto de **Propostas relacionadas** da outra: o aviso do topo mostra o número novo, mas o texto não muda sozinho.' },
   ],
 };

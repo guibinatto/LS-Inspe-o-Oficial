@@ -6,7 +6,7 @@
   "titulo": "Tela Início: escolher o tipo de serviço",
   "vp": "desktop",
   "arquivo": "22-01-spvzero-inicio.png",
-  "data": "2026-11-11T03:55:52.004Z",
+  "data": "2026-11-11T04:24:17.614Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -37,7 +37,7 @@
   "titulo": "Cliente e escopo preenchidos",
   "vp": "desktop",
   "arquivo": "22-02-spvzero-cliente.png",
-  "data": "2026-11-11T03:55:53.097Z",
+  "data": "2026-11-11T04:24:18.669Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -86,7 +86,7 @@
   "titulo": "Equipe e deslocamento (120 km só ida)",
   "vp": "desktop",
   "arquivo": "22-03-spvzero-equipe.png",
-  "data": "2026-11-11T03:55:58.090Z",
+  "data": "2026-11-11T04:24:23.664Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -129,7 +129,7 @@
   "titulo": "Peças e materiais: o radiador",
   "vp": "desktop",
   "arquivo": "22-04-spvzero-peca.png",
-  "data": "2026-11-11T03:55:58.995Z",
+  "data": "2026-11-11T04:24:24.580Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -172,7 +172,7 @@
   "titulo": "Formação do preço do serviço",
   "vp": "desktop",
   "arquivo": "22-05-spvzero-formacao.png",
-  "data": "2026-11-11T03:56:00.877Z",
+  "data": "2026-11-11T04:24:26.442Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -203,7 +203,7 @@
   "titulo": "Para o documento → Execução do serviço",
   "vp": "desktop",
   "arquivo": "22-06-spvzero-execucao.png",
-  "data": "2026-11-11T03:56:01.317Z",
+  "data": "2026-11-11T04:24:26.881Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -258,7 +258,7 @@
   "titulo": "Propostas relacionadas e termos em anexo",
   "vp": "desktop",
   "arquivo": "22-07-spvzero-termos.png",
-  "data": "2026-11-11T03:56:05.980Z",
+  "data": "2026-11-11T04:24:31.559Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -283,7 +283,7 @@
   "titulo": "Salvar a SPV",
   "vp": "desktop",
   "arquivo": "22-08-spvzero-salvar.png",
-  "data": "2026-11-11T03:56:06.787Z",
+  "data": "2026-11-11T04:24:32.373Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -308,7 +308,7 @@
   "titulo": "Proposta técnica e comercial da SPV: gerar",
   "vp": "desktop",
   "arquivo": "22-09-spvzero-gerar.png",
-  "data": "2026-11-11T03:56:08.522Z",
+  "data": "2026-11-11T04:24:34.099Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -333,7 +333,7 @@
   "titulo": "O PDF da proposta de serviço: planilha e execução do serviço",
   "vp": "desktop",
   "arquivo": "22-10-spvzero-pdf.png",
-  "data": "2026-11-11T03:56:08.869Z",
+  "data": "2026-11-11T04:24:34.460Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -358,7 +358,7 @@
   "titulo": "O PDF dos termos (anexo) e a referência na proposta",
   "vp": "desktop",
   "arquivo": "22-11-spvzero-termos-pdf.png",
-  "data": "2026-11-11T03:56:13.221Z",
+  "data": "2026-11-11T04:24:38.442Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -383,7 +383,7 @@
   "titulo": "A SPV na lista da tela Início",
   "vp": "desktop",
   "arquivo": "22-12-spvzero-lista.png",
-  "data": "2026-11-11T03:56:14.912Z",
+  "data": "2026-11-11T04:24:40.015Z",
   "ok": true,
   "problemas": [],
   "marcas": [
@@ -403,6 +403,136 @@
     "n": 3,
     "txt": "Próxima etapa.",
     "sel": ".home table.t tbody tr:first-child [data-hnext]",
+    "ok": true
+   }
+  ]
+ },
+ "22-13": {
+  "id": "22-13",
+  "cap": 22,
+  "nome": "spvzero-separar-botao",
+  "titulo": "Peças e materiais: o botão para separar em duas propostas",
+  "vp": "desktop",
+  "arquivo": "22-13-spvzero-separar-botao.png",
+  "data": "2026-11-11T04:24:41.048Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Separar em 2 propostas: mão de obra e peças, cada uma com o seu número.",
+    "sel": "[data-spsep]",
+    "ok": true
+   }
+  ]
+ },
+ "22-14": {
+  "id": "22-14",
+  "cap": 22,
+  "nome": "spvzero-separar-janela",
+  "titulo": "Os dois números e a conferência dos valores",
+  "vp": "desktop",
+  "arquivo": "22-14-spvzero-separar-janela.png",
+  "data": "2026-11-11T04:24:42.979Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Mão de obra: esta proposta (o número dela).",
+    "sel": "#sepNumMo",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Peças: a proposta nova (digite ou use \"gerar nº\").",
+    "sel": "#sepNumPc",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Valor e lucro de cada parte; a soma é o total de hoje.",
+    "sel": "#overlay .kv",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Separada, a de peças pode ficar abaixo do lucro mínimo.",
+    "sel": "[data-sepaviso]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Cada uma cita a outra em \"Propostas relacionadas\".",
+    "sel": "label.chkl:has(#sepRel) span",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Separa e salva as duas.",
+    "sel": "#sepOk",
+    "ok": true
+   }
+  ]
+ },
+ "22-15": {
+  "id": "22-15",
+  "cap": 22,
+  "nome": "spvzero-separar-mo",
+  "titulo": "A proposta de mão de obra, ligada à de peças",
+  "vp": "desktop",
+  "arquivo": "22-15-spvzero-separar-mo.png",
+  "data": "2026-11-11T04:24:44.183Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Valor total: agora só a mão de obra.",
+    "sel": ".ctxh .ctx-kpis .k:first-child",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Número da proposta de peças.",
+    "sel": "[data-vinculo] b",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abrir a proposta de peças.",
+    "sel": "[data-spvinc]",
+    "ok": true
+   }
+  ]
+ },
+ "22-16": {
+  "id": "22-16",
+  "cap": 22,
+  "nome": "spvzero-separar-pecas",
+  "titulo": "A proposta de peças (PAR), ligada à de mão de obra",
+  "vp": "desktop",
+  "arquivo": "22-16-spvzero-separar-pecas.png",
+  "data": "2026-11-11T04:24:47.199Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Valor total: só as peças.",
+    "sel": ".ctxh .ctx-kpis .k:first-child",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Número da proposta de mão de obra.",
+    "sel": "[data-vinculo] b",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Voltar para a de mão de obra.",
+    "sel": "[data-spvinc]",
     "ok": true
    }
   ]

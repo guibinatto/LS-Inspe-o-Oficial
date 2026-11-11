@@ -10,7 +10,9 @@ No Ploomes, serviço com peças vira **duas propostas**: uma de mão de obra (MO
 2. A janela pede os dois números:
    - **mão de obra (esta)**: já vem com o número da proposta aberta;
    - **peças (nova)**: digitado, ou pelo botão **gerar nº** quando a série de numeração SPV está ligada (Administração → Numeração e máscaras).
-3. A janela mostra o valor da mão de obra, o das peças e a soma, que é igual ao total de antes.
+3. A janela mostra, para a mão de obra e para as peças, o valor e o lucro líquido de cada parte sozinha, e a soma, que é igual ao total de antes. Se uma das partes ficar abaixo do lucro mínimo, aparece um aviso.
+
+   No exemplo do manual, junto dava 31,0%: mão de obra 50,7% e peças 7,1%, com fator 1,5. O serviço "carregava" as peças. Separadas, a proposta de peças precisa de fator maior ou de aprovação. O app não muda o fator sozinho.
 4. A opção **Escrever em "Propostas relacionadas"** (ligada por padrão) põe em cada proposta o número da outra, no idioma da proposta. Esse texto sai no PDF, na seção "Propostas relacionadas":
    - na MO: "Peças e materiais conforme a proposta nº 10.342 (cobrados à parte).";
    - nas peças: "Mão de obra conforme a proposta nº 10.339 (cobrada à parte).".
@@ -45,7 +47,7 @@ Nada muda nas fórmulas. No cálculo da SPV (`spv.js`, `calc`):
 - o preço das peças é a soma de custo × fator de cada linha;
 - impostos, comissões e custo financeiro são percentuais sobre cada parte.
 
-Por isso, MO sozinha + peças sozinhas = total da proposta junta, centavo a centavo. O teste confere isso, e as regressões seguem com 0 diferença:
+Por isso, MO sozinha + peças sozinhas = total da proposta junta, centavo a centavo. O lucro de cada parte é que fica diferente do lucro da proposta junta. O teste confere isso, e as regressões seguem com 0 diferença:
 
 | Regressão | Resultado |
 |---|---|

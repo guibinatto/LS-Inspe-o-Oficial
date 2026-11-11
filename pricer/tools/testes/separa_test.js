@@ -27,6 +27,7 @@ const num = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   const kv = await p.evaluate(() => document.querySelector('#overlay .kv').innerText);
   const [vMo, vPc] = [/Mão de obra\s*R\$\s*([\d.,]+)/, /Peças\s*R\$\s*([\d.,]+)/].map((re) => num((kv.match(re) || [])[1] || ''));
   confere('modal mostra MO + peças = total de hoje', Math.abs(vMo + vPc - total0) < 0.01, vMo + ' + ' + vPc + ' = ' + total0);
+  confere('modal mostra o lucro líquido de cada parte e avisa a que fica abaixo do mínimo', (kv.match(/lucro líquido/g) || []).length === 3 && /peças fica com lucro líquido abaixo do mínimo/.test(await p.evaluate(() => (document.querySelector('[data-sepaviso]') || {}).innerText || '')));
   confere('nº da MO já vem preenchido com o desta proposta', (await p.inputValue('#sepNumMo')) === '10.339');
   await p.click('#sepOk'); await p.waitForTimeout(500);
   confere('sem nº de peças não separa', !!(await p.$('#sepOk')));
