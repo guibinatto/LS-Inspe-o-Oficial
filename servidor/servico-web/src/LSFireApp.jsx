@@ -4923,6 +4923,7 @@ function TecnicosView({ tecnicos, visitas, onNew, onEdit, onDelete }) {
                 {t.telefone && <div className="flex items-center gap-1.5"><Phone size={11} /> {t.telefone}</div>}
                 {t.email && <div className="flex items-center gap-1.5"><MessageSquare size={11} /> {t.email}</div>}
                 {t.licenca && <div className="flex items-center gap-1.5"><PenLine size={11} /> {t.licenca}</div>}
+                {t.cidade && <div className="flex items-center gap-1.5"><MapPin size={11} /> Base: {t.cidade}{t.uf ? "/" + t.uf : ""}</div>}
               </div>
               <div className="grid grid-cols-2 gap-2 text-center">
                 <div className="border rounded-lg p-2" style={{ borderColor: C.border }}>
@@ -4949,7 +4950,7 @@ function TecnicosView({ tecnicos, visitas, onNew, onEdit, onDelete }) {
 }
 
 function TecnicoForm({ initial, onSave }) {
-  const [data, setData] = useState({ nome: "", cargo: "", telefone: "", email: "", licenca: "", ...initial });
+  const [data, setData] = useState({ nome: "", cargo: "", telefone: "", email: "", licenca: "", cidade: "", uf: "", ...initial });
   const upd = (k, v) => setData(d => ({ ...d, [k]: v }));
   return (
     <div className="space-y-4">
@@ -4959,6 +4960,13 @@ function TecnicoForm({ initial, onSave }) {
         <Field label="Licença / Registro"><input value={data.licenca} onChange={e => upd("licenca", e.target.value)} placeholder="CREA-XX 0000000" className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Telefone"><input value={data.telefone} onChange={e => upd("telefone", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="E-mail"><input type="email" value={data.email} onChange={e => upd("email", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Cidade base" hint="Onde o técnico fica alocado: é de lá que sai o deslocamento até o cliente.">
+          <input value={data.cidade} onChange={e => upd("cidade", e.target.value)} placeholder="Ex.: Joinville" className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="UF da base">
+          <select value={data.uf} onChange={e => upd("uf", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }}>
+            <option value="">—</option>
+            {["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"].map(u => <option key={u} value={u}>{u}</option>)}
+          </select></Field>
       </div>
       <div className="flex justify-end pt-4 border-t" style={{ borderColor: C.border }}>
         <button onClick={() => onSave(data)} disabled={!data.nome}

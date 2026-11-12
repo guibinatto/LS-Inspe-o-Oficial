@@ -473,7 +473,7 @@
     atualizaNavServico();
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
-    if (ui.view === 'servico') { temaAtual(); atualizaSaveSt(); decorar(document); return; }
+    if (ui.view === 'servico') { temaAtual(); temaBarra(); atualizaSaveSt(); decorar(document); return; }
     const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
     { const b = $('#bMode'); if (b) b.hidden = outro || !['proposta', 'item'].includes(ui.view); }
@@ -499,6 +499,7 @@
     const bm = $('#bMode'); if (bm) { bm.innerHTML = '<span class="tl">' + (ui.simple ? 'Planilha completa' : 'Visão guiada') + '</span>'; bm.dataset.ico = ui.simple ? 'table-2' : 'list-checks'; }
     atualizaSaveSt();
     if (ui.view === 'cadastro' || ui.view === 'config') bindCadastro();
+    temaBarra();
     decorar(document);
     window.scrollTo(0, scroll);
     if (focusId) { const f = document.getElementById(focusId); if (f && f.tagName === 'INPUT') { f.focus(); if (f.type === 'search') f.setSelectionRange(f.value.length, f.value.length); } }
@@ -3206,9 +3207,9 @@
         <div>${cfg ? '<h1>Configurações</h1><div class="sub">Histórico de alterações, modelo da proposta, perfis e responsáveis, e-mails e logo, backup e restauração e a planilha completa (avançado). Itens para administradores; o modelo da proposta é editado por quem cuida do Cadastro geral.</div>' : `<h1>Cadastros</h1><div class="sub">Insumos, kits e tabelas que alimentam o preço. Uma mudança aqui vale para todas as propostas${REG.mode === 'shared' ? ' de toda a equipe' : ' deste navegador'}, e cada alteração fica registrada no histórico.</div>`}</div>
         ${cadStatus()}
       </div>
-      ${cfg ? '' : `<div class="areatabs" role="tablist">${AREAS.filter((a) => a[0] !== 'sistema').map(([k, lb, d, tabs]) => `<button role="tab" data-cad="${tabs[0][0]}" aria-selected="${k === area[0]}" title="${esc(d)}" data-ico="${AREA_ICO[k] || 'database'}">${lb}${mine && (mine.includes(k) || REG.isOwner) ? ' <span class="mydot" title="sua área"></span>' : ''}</button>`).join('')}</div>`}
+      ${cfg ? '' : `<div class="areatabs tematop" role="tablist">${AREAS.filter((a) => a[0] !== 'sistema').map(([k, lb, d, tabs]) => `<button role="tab" data-cad="${tabs[0][0]}" aria-selected="${k === area[0]}" title="${esc(d)}" data-ico="${AREA_ICO[k] || 'database'}">${lb}${mine && (mine.includes(k) || REG.isOwner) ? ' <span class="mydot" title="sua área"></span>' : ''}</button>`).join('')}</div>`}
       <p class="sub" style="margin:0">${esc(area[2])}.${REG.mode === 'shared' && REG.areasConfiguradas() ? ` Responsável: <span data-areaown="${area[0]}">${esc((REG.acessos[area[0]] || []).length ? '…' : 'ninguém definido (só o dono edita)')}</span>.` : ''}</p>
-      ${area[3].length > 1 ? `<div class="subtabs" role="tablist">${area[3].map(([k, lb]) => `<button role="tab" data-cad="${k}" aria-selected="${k === tab}">${lb}</button>`).join('')}</div>` : ''}
+      ${area[3].length > 1 ? `<div class="subtabs${cfg ? ' areatabs tematop' : ''}" role="tablist">${area[3].map(([k, lb]) => `<button role="tab" data-cad="${k}" aria-selected="${k === tab}">${lb}</button>`).join('')}</div>` : ''}
       ${body}
     </div>`;
   }
@@ -4333,13 +4334,25 @@
     if (LSF()) return usuariosServidorCard() + vAcessos0();
     return vAcessos0();
   }
+  // onde e como se inclui uma pessoa: depende de onde o Pricer está rodando
+  function comoIncluir() {
+    if (LSF()) return '';
+    if (REG.mode !== 'shared') return `<section class="card"><h2>Como incluir uma pessoa no sistema</h2><p class="sub" style="margin:0">Este é o arquivo local: não há usuários nem senha, e quem abre o arquivo usa tudo. Para trabalhar em equipe, use o Pricer publicado no claude.ai (cada pessoa entra com a conta dela) ou o servidor da LS Fire (login e senha próprios, cadastrados aqui em Usuários e permissões → Novo usuário).</p></section>`;
+    return `<section class="card"><h2>Como incluir uma pessoa no sistema</h2>
+      <ol class="sub" style="margin:0;padding-left:18px;display:grid;gap:4px">
+        <li><b>Dar acesso ao app:</b> o dono abre o menu <b>Compartilhar</b> do Pricer no claude.ai e convida a pessoa. O nível do compartilhamento decide o que o banco deixa gravar: <b>Leitor</b> só consulta; <b>Contribuidor</b> cria e edita propostas, documentos, pedidos e pendências; <b>Editor</b> também altera cadastros e configurações.</li>
+        <li><b>Dizer o que ela faz:</b> depois que a pessoa abrir o app uma vez, o dono a coloca aqui embaixo em <b>Responsáveis por área</b> (Custos, Engenharia, Fiscal…), nos aprovadores de desconto e, se for do serviço, num perfil do Serviço de campo (+ Pessoa).</li>
+        <li><b>Técnico do Serviço de campo:</b> cadastre também o técnico no módulo (Serviço de campo → Técnicos) com o mesmo nome da conta dele, para o app reconhecê-lo nos relatórios.</li>
+      </ol>
+      <p class="sub" style="margin:8px 0 0">No claude.ai não há login e senha próprios: cada um entra com a conta do claude.ai. Login e senha do sistema só existem no servidor da LS Fire.</p></section>`;
+  }
   function vAcessos0() {
-    if (REG.mode !== 'shared') return perfisCard() + logoCard() + avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
+    if (REG.mode !== 'shared') return comoIncluir() + perfisCard() + logoCard() + avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
     const own = REG.isOwner; const ac = REG.acessos || {};
     const rows = AREAS.filter((a) => a[0] !== 'sistema').concat(PAPEIS_AP, LSF() ? [] : PAPEIS_SVC).map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
       <td>${(ac[k] || []).map((id) => `<span class="pchip"><span data-uid="${esc(id)}">…</span>${own ? `<button class="restore" data-acrm="${k}|${esc(id)}" aria-label="Remover">×</button>` : ''}</span>`).join(' ') || `<span class="sub">${/^ap_/.test(k) ? 'ninguém: qualquer Editor aprova' : /^svc_/.test(k) ? (k === 'svc_gestor' ? 'ninguém: todo Editor é Gestor' : k === 'svc_tecnico' ? 'ninguém: quem não é Editor fica como Técnico' : 'ninguém') : 'ninguém (só o dono edita)'}</span>`}</td>
       <td>${own ? `<button class="btn sm" data-acadd="${k}">+ Pessoa</button>` : ''}</td></tr>`).join('');
-    return `<div class="stack">
+    return `<div class="stack">${comoIncluir()}
       <section class="card"><h2>Responsáveis por área</h2>
         <p class="sub" style="margin:0 0 10px">Cada área do cadastro só pode ser alterada por quem está nela. ${REG.areasConfiguradas() ? '' : '<b>Ainda não há ninguém definido: hoje todo Editor altera tudo.</b> Ao incluir a primeira pessoa, a trava passa a valer.'} O dono do app altera tudo.</p>
         <div class="tw"><table class="t"><thead><tr><th>Área</th><th>Pessoas</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -5788,11 +5801,32 @@
   // O módulo abre na tela escolhida no submenu (#aba no endereço); com ele já aberto, a troca vai por mensagem.
   let svcAbaEnviada = null;
   // tema da tela atual: fica destacado; ao chegar numa tela de outro tema (busca, atalho, cartão da página inicial), o tema dela abre
-  let temaVisto = null;
+  let temaVisto = null, temaDaTela = null;
+  // faixa de abas do tema no alto da página, no mesmo padrão do Serviço de campo: as abas são as do tema no menu.
+  // Em Cadastros e Configurações, a fileira de áreas/abas que a própria tela já tem sobe para a faixa.
+  function temaBarra() {
+    const bar = document.getElementById('temaBar'); if (!bar) return;
+    const fim = () => { bar.hidden = true; bar.innerHTML = ''; document.documentElement.style.setProperty('--tbh', '0px'); };
+    if (ui.view === 'servico') return fim();
+    const propria = document.querySelector('#app .tematop');
+    if (propria) { bar.innerHTML = ''; bar.appendChild(propria); bar.hidden = false; }
+    else {
+      const g = temaDaTela && document.querySelector(`#nav .navg[data-navg="${temaDaTela}"]`); if (!g || g.hidden) return fim();
+      const itens = [...g.querySelectorAll('.navsub > button')].filter((b) => !b.hidden && b.dataset.fora !== '1'); if (itens.length < 2) return fim();
+      bar.innerHTML = `<div class="tbtabs" role="navigation" aria-label="${esc((g.querySelector('[data-navgt] .nl') || {}).textContent || 'Seção')}">${itens.map((b, i) => { const atual = b.getAttribute('aria-current'); const ic = b.querySelector('.ico');
+        return `<button type="button" class="tbtab" data-tbi="${i}"${atual === 'page' || atual === 'true' ? ' aria-current="page"' : ''}>${ic ? ic.outerHTML : ''}<span>${esc(((b.querySelector('.nl') || b).textContent || '').trim())}</span></button>`; }).join('')}</div>`;
+      bar.onclick = (e) => { const t = e.target.closest('[data-tbi]'); if (t && itens[+t.dataset.tbi]) itens[+t.dataset.tbi].click(); };
+      bar.hidden = false;
+    }
+    const at = bar.querySelector('[aria-current="page"], [aria-selected="true"]'); if (at && at.scrollIntoView) { const r = at.getBoundingClientRect(), rb = bar.getBoundingClientRect(); if (r.right > rb.right || r.left < rb.left) bar.scrollLeft += r.left - rb.left - 24; }
+    document.documentElement.style.setProperty('--tbh', bar.offsetHeight + 'px');
+  }
   function temaAtual() {
-    let onde = null;
+    let onde = null, ondeAba = null;
     for (const g of document.querySelectorAll('#nav .navg')) { const h = g.querySelector('[data-navgt]'); if (!h) continue;
-      const tem = !!g.querySelector('.navsub [aria-current="page"], .navsub [aria-current="true"]'); h.classList.toggle('tem-atual', tem); if (tem) onde = h.dataset.navgt; }
+      const tem = !!g.querySelector('.navsub [aria-current="page"], .navsub [aria-current="true"]'); h.classList.toggle('tem-atual', tem); if (tem) onde = h.dataset.navgt;
+      if (g.querySelector('.navsub [data-go][aria-current="true"]')) ondeAba = h.dataset.navgt; }
+    onde = ondeAba || onde; temaDaTela = onde;
     if (onde && onde !== temaVisto && !String(($('#navQ') || {}).value || '').trim()) { const h = document.querySelector(`#nav [data-navgt="${onde}"]`); if (h && h.getAttribute('aria-expanded') !== 'true') navGrupo(onde, true); }
     temaVisto = onde; seloGrupos();
   }

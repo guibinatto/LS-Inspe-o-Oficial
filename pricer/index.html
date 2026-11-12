@@ -228,22 +228,23 @@ details>summary{transition:color .15s ease}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 
 main{width:100%;max-width:1500px;margin:0 auto;padding-inline:16px;padding-block:18px 60px}
+@media (min-width:1024px){main{padding-inline:32px;padding-block:28px 60px}}
 h1,h2,h3{font-family:var(--f-cond);text-wrap:balance;margin:0}
 h1{font-size:28px;font-weight:700}
 h2{font-size:16px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2)}
 .sub{color:var(--ink3);font-size:13.5px;max-width:80ch}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px}
 .stack{display:grid;gap:16px;min-width:0}
 .stack>*,.split>*,.card{min-width:0}
 .card > h2{margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .card > h2 .sub{font-family:var(--f-body);text-transform:none;letter-spacing:0;font-weight:400}
 
 /* KPIs */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.kpi{background:var(--card);padding:12px 14px;display:grid;gap:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;background:none;border:0;border-radius:0;overflow:visible}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;display:grid;gap:2px;align-content:start}
 .kpi span{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);font-weight:600}
 .kpi b{font-family:var(--f-cond);font-weight:700;font-size:26px;line-height:1.1}
-.kpi.lead{background:var(--or-soft)}
+.kpi.lead{background:var(--or-soft);border-color:var(--or-line)}
 .kpi.lead b{color:var(--or-ink)}
 .kpi em{font-style:normal;font-size:12.5px;color:var(--ink3)}
 
@@ -424,6 +425,7 @@ select.moeda,td select[data-sp$=".moeda"]{min-width:64px}
 .pctl input,.pctl select,.t.reg td.in input,.t.reg td.in select{width:100%;min-width:0;border:1px solid var(--entry-line);background:var(--entry);border-radius:6px;padding:5px 8px;font-size:14px}
 .pctl input.over,.pctl select.over,.t.reg td.in .over{border-color:var(--or)}
 .t.reg td.in input{min-width:110px}
+.t.reg td.tecuf input{min-width:54px;width:60px;text-transform:uppercase}
 .t.reg tr.newrow td{background:var(--or-soft)}
 .chgv{color:var(--or-ink);font-weight:600}
 .syslists{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
@@ -466,7 +468,7 @@ select.moeda,td select[data-sp$=".moeda"]{min-width:64px}
 .steps.six{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.steps.six .step{padding:8px 9px;gap:7px}.steps.six .step b{font-size:14px}.steps.six .step small{font-size:11.5px}
 .step.st-bad .sn{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}.step.st-warn .sn{border-color:var(--warn);color:var(--warn)}
 @media (max-width:1100px){.steps.six{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (max-width:560px){.steps.six{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.sumbar.sticky{position:sticky;top:calc(var(--hdr,60px) + 4px);z-index:6;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.sumbar.sticky{position:sticky;top:calc(var(--hdr,60px) + var(--tbh,0px) + 4px);z-index:6;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 .flowbar{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .backbar{margin-bottom:12px}
 .icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
@@ -553,6 +555,16 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 .mchip.on{border-color:var(--or);background:var(--or-soft);box-shadow:inset 3px 0 0 var(--or)}
 .mchip b{font-size:14px;font-weight:600}
 .mchip small{font-size:12px;color:var(--ink3)}
+/* faixa de abas do tema (alto da página): mesmo desenho das abas do Serviço de campo */
+.temabar{position:sticky;top:var(--hdr,60px);z-index:15;background:var(--bg);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin}
+.temabar[hidden]{display:none}
+.temabar .tbtabs,.temabar .areatabs,.temabar .subtabs{display:flex;align-items:stretch;gap:2px;flex-wrap:nowrap;width:max-content;min-width:100%;padding:0 12px;border:0;border-radius:0;background:none;margin:0;max-width:none;overflow:visible}
+.temabar button,.temabar .areatabs button,.temabar .subtabs button{display:inline-flex;align-items:center;gap:7px;padding:11px 12px 10px;border:0;border-bottom:2px solid transparent;border-right:0;border-radius:0;background:none;color:var(--ink2);white-space:nowrap;cursor:pointer;font-family:var(--f-cond);font-weight:600;font-size:14.5px;letter-spacing:.05em;text-transform:uppercase}
+.temabar button:hover{color:var(--ink);background:none}
+.temabar button[aria-current="page"],.temabar .areatabs button[aria-selected="true"],.temabar .subtabs button[aria-selected="true"]{color:var(--ink);background:none;border-bottom-color:var(--or)}
+.temabar .ico{width:16px;height:16px;flex:0 0 16px}
+@media (max-width:767px){.temabar{position:static}}
+@media print{.temabar{display:none!important}}
 .areatabs{display:flex;gap:0;flex-wrap:wrap;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--card);max-width:100%;justify-self:start}
 .areatabs button{border:0;border-right:1px solid var(--line);background:none;padding:9px 14px;font-family:var(--f-cond);font-weight:700;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .areatabs button:last-child{border-right:0}
@@ -909,8 +921,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     <div class="navq"><input id="navQ" type="search" placeholder="Pesquisar no menu" aria-label="Pesquisar no menu" autocomplete="off"></div>
     <button data-view="inicio" data-ico="house" title="Página inicial: resumo, propostas recentes, pendências e ações rápidas"><span class="nl">Início</span></button>
     <div class="navg" data-navg="comercial">
-      <button type="button" class="navgh" data-navgt="comercial" data-ico="file-text" aria-expanded="false" aria-controls="navs_comercial"><span class="nl">Propostas</span></button>
-      <div class="navsub" id="navs_comercial" role="group" aria-label="Propostas" hidden>
+      <button type="button" class="navgh" data-navgt="comercial" data-ico="file-text" aria-expanded="false" aria-controls="navs_comercial"><span class="nl">Comercial</span></button>
+      <div class="navsub" id="navs_comercial" role="group" aria-label="Comercial" hidden>
       <button data-view="proposta" data-ico="file-text" title="Proposta aberta"><span class="nl">Proposta aberta</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SEQ" data-ico="flame"><span class="nl">Propostas SEQ</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SPV" data-ico="wrench"><span class="nl">Propostas SPV</span></button>
@@ -946,6 +958,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button data-view="cadastro" data-ico="database" title="Cadastros: todas as áreas"><span class="nl cl">Todos os cadastros</span><span class="nlr">Cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="insumos" data-ico="package"><span class="nl">Produtos e insumos</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="importar" data-ico="table-properties"><span class="nl">Importar preços</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="custoscfg" data-ico="coins"><span class="nl">Validade e alertas de custos</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="familias" data-ico="folder-tree"><span class="nl">Famílias e modelos prontos</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="fornecedores" data-ico="factory"><span class="nl">Fabricantes e fornecedores</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="valvulas" data-ico="boxes"><span class="nl">Válvulas de alívio</span></button>
@@ -970,15 +983,28 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="codificacao" data-ico="hash"><span class="nl">Codificação dos equipamentos</span></button>
       </div>
     </div>
+    <div class="navg" data-navg="fiscal">
+      <button type="button" class="navgh" data-navgt="fiscal" data-ico="receipt" aria-expanded="false" aria-controls="navs_fiscal" title="Fiscal: impostos, NCM, ICMS por estado, FCI e cenários da reforma tributária"><span class="nl">Fiscal</span></button>
+      <div class="navsub" id="navs_fiscal" role="group" aria-label="Fiscal" hidden>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="fiscal" data-ico="landmark"><span class="nl">Impostos e NCM</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="cenarios" data-ico="landmark"><span class="nl">Cenários tributários (reforma)</span></button>
+      </div>
+    </div>
+    <div class="navg" data-navg="financeiro">
+      <button type="button" class="navgh" data-navgt="financeiro" data-ico="badge-dollar-sign" aria-expanded="false" aria-controls="navs_financeiro" title="Financeiro: política de preço, aprovação de descontos e custo real das propostas ganhas"><span class="nl">Financeiro</span></button>
+      <div class="navsub" id="navs_financeiro" role="group" aria-label="Financeiro" hidden>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="preco" data-ico="percent"><span class="nl">Política de preço, descontos e comissões</span></button>
+      <button type="button" data-go="margens" data-gk="mgTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovação de descontos</span></button>
+      <button type="button" data-go="margens" data-gk="mgTab" data-gv="fechadas" data-ico="trophy"><span class="nl">Ganhas e custo real</span></button>
+      </div>
+    </div>
     <div class="navg" data-navg="gestao">
       <button type="button" class="navgh" data-navgt="gestao" data-ico="chart-no-axes-combined" aria-expanded="false" aria-controls="navs_gestao"><span class="nl">Gestão</span></button>
       <div class="navsub" id="navs_gestao" role="group" aria-label="Gestão" hidden>
       <button data-view="pendencias" data-ico="clipboard-list" title="Pendências"><span class="nl">Pendências</span></button>
       <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens e indicadores comerciais"><span class="nl">Margens</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="painel" data-ico="trending-up"><span class="nl">Indicadores</span></button>
-      <button type="button" data-go="margens" data-gk="mgTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovações</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass"><span class="nl">Em andamento</span></button>
-      <button type="button" data-go="margens" data-gk="mgTab" data-gv="fechadas" data-ico="trophy"><span class="nl">Ganhas e custo real</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="relatorios" data-ico="chart-no-axes-combined"><span class="nl">Relatórios gerenciais</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check"><span class="nl">Auditoria de cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
@@ -990,10 +1016,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button data-view="config" data-ico="settings-2" title="Configurações e administração"><span class="nl">Configurações</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="acessos" data-ico="users"><span class="nl">Usuários e permissões</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="numeracao" data-ico="hash"><span class="nl">Máscaras e numeração</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="fiscal" data-ico="landmark"><span class="nl">Parâmetros fiscais e NCM</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="cenarios" data-ico="landmark"><span class="nl">Cenários tributários (reforma)</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="preco" data-ico="percent"><span class="nl">Política de preço e margens</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="custoscfg" data-ico="coins"><span class="nl">Validade e alertas de custos</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="historico" data-ico="scroll-text"><span class="nl">Auditoria (histórico)</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="backup" data-ico="hard-drive-download"><span class="nl">Backup e restauração</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="propmodelo" data-ico="layout-template"><span class="nl">Modelo da proposta</span></button>
@@ -1030,6 +1052,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     </div>
   </div>
 </header>
+<nav id="temaBar" class="temabar" hidden aria-label="Abas desta seção"></nav>
 <main id="app"><div class="loading">Carregando a planilha…</div></main>
 <div id="svcHost" hidden></div>
 <nav class="bnav" id="bnav" aria-label="Navegação principal">
@@ -1051,6 +1074,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <script src="fci-template.js"></script>
 <script src="docs.js"></script>
 <script src="leitor.js"></script>
+<script src="municipios.js"></script>
 <script src="spv.js"></script>
 <script src="facts.js"></script>
 <script src="pedidos.js"></script>

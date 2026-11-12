@@ -9,7 +9,7 @@ const path = require('path');
   await p.goto('file://' + path.resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1500);
   const ok = [], falha = []; const confere = (n, c, d) => (c ? ok : falha).push(n + (d !== undefined ? ' (' + d + ')' : ''));
   // 1) menu
-  confere('temas do menu (cada um com a seta e as abas embaixo)', (await p.$$eval('#nav [data-navgt]', (x) => x.filter((e) => e.offsetParent).map((e) => e.innerText.trim()).join('|'))) === 'PROPOSTAS|CADASTROS|ENGENHARIA DE PRODUTO|GESTÃO|ADMINISTRAÇÃO|AJUDA');
+  confere('temas do menu (cada um com a seta e as abas embaixo)', (await p.$$eval('#nav [data-navgt]', (x) => x.filter((e) => e.offsetParent).map((e) => e.innerText.trim()).join('|'))) === 'COMERCIAL|CADASTROS|ENGENHARIA DE PRODUTO|FISCAL|FINANCEIRO|GESTÃO|ADMINISTRAÇÃO|AJUDA');
   confere('a tela principal de cada tema fica dentro dele (ex.: Proposta aberta em Propostas)', await p.evaluate(() => !!document.querySelector('#navs_comercial [data-view="proposta"]') && !!document.querySelector('#navs_gestao [data-view="pendencias"]') && !document.querySelector('#nav .navg > [data-view]')));
   confere('temas começam abertos', await p.$$eval('#nav .navg:not([hidden]) .navsub', (x) => x.every((e) => !e.hidden)));
   await p.click('[data-navgt="engenharia"]'); confere('a seta do tema fecha as abas', await p.$eval('#navs_engenharia', (x) => x.hidden) && (await p.getAttribute('[data-navgt="engenharia"]', 'aria-expanded')) === 'false');
