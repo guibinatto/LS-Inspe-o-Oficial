@@ -40,4 +40,10 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
 24. [Submenus do Serviço de campo](22-servidor-e-servico-de-campo.md#menu-do-serviço-de-campo): no menu do Pricer, Serviço de campo vira grupo com Agenda, Visitas, Atendimentos, Relatórios, Aprovação, Contratos, Técnicos e Auditoria, conforme o perfil; o submenu abre a tela certa do módulo e acompanha a troca feita dentro dele.
 25. [Relatórios gerenciais: custo previsto × realizado](25-relatorios-gerenciais.md): Gestão → Relatórios gerenciais, por família, vendedor, cliente, mês ou divisão; indicadores, gráficos, componentes com maior desvio, tipo de custo e Excel; base escolhida (com custo real lançado, 100% conferidas ou todas).
 26. [Técnico e inspetor](22-servidor-e-servico-de-campo.md#técnico-e-inspetor): o inspetor do relatório é escolhido na lista de técnicos (licença preenchida junto); o técnico logado já vem escolhido ao agendar e no relatório; "Outro" para inspetor de fora; corrigido o relatório avulso que pegava o primeiro técnico da lista.
+27. Menu por temas: cada tema é um item com a seta (Propostas, Serviço de campo, Cadastros, Engenharia de produto, Gestão, Administração, Ajuda), e as telas dele ficam embaixo como abas.
+    - "Proposta aberta" é a primeira aba de Propostas, "Pendências" e "Margens" ficam em Gestão, e assim por diante.
+    - Os temas começam abertos e a escolha de abrir ou fechar fica guardada.
+    - Ao ir para uma tela de um tema fechado, o tema abre.
+    - O tema da tela atual fica destacado, e o tema fechado mostra a soma dos avisos das abas.
+    - No menu recolhido e no tablet continuam só os ícones das telas principais.
 17. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).

@@ -68,18 +68,30 @@ body.side-mini .nav button,body.side-mini .side-col{justify-content:center;paddi
 body.side-mini .nav .nbadge{position:absolute;top:2px;right:4px}
 .navq{padding:2px 2px 8px}.navq input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--bar-ink);border-radius:8px;padding:7px 10px;font-size:13.5px}.navq input::placeholder{color:var(--bar-dim)}.navq input:focus{outline:2px solid var(--or);outline-offset:1px}
 .navg{display:flex;flex-direction:column;gap:2px;margin-top:6px}
-.nav .navgh{font-size:11.5px;letter-spacing:.1em;padding:6px 12px 4px;color:var(--bar-dim);justify-content:space-between}
-.nav .navgh::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s ease;margin-right:4px}
+/* tema (pai): mesmo tamanho dos itens, com a seta à direita; as abas ficam embaixo dele */
+.nav .navgh{justify-content:flex-start}
+.nav .navgh .nl{white-space:normal;line-height:1.15;min-width:0}
+.nav .nlr{display:none}
+.nav .navgh.tem-atual{color:var(--bar-ink)}
+.nav .navgh.tem-atual[aria-expanded="false"]{background:rgba(255,255,255,.09)}
+.nav .navgh.tem-atual[aria-expanded="false"]::before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--or)}
+.nav .navgh .nbadge{margin-left:0}
+.nav .navgh::after{content:"";flex:0 0 auto;width:7px;height:7px;margin-left:auto;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s ease;margin-right:4px}
 .nav .navgh[aria-expanded="true"]::after{transform:rotate(45deg)}
 .navsub{display:flex;flex-direction:column;gap:1px;margin:0 0 4px 12px;padding-left:8px;border-left:1px solid rgba(255,255,255,.1)}
 .navsub[hidden]{display:none}
 .nav .navsub button{font-family:inherit;text-transform:none;letter-spacing:0;font-weight:500;font-size:13.5px;padding:7px 10px;gap:9px}
 .nav .navsub .ico{width:15px;height:15px;flex:0 0 15px}
-.nav .navsub button[aria-current="true"]{color:var(--bar-ink);background:rgba(255,255,255,.07)}
+.nav .navsub button[aria-current="true"],.nav .navsub button[aria-current="page"]{color:var(--bar-ink);background:rgba(255,255,255,.07)}
+.nav .navsub button[aria-current="page"]::before{left:-9px}
 .nav .navsub .nl{white-space:normal;line-height:1.25}
 .nav mark{background:rgba(228,101,14,.35);color:inherit;border-radius:2px}
 .navvazio{color:var(--bar-dim);font-size:13px;padding:6px 12px}
-body.side-mini .navq,body.side-mini .navgh,body.side-mini .navsub{display:none}
+body.side-mini .navq,body.side-mini .navgh,body.side-mini .navsub [data-go]{display:none}
+body.side-mini .navsub,body.side-mini .navsub[hidden]{display:flex!important;margin:0;padding:0;border:0;gap:2px}
+body.side-mini .nav .navsub button{font-family:var(--f-cond);font-size:15.5px;padding:10px}
+body.side-mini .nav .navsub .ico{width:20px;height:20px;flex:0 0 20px}
+body.side-mini .nav .navsub button[aria-current="page"]::before{left:-10px}
 body.side-mini .navg{margin-top:0}
 body.side-mini .nav [data-view]{overflow:visible}
 body.side-mini .nav [data-view]:hover::after,body.side-mini .nav [data-view]:focus-visible::after{content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:#111;color:#fff;font:500 13px/1.2 var(--f-body,system-ui);letter-spacing:0;text-transform:none;padding:6px 9px;border-radius:6px;white-space:nowrap;z-index:60;box-shadow:0 4px 14px rgba(0,0,0,.3);pointer-events:none}
@@ -693,7 +705,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (min-width:768px) and (max-width:1023px){
   .sidenav,body.side-mini .sidenav{flex:0 0 84px;width:84px}
   .sidenav .bt,.logo-plate,.side-col{display:none}
-  .navq,.navgh,.navsub{display:none!important}.navg{margin-top:0}
+  .navq,.navgh,.navsub [data-go]{display:none!important}.navg{margin-top:0}
+  .navsub,.navsub[hidden]{display:flex!important;margin:0;padding:0;border:0;gap:2px}
+  .nav .nl.cl{display:none}.nav .nlr{display:block;font-size:10.5px;line-height:1.15;text-transform:none}
+  .nav .navsub .ico{width:20px;height:20px;flex:0 0 20px}
   .side-top{justify-content:center;padding:10px 6px}
   .nav{padding:6px}
   .nav button,body.side-mini .nav button{flex-direction:column;justify-content:center;gap:3px;padding:8px 2px;font-size:11px;letter-spacing:.02em;text-align:center}
@@ -902,9 +917,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     <div class="navq"><input id="navQ" type="search" placeholder="Pesquisar no menu" aria-label="Pesquisar no menu" autocomplete="off"></div>
     <button data-view="inicio" data-ico="house" title="Página inicial: resumo, propostas recentes, pendências e ações rápidas"><span class="nl">Início</span></button>
     <div class="navg" data-navg="comercial">
-      <button type="button" class="navgh" data-navgt="comercial" aria-expanded="false" aria-controls="navs_comercial"><span class="nl">Comercial</span></button>
+      <button type="button" class="navgh" data-navgt="comercial" data-ico="file-text" aria-expanded="false" aria-controls="navs_comercial"><span class="nl">Propostas</span></button>
+      <div class="navsub" id="navs_comercial" role="group" aria-label="Propostas" hidden>
       <button data-view="proposta" data-ico="file-text" title="Proposta aberta"><span class="nl">Proposta aberta</span></button>
-      <div class="navsub" id="navs_comercial" role="group" aria-label="Comercial" hidden>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SEQ" data-ico="flame"><span class="nl">Propostas SEQ</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SPV" data-ico="wrench"><span class="nl">Propostas SPV</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="todas" data-ico="list"><span class="nl">Todas as propostas</span></button>
@@ -918,11 +933,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     </div>
     <!-- logo depois do Comercial: proposta ganha → contrato → atendimento em campo -->
     <div class="navg" data-navg="servico" id="navServico" hidden>
-      <button type="button" class="navgh" data-navgt="servico" aria-expanded="false" aria-controls="navs_servico" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
-      <button data-view="servico" data-ico="wrench" title="Serviço de campo: painel com visitas, atrasos e relatórios pendentes"><span class="nl">Painel do serviço</span></button>
+      <button type="button" class="navgh" data-navgt="servico" data-ico="wrench" aria-expanded="false" aria-controls="navs_servico" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
       <!-- na ordem do trabalho: agendar → executar → relatar → aprovar; depois o cadastro (contratos e equipe) e o controle.
            Cada item só aparece para o perfil que pode abrir a tela (o servidor é quem garante o acesso). -->
       <div class="navsub" id="navs_servico" role="group" aria-label="Serviço de campo" hidden>
+      <button data-view="servico" data-ico="wrench" title="Serviço de campo: painel com visitas, atrasos e relatórios pendentes"><span class="nl">Painel do serviço</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="agenda" data-ico="calendar-days"><span class="nl">Agenda</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="visitas" data-ico="clipboard-list"><span class="nl">Visitas técnicas</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="meus-atendimentos" data-ico="clipboard-check"><span class="nl">Atendimentos por técnico</span></button>
@@ -934,9 +949,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       </div>
     </div>
     <div class="navg" data-navg="cadastros">
-      <button type="button" class="navgh" data-navgt="cadastros" aria-expanded="false" aria-controls="navs_cadastros"><span class="nl">Cadastros</span></button>
-      <button data-view="cadastro" data-ico="database" title="Cadastros"><span class="nl">Cadastros</span></button>
+      <button type="button" class="navgh" data-navgt="cadastros" data-ico="database" aria-expanded="false" aria-controls="navs_cadastros"><span class="nl">Cadastros</span></button>
       <div class="navsub" id="navs_cadastros" role="group" aria-label="Cadastros" hidden>
+      <button data-view="cadastro" data-ico="database" title="Cadastros: todas as áreas"><span class="nl cl">Todos os cadastros</span><span class="nlr">Cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="insumos" data-ico="package"><span class="nl">Produtos e insumos</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="importar" data-ico="table-properties"><span class="nl">Importar preços</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="familias" data-ico="folder-tree"><span class="nl">Famílias e modelos prontos</span></button>
@@ -950,7 +965,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       </div>
     </div>
     <div class="navg" data-navg="engenharia">
-      <button type="button" class="navgh" data-navgt="engenharia" aria-expanded="false" aria-controls="navs_engenharia"><span class="nl">Engenharia de produto</span></button>
+      <button type="button" class="navgh" data-navgt="engenharia" data-ico="network" aria-expanded="false" aria-controls="navs_engenharia"><span class="nl">Engenharia de produto</span></button>
       <div class="navsub" id="navs_engenharia" role="group" aria-label="Engenharia de produto" hidden>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="estruturas" data-ico="network"><span class="nl">Estruturas e tabelas por porte</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="motor" data-ico="boxes"><span class="nl">Kits de motor diesel</span></button>
@@ -964,10 +979,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       </div>
     </div>
     <div class="navg" data-navg="gestao">
-      <button type="button" class="navgh" data-navgt="gestao" aria-expanded="false" aria-controls="navs_gestao"><span class="nl">Gestão</span></button>
+      <button type="button" class="navgh" data-navgt="gestao" data-ico="chart-no-axes-combined" aria-expanded="false" aria-controls="navs_gestao"><span class="nl">Gestão</span></button>
+      <div class="navsub" id="navs_gestao" role="group" aria-label="Gestão" hidden>
       <button data-view="pendencias" data-ico="clipboard-list" title="Pendências"><span class="nl">Pendências</span></button>
       <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens e indicadores comerciais"><span class="nl">Margens</span></button>
-      <div class="navsub" id="navs_gestao" role="group" aria-label="Gestão" hidden>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="painel" data-ico="trending-up"><span class="nl">Indicadores</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovações</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass"><span class="nl">Em andamento</span></button>
@@ -978,9 +993,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       </div>
     </div>
     <div class="navg" data-navg="admin">
-      <button type="button" class="navgh" data-navgt="admin" aria-expanded="false" aria-controls="navs_admin"><span class="nl">Administração</span></button>
-      <button data-view="config" data-ico="settings-2" title="Configurações e administração"><span class="nl">Configurações</span></button>
+      <button type="button" class="navgh" data-navgt="admin" data-ico="settings-2" aria-expanded="false" aria-controls="navs_admin"><span class="nl">Administração</span></button>
       <div class="navsub" id="navs_admin" role="group" aria-label="Administração" hidden>
+      <button data-view="config" data-ico="settings-2" title="Configurações e administração"><span class="nl">Configurações</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="acessos" data-ico="users"><span class="nl">Usuários e permissões</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="numeracao" data-ico="hash"><span class="nl">Máscaras e numeração</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="fiscal" data-ico="landmark"><span class="nl">Parâmetros fiscais e NCM</span></button>
@@ -994,9 +1009,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       </div>
     </div>
     <div class="navg" data-navg="ajuda">
-      <button type="button" class="navgh" data-navgt="ajuda" aria-expanded="false" aria-controls="navs_ajuda"><span class="nl">Ajuda</span></button>
-      <button data-view="guia" data-ico="circle-help" title="Ajuda"><span class="nl">Ajuda</span></button>
+      <button type="button" class="navgh" data-navgt="ajuda" data-ico="circle-help" aria-expanded="false" aria-controls="navs_ajuda"><span class="nl">Ajuda</span></button>
       <div class="navsub" id="navs_ajuda" role="group" aria-label="Ajuda" hidden>
+      <button data-view="guia" data-ico="circle-help" title="Ajuda"><span class="nl cl">Central de ajuda</span><span class="nlr">Ajuda</span></button>
       <button type="button" data-go="guia" data-gk="ajuda" data-gv="guia" data-ico="book-open"><span class="nl">Guia de uso</span></button>
       <button type="button" data-go="guia" data-gk="ajuda" data-gv="atalhos" data-ico="keyboard"><span class="nl">Atalhos de teclado</span></button>
       <button type="button" data-go="guia" data-gk="ajuda" data-gv="versao" data-ico="info"><span class="nl">Informações da versão</span></button>
@@ -9012,8 +9027,10 @@ window.PRICER_ESCOPO_PADRAO = {
   // dica com o nome no menu recolhido. Os atalhos dos submenus só levam a telas que já existem.
   const NAVG_K = 'lspricer.navgrupos'; const normMenu = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   let navAbertos = {}; try { navAbertos = JSON.parse(localStorage.getItem(NAVG_K) || '{}') || {}; } catch (e) { navAbertos = {}; }
-  const navGrupo = (k, abre) => { const h = document.querySelector(`#nav [data-navgt="${k}"]`); const sb = document.getElementById('navs_' + k); if (!h || !sb) return; h.setAttribute('aria-expanded', abre ? 'true' : 'false'); sb.hidden = !abre; };
-  for (const h of document.querySelectorAll('#nav [data-navgt]')) navGrupo(h.dataset.navgt, !!navAbertos[h.dataset.navgt]);
+  // cada tema (Propostas, Serviço de campo, Cadastros…) abre e fecha as suas abas; começa aberto e a escolha fica guardada
+  const navGrupo = (k, abre) => { const h = document.querySelector(`#nav [data-navgt="${k}"]`); const sb = document.getElementById('navs_' + k); if (!h || !sb) return; h.setAttribute('aria-expanded', abre ? 'true' : 'false'); sb.hidden = !abre; seloGrupos(); };
+  const grupoAberto = (k) => navAbertos[k] !== false;
+  for (const h of document.querySelectorAll('#nav [data-navgt]')) navGrupo(h.dataset.navgt, grupoAberto(h.dataset.navgt));
   for (const b of document.querySelectorAll('#nav [data-view]')) b.dataset.tip = (b.querySelector('.nl') || b).textContent.trim();
   $('#nav').addEventListener('click', (e) => {
     const h = e.target.closest('[data-navgt]'); if (h) { e.stopPropagation(); const k = h.dataset.navgt; const abre = h.getAttribute('aria-expanded') !== 'true'; navGrupo(k, abre); navAbertos[k] = abre; try { localStorage.setItem(NAVG_K, JSON.stringify(navAbertos)); } catch (er) { /* só nesta visita */ } return; }
@@ -9041,7 +9058,7 @@ window.PRICER_ESCOPO_PADRAO = {
     }
     for (const h of document.querySelectorAll('#nav [data-navgt]')) { const k = h.dataset.navgt; const sb = document.getElementById('navs_' + k);
       if (nq) { const vis = [...h.parentElement.querySelectorAll('[data-view], [data-go]')].some((x) => !x.hidden); h.hidden = !vis; sb.hidden = !vis; h.setAttribute('aria-expanded', vis ? 'true' : 'false'); }
-      else { h.hidden = false; navGrupo(k, !!navAbertos[k]); } }
+      else { h.hidden = false; navGrupo(k, grupoAberto(k)); } }
     let vz = $('#nav .navvazio'); if (nq && !n) { if (!vz) { vz = document.createElement('div'); vz.className = 'navvazio'; $('#nav').appendChild(vz); } vz.textContent = 'Nada no menu com "' + q + '". Use a busca (Ctrl+K) para procurar propostas e cadastros.'; } else if (vz) vz.remove();
   });
   $('#navQ').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.target.value = ''; e.target.dispatchEvent(new Event('input')); } if (e.key === 'ArrowDown') { e.preventDefault(); const f = [...document.querySelectorAll('#nav button')].find((x) => !x.hidden && x.offsetParent); if (f) f.focus(); } });
@@ -9133,7 +9150,7 @@ window.PRICER_ESCOPO_PADRAO = {
     atualizaNavServico();
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
-    if (ui.view === 'servico') { atualizaSaveSt(); decorar(document); return; }
+    if (ui.view === 'servico') { temaAtual(); atualizaSaveSt(); decorar(document); return; }
     const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
     { const b = $('#bMode'); if (b) b.hidden = outro || !['proposta', 'item'].includes(ui.view); }
@@ -9147,6 +9164,7 @@ window.PRICER_ESCOPO_PADRAO = {
     { const n = REG.areaOk('custos') ? PD.abertos().length : 0; selo('cadastro', n, n + ' pedido(s) de cadastro em aberto'); }
     { const n = MG.nPendencias(); selo('pendencias', n, n + ' pendência(s) esperando você'); }
     { const n = MG.pendentesAprov(); selo('margens', n, n + ' aprovação(ões) de desconto esperando você'); }
+    temaAtual();
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
@@ -14125,7 +14143,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 11:38 · commit b2d4aa2</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 12:25 · commit 8a4b4e7</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14446,6 +14464,22 @@ window.PRICER_ESCOPO_PADRAO = {
   const temServico = () => !!(lsfMe && (lsfMe.pricer === 'admin' || (lsfMe.servico && lsfMe.servico !== 'nenhum')));
   // O módulo abre na tela escolhida no submenu (#aba no endereço); com ele já aberto, a troca vai por mensagem.
   let svcAbaEnviada = null;
+  // tema da tela atual: fica destacado; ao chegar numa tela de outro tema (busca, atalho, cartão da página inicial), o tema dela abre
+  let temaVisto = null;
+  function temaAtual() {
+    let onde = null;
+    for (const g of document.querySelectorAll('#nav .navg')) { const h = g.querySelector('[data-navgt]'); if (!h) continue;
+      const tem = !!g.querySelector('.navsub [aria-current="page"], .navsub [aria-current="true"]'); h.classList.toggle('tem-atual', tem); if (tem) onde = h.dataset.navgt; }
+    if (onde && onde !== temaVisto && !String(($('#navQ') || {}).value || '').trim()) { const h = document.querySelector(`#nav [data-navgt="${onde}"]`); if (h && h.getAttribute('aria-expanded') !== 'true') navGrupo(onde, true); }
+    temaVisto = onde; seloGrupos();
+  }
+  // tema fechado mostra a soma dos avisos das abas dele (ex.: Gestão com as pendências)
+  function seloGrupos() {
+    for (const g of document.querySelectorAll('#nav .navg')) { const h = g.querySelector('[data-navgt]'); if (!h) continue;
+      const n = [...g.querySelectorAll('.navsub .nbadge')].reduce((t, x) => t + (+x.textContent || 0), 0); let x = h.querySelector(':scope > .nbadge');
+      if (!n || h.getAttribute('aria-expanded') === 'true') { if (x) x.remove(); continue; }
+      if (!x) { x = document.createElement('span'); x.className = 'nbadge'; h.querySelector('.nl').after(x); } x.textContent = n; x.title = n + ' aviso(s) nas abas deste tema'; }
+  }
   function mostraServico(on) {
     const host = document.getElementById('svcHost'), ap = document.getElementById('app'); if (!host || !ap) return;
     const aba = ui.svcTab || 'dashboard';

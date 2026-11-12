@@ -350,8 +350,10 @@
   // dica com o nome no menu recolhido. Os atalhos dos submenus só levam a telas que já existem.
   const NAVG_K = 'lspricer.navgrupos'; const normMenu = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   let navAbertos = {}; try { navAbertos = JSON.parse(localStorage.getItem(NAVG_K) || '{}') || {}; } catch (e) { navAbertos = {}; }
-  const navGrupo = (k, abre) => { const h = document.querySelector(`#nav [data-navgt="${k}"]`); const sb = document.getElementById('navs_' + k); if (!h || !sb) return; h.setAttribute('aria-expanded', abre ? 'true' : 'false'); sb.hidden = !abre; };
-  for (const h of document.querySelectorAll('#nav [data-navgt]')) navGrupo(h.dataset.navgt, !!navAbertos[h.dataset.navgt]);
+  // cada tema (Propostas, Serviço de campo, Cadastros…) abre e fecha as suas abas; começa aberto e a escolha fica guardada
+  const navGrupo = (k, abre) => { const h = document.querySelector(`#nav [data-navgt="${k}"]`); const sb = document.getElementById('navs_' + k); if (!h || !sb) return; h.setAttribute('aria-expanded', abre ? 'true' : 'false'); sb.hidden = !abre; seloGrupos(); };
+  const grupoAberto = (k) => navAbertos[k] !== false;
+  for (const h of document.querySelectorAll('#nav [data-navgt]')) navGrupo(h.dataset.navgt, grupoAberto(h.dataset.navgt));
   for (const b of document.querySelectorAll('#nav [data-view]')) b.dataset.tip = (b.querySelector('.nl') || b).textContent.trim();
   $('#nav').addEventListener('click', (e) => {
     const h = e.target.closest('[data-navgt]'); if (h) { e.stopPropagation(); const k = h.dataset.navgt; const abre = h.getAttribute('aria-expanded') !== 'true'; navGrupo(k, abre); navAbertos[k] = abre; try { localStorage.setItem(NAVG_K, JSON.stringify(navAbertos)); } catch (er) { /* só nesta visita */ } return; }
@@ -379,7 +381,7 @@
     }
     for (const h of document.querySelectorAll('#nav [data-navgt]')) { const k = h.dataset.navgt; const sb = document.getElementById('navs_' + k);
       if (nq) { const vis = [...h.parentElement.querySelectorAll('[data-view], [data-go]')].some((x) => !x.hidden); h.hidden = !vis; sb.hidden = !vis; h.setAttribute('aria-expanded', vis ? 'true' : 'false'); }
-      else { h.hidden = false; navGrupo(k, !!navAbertos[k]); } }
+      else { h.hidden = false; navGrupo(k, grupoAberto(k)); } }
     let vz = $('#nav .navvazio'); if (nq && !n) { if (!vz) { vz = document.createElement('div'); vz.className = 'navvazio'; $('#nav').appendChild(vz); } vz.textContent = 'Nada no menu com "' + q + '". Use a busca (Ctrl+K) para procurar propostas e cadastros.'; } else if (vz) vz.remove();
   });
   $('#navQ').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.target.value = ''; e.target.dispatchEvent(new Event('input')); } if (e.key === 'ArrowDown') { e.preventDefault(); const f = [...document.querySelectorAll('#nav button')].find((x) => !x.hidden && x.offsetParent); if (f) f.focus(); } });
@@ -471,7 +473,7 @@
     atualizaNavServico();
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
-    if (ui.view === 'servico') { atualizaSaveSt(); decorar(document); return; }
+    if (ui.view === 'servico') { temaAtual(); atualizaSaveSt(); decorar(document); return; }
     const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
     { const b = $('#bMode'); if (b) b.hidden = outro || !['proposta', 'item'].includes(ui.view); }
@@ -485,6 +487,7 @@
     { const n = REG.areaOk('custos') ? PD.abertos().length : 0; selo('cadastro', n, n + ' pedido(s) de cadastro em aberto'); }
     { const n = MG.nPendencias(); selo('pendencias', n, n + ' pendência(s) esperando você'); }
     { const n = MG.pendentesAprov(); selo('margens', n, n + ' aprovação(ões) de desconto esperando você'); }
+    temaAtual();
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
     const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
@@ -5784,6 +5787,22 @@
   const temServico = () => !!(lsfMe && (lsfMe.pricer === 'admin' || (lsfMe.servico && lsfMe.servico !== 'nenhum')));
   // O módulo abre na tela escolhida no submenu (#aba no endereço); com ele já aberto, a troca vai por mensagem.
   let svcAbaEnviada = null;
+  // tema da tela atual: fica destacado; ao chegar numa tela de outro tema (busca, atalho, cartão da página inicial), o tema dela abre
+  let temaVisto = null;
+  function temaAtual() {
+    let onde = null;
+    for (const g of document.querySelectorAll('#nav .navg')) { const h = g.querySelector('[data-navgt]'); if (!h) continue;
+      const tem = !!g.querySelector('.navsub [aria-current="page"], .navsub [aria-current="true"]'); h.classList.toggle('tem-atual', tem); if (tem) onde = h.dataset.navgt; }
+    if (onde && onde !== temaVisto && !String(($('#navQ') || {}).value || '').trim()) { const h = document.querySelector(`#nav [data-navgt="${onde}"]`); if (h && h.getAttribute('aria-expanded') !== 'true') navGrupo(onde, true); }
+    temaVisto = onde; seloGrupos();
+  }
+  // tema fechado mostra a soma dos avisos das abas dele (ex.: Gestão com as pendências)
+  function seloGrupos() {
+    for (const g of document.querySelectorAll('#nav .navg')) { const h = g.querySelector('[data-navgt]'); if (!h) continue;
+      const n = [...g.querySelectorAll('.navsub .nbadge')].reduce((t, x) => t + (+x.textContent || 0), 0); let x = h.querySelector(':scope > .nbadge');
+      if (!n || h.getAttribute('aria-expanded') === 'true') { if (x) x.remove(); continue; }
+      if (!x) { x = document.createElement('span'); x.className = 'nbadge'; h.querySelector('.nl').after(x); } x.textContent = n; x.title = n + ' aviso(s) nas abas deste tema'; }
+  }
   function mostraServico(on) {
     const host = document.getElementById('svcHost'), ap = document.getElementById('app'); if (!host || !ap) return;
     const aba = ui.svcTab || 'dashboard';

@@ -10,9 +10,9 @@ const path = require('path');
   const ok = [], falha = []; const confere = (n, c, d) => (c ? ok : falha).push(n + (d !== undefined ? ' (' + d + ')' : ''));
   const br = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   // 1) menu
-  const grupos = await p.$$eval('#nav [data-navgt]', (x) => x.map((e) => e.innerText.trim()).join('|'));
-  confere('menu: Comercial, Cadastros, Engenharia de produto, Gestão, Administração, Ajuda', grupos === 'COMERCIAL|CADASTROS|ENGENHARIA DE PRODUTO|GESTÃO|ADMINISTRAÇÃO|AJUDA', grupos);
-  await p.click('[data-navgt="engenharia"]'); await p.click('[data-go="cadastro"][data-gv="testador"]'); await p.waitForTimeout(400);
+  const grupos = await p.$$eval('#nav [data-navgt]', (x) => x.filter((e) => e.offsetParent).map((e) => e.innerText.trim()).join('|'));
+  confere('menu: Propostas, Cadastros, Engenharia de produto, Gestão, Administração, Ajuda', grupos === 'PROPOSTAS|CADASTROS|ENGENHARIA DE PRODUTO|GESTÃO|ADMINISTRAÇÃO|AJUDA', grupos);
+  await p.evaluate((k) => { const h = document.querySelector('[data-navgt="' + k + '"]'); if (h.getAttribute('aria-expanded') !== 'true') h.click(); }, 'engenharia'); await p.click('[data-go="cadastro"][data-gv="testador"]'); await p.waitForTimeout(400);
   confere('Engenharia → Testador de estruturas abre a tela', /testador/i.test(await p.$eval('.subtabs [aria-selected="true"]', (x) => x.innerText).catch(() => '')));
   // 2) proposta: abas e Formação de preço
   await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(900); await p.click('#nav [data-view="proposta"]'); await p.waitForTimeout(300);
@@ -33,7 +33,7 @@ const path = require('path');
   confere('custo do memorial = custo dos itens + start-up + fretes, e a diferença é explicada', Math.abs(v('Custo total') - custoK - st - fr) < 0.05 && /exatamente o start-up e os fretes/.test(nota), v('Custo total') + ' = ' + custoK + ' + ' + st + ' + ' + fr);
   await p.click('.cpreco [data-view="memorial"]'); await p.waitForTimeout(500); confere('atalho para o memorial de cálculo', (await p.$eval('.ptab.on span', (x) => x.innerText)).toUpperCase() === 'MEMORIAL DE CÁLCULO');
   // 3) Modelo A: insumos
-  await p.click('[data-navgt="cadastros"]'); await p.click('[data-go="cadastro"][data-gv="insumos"]'); await p.waitForTimeout(500);
+  await p.evaluate((k) => { const h = document.querySelector('[data-navgt="' + k + '"]'); if (h.getAttribute('aria-expanded') !== 'true') h.click(); }, 'cadastros'); await p.click('[data-go="cadastro"][data-gv="insumos"]'); await p.waitForTimeout(500);
   const pag = await p.$eval('#app .lpager', (x) => x.innerText.replace(/\s+/g, ' ')).catch(() => ''); confere('insumos com páginas de 100', /^1–100 de/.test(pag), pag.slice(0, 60));
   const prim = await p.$eval('#app tr[data-ins]', (x) => x.dataset.ins); await p.click('#app [data-lpg="insumos|2"]'); await p.waitForTimeout(300);
   confere('próxima página', /^101–200/.test(await p.$eval('#app .lpager', (x) => x.innerText)) && (await p.$eval('#app tr[data-ins]', (x) => x.dataset.ins)) !== prim);
