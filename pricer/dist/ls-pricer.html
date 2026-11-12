@@ -878,6 +878,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 /* títulos das colunas de números alinhados com os valores (à direita), em todas as tabelas */
 .t th.n,.t th.num,table.t th.n,table.t th.num{text-align:right}
+/* servidor LS Fire: módulo Serviço de campo numa moldura do mesmo endereço */
+#svcHost { padding: 0; }
+#svcHost iframe { display: block; width: 100%; height: calc(100vh - var(--hdr, 64px)); height: calc(100dvh - var(--hdr, 64px)); border: 0; background: #fff; }
+@media (max-width: 767px) { #svcHost iframe { height: calc(100dvh - var(--hdr, 56px) - 64px); } }
 </style>
 </head>
 <body>
@@ -951,6 +955,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
       </div>
     </div>
+    <div class="navg" id="navServico" hidden>
+      <button data-view="servico" data-ico="wrench" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
+    </div>
     <div class="navg" data-navg="admin">
       <button type="button" class="navgh" data-navgt="admin" aria-expanded="false" aria-controls="navs_admin"><span class="nl">Administração</span></button>
       <button data-view="config" data-ico="settings-2" title="Configurações e administração"><span class="nl">Configurações</span></button>
@@ -998,6 +1005,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   </div>
 </header>
 <main id="app"><div class="loading">Carregando a planilha…</div></main>
+<div id="svcHost" hidden></div>
 <nav class="bnav" id="bnav" aria-label="Navegação principal">
   <button data-view="inicio" data-ico="house"><span>Início</span></button>
   <button data-view="proposta" data-ico="file-text"><span>Propostas</span></button>
@@ -3451,6 +3459,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       return `<div class="stack">
         <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-view="inicio">← Início</button><h1 style="margin-top:8px"><span class="divb spv">SPV</span> ${esc((TIPO_INI[s.tipo] || {}).titulo || ti.nome)} ${s.numero ? '· ' + esc(s.numero) : ''}</h1><div class="sub">${esc(ti.nome)} · ${esc(s.cliente || 'cliente a definir')}</div></div>
           <div class="sumbar">${ctx.revSelo ? ctx.revSelo() : ''}<div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
+        ${ctx.servicoHtml ? ctx.servicoHtml(s) : ''}
         ${s.vinculo ? (() => { const v = ctx.vinculo ? ctx.vinculo(s.vinculo.uid) : null; const n = (v && v.numero) || s.vinculo.numero || 's/ nº';
           return `<div class="banner info" data-vinculo>🔗 ${s.vinculo.papel === 'mo' ? 'As peças deste serviço estão na proposta' : 'A mão de obra destas peças está na proposta'} nº <b>${esc(n)}</b>${v && v.total != null ? ' · ' + brl(v.total) : ''}${v && v.numero && s.vinculo.numero && v.numero !== s.vinculo.numero ? ' <small class="sub">(o número mudou: confira "Propostas relacionadas")</small>' : ''}. Cada uma tem o seu número e o seu PDF. ${v ? `<button class="restore" data-spvinc="${esc(v.id)}">Abrir a nº ${esc(n)}</button>` : '<span class="sub">(ainda não está nas propostas salvas)</span>'}</div>`; })() : ''}
         ${below && r.multMin ? `<div class="banner bad">Lucro líquido de ${pct(r.lucroPct, 1)}, abaixo do mínimo de ${pct(r.mk.lucro_min, 0)}. Para chegar lá, o multiplicador do serviço precisa ser ${fmt(r.multMin, 2)}. <button class="restore" data-spfix>aplicar ${fmt(Math.ceil(r.multMin * 100) / 100, 2)}</button> ou peça aprovação abaixo.</div>` : ''}
@@ -8936,6 +8945,9 @@ window.PRICER_ESCOPO_PADRAO = {
     for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
       const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : false));
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
+    if (ui.view === 'servico' && !(LSF() && (!lsfMe || temServico()))) ui.view = 'inicio';
+    mostraServico(ui.view === 'servico');
+    if (ui.view === 'servico') { atualizaSaveSt(); decorar(document); return; }
     const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
     $('#docName').innerHTML = `<span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : 'SEQ'}</span> ` + ((nm || cli) ? `<b>${esc(nm || 'Sem número')}</b> · ${esc(cli || 'sem cliente')}` : '<b>Proposta nova</b>');
     { const b = $('#bMode'); if (b) b.hidden = outro || !['proposta', 'item'].includes(ui.view); }
@@ -12742,6 +12754,7 @@ window.PRICER_ESCOPO_PADRAO = {
     ['Definir responsáveis, aprovadores e perfis', ['admin'], 'banco (só o dono grava)']];
   function perfisCard() {
     const meus = meusPerfis();
+    if (LSF()) return `<section class="card"><h2>Perfis e permissões <span class="sub">servidor LS Fire</span></h2><p class="sub" style="margin:0">No servidor da LS Fire, cada gravação é conferida pelo servidor. Níveis do Pricer: <b>Consulta</b> lê; <b>Comercial</b> cria e edita propostas, documentos, pedidos, pendências e aprovações; <b>Editor</b> também altera cadastros e configurações; <b>Administrador</b> faz tudo e cuida dos usuários. As áreas responsáveis e os aprovadores abaixo continuam valendo como hoje.</p></section>`;
     return `<section class="card"><h2>Perfis e permissões <span class="sub">quem pode o quê</span></h2>
       <p class="sub" style="margin:0 0 8px">${REG.mode === 'shared' ? `Seus perfis: ${meus.map((k) => `<span class="pill ok">${esc(PERFIS.find((x) => x[0] === k)[1])}</span>`).join(' ')}` : '<b>Neste arquivo (modo local) não há login nem controle de acesso: quem abre o arquivo faz tudo, como administrador.</b> Os perfis abaixo valem no app compartilhado.'}</p>
       <div class="tw"><table class="t perm"><thead><tr><th>Ação</th>${PERFIS.map(([k, lb]) => `<th title="${esc(PERFIL_DE[k])}">${esc(lb)}</th>`).join('')}<th>Onde é garantido</th></tr></thead><tbody>
@@ -12790,6 +12803,10 @@ window.PRICER_ESCOPO_PADRAO = {
   async function nmLista() { const el = document.querySelector('[data-nmlista]'); if (!el || el.dataset.ok) return; el.dataset.ok = '1';
     try { const L = await REG.numerosReservados(); el.innerHTML = L.length ? `<div class="tw"><table class="t"><thead><tr><th>Número</th><th>Série</th><th>Quando</th><th>Quem</th></tr></thead><tbody>${L.slice(0, 30).map((x) => `<tr><td><b>${esc(x.numero)}</b></td><td>${esc(REG.NUM_SERIES[x.serie] || x.serie)}</td><td>${esc(fmtAt(x.at))}</td><td>${who(x.by)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub">Nenhum número reservado ainda.</p>'; fillNames(el); } catch (er) { el.innerHTML = '<p class="sub">Não consegui ler os números reservados: ' + esc(errMsg(er)) + '</p>'; } }
   function vAcessos() {
+    if (LSF()) return usuariosServidorCard() + vAcessos0();
+    return vAcessos0();
+  }
+  function vAcessos0() {
     if (REG.mode !== 'shared') return perfisCard() + logoCard() + avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
     const own = REG.isOwner; const ac = REG.acessos || {};
     const rows = AREAS.filter((a) => a[0] !== 'sistema').concat(PAPEIS_AP).map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
@@ -12841,6 +12858,9 @@ window.PRICER_ESCOPO_PADRAO = {
       <section class="card"><h2>Restaurar <span class="sub">a partir de um backup</span></h2>
       <p class="sub" style="margin:0 0 8px">O app mostra o que tem no arquivo e o que vai mudar antes de gravar. Por padrão só acrescenta o que não existe; quando o registro já existe, a versão atual vai para as revisões antes de ser substituída.</p>
       ${REG.ehAdmin() ? '<label class="btn" for="bkArq">Escolher arquivo de backup (.json)</label><input type="file" id="bkArq" accept=".json,application/json" hidden>' : '<p class="sub" style="margin:0"><b>Só o administrador (dono do app) restaura backups.</b></p>'}</section>
+      ${LSF() && lsfMe && lsfMe.pricer === 'admin' ? `<section class="card"><h2>Trazer os dados do claude.ai <span class="sub">servidor LS Fire</span></h2>
+        <p class="sub" style="margin:0 0 8px">No Pricer do claude.ai, baixe o <b>backup completo</b> (esta mesma tela). Envie o arquivo aqui: o servidor carrega o cadastro (insumos, kits, tabelas e parâmetros), as propostas, revisões, aprovações, baixas, pedidos, documentos, pendências, modelos e o histórico. Antes de gravar, o servidor faz uma cópia de segurança. Os responsáveis por área e os aprovadores não vêm (as pessoas do claude.ai não existem aqui): defina de novo em Usuários e permissões. Os arquivos anexados (PDFs) também não vêm no backup.</p>
+        <label class="btn" for="lsfImp">Enviar backup completo para o servidor</label><input type="file" id="lsfImp" accept=".json,application/json" hidden></section>` : ''}
       ${vLixeira()}</div>`;
   }
   // lixeira: propostas excluídas ficam aqui até o administrador apagar de vez
@@ -13882,7 +13902,7 @@ window.PRICER_ESCOPO_PADRAO = {
   }
   function bindCadastro() {
     const tab = ui.cad || 'insumos';
-    if (tab === 'acessos') fillNames($('#app'));
+    if (tab === 'acessos') { fillNames($('#app')); if (LSF()) carregaUsuarios(); }
     const ao = $('[data-areaown]'); if (ao && REG.areasConfiguradas()) { const ids = (REG.acessos || {})[ao.dataset.areaown] || []; if (ids.length) REG.names(ids).then((n) => { const el = $('[data-areaown]'); if (el) el.textContent = ids.map((i) => n[i] || 'alguém').join(', '); }); }
     if (tab === 'tabelas') bindGrid();
     if (tab === 'importar') bindImportar();
@@ -13919,7 +13939,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>11/11/2026 04:27 · commit d683c3a</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 02:14 · commit 861e25c</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14228,6 +14248,143 @@ window.PRICER_ESCOPO_PADRAO = {
       else { render(); toast('A proposta de peças nº ' + nP + ' foi salva, mas esta não: ' + errMsg(er) + '. Clique em Salvar para concluir.'); }
     }
   }
+
+  // ---------------- servidor LS Fire: Pricer + Serviço de campo ----------------
+  // No servidor da empresa (lsf-shim.js), banco, login e permissões são do servidor. Aqui ficam a aba Serviço de campo
+  // (o módulo de serviço numa moldura), o contrato a partir da proposta ganha, o orçamento a partir do relatório de
+  // inspeção, os usuários (administrador) e a troca de senha. Fora do servidor (claude.ai, arquivo local) nada disso aparece.
+  const LSF = () => !!(window.LSF && window.LSF.servidor);
+  let lsfMe = null; const svcCt = {};
+  const NOME_NIVEL = { nenhum: 'Sem acesso', consulta: 'Consulta', comercial: 'Comercial', editor: 'Editor', admin: 'Administrador' };
+  const NOME_SVC = { nenhum: 'Sem acesso', admin: 'Administrador', gestor: 'Gestor de serviços', coordenador: 'Coordenador técnico', supervisor: 'Supervisor técnico', tecnico: 'Técnico de campo', cliente: 'Cliente' };
+  const temServico = () => !!(lsfMe && lsfMe.servico && lsfMe.servico !== 'nenhum');
+  function mostraServico(on) {
+    const host = document.getElementById('svcHost'), ap = document.getElementById('app'); if (!host || !ap) return;
+    if (on && !host.querySelector('iframe')) host.innerHTML = '<iframe src="/servico/" title="Serviço de campo" allow="camera; geolocation"></iframe>';
+    host.hidden = !on; ap.hidden = !!on;
+  }
+  function contaBtn() {
+    if (!LSF() || !lsfMe || document.getElementById('bConta')) return;
+    const act = document.querySelector('header.top .actions'); if (!act) return;
+    const b = document.createElement('button'); b.className = 'btn ghost'; b.id = 'bConta'; b.dataset.ico = 'user'; b.title = 'Sua conta: trocar senha e sair';
+    b.innerHTML = '<span class="tl">' + esc(String(lsfMe.nome || lsfMe.login).split(' ')[0]) + '</span>'; act.insertBefore(b, act.firstChild); decorar(act);
+    b.onclick = contaModal;
+  }
+  function contaModal() {
+    modal(`<h2>${esc(lsfMe.nome || lsfMe.login)}</h2><div class="kv pcro"><div>Login</div><div>${esc(lsfMe.login)}</div><div>LS Pricer</div><div>${esc(NOME_NIVEL[lsfMe.pricer] || lsfMe.pricer)}</div><div>Serviço de campo</div><div>${esc(NOME_SVC[lsfMe.servico] || lsfMe.servico)}</div></div>
+      <h3 style="margin:14px 0 6px">Trocar a senha</h3><div class="fields"><div class="f span2"><label for="csAtual">Senha atual</label><input id="csAtual" type="password" autocomplete="current-password"></div>
+      <div class="f span2"><label for="csNova">Senha nova (8+ caracteres, letras e números)</label><input id="csNova" type="password" autocomplete="new-password"></div></div>
+      <div class="docbar" style="margin-top:12px"><button class="btn" id="csOk">Trocar a senha</button><button class="btn" id="csSair" data-ico="lock">Sair</button><button class="btn" data-close>Fechar</button></div>`, (o, close) => {
+      $('#csOk', o).onclick = async () => { try { await window.LSF.api('/api/senha', { atual: $('#csAtual', o).value, nova: $('#csNova', o).value }); close(); toast('Senha trocada'); } catch (er) { toast(errMsg(er)); } };
+      $('#csSair', o).onclick = async () => { if (dirty && assinatura() !== ui.assinaturaAberta && !await DLG.confirmar('Há alterações não salvas nesta proposta. Sair mesmo assim?')) return; window.LSF.sair(); };
+    });
+  }
+  if (LSF()) {
+    window.LSF.me().then((m) => { lsfMe = m; const n = document.getElementById('navServico'); if (n) n.hidden = !temServico(); contaBtn(); render(); }).catch(() => {});
+    window.addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.tipo === 'lsf-orcamento') orcamentoDoRelatorio(e.data.relatorioId); });
+    const q = new URLSearchParams(location.search).get('orcRel'); if (q) { history.replaceState(null, '', location.pathname); setTimeout(() => orcamentoDoRelatorio(q), 1200); }
+  }
+  // relatório de inspeção → proposta de serviço (SPV) com as não conformidades no escopo; os preços são feitos aqui, como sempre
+  async function orcamentoDoRelatorio(id) {
+    let r; try { r = (await window.LSF.api('/api/svc/relatorios/' + encodeURIComponent(id))).relatorio; } catch (er) { toast('Não consegui ler o relatório: ' + errMsg(er)); return; }
+    if (dirty && assinatura() !== ui.assinaturaAberta && !await DLG.confirmar('A proposta aberta tem alterações não salvas. Começar o orçamento numa proposta nova mesmo assim? (as alterações se perdem)')) return;
+    SPV.novoSpv('SMC');
+    const s = state.spv; const nc = r.naoConformidades || [];
+    const dt = r.data ? (() => { try { return new Date(String(r.data).length <= 10 ? r.data + 'T12:00' : r.data).toLocaleDateString('pt-BR'); } catch (e) { return ''; } })() : '';
+    Object.assign(s, { cliente: r.cliente || '', local: r.endereco || '', contato: r.contato || '',
+      descricao: 'Correção das não conformidades apontadas no relatório de inspeção nº ' + r.codigo + (r.contratoCodigo ? ' (contrato ' + r.contratoCodigo + ')' : '') + (dt ? ', de ' + dt : '') + ':\n'
+        + (nc.length ? nc.map((x) => '- ' + x.item + (x.obs ? ' (' + x.obs + ')' : '')).join('\n') : '- (o relatório não tem item marcado como não conforme: descreva o serviço)'),
+      origemRelatorio: { id: r.id, codigo: r.codigo, contratoCodigo: r.contratoCodigo || '' } });
+    persist(); dirty = true; render(); window.scrollTo(0, 0);
+    toast('Orçamento aberto a partir do relatório ' + r.codigo + (nc.length ? ': ' + nc.length + ' não conformidade(s) no escopo' : '') + '. Monte equipe e peças e salve.');
+  }
+  // proposta ganha de inspeção/contrato → contrato no Serviço de campo
+  function servicoHtml(s) {
+    if (!LSF() || !lsfMe || !state.id || !(s.blocos.contrato || s.tipo === 'ITM')) return '';
+    const salva = (REG.listPropostas() || []).find((x) => x.id === state.id); if (!salva || salva.status !== 'ganha') return '';
+    const pode = lsfMe.nivelPricer >= 2 && (lsfMe.pricer === 'admin' || !!(lsfMe.permissoesServico || {}).gerenciarContratos);
+    if (!temServico()) return '';
+    const ct = svcCt[state.uid];
+    if (ct === undefined) { svcCt[state.uid] = null; window.LSF.api('/api/svc/contratos?propostaUid=' + encodeURIComponent(state.uid)).then((j) => { svcCt[state.uid] = (j.contratos || [])[0] || false; render(); }).catch(() => { svcCt[state.uid] = false; render(); }); return ''; }
+    if (ct === null) return '';
+    if (ct) return `<div class="banner ok" data-svcct>Contrato <b>${esc(ct.codigo)}</b> criado no Serviço de campo. <button class="restore" data-view="servico">Abrir o Serviço de campo</button></div>`;
+    if (!pode) return '<div class="banner info" data-svcct>Proposta ganha: quem tem o perfil Gestor no Serviço de campo cria o contrato de manutenção.</div>';
+    return '<div class="banner info" data-svcct>Proposta ganha. <button class="btn sm pri" data-svccontrato>Criar o contrato no Serviço de campo</button> <span class="sub">Cliente, local, duração, visitas por ano e mensalidade vão para o contrato; agenda e técnicos são definidos lá.</span></div>';
+  }
+  async function criarContratoServico() {
+    const s = state.spv; const r = SPV.calc(s);
+    const body = { propostaUid: state.uid, propostaId: state.id, propostaNumero: s.numero || '', cliente: s.razao || s.cliente || '', cnpj: s.cnpj || '', endereco: s.local || '', contato: s.contato || '',
+      duracaoMeses: s.blocos.contrato ? (+s.contrato.meses || 12) : 12, visitasAno: s.blocos.contrato ? (+s.contrato.visitas || null) : null,
+      valorMensal: r.ct ? Math.round(r.ct.mensal * 100) / 100 : 0, dataInicio: new Date().toISOString().slice(0, 10) };
+    try { const j = await window.LSF.api('/api/svc/contratos', body); svcCt[state.uid] = j.contrato; render(); toast(j.existia ? 'O contrato ' + j.contrato.codigo + ' já existia para esta proposta' : 'Contrato ' + j.contrato.codigo + ' criado no Serviço de campo'); logEv({ tipo: 'Contrato de serviço criado', ref: state.id, desc: (s.numero || '') + ' → contrato ' + j.contrato.codigo, mudancas: [] }); }
+    catch (er) { toast('Não criei o contrato: ' + errMsg(er)); }
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-svccontrato]')) criarContratoServico(); });
+  document.addEventListener('change', async (e) => {
+    if (!e.target || e.target.id !== 'lsfImp' || !e.target.files || !e.target.files[0]) return;
+    const f = e.target.files[0]; e.target.value = '';
+    let b; try { b = JSON.parse(await f.text()); } catch (er) { toast('O arquivo não é um JSON válido.'); return; }
+    if (!b || b.app !== 'ls-pricer' || !b.colecoes) { toast('Este arquivo não é um backup completo do LS Pricer.'); return; }
+    const n = Object.values(b.colecoes).reduce((t, x) => t + Object.keys(x || {}).length, 0);
+    if (!await DLG.confirmar('Carregar no servidor o backup de ' + fmtAt(b.criadoEm) + ': ' + n + ' registro(s) e ' + ((b.cadastro && b.cadastro.insumos) || []).length + ' insumo(s)? Registros com o mesmo identificador são substituídos.')) return;
+    try { const r = await window.LSF.api('/api/admin/importar-pricer', b); toast('Backup carregado: ' + r.colecoes + ' registro(s), ' + r.insumos + ' insumo(s), ' + r.kits + ' item(ns) de kit, ' + r.tabelas + ' tabela(s). Recarregando…'); logEv({ tipo: 'Backup restaurado', ref: 'servidor', desc: 'Backup completo carregado no servidor (' + fmtAt(b.criadoEm) + ')', mudancas: [] }); setTimeout(() => location.reload(), 1800); }
+    catch (er) { toast('Não carreguei: ' + errMsg(er)); }
+  });
+  // usuários do servidor (administrador): quem entra, nível no Pricer e perfil no Serviço de campo
+  function usuariosServidorCard() {
+    if (!LSF() || !lsfMe) return '';
+    const adm = lsfMe.pricer === 'admin';
+    return `<section class="card" id="lsfUsers"><h2>Usuários e acessos <span class="sub">servidor LS Fire · as permissões valem no servidor</span></h2>
+      <p class="sub" style="margin:0 0 8px">Cada pessoa tem um nível no <b>LS Pricer</b> e um perfil no <b>Serviço de campo</b>, separados. Quem é só de Service ou Assistência Técnica fica com o Pricer em <b>Sem acesso</b>: não recebe o Pricer, nem propostas, preços, custos ou margens. Técnico e Cliente não recebem valores de contrato.</p>
+      ${adm ? '<div class="docbar" style="margin:0 0 8px"><button class="btn sm pri" data-lsfnovo data-ico="plus">Novo usuário</button></div><div id="lsfUsersBody" class="sub">Carregando…</div>' : `<p class="sub" style="margin:0">Seu acesso: Pricer <b>${esc(NOME_NIVEL[lsfMe.pricer])}</b> · Serviço de campo <b>${esc(NOME_SVC[lsfMe.servico])}</b>. Só o administrador altera usuários.</p>`}</section>`;
+  }
+  let lsfVinc = null;
+  async function carregaUsuarios() {
+    const el = document.getElementById('lsfUsersBody'); if (!el) return;
+    try {
+      const [{ usuarios }, vinc] = await Promise.all([window.LSF.api('/api/usuarios'), window.LSF.api('/api/svc/vinculos').catch(() => ({ tecnicos: [], contratos: [] }))]); lsfVinc = vinc;
+      const tec = (id) => (vinc.tecnicos.find((t) => String(t.id) === String(id)) || {}).nome; const ctr = (id) => { const c = vinc.contratos.find((x) => String(x.id) === String(id)); return c ? c.codigo + ' · ' + c.cliente : ''; };
+      el.innerHTML = `<div class="tw"><table class="t"><thead><tr><th>Nome</th><th>Login</th><th>LS Pricer</th><th>Serviço de campo</th><th>Ligado a</th><th>Situação</th><th>Último acesso</th><th></th></tr></thead><tbody>${usuarios.map((u) => `<tr>
+        <td><b>${esc(u.nome)}</b>${u.email ? `<br><small class="sub">${esc(u.email)}</small>` : ''}</td><td>${esc(u.login)}</td><td>${esc(NOME_NIVEL[u.pricer] || u.pricer)}</td><td>${esc(u.pricer === 'admin' ? 'Administrador' : NOME_SVC[u.servico] || u.servico)}</td>
+        <td>${u.servico === 'tecnico' && u.tecnicoId != null ? esc('Técnico: ' + (tec(u.tecnicoId) || u.tecnicoId)) : u.servico === 'cliente' ? esc('Contrato: ' + (ctr(u.clienteId) || u.clienteId)) : '—'}</td>
+        <td>${u.ativo ? (u.trocarSenha ? '<span class="pill warn">senha provisória</span>' : '<span class="pill ok">ativo</span>') : '<span class="pill bad">desativado</span>'}</td>
+        <td><small class="sub">${u.ultimoLogin ? esc(new Date(u.ultimoLogin).toLocaleString('pt-BR')) : 'nunca'}</small></td><td><button class="btn sm" data-lsfedit="${esc(u.id)}">Editar</button></td></tr>`).join('')}</tbody></table></div>`;
+      el._usuarios = usuarios;
+    } catch (er) { el.textContent = 'Não consegui carregar os usuários: ' + errMsg(er); }
+  }
+  function usuarioModal(u) {
+    const novo = !u; u = u || { pricer: 'nenhum', servico: 'tecnico', ativo: true };
+    const vinc = lsfVinc || { tecnicos: [], contratos: [] };
+    const op = (o, sel) => Object.entries(o).map(([k, lb]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(lb)}</option>`).join('');
+    const svcOps = Object.assign({}, NOME_SVC); delete svcOps.admin;
+    modal(`<h2>${novo ? 'Novo usuário' : 'Editar ' + esc(u.nome)}</h2><div class="fields">
+      <div class="f span2"><label for="luNome">Nome</label><input id="luNome" value="${esc(u.nome || '')}"></div>
+      <div class="f span2"><label for="luLogin">Login</label><input id="luLogin" value="${esc(u.login || '')}"${novo ? '' : ' disabled'} autocapitalize="none" placeholder="ex.: joao.silva"></div>
+      <div class="f span2"><label for="luEmail">E-mail (opcional)</label><input id="luEmail" type="email" value="${esc(u.email || '')}"></div>
+      <div class="f span2"><label for="luPricer">LS Pricer</label><select id="luPricer">${op(NOME_NIVEL, u.pricer)}</select></div>
+      <div class="f span2"><label for="luSvc">Serviço de campo</label><select id="luSvc">${op(svcOps, u.servico || 'nenhum')}</select></div>
+      <div class="f span2" data-lutec><label for="luTec">Técnico (cadastro do Serviço de campo)</label><select id="luTec"><option value="">—</option>${vinc.tecnicos.map((t) => `<option value="${esc(t.id)}"${String(t.id) === String(u.tecnicoId) ? ' selected' : ''}>${esc(t.nome)}</option>`).join('')}</select></div>
+      <div class="f span2" data-lucli><label for="luCli">Contrato do cliente</label><select id="luCli"><option value="">—</option>${vinc.contratos.map((c) => `<option value="${esc(c.id)}"${String(c.id) === String(u.clienteId) ? ' selected' : ''}>${esc(c.codigo + ' · ' + c.cliente)}</option>`).join('')}</select></div>
+      <div class="f span2"><label for="luSenha">${novo ? 'Senha provisória' : 'Redefinir senha (deixe vazio para manter)'}</label><input id="luSenha" type="text" autocomplete="off" placeholder="8+ caracteres, letras e números"></div>
+      ${novo ? '' : `<div class="f span2"><label class="chkl"><input type="checkbox" id="luAtivo"${u.ativo ? ' checked' : ''}> <span>Ativo (desmarque para bloquear o acesso)</span></label></div>`}</div>
+      <p class="sub" style="margin:8px 0 0">Na primeira entrada (ou depois de redefinir), a pessoa troca a senha. O Administrador do Pricer também administra o Serviço de campo.</p>
+      <div class="docbar" style="margin-top:12px"><button class="btn pri" id="luOk">${novo ? 'Criar' : 'Salvar'}</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
+      const vis = () => { const sv = $('#luSvc', o).value, pr = $('#luPricer', o).value; $('[data-lutec]', o).hidden = sv !== 'tecnico' || pr === 'admin'; $('[data-lucli]', o).hidden = sv !== 'cliente'; };
+      $('#luSvc', o).onchange = vis; $('#luPricer', o).onchange = vis; vis();
+      $('#luOk', o).onclick = async () => {
+        const sv = $('#luSvc', o).value; const b = { nome: $('#luNome', o).value.trim(), email: $('#luEmail', o).value.trim(), pricer: $('#luPricer', o).value, servico: sv,
+          tecnicoId: sv === 'tecnico' && $('#luTec', o).value ? (isNaN(+$('#luTec', o).value) ? $('#luTec', o).value : +$('#luTec', o).value) : null,
+          clienteId: sv === 'cliente' && $('#luCli', o).value ? (isNaN(+$('#luCli', o).value) ? $('#luCli', o).value : +$('#luCli', o).value) : null };
+        const sn = $('#luSenha', o).value; if (sn) b.senha = sn; if (!novo) b.ativo = $('#luAtivo', o).checked; else b.login = $('#luLogin', o).value.trim();
+        try { if (novo) await window.LSF.api('/api/usuarios', b); else await window.LSF.api('/api/usuarios/' + encodeURIComponent(u.id), b, 'PATCH'); close(); toast(novo ? 'Usuário criado' : 'Usuário atualizado'); carregaUsuarios(); }
+        catch (er) { toast(errMsg(er)); }
+      };
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-lsfnovo]')) { usuarioModal(null); return; }
+    const ed = e.target.closest('[data-lsfedit]'); if (ed) { const l = (document.getElementById('lsfUsersBody') || {})._usuarios || []; const u = l.find((x) => x.id === ed.dataset.lsfedit); if (u) usuarioModal(u); }
+  });
   async function abrirVinculo(id) {
     const p = (REG.listPropostas() || []).find((x) => x.id === id); if (!p) { toast('Proposta vinculada não encontrada.'); return; }
     if (dirty && assinatura() !== ui.assinaturaAberta) { await $('#bSave').onclick(); if (dirty) return; }
@@ -14379,7 +14536,7 @@ window.PRICER_ESCOPO_PADRAO = {
     e.preventDefault(); e.stopImmediatePropagation();
     if (await DLG.confirmar('A proposta aberta tem alterações não salvas. Começar uma nova mesmo assim? (as alterações se perdem)')) { b.dataset.dlgok = '1'; b.click(); }
   }, true);
-  const SPV = window.PricerSPV({ revisar: () => revisarModal(), separar: () => separarSpv(), separarMotivo: (s) => separarMotivo(s), vinculo: (uid) => vinculoDe(uid), abrirVinculo: (id) => abrirVinculo(id), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
+  const SPV = window.PricerSPV({ revisar: () => revisarModal(), separar: () => separarSpv(), servicoHtml: (s) => servicoHtml(s), separarMotivo: (s) => separarMotivo(s), vinculo: (uid) => vinculoDe(uid), abrirVinculo: (id) => abrirVinculo(id), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
     persist: () => { persist(); dirty = true; },
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });

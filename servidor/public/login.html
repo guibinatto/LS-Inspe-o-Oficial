@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LS Fire · Entrar</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+  :root { --lar: #FF6600; --esc: #404040; --bg: #f4f2ef; --card: #fff; --tx: #1f1f1f; --mute: #6b6b6b; --borda: #ddd6cf; --erro: #b42318; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #17181a; --card: #222326; --tx: #eee; --mute: #a5a5a5; --borda: #3a3b3f; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--tx); font: 15px/1.45 Arial, Helvetica, sans-serif; }
+  .card { width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 28px 24px; box-shadow: 0 6px 28px rgba(0,0,0,.08); }
+  .marca { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .marca b { font: 900 22px Arial Black, Arial, sans-serif; letter-spacing: .5px; }
+  .marca b span { color: var(--lar); }
+  h1 { font-size: 17px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 18px; color: var(--mute); font-size: 13px; }
+  label { display: block; font-size: 12px; font-weight: 700; margin: 12px 0 4px; color: var(--mute); text-transform: uppercase; letter-spacing: .4px; }
+  input { width: 100%; padding: 11px 12px; font-size: 16px; border: 1px solid var(--borda); border-radius: 9px; background: transparent; color: var(--tx); }
+  input:focus { outline: 2px solid var(--lar); outline-offset: 0; border-color: var(--lar); }
+  button { width: 100%; margin-top: 18px; padding: 12px; font-size: 15px; font-weight: 700; color: #fff; background: var(--lar); border: 0; border-radius: 9px; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: wait; }
+  .erro { color: var(--erro); font-size: 13px; margin-top: 12px; min-height: 18px; }
+  .rodape { margin-top: 18px; font-size: 11px; color: var(--mute); text-align: center; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="marca"><svg width="30" height="34" viewBox="0 0 30 34" aria-hidden="true"><path d="M15 1C17 8 25 11 25 21a10 10 0 0 1-20 0c0-5 3-8 5-10 0 4 2 6 4 6-2-6 0-12 1-16z" fill="#FF6600"/></svg><b>LS <span>FIRE</span></b></div>
+  <form id="fEntrar">
+    <h1>Entrar</h1>
+    <p class="sub">LS Pricer e Serviço de campo</p>
+    <label for="login">Login</label><input id="login" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="senha">Senha</label><input id="senha" type="password" autocomplete="current-password" required>
+    <button id="bEntrar">Entrar</button>
+    <div class="erro" id="eEntrar" role="alert"></div>
+  </form>
+  <form id="fTroca" hidden>
+    <h1>Troque a sua senha</h1>
+    <p class="sub">É o primeiro acesso (ou a senha foi redefinida pelo administrador). Use pelo menos 8 caracteres, com letras e números.</p>
+    <label for="nova">Senha nova</label><input id="nova" type="password" autocomplete="new-password" required minlength="8">
+    <label for="nova2">Repita a senha nova</label><input id="nova2" type="password" autocomplete="new-password" required minlength="8">
+    <button id="bTroca">Salvar e continuar</button>
+    <div class="erro" id="eTroca" role="alert"></div>
+  </form>
+  <div class="rodape">A FORÇA DA ÁGUA É A NOSSA FORÇA</div>
+</main>
+<script>
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var volta = qs.get('volta') || '';
+  if (!/^\/[A-Za-z0-9_\-\/.?=&#%]*$/.test(volta) || volta.indexOf('//') === 0) volta = '';
+  if (qs.get('troca')) document.getElementById('eEntrar').textContent = 'Entre de novo para trocar a senha provisória.';
+  if (qs.get('semacesso')) document.getElementById('eEntrar').textContent = 'Seu usuário não tem acesso liberado. Fale com o administrador.';
+  var senhaAtual = '', me = null;
+  function api(url, corpo) {
+    return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-LSF': '1' }, body: JSON.stringify(corpo || {}) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j.error || ('Erro ' + r.status)); return j; }); });
+  }
+  function seguir() {
+    var destino = me && me.nivelPricer >= 1 ? (volta || '/') : '/servico/';
+    if (me && me.nivelPricer < 1 && volta.indexOf('/servico') === 0) destino = volta;
+    location.replace(destino);
+  }
+  document.getElementById('fEntrar').addEventListener('submit', function (e) {
+    e.preventDefault(); var b = document.getElementById('bEntrar'), er = document.getElementById('eEntrar'); er.textContent = ''; b.disabled = true;
+    senhaAtual = document.getElementById('senha').value;
+    api('/api/login', { login: document.getElementById('login').value, senha: senhaAtual }).then(function (j) {
+      me = j.me;
+      if (me.trocarSenha) { document.getElementById('fEntrar').hidden = true; document.getElementById('fTroca').hidden = false; document.getElementById('nova').focus(); return; }
+      seguir();
+    }).catch(function (x) { er.textContent = x.message; }).finally(function () { b.disabled = false; });
+  });
+  document.getElementById('fTroca').addEventListener('submit', function (e) {
+    e.preventDefault(); var b = document.getElementById('bTroca'), er = document.getElementById('eTroca'); er.textContent = '';
+    var n = document.getElementById('nova').value;
+    if (n !== document.getElementById('nova2').value) { er.textContent = 'As duas senhas não são iguais.'; return; }
+    b.disabled = true;
+    api('/api/senha', { atual: senhaAtual, nova: n }).then(seguir).catch(function (x) { er.textContent = x.message; }).finally(function () { b.disabled = false; });
+  });
+  document.getElementById('login').focus();
+})();
+</script>
+</body>
+</html>

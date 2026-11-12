@@ -873,6 +873,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 /* títulos das colunas de números alinhados com os valores (à direita), em todas as tabelas */
 .t th.n,.t th.num,table.t th.n,table.t th.num{text-align:right}
+/* servidor LS Fire: módulo Serviço de campo numa moldura do mesmo endereço */
+#svcHost { padding: 0; }
+#svcHost iframe { display: block; width: 100%; height: calc(100vh - var(--hdr, 64px)); height: calc(100dvh - var(--hdr, 64px)); border: 0; background: #fff; }
+@media (max-width: 767px) { #svcHost iframe { height: calc(100dvh - var(--hdr, 56px) - 64px); } }
 </style>
 
 <a class="skip" href="#app">Pular para o conteúdo</a>
@@ -943,6 +947,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
       </div>
     </div>
+    <div class="navg" id="navServico" hidden>
+      <button data-view="servico" data-ico="wrench" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
+    </div>
     <div class="navg" data-navg="admin">
       <button type="button" class="navgh" data-navgt="admin" aria-expanded="false" aria-controls="navs_admin"><span class="nl">Administração</span></button>
       <button data-view="config" data-ico="settings-2" title="Configurações e administração"><span class="nl">Configurações</span></button>
@@ -990,6 +997,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   </div>
 </header>
 <main id="app"><div class="loading">Carregando a planilha…</div></main>
+<div id="svcHost" hidden></div>
 <nav class="bnav" id="bnav" aria-label="Navegação principal">
   <button data-view="inicio" data-ico="house"><span>Início</span></button>
   <button data-view="proposta" data-ico="file-text"><span>Propostas</span></button>
