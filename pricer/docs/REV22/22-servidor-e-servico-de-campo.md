@@ -21,6 +21,29 @@ A decisão foi colocar **tudo no servidor da LS Fire**, com login próprio e per
 | `servidor/servico-web/` | O app de campo (React), adaptado: login, usuários e permissões vêm do servidor; começa sem dados de exemplo; botão **Orçar no Pricer**; contrato mostra a proposta de origem; fica em `/servico/` (PWA) |
 | Pricer (`app.js`, `spv.js`, `index.html`) | Aba **Serviço de campo** (o módulo numa moldura); **Criar o contrato no Serviço de campo** na SPV de contrato ganha; orçamento a partir do relatório; **Usuários e acessos**; botão da conta (trocar senha e sair); **Trazer os dados do claude.ai**. Tudo isso só aparece no servidor; no claude.ai e no arquivo local o Pricer fica como estava |
 
+## Menu do Serviço de campo
+
+**No menu do Pricer.** "Serviço de campo" é um grupo, como Comercial e Cadastros, e fica logo depois do Comercial. Tem:
+- o **Painel do serviço**;
+- os submenus, na ordem do trabalho:
+  1. Agenda
+  2. Visitas técnicas
+  3. Atendimentos por técnico (para o técnico: Meus atendimentos)
+  4. Relatórios
+  5. Aprovação de relatórios
+  6. Contratos de manutenção
+  7. Técnicos
+  8. Auditoria do serviço
+
+**Quem vê o quê.** Cada submenu só aparece para o perfil que abre aquela tela: o técnico não vê Aprovação nem Auditoria. Esconder o item é só organização; quem garante o acesso é o servidor.
+
+**Como os dois menus conversam:**
+- clicar num submenu abre o módulo direto naquela tela;
+- trocar de tela dentro do módulo marca o submenu certo no Pricer;
+- o endereço guarda a tela (`/servico/#agenda`), então recarregar a página mantém onde a pessoa estava.
+
+**No próprio módulo.** O menu do técnico no celular e as abas dentro do Pricer têm os mesmos grupos: Operação, Relatórios, Contratos e equipe, Controle.
+
 ## Acessos
 
 Cada pessoa tem um nível no **Pricer** e um perfil no **Serviço de campo**, independentes. As tabelas completas estão em `servidor/SEGURANCA.md`. Em resumo:

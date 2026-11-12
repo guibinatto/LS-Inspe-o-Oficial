@@ -42,7 +42,7 @@ const FAKE = (perfil) => `(() => { if (window.top !== window) return;
     let { c, p } = await abre({ id: 'dono', nome: 'Guilherme', dono: true, nivel: 4 });
     confere('menu mostra Serviço de campo no claude.ai', await p.evaluate(() => !document.getElementById('navServico').hidden));
     let fr = await frame(p);
-    confere('módulo abre dentro do Pricer', !!fr && /Dashboard/.test(await fr.evaluate(() => document.body.innerText)));
+    confere('módulo abre dentro do Pricer', !!fr && /Painel/.test(await fr.evaluate(() => document.body.innerText)));
     confere('dentro do claude.ai não aparece "Sair" do módulo', !/\bSair\b/.test(await fr.evaluate(() => document.body.innerText)));
     // cria um técnico e um contrato pelo módulo, como o usuário faria (mesmas funções de gravação: storage.set)
     await fr.evaluate(async () => {
@@ -76,11 +76,27 @@ const FAKE = (perfil) => `(() => { if (window.top !== window) return;
     const ban = await p.evaluate(() => (document.querySelector('[data-svcct]') || {}).innerText || '');
     confere('contrato criado com número próprio', /Contrato 2000\d\d criado/.test(ban), ban.slice(0, 60));
     confere('perfis do serviço aparecem em Responsáveis por área', await p.evaluate(async () => { document.querySelector('[data-go="config"][data-gv="acessos"]').click(); await new Promise((r) => setTimeout(r, 1500)); return /Serviço de campo: Técnico/.test(document.body.innerText); }));
+    // ---------- submenus do Serviço de campo ----------
+    const subs = async () => p.evaluate(() => [...document.querySelectorAll('#navs_servico [data-gk="svcTab"]')].filter((x) => !x.hidden).map((x) => x.innerText.trim()));
+    await p.evaluate(() => { const h = document.querySelector('[data-navgt="servico"]'); if (h.getAttribute('aria-expanded') !== 'true') h.click(); });
+    const sAdm = await subs();
+    confere('submenu do Serviço de campo (administrador): 8 telas na ordem do trabalho', sAdm.join('|') === 'Agenda|Visitas técnicas|Atendimentos por técnico|Relatórios|Aprovação de relatórios|Contratos de manutenção|Técnicos|Auditoria do serviço', sAdm.join('|'));
+    await p.click('#navs_servico [data-gv="agenda"]'); await p.waitForTimeout(1500); fr = p.frames().find((f) => /servico-claude/.test(f.url()));
+    const abaAg = await fr.evaluate(() => (document.querySelector('.lsf-tab[aria-current="page"]') || {}).innerText || '');
+    confere('submenu Agenda abre o módulo na Agenda', /Agenda/i.test(abaAg) && await p.evaluate(() => document.querySelector('#navs_servico [data-gv="agenda"]').getAttribute('aria-current') === 'true'), abaAg);
+    await p.click('#navs_servico [data-gv="relatorios"]'); await p.waitForTimeout(1200);
+    confere('submenu Relatórios troca a tela com o módulo já aberto', /Relat/i.test(await fr.evaluate(() => (document.querySelector('.lsf-tab[aria-current="page"]') || {}).innerText || '')));
+    await fr.evaluate(() => [...document.querySelectorAll('.lsf-tab')].find((x) => /técnicos/i.test(x.innerText)).click()); await p.waitForTimeout(800);
+    confere('trocar a tela dentro do módulo marca o submenu certo no Pricer', await p.evaluate(() => document.querySelector('#navs_servico [data-gv="tecnicos"]').getAttribute('aria-current') === 'true'));
+    confere('pesquisa no menu acha as telas do serviço', await p.evaluate(async () => { const q = document.getElementById('navQ'); q.value = 'aprova'; q.dispatchEvent(new Event('input')); await new Promise((r) => setTimeout(r, 50)); const v = [...document.querySelectorAll('#nav [data-go], #nav [data-view]')].filter((e) => !e.hidden).map((e) => e.innerText.trim()); q.value = ''; q.dispatchEvent(new Event('input')); return v.includes('Aprovação de relatórios'); }));
     const todos = await p.evaluate(() => Object.fromEntries([...window.__docs].filter(([k]) => /^svc_|^meta\/acessos/.test(k))));
     await c.close();
     // ---------- técnico (Contribuidor, na lista Serviço de campo: Técnico) ----------
     todos['meta/acessos'] = { areas: { svc_tecnico: ['tec1'] }, by: 'dono' };
     ({ c, p } = await abre({ id: 'tec1', nome: 'Técnico Um', dono: false, nivel: 2 }, todos));
+    await p.evaluate(() => { const h = document.querySelector('[data-navgt="servico"]'); if (h.getAttribute('aria-expanded') !== 'true') h.click(); });
+    const sTec = await subs();
+    confere('submenu do técnico: sem Aprovação nem Auditoria, com "Meus atendimentos"', !sTec.some((x) => /Aprova|Auditoria/.test(x)) && sTec.includes('Meus atendimentos') && sTec.includes('Agenda'), sTec.join('|'));
     fr = await frame(p);
     await fr.evaluate(() => [...document.querySelectorAll('nav button')].find((x) => /Contratos/.test(x.innerText)).click()); await p.waitForTimeout(800);
     const t2 = await fr.evaluate(() => document.body.innerText);

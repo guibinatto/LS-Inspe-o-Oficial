@@ -913,8 +913,21 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       </div>
     </div>
     <!-- logo depois do Comercial: proposta ganha → contrato → atendimento em campo -->
-    <div class="navg" id="navServico" hidden>
-      <button data-view="servico" data-ico="wrench" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
+    <div class="navg" data-navg="servico" id="navServico" hidden>
+      <button type="button" class="navgh" data-navgt="servico" aria-expanded="false" aria-controls="navs_servico" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
+      <button data-view="servico" data-ico="wrench" title="Serviço de campo: painel com visitas, atrasos e relatórios pendentes"><span class="nl">Painel do serviço</span></button>
+      <!-- na ordem do trabalho: agendar → executar → relatar → aprovar; depois o cadastro (contratos e equipe) e o controle.
+           Cada item só aparece para o perfil que pode abrir a tela (o servidor é quem garante o acesso). -->
+      <div class="navsub" id="navs_servico" role="group" aria-label="Serviço de campo" hidden>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="agenda" data-ico="calendar-days"><span class="nl">Agenda</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="visitas" data-ico="clipboard-list"><span class="nl">Visitas técnicas</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="meus-atendimentos" data-ico="clipboard-check"><span class="nl">Atendimentos por técnico</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="relatorios" data-ico="file-text"><span class="nl">Relatórios</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovação de relatórios</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="contratos" data-ico="building-2"><span class="nl">Contratos de manutenção</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="tecnicos" data-ico="hard-hat"><span class="nl">Técnicos</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="auditoria" data-ico="scroll-text"><span class="nl">Auditoria do serviço</span></button>
+      </div>
     </div>
     <div class="navg" data-navg="cadastros">
       <button type="button" class="navgh" data-navgt="cadastros" aria-expanded="false" aria-controls="navs_cadastros"><span class="nl">Cadastros</span></button>
@@ -6622,6 +6635,7 @@ window.PRICER_ESCOPO_PADRAO = {
 "list-checks": "<svg class=\"lucide lucide-list-checks\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"m3 17 2 2 4-4\"/> <path d=\"m3 7 2 2 4-4\"/> <path d=\"M13 6h8\"/> <path d=\"M13 12h8\"/> <path d=\"M13 18h8\"/>",
 "scroll-text": "<svg class=\"lucide lucide-scroll-text\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M15 12h-5\"/> <path d=\"M15 8h-5\"/> <path d=\"M19 17V5a2 2 0 0 0-2-2H4\"/> <path d=\"M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3\"/>",
 "user": "<svg class=\"lucide lucide-user\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2\"/> <circle cx=\"12\" cy=\"7\" r=\"4\"/>",
+"calendar-days": "<svg class=\"lucide lucide-calendar-days\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M8 2v4\"/> <path d=\"M16 2v4\"/> <rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\"/> <path d=\"M3 10h18\"/> <path d=\"M8 14h.01\"/> <path d=\"M12 14h.01\"/> <path d=\"M16 14h.01\"/> <path d=\"M8 18h.01\"/> <path d=\"M12 18h.01\"/> <path d=\"M16 18h.01\"/> </svg>",
 "users": "<svg class=\"lucide lucide-users\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/> <circle cx=\"9\" cy=\"7\" r=\"4\"/> <path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/> <path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/>",
 "shield-check": "<svg class=\"lucide lucide-shield-check\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/> <path d=\"m9 12 2 2 4-4\"/>",
 "chevron-down": "<svg class=\"lucide lucide-chevron-down\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" > <path d=\"m6 9 6 6 6-6\"/>",
@@ -8827,6 +8841,7 @@ window.PRICER_ESCOPO_PADRAO = {
   $('#bMenu').onclick = () => { document.body.classList.add('side-open'); $('#sideScrim').hidden = false; const f = $('#nav button[aria-current="page"]') || $('#nav button'); if (f) f.focus(); };
   $('#bSideX').onclick = fechaMenu; $('#sideScrim').onclick = fechaMenu;
   $('#nav').addEventListener('click', (e) => { if (e.target.closest('button') && !e.target.closest('[data-navgt]')) fechaMenu(); });
+  $('#nav').addEventListener('click', (e) => { if (e.target.closest('button[data-view="servico"]')) ui.svcTab = 'dashboard'; }, true);
   const sideCol = () => { const m = document.body.classList.contains('side-mini'); const b = $('#bSideCol'); b.dataset.ico = m ? 'panel-left-open' : 'panel-left-close'; b.title = m ? 'Expandir o menu' : 'Recolher o menu'; b.setAttribute('aria-label', b.title); b.querySelector('.nl').textContent = m ? 'Expandir' : 'Recolher'; decorar(b.parentElement); };
   $('#bSideCol').onclick = () => { const m = document.body.classList.toggle('side-mini'); try { localStorage.setItem('lspricer.sidemini', m ? '1' : '0'); } catch (e) { /* só nesta visita */ } sideCol(); };
   sideCol();
@@ -8845,6 +8860,7 @@ window.PRICER_ESCOPO_PADRAO = {
     if (k === 'cad') { ui.cad = val; }
     if (k === 'mgTab') { ui.mgTab = val; ui.mgId = null; ui.apId = null; }
     if (k === 'ajuda') ui.ajuda = val;
+    if (k === 'svcTab') ui.svcTab = val;
     setView(v);
     // lista ou seção certa à vista
     setTimeout(() => { const alvo = k === 'homeDiv' ? document.querySelector(`[data-hdiv="${CSS.escape(val)}"]`) : k === 'ajuda' ? document.getElementById('ajuda_' + val) : null; if (alvo) alvo.scrollIntoView({ block: 'start' }); }, 30);
@@ -8856,7 +8872,7 @@ window.PRICER_ESCOPO_PADRAO = {
     for (const b of document.querySelectorAll('#nav [data-view], #nav [data-go]')) {
       const nl = b.querySelector('.nl'); const t = nl ? (nl.dataset.t || (nl.dataset.t = nl.textContent)) : '';
       // grupo que não vale para este usuário (ex.: Serviço de campo sem acesso) não entra na contagem nem aparece na pesquisa
-      const fora = !!b.closest('.navg[hidden]');
+      const fora = !!b.closest('.navg[hidden]') || b.dataset.fora === '1';
       const ok = !fora && (!nq || normMenu(t).includes(nq)); b.hidden = !ok; if (ok) n++;
       if (nl) { if (nq && ok) { const i = normMenu(t).indexOf(nq); nl.innerHTML = esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length)); } else nl.textContent = t; }
     }
@@ -8947,11 +8963,11 @@ window.PRICER_ESCOPO_PADRAO = {
     if (ui.view === 'cadastro' && CAD_TABS.some((x) => x[0] === ui.cad) && areaOfTab(ui.cad) === 'sistema') ui.view = 'config';
     if (ui.view === 'config' && areaOfTab(ui.cad) !== 'sistema') ui.cad = 'historico';
     const navAtual = viewDaProposta(ui.view) ? 'proposta' : ui.view;
-    for (const b of document.querySelectorAll('#nav button[data-view]')) b.setAttribute('aria-current', b.dataset.view === navAtual ? 'page' : 'false');
+    for (const b of document.querySelectorAll('#nav button[data-view]')) b.setAttribute('aria-current', b.dataset.view === navAtual && (navAtual !== 'servico' || (ui.svcTab || 'dashboard') === 'dashboard') ? 'page' : 'false');
     for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
-      const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : false));
+      const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : k === 'svcTab' ? (ui.svcTab || 'dashboard') === gv : false));
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
-    if (!LSF()) { const ns = document.getElementById('navServico'); if (ns) { ns.hidden = !SVC_CLAUDE(); if (!ns.hidden && !String($('#navQ').value || '').trim()) for (const b of ns.querySelectorAll('[data-view]')) b.hidden = false; } }
+    atualizaNavServico();
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
     if (ui.view === 'servico') { atualizaSaveSt(); decorar(document); return; }
@@ -13946,7 +13962,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 03:47 · commit 9505a71</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 11:10 · commit 7d44bfa</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14264,12 +14280,41 @@ window.PRICER_ESCOPO_PADRAO = {
   let lsfMe = null; const svcCt = {};
   const NOME_NIVEL = { nenhum: 'Sem acesso', consulta: 'Consulta', comercial: 'Comercial', editor: 'Editor', admin: 'Administrador' };
   const NOME_SVC = { nenhum: 'Sem acesso', admin: 'Administrador', gestor: 'Gestor de serviços', coordenador: 'Coordenador técnico', supervisor: 'Supervisor técnico', tecnico: 'Técnico de campo', cliente: 'Cliente' };
-  const temServico = () => !!(lsfMe && lsfMe.servico && lsfMe.servico !== 'nenhum');
+  const temServico = () => !!(lsfMe && (lsfMe.pricer === 'admin' || (lsfMe.servico && lsfMe.servico !== 'nenhum')));
+  // O módulo abre na tela escolhida no submenu (#aba no endereço); com ele já aberto, a troca vai por mensagem.
+  let svcAbaEnviada = null;
   function mostraServico(on) {
     const host = document.getElementById('svcHost'), ap = document.getElementById('app'); if (!host || !ap) return;
-    if (on && !host.querySelector('iframe')) host.innerHTML = `<iframe src="${LSF() ? '/servico/' : 'servico-claude/index.html'}" title="Serviço de campo" allow="camera; geolocation"></iframe>`;
+    const aba = ui.svcTab || 'dashboard';
+    if (on && !host.querySelector('iframe')) { host.innerHTML = `<iframe src="${LSF() ? '/servico/' : 'servico-claude/index.html'}#${encodeURIComponent(aba)}" title="Serviço de campo" allow="camera; geolocation"></iframe>`; svcAbaEnviada = aba; }
+    else if (on && aba !== svcAbaEnviada) { const fr = host.querySelector('iframe'); try { fr.contentWindow.postMessage({ tipo: 'lsf-aba', aba }, '*'); } catch (e) { /* segue */ } svcAbaEnviada = aba; }
     host.hidden = !on; ap.hidden = !!on;
   }
+  // telas do Serviço de campo que cada perfil abre (mesma regra do módulo; quem garante o acesso é o servidor/banco)
+  function perfilServicoAtual() {
+    if (LSF()) return lsfMe ? (lsfMe.pricer === 'admin' ? 'admin' : (lsfMe.servico && lsfMe.servico !== 'nenhum' ? lsfMe.servico : null)) : null;
+    return SVC_CLAUDE() ? perfilSvcClaude() : null;
+  }
+  function abasServico(p) {
+    if (!p) return new Set();
+    if (p === 'cliente') return new Set(['dashboard', 'contratos', 'visitas', 'relatorios']);
+    const base = ['dashboard', 'agenda', 'visitas', 'meus-atendimentos', 'relatorios', 'contratos', 'tecnicos'];
+    return new Set(p === 'tecnico' ? base : base.concat(['aprovacoes', 'auditoria']));
+  }
+  function atualizaNavServico() {
+    const ns = document.getElementById('navServico'); if (!ns) return;
+    const p = perfilServicoAtual(); ns.hidden = !p; if (!p) return;
+    const abas = abasServico(p); const pesquisando = !!String(($('#navQ') || {}).value || '').trim();
+    for (const b of ns.querySelectorAll('[data-gk="svcTab"]')) { const fora = !abas.has(b.dataset.gv); b.dataset.fora = fora ? '1' : ''; if (!pesquisando) b.hidden = fora; }
+    if (!pesquisando) for (const b of ns.querySelectorAll('[data-view]')) b.hidden = false;
+    const at = ns.querySelector('[data-gv="meus-atendimentos"] .nl'); if (at) { const t = p === 'tecnico' ? 'Meus atendimentos' : 'Atendimentos por técnico'; at.textContent = t; at.dataset.t = t; }
+    if (ui.view === 'servico' && !abas.has(ui.svcTab || 'dashboard')) ui.svcTab = 'dashboard';
+  }
+  // o módulo avisa quando a pessoa troca de tela por dentro: o submenu acompanha
+  window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe');
+    if (!e.data || e.data.tipo !== 'lsf-aba-atual' || !fr || e.source !== fr.contentWindow) return;
+    const aba = String(e.data.aba || ''); if (!/^[a-z-]{2,30}$/.test(aba) || aba === ui.svcTab) return;
+    ui.svcTab = aba; svcAbaEnviada = aba; if (ui.view === 'servico') render(); });
   function contaBtn() {
     if (!LSF() || !lsfMe || document.getElementById('bConta')) return;
     const act = document.querySelector('header.top .actions'); if (!act) return;
@@ -14288,7 +14333,7 @@ window.PRICER_ESCOPO_PADRAO = {
   }
   window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe'); if (e.data && e.data.tipo === 'lsf-orcamento' && (e.origin === location.origin || (fr && e.source === fr.contentWindow))) orcamentoDoRelatorio(e.data.relatorioId); });
   if (LSF()) {
-    window.LSF.me().then((m) => { lsfMe = m; const n = document.getElementById('navServico'); if (n) { n.hidden = !temServico(); if (!n.hidden) for (const b of n.querySelectorAll('[data-view]')) b.hidden = false; } contaBtn(); render(); }).catch(() => {});
+    window.LSF.me().then((m) => { lsfMe = m; atualizaNavServico(); contaBtn(); render(); }).catch(() => {});
 
     const q = new URLSearchParams(location.search).get('orcRel'); if (q) { history.replaceState(null, '', location.pathname); setTimeout(() => orcamentoDoRelatorio(q), 1200); }
   }

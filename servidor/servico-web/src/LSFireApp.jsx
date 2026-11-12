@@ -2405,6 +2405,8 @@ function GlobalFonts() {
       .lsf-nav-btn[aria-current="page"] { color: var(--bar-ink); background: rgba(255,255,255,.09); }
       .lsf-nav-btn[aria-current="page"]::before { content: ""; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--or); }
       .lsf-slogan { color: var(--or); }
+      .lsf-nav-grupo { padding: 14px 12px 4px; font-family: var(--f-cond); font-weight: 600; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--bar-dim); }
+      .lsf-tab-sep { flex: none; width: 1px; height: 20px; margin: 0 6px; background: var(--line); }
       /* dentro do Pricer: abas no lugar do menu (o menu é o do Pricer) */
       .lsf-tabs { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 2px; padding: 0 12px; background: var(--bg); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: thin; }
       .lsf-tab { display: inline-flex; align-items: center; gap: 7px; padding: 11px 12px 10px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--ink2); white-space: nowrap; cursor: pointer;
@@ -2605,8 +2607,24 @@ if (typeof window !== "undefined") {
   if (window.top !== window) try { window.parent.postMessage({ tipo: "lsf-tema?" }, "*"); } catch {}
 }
 
+// tela pedida no endereço (#agenda, #relatorios…): o submenu do Pricer abre o módulo direto nela
+const abaDoEndereco = () => { try { const h = decodeURIComponent(String(window.location.hash || "").slice(1)); return /^[a-z-]{2,30}$/.test(h) ? h : null; } catch { return null; } };
+// grupos do menu, na ordem do trabalho (os mesmos do submenu "Serviço de campo" do Pricer)
+const GRUPO_ABA = { dashboard: "", agenda: "Operação", visitas: "Operação", "meus-atendimentos": "Operação", relatorios: "Relatórios", aprovacoes: "Relatórios", contratos: "Contratos e equipe", tecnicos: "Contratos e equipe", usuarios: "Controle", auditoria: "Controle" };
+
 export default function App() {
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState(() => (typeof window !== "undefined" && abaDoEndereco()) || "dashboard");
+  // o Pricer troca a tela por mensagem; o endereço (#aba) também; e o Pricer fica sabendo quando a troca é feita aqui dentro
+  useEffect(() => {
+    const porMsg = (e) => { if (e.source === window.parent && e.data && e.data.tipo === "lsf-aba" && /^[a-z-]{2,30}$/.test(String(e.data.aba || ""))) setTab(e.data.aba); };
+    const porHash = () => { const a = abaDoEndereco(); if (a) setTab(a); };
+    window.addEventListener("message", porMsg); window.addEventListener("hashchange", porHash);
+    return () => { window.removeEventListener("message", porMsg); window.removeEventListener("hashchange", porHash); };
+  }, []);
+  useEffect(() => {
+    try { if (abaDoEndereco() !== tab) window.history.replaceState(null, "", "#" + tab); } catch { /* segue */ }
+    if (window.top !== window) try { window.parent.postMessage({ tipo: "lsf-aba-atual", aba: tab }, "*"); } catch { /* segue */ }
+  }, [tab]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [contratos, setContratos] = useState([]);
   const [tecnicos, setTecnicos] = useState([]);
@@ -3190,18 +3208,22 @@ export default function App() {
     ? relatorios
     : relatorios.filter(r => r.contratoId === sessao.clienteId);
 
+  // na ordem do trabalho: agendar → executar → relatar → aprovar; depois contratos e equipe; por fim o controle
   const navItens = [
-            { id: "dashboard",  label: "Dashboard",  Icon: Home,      show: true },
-            { id: "meus-atendimentos", label: perfilAtual === "tecnico" ? "Meus Atendimentos" : "Atend. por Técnico", Icon: ClipboardCheck, show: perfilAtual === "tecnico" || can(perfilAtual, "aprovarRelatorios") },
-            { id: "contratos",  label: "Contratos",  Icon: Building2, show: true },
+            { id: "dashboard",  label: "Painel",     Icon: Home,      show: true },
             { id: "agenda",     label: "Agenda",     Icon: Calendar,  show: can(perfilAtual, "agendar") || can(perfilAtual, "inspecionar") },
-            { id: "visitas",    label: "Visitas Técnicas", Icon: ClipboardList, show: can(perfilAtual, "agendar") || can(perfilAtual, "inspecionar") || can(perfilAtual, "verRelatorios") },
-            { id: "tecnicos",   label: "Técnicos",   Icon: Users,     show: can(perfilAtual, "verTecnicos") },
+            { id: "visitas",    label: "Visitas técnicas", Icon: ClipboardList, show: can(perfilAtual, "agendar") || can(perfilAtual, "inspecionar") || can(perfilAtual, "verRelatorios") },
+            { id: "meus-atendimentos", label: perfilAtual === "tecnico" ? "Meus atendimentos" : "Atendimentos por técnico", Icon: ClipboardCheck, show: perfilAtual === "tecnico" || can(perfilAtual, "aprovarRelatorios") },
             { id: "relatorios", label: "Relatórios", Icon: FileText,  show: can(perfilAtual, "verRelatorios") },
             { id: "aprovacoes", label: "Aprovações", Icon: ShieldCheck, show: can(perfilAtual, "aprovarRelatorios") },
+            { id: "contratos",  label: "Contratos",  Icon: Building2, show: true },
+            { id: "tecnicos",   label: "Técnicos",   Icon: Users,     show: can(perfilAtual, "verTecnicos") },
             { id: "usuarios",   label: "Usuários",   Icon: UserCog,   show: false }, // no servidor: Pricer → Configurações → Usuários e acessos
             { id: "auditoria",  label: "Auditoria",  Icon: ScrollText,show: can(perfilAtual, "verAuditoria") },
   ].filter(x => x.show);
+  // tela que o perfil não abre (pedida no endereço ou pelo Pricer) volta ao painel
+  if (tab !== "dashboard" && !navItens.some(x => x.id === tab)) setTab("dashboard");
+  const comGrupo = navItens.map((x, i) => ({ ...x, grupo: GRUPO_ABA[x.id] || "", novoGrupo: i > 0 && (GRUPO_ABA[x.id] || "") !== (GRUPO_ABA[navItens[i - 1].id] || "") }));
   const embutido = typeof window !== "undefined" && window.top !== window;
 
   return (
@@ -3226,10 +3248,13 @@ export default function App() {
           </div>
         </div>
         <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto">
-          {navItens.map(({ id, label, Icon }) => (
-              <button key={id} onClick={() => { setTab(id); setMobileNavOpen(false); }} className="lsf-nav-btn" aria-current={tab === id ? "page" : undefined}>
-                <Icon size={19} />{label}
-              </button>
+          {comGrupo.map(({ id, label, Icon, grupo, novoGrupo }) => (
+              <Fragment key={id}>
+                {novoGrupo && grupo && <div className="lsf-nav-grupo">{grupo}</div>}
+                <button onClick={() => { setTab(id); setMobileNavOpen(false); }} className="lsf-nav-btn" aria-current={tab === id ? "page" : undefined}>
+                  <Icon size={19} />{label}
+                </button>
+              </Fragment>
           ))}
         </nav>
 
@@ -3269,8 +3294,11 @@ export default function App() {
         {/* Barra superior — só no mobile (some no desktop e na impressão) */}
         {embutido && (
           <div className="lsf-tabs print:hidden" role="tablist" aria-label="Serviço de campo">
-            {navItens.map(({ id, label, Icon }) => (
-              <button key={id} role="tab" className="lsf-tab" aria-current={tab === id ? "page" : undefined} onClick={() => setTab(id)}><Icon size={16} />{label}</button>
+            {comGrupo.map(({ id, label, Icon, novoGrupo }) => (
+              <Fragment key={id}>
+                {novoGrupo && <span className="lsf-tab-sep" aria-hidden="true" />}
+                <button role="tab" className="lsf-tab" aria-current={tab === id ? "page" : undefined} aria-selected={tab === id} onClick={() => setTab(id)}><Icon size={16} />{label}</button>
+              </Fragment>
             ))}
             <div className="flex-1" />
             <button className="lsf-tab" title="Atualizar com o que os outros gravaram" onClick={sincronizarAgora}><RefreshCw size={15} className={syncStatus.syncing ? "animate-spin" : ""} /></button>
@@ -3609,7 +3637,7 @@ function Dashboard({ visitas, contratos, relatorios, tecnicos, kpiActions, podeA
   return (
     <div className="p-4 sm:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-black mb-1" style={{ color: C.gray }}>Dashboard</h1>
+        <h1 className="text-3xl font-black mb-1" style={{ color: C.gray }}>Painel do serviço</h1>
         <p className="text-sm" style={{ color: C.grayMid }}>Visão geral do sistema LS Fire</p>
       </div>
 

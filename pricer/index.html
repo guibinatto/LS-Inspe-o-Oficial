@@ -905,8 +905,21 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       </div>
     </div>
     <!-- logo depois do Comercial: proposta ganha → contrato → atendimento em campo -->
-    <div class="navg" id="navServico" hidden>
-      <button data-view="servico" data-ico="wrench" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
+    <div class="navg" data-navg="servico" id="navServico" hidden>
+      <button type="button" class="navgh" data-navgt="servico" aria-expanded="false" aria-controls="navs_servico" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
+      <button data-view="servico" data-ico="wrench" title="Serviço de campo: painel com visitas, atrasos e relatórios pendentes"><span class="nl">Painel do serviço</span></button>
+      <!-- na ordem do trabalho: agendar → executar → relatar → aprovar; depois o cadastro (contratos e equipe) e o controle.
+           Cada item só aparece para o perfil que pode abrir a tela (o servidor é quem garante o acesso). -->
+      <div class="navsub" id="navs_servico" role="group" aria-label="Serviço de campo" hidden>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="agenda" data-ico="calendar-days"><span class="nl">Agenda</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="visitas" data-ico="clipboard-list"><span class="nl">Visitas técnicas</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="meus-atendimentos" data-ico="clipboard-check"><span class="nl">Atendimentos por técnico</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="relatorios" data-ico="file-text"><span class="nl">Relatórios</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovação de relatórios</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="contratos" data-ico="building-2"><span class="nl">Contratos de manutenção</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="tecnicos" data-ico="hard-hat"><span class="nl">Técnicos</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="auditoria" data-ico="scroll-text"><span class="nl">Auditoria do serviço</span></button>
+      </div>
     </div>
     <div class="navg" data-navg="cadastros">
       <button type="button" class="navgh" data-navgt="cadastros" aria-expanded="false" aria-controls="navs_cadastros"><span class="nl">Cadastros</span></button>

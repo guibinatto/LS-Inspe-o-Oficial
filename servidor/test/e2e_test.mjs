@@ -47,8 +47,15 @@ try {
   const fr = await (await p.waitForSelector("#svcHost iframe")).contentFrame();
   await fr.waitForFunction(() => /Indústria Exemplo/.test(document.body.innerText), null, { timeout: 30000 }).catch(() => {});
   const txtF = await fr.evaluate(() => document.body.innerText);
-  confere("módulo de serviço dentro do Pricer, com os dados do servidor", /Indústria Exemplo/.test(txtF) || /Dashboard/i.test(txtF), txtF.slice(0, 80).replace(/\s+/g, " "));
+  confere("módulo de serviço dentro do Pricer, com os dados do servidor", /Indústria Exemplo/.test(txtF) || /Painel|Dashboard/i.test(txtF), txtF.slice(0, 80).replace(/\s+/g, " "));
   confere("dentro do Pricer, o módulo não repete o link 'Abrir o LS Pricer'", !/Abrir o LS Pricer/.test(txtF));
+  // submenus do Serviço de campo no Pricer do servidor (gestor: todas as telas de gestão)
+  await p.evaluate(() => { const h = document.querySelector('[data-navgt="servico"]'); if (h.getAttribute("aria-expanded") !== "true") h.click(); });
+  const subG = await p.evaluate(() => [...document.querySelectorAll('#navs_servico [data-gk="svcTab"]')].filter((x) => !x.hidden).map((x) => x.dataset.gv));
+  confere("submenus do Serviço de campo para o gestor (8 telas)", subG.length === 8 && subG.includes("aprovacoes"), subG.join(","));
+  await p.click('#navs_servico [data-gv="contratos"]');
+  await fr.waitForFunction(() => /contratos/i.test((document.querySelector('.lsf-tab[aria-current="page"]') || {}).innerText || ""), null, { timeout: 10000 }).catch(() => {});
+  confere("submenu Contratos abre a tela de contratos do módulo", /contratos/i.test(await fr.evaluate(() => (document.querySelector('.lsf-tab[aria-current="page"]') || {}).innerText || "")));
   // relatório → orçamento (o botão do relatório manda esta mensagem para o Pricer)
   await fr.evaluate(() => window.top.postMessage({ tipo: "lsf-orcamento", relatorioId: "100" }, location.origin));
   await p.waitForFunction(() => !document.getElementById("app").hidden && !!document.querySelector('textarea[data-sp="descricao"]'), null, { timeout: 20000 });
@@ -82,8 +89,8 @@ try {
   t.on("pageerror", (e) => errs.push("servico: " + e.message));
   await t.goto(BASE + "/login"); await t.fill("#login", "tecnico"); await t.fill("#senha", "Senha1234"); await t.click("#bEntrar"); await t.waitForSelector("#fTroca:not([hidden])");
   await t.fill("#nova", "Tecnico2026x"); await t.fill("#nova2", "Tecnico2026x"); await t.click("#bTroca");
-  await t.waitForURL(/\/servico\//, { timeout: 15000 }); await t.waitForFunction(() => /Indústria Exemplo|Dashboard|Atendimentos/i.test(document.body.innerText), null, { timeout: 30000 }).catch(() => {});
-  confere("técnico entra direto no Serviço de campo", /\/servico\/$/.test(t.url()), t.url());
+  await t.waitForURL(/\/servico\//, { timeout: 15000 }); await t.waitForFunction(() => /Indústria Exemplo|Painel|Dashboard|Atendimentos/i.test(document.body.innerText), null, { timeout: 30000 }).catch(() => {});
+  confere("técnico entra direto no Serviço de campo", /\/servico\/(#[a-z-]+)?$/.test(t.url()), t.url());
   const tt = await t.evaluate(() => document.body.innerText);
   confere("técnico não vê valor de contrato nem link do Pricer", !/R\$\s?4\.800/.test(tt) && !/Abrir o LS Pricer/.test(tt));
   const r = await t.evaluate(() => fetch("/", { redirect: "follow" }).then((x) => x.url));

@@ -9,7 +9,7 @@ const path = require('path');
   await p.goto('file://' + path.resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1500);
   const ok = [], falha = []; const confere = (n, c, d) => (c ? ok : falha).push(n + (d !== undefined ? ' (' + d + ')' : ''));
   // 1) menu
-  confere('grupos do menu', (await p.$$eval('#nav [data-navgt]', (x) => x.map((e) => e.innerText.trim()).join('|'))) === 'COMERCIAL|CADASTROS|ENGENHARIA DE PRODUTO|GESTÃO|ADMINISTRAÇÃO|AJUDA');
+  confere('grupos do menu', (await p.$$eval('#nav [data-navgt]', (x) => x.filter((e) => e.offsetParent).map((e) => e.innerText.trim()).join('|'))) === 'COMERCIAL|CADASTROS|ENGENHARIA DE PRODUTO|GESTÃO|ADMINISTRAÇÃO|AJUDA');
   confere('submenus começam fechados', await p.$$eval('#nav .navsub', (x) => x.every((e) => e.hidden)));
   await p.click('[data-navgt="comercial"]'); confere('abre o grupo', await p.$eval('#navs_comercial', (x) => !x.hidden) && (await p.getAttribute('[data-navgt="comercial"]', 'aria-expanded')) === 'true');
   await p.click('[data-go="inicio"][data-gv="SEQ"]'); await p.waitForTimeout(300);

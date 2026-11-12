@@ -342,6 +342,7 @@
   $('#bMenu').onclick = () => { document.body.classList.add('side-open'); $('#sideScrim').hidden = false; const f = $('#nav button[aria-current="page"]') || $('#nav button'); if (f) f.focus(); };
   $('#bSideX').onclick = fechaMenu; $('#sideScrim').onclick = fechaMenu;
   $('#nav').addEventListener('click', (e) => { if (e.target.closest('button') && !e.target.closest('[data-navgt]')) fechaMenu(); });
+  $('#nav').addEventListener('click', (e) => { if (e.target.closest('button[data-view="servico"]')) ui.svcTab = 'dashboard'; }, true);
   const sideCol = () => { const m = document.body.classList.contains('side-mini'); const b = $('#bSideCol'); b.dataset.ico = m ? 'panel-left-open' : 'panel-left-close'; b.title = m ? 'Expandir o menu' : 'Recolher o menu'; b.setAttribute('aria-label', b.title); b.querySelector('.nl').textContent = m ? 'Expandir' : 'Recolher'; decorar(b.parentElement); };
   $('#bSideCol').onclick = () => { const m = document.body.classList.toggle('side-mini'); try { localStorage.setItem('lspricer.sidemini', m ? '1' : '0'); } catch (e) { /* só nesta visita */ } sideCol(); };
   sideCol();
@@ -360,6 +361,7 @@
     if (k === 'cad') { ui.cad = val; }
     if (k === 'mgTab') { ui.mgTab = val; ui.mgId = null; ui.apId = null; }
     if (k === 'ajuda') ui.ajuda = val;
+    if (k === 'svcTab') ui.svcTab = val;
     setView(v);
     // lista ou seção certa à vista
     setTimeout(() => { const alvo = k === 'homeDiv' ? document.querySelector(`[data-hdiv="${CSS.escape(val)}"]`) : k === 'ajuda' ? document.getElementById('ajuda_' + val) : null; if (alvo) alvo.scrollIntoView({ block: 'start' }); }, 30);
@@ -371,7 +373,7 @@
     for (const b of document.querySelectorAll('#nav [data-view], #nav [data-go]')) {
       const nl = b.querySelector('.nl'); const t = nl ? (nl.dataset.t || (nl.dataset.t = nl.textContent)) : '';
       // grupo que não vale para este usuário (ex.: Serviço de campo sem acesso) não entra na contagem nem aparece na pesquisa
-      const fora = !!b.closest('.navg[hidden]');
+      const fora = !!b.closest('.navg[hidden]') || b.dataset.fora === '1';
       const ok = !fora && (!nq || normMenu(t).includes(nq)); b.hidden = !ok; if (ok) n++;
       if (nl) { if (nq && ok) { const i = normMenu(t).indexOf(nq); nl.innerHTML = esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length)); } else nl.textContent = t; }
     }
@@ -462,11 +464,11 @@
     if (ui.view === 'cadastro' && CAD_TABS.some((x) => x[0] === ui.cad) && areaOfTab(ui.cad) === 'sistema') ui.view = 'config';
     if (ui.view === 'config' && areaOfTab(ui.cad) !== 'sistema') ui.cad = 'historico';
     const navAtual = viewDaProposta(ui.view) ? 'proposta' : ui.view;
-    for (const b of document.querySelectorAll('#nav button[data-view]')) b.setAttribute('aria-current', b.dataset.view === navAtual ? 'page' : 'false');
+    for (const b of document.querySelectorAll('#nav button[data-view]')) b.setAttribute('aria-current', b.dataset.view === navAtual && (navAtual !== 'servico' || (ui.svcTab || 'dashboard') === 'dashboard') ? 'page' : 'false');
     for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
-      const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : false));
+      const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : k === 'svcTab' ? (ui.svcTab || 'dashboard') === gv : false));
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
-    if (!LSF()) { const ns = document.getElementById('navServico'); if (ns) { ns.hidden = !SVC_CLAUDE(); if (!ns.hidden && !String($('#navQ').value || '').trim()) for (const b of ns.querySelectorAll('[data-view]')) b.hidden = false; } }
+    atualizaNavServico();
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
     if (ui.view === 'servico') { atualizaSaveSt(); decorar(document); return; }
@@ -5779,12 +5781,41 @@
   let lsfMe = null; const svcCt = {};
   const NOME_NIVEL = { nenhum: 'Sem acesso', consulta: 'Consulta', comercial: 'Comercial', editor: 'Editor', admin: 'Administrador' };
   const NOME_SVC = { nenhum: 'Sem acesso', admin: 'Administrador', gestor: 'Gestor de serviços', coordenador: 'Coordenador técnico', supervisor: 'Supervisor técnico', tecnico: 'Técnico de campo', cliente: 'Cliente' };
-  const temServico = () => !!(lsfMe && lsfMe.servico && lsfMe.servico !== 'nenhum');
+  const temServico = () => !!(lsfMe && (lsfMe.pricer === 'admin' || (lsfMe.servico && lsfMe.servico !== 'nenhum')));
+  // O módulo abre na tela escolhida no submenu (#aba no endereço); com ele já aberto, a troca vai por mensagem.
+  let svcAbaEnviada = null;
   function mostraServico(on) {
     const host = document.getElementById('svcHost'), ap = document.getElementById('app'); if (!host || !ap) return;
-    if (on && !host.querySelector('iframe')) host.innerHTML = `<iframe src="${LSF() ? '/servico/' : 'servico-claude/index.html'}" title="Serviço de campo" allow="camera; geolocation"></iframe>`;
+    const aba = ui.svcTab || 'dashboard';
+    if (on && !host.querySelector('iframe')) { host.innerHTML = `<iframe src="${LSF() ? '/servico/' : 'servico-claude/index.html'}#${encodeURIComponent(aba)}" title="Serviço de campo" allow="camera; geolocation"></iframe>`; svcAbaEnviada = aba; }
+    else if (on && aba !== svcAbaEnviada) { const fr = host.querySelector('iframe'); try { fr.contentWindow.postMessage({ tipo: 'lsf-aba', aba }, '*'); } catch (e) { /* segue */ } svcAbaEnviada = aba; }
     host.hidden = !on; ap.hidden = !!on;
   }
+  // telas do Serviço de campo que cada perfil abre (mesma regra do módulo; quem garante o acesso é o servidor/banco)
+  function perfilServicoAtual() {
+    if (LSF()) return lsfMe ? (lsfMe.pricer === 'admin' ? 'admin' : (lsfMe.servico && lsfMe.servico !== 'nenhum' ? lsfMe.servico : null)) : null;
+    return SVC_CLAUDE() ? perfilSvcClaude() : null;
+  }
+  function abasServico(p) {
+    if (!p) return new Set();
+    if (p === 'cliente') return new Set(['dashboard', 'contratos', 'visitas', 'relatorios']);
+    const base = ['dashboard', 'agenda', 'visitas', 'meus-atendimentos', 'relatorios', 'contratos', 'tecnicos'];
+    return new Set(p === 'tecnico' ? base : base.concat(['aprovacoes', 'auditoria']));
+  }
+  function atualizaNavServico() {
+    const ns = document.getElementById('navServico'); if (!ns) return;
+    const p = perfilServicoAtual(); ns.hidden = !p; if (!p) return;
+    const abas = abasServico(p); const pesquisando = !!String(($('#navQ') || {}).value || '').trim();
+    for (const b of ns.querySelectorAll('[data-gk="svcTab"]')) { const fora = !abas.has(b.dataset.gv); b.dataset.fora = fora ? '1' : ''; if (!pesquisando) b.hidden = fora; }
+    if (!pesquisando) for (const b of ns.querySelectorAll('[data-view]')) b.hidden = false;
+    const at = ns.querySelector('[data-gv="meus-atendimentos"] .nl'); if (at) { const t = p === 'tecnico' ? 'Meus atendimentos' : 'Atendimentos por técnico'; at.textContent = t; at.dataset.t = t; }
+    if (ui.view === 'servico' && !abas.has(ui.svcTab || 'dashboard')) ui.svcTab = 'dashboard';
+  }
+  // o módulo avisa quando a pessoa troca de tela por dentro: o submenu acompanha
+  window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe');
+    if (!e.data || e.data.tipo !== 'lsf-aba-atual' || !fr || e.source !== fr.contentWindow) return;
+    const aba = String(e.data.aba || ''); if (!/^[a-z-]{2,30}$/.test(aba) || aba === ui.svcTab) return;
+    ui.svcTab = aba; svcAbaEnviada = aba; if (ui.view === 'servico') render(); });
   function contaBtn() {
     if (!LSF() || !lsfMe || document.getElementById('bConta')) return;
     const act = document.querySelector('header.top .actions'); if (!act) return;
@@ -5803,7 +5834,7 @@
   }
   window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe'); if (e.data && e.data.tipo === 'lsf-orcamento' && (e.origin === location.origin || (fr && e.source === fr.contentWindow))) orcamentoDoRelatorio(e.data.relatorioId); });
   if (LSF()) {
-    window.LSF.me().then((m) => { lsfMe = m; const n = document.getElementById('navServico'); if (n) { n.hidden = !temServico(); if (!n.hidden) for (const b of n.querySelectorAll('[data-view]')) b.hidden = false; } contaBtn(); render(); }).catch(() => {});
+    window.LSF.me().then((m) => { lsfMe = m; atualizaNavServico(); contaBtn(); render(); }).catch(() => {});
 
     const q = new URLSearchParams(location.search).get('orcRel'); if (q) { history.replaceState(null, '', location.pathname); setTimeout(() => orcamentoDoRelatorio(q), 1200); }
   }
