@@ -13939,7 +13939,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 02:14 · commit 861e25c</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 02:33 · commit c41d486</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14366,7 +14366,7 @@ window.PRICER_ESCOPO_PADRAO = {
       <div class="f span2" data-lutec><label for="luTec">Técnico (cadastro do Serviço de campo)</label><select id="luTec"><option value="">—</option>${vinc.tecnicos.map((t) => `<option value="${esc(t.id)}"${String(t.id) === String(u.tecnicoId) ? ' selected' : ''}>${esc(t.nome)}</option>`).join('')}</select></div>
       <div class="f span2" data-lucli><label for="luCli">Contrato do cliente</label><select id="luCli"><option value="">—</option>${vinc.contratos.map((c) => `<option value="${esc(c.id)}"${String(c.id) === String(u.clienteId) ? ' selected' : ''}>${esc(c.codigo + ' · ' + c.cliente)}</option>`).join('')}</select></div>
       <div class="f span2"><label for="luSenha">${novo ? 'Senha provisória' : 'Redefinir senha (deixe vazio para manter)'}</label><input id="luSenha" type="text" autocomplete="off" placeholder="8+ caracteres, letras e números"></div>
-      ${novo ? '' : `<div class="f span2"><label class="chkl"><input type="checkbox" id="luAtivo"${u.ativo ? ' checked' : ''}> <span>Ativo (desmarque para bloquear o acesso)</span></label></div>`}</div>
+      ${novo ? '' : `<div class="f span2"><label class="chkl" style="display:flex;gap:8px;align-items:center;justify-content:flex-start;text-align:left"><input type="checkbox" id="luAtivo"${u.ativo ? ' checked' : ''}> <span>Ativo (desmarque para bloquear o acesso)</span></label></div>`}</div>
       <p class="sub" style="margin:8px 0 0">Na primeira entrada (ou depois de redefinir), a pessoa troca a senha. O Administrador do Pricer também administra o Serviço de campo.</p>
       <div class="docbar" style="margin-top:12px"><button class="btn pri" id="luOk">${novo ? 'Criar' : 'Salvar'}</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
       const vis = () => { const sv = $('#luSvc', o).value, pr = $('#luPricer', o).value; $('[data-lutec]', o).hidden = sv !== 'tecnico' || pr === 'admin'; $('[data-lucli]', o).hidden = sv !== 'cliente'; };
