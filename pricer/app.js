@@ -391,8 +391,11 @@
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => $('#bSave').click(), 0); }
   });
   // tema: automático (segue o sistema), claro ou escuro; fica guardado neste navegador
+  // o módulo Serviço de campo (moldura) acompanha o tema do Pricer
+  function temaServico() { const fr = document.querySelector('#svcHost iframe'); if (fr && fr.contentWindow) try { fr.contentWindow.postMessage({ tipo: 'lsf-tema', tema: document.documentElement.dataset.theme || 'auto' }, '*'); } catch (e) { /* segue */ } }
+  window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe'); if (e.data && e.data.tipo === 'lsf-tema?' && fr && e.source === fr.contentWindow) temaServico(); });
   const TEMAS = [['auto', 'Tema: automático'], ['light', 'Tema: claro'], ['dark', 'Tema: escuro']];
-  function aplicaTema(t) { if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; const b = $('#bTheme'); if (b) { const lb = (TEMAS.find((x) => x[0] === t) || TEMAS[0])[1]; b.innerHTML = '<span class="tl">' + lb + '</span>'; b.dataset.ico = t === 'light' ? 'sun' : t === 'dark' ? 'moon' : 'sun-moon'; b.title = lb + ' (clique para trocar)'; b.setAttribute('aria-label', lb + ' (clique para trocar)'); decorar(b.parentElement); } }
+  function aplicaTema(t) { if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; temaServico(); const b = $('#bTheme'); if (b) { const lb = (TEMAS.find((x) => x[0] === t) || TEMAS[0])[1]; b.innerHTML = '<span class="tl">' + lb + '</span>'; b.dataset.ico = t === 'light' ? 'sun' : t === 'dark' ? 'moon' : 'sun-moon'; b.title = lb + ' (clique para trocar)'; b.setAttribute('aria-label', lb + ' (clique para trocar)'); decorar(b.parentElement); } }
   let tema = 'auto'; try { tema = localStorage.getItem('lspricer.tema') || 'auto'; } catch (e) { tema = 'auto'; }
   aplicaTema(tema);
   $('#bBusca').onclick = () => buscaAbrir();

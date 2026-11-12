@@ -880,7 +880,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .t th.n,.t th.num,table.t th.n,table.t th.num{text-align:right}
 /* servidor LS Fire: módulo Serviço de campo numa moldura do mesmo endereço */
 #svcHost { padding: 0; }
-#svcHost iframe { display: block; width: 100%; height: calc(100vh - var(--hdr, 64px)); height: calc(100dvh - var(--hdr, 64px)); border: 0; background: #fff; }
+#svcHost iframe { display: block; width: 100%; height: calc(100vh - var(--hdr, 64px)); height: calc(100dvh - var(--hdr, 64px)); border: 0; background: var(--bg); }
 @media (max-width: 767px) { #svcHost iframe { height: calc(100dvh - var(--hdr, 56px) - 64px); } }
 </style>
 </head>
@@ -8875,8 +8875,11 @@ window.PRICER_ESCOPO_PADRAO = {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => $('#bSave').click(), 0); }
   });
   // tema: automático (segue o sistema), claro ou escuro; fica guardado neste navegador
+  // o módulo Serviço de campo (moldura) acompanha o tema do Pricer
+  function temaServico() { const fr = document.querySelector('#svcHost iframe'); if (fr && fr.contentWindow) try { fr.contentWindow.postMessage({ tipo: 'lsf-tema', tema: document.documentElement.dataset.theme || 'auto' }, '*'); } catch (e) { /* segue */ } }
+  window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe'); if (e.data && e.data.tipo === 'lsf-tema?' && fr && e.source === fr.contentWindow) temaServico(); });
   const TEMAS = [['auto', 'Tema: automático'], ['light', 'Tema: claro'], ['dark', 'Tema: escuro']];
-  function aplicaTema(t) { if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; const b = $('#bTheme'); if (b) { const lb = (TEMAS.find((x) => x[0] === t) || TEMAS[0])[1]; b.innerHTML = '<span class="tl">' + lb + '</span>'; b.dataset.ico = t === 'light' ? 'sun' : t === 'dark' ? 'moon' : 'sun-moon'; b.title = lb + ' (clique para trocar)'; b.setAttribute('aria-label', lb + ' (clique para trocar)'); decorar(b.parentElement); } }
+  function aplicaTema(t) { if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; temaServico(); const b = $('#bTheme'); if (b) { const lb = (TEMAS.find((x) => x[0] === t) || TEMAS[0])[1]; b.innerHTML = '<span class="tl">' + lb + '</span>'; b.dataset.ico = t === 'light' ? 'sun' : t === 'dark' ? 'moon' : 'sun-moon'; b.title = lb + ' (clique para trocar)'; b.setAttribute('aria-label', lb + ' (clique para trocar)'); decorar(b.parentElement); } }
   let tema = 'auto'; try { tema = localStorage.getItem('lspricer.tema') || 'auto'; } catch (e) { tema = 'auto'; }
   aplicaTema(tema);
   $('#bBusca').onclick = () => buscaAbrir();
@@ -13940,7 +13943,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 02:44 · commit 6fabb87</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 02:59 · commit 881a246</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
