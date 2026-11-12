@@ -72,3 +72,30 @@ Os testes rodaram no Chromium deste ambiente, em largura de computador e de celu
 - **Mesmo registro em dois aparelhos offline:** vale o último a sincronizar.
 - **Backup na mesma máquina:** o TI precisa copiar a pasta `data/` para fora todos os dias.
 - **Responsáveis e anexos:** os responsáveis por área, os aprovadores e os PDFs anexados não vêm no backup do claude.ai e precisam ser refeitos no servidor.
+
+## Visualização no claude.ai
+
+O módulo também foi colocado no Pricer publicado no claude.ai, como visualização, para usar antes de o servidor ser instalado.
+
+- **Onde está:** item **Serviço de campo** no menu lateral. O módulo (pasta `pricer/servico-claude`, gerada com `LSF_ALVO=claude npx vite build` em `servidor/servico-web`) é publicado junto com o Pricer e roda numa moldura.
+- **Onde ficam os dados:** o módulo pede ao Pricer, por mensagens; o Pricer grava no banco do claude.ai, um documento por registro, nas coleções `svc_contratos`, `svc_tecnicos`, `svc_visitas`, `svc_relatorios`, `svc_auditoria`, `svc_notificacoes` e `svc_meta` (numeração).
+- **Perfis:**
+  - o dono do link é Administrador;
+  - as listas **Serviço de campo: Gestor / Coordenador / Supervisor / Técnico** ficam em Configurações → Usuários e permissões → Responsáveis por área;
+  - quem não está em nenhuma lista: Editor vira Gestor, os demais viram Técnico.
+- **Gravação no banco do claude.ai:**
+  - contratos e técnicos: só quem tem acesso de Editor;
+  - agenda, visitas, relatórios, auditoria, avisos e numeração: Contribuidor ou acima.
+- **Ligações:** relatório → orçamento e proposta de contrato ganha → contrato funcionam como no servidor.
+- **Limites (por isso é só visualização):**
+  - não tem login próprio: cada pessoa entra com a conta do claude.ai;
+  - não funciona offline;
+  - a regra de "técnico sem valores" e a proteção da aprovação são aplicadas pelo app, não pelo banco: quem tem acesso de Contribuidor ou Editor ao link consegue ler tudo pelo navegador;
+  - relatórios com muitas fotos podem passar do tamanho máximo de um documento do banco.
+
+Teste: `pricer/tools/testes/servico_claude_test.js` (14 verificações). Ele simula o banco do claude.ai e confere:
+- o menu e o módulo dentro do Pricer;
+- a gravação por registro e a numeração;
+- o orçamento a partir do relatório e o contrato a partir da proposta;
+- os perfis em Responsáveis por área;
+- o técnico sem valores, com o relatório entrando como pendente.

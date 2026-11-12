@@ -2145,14 +2145,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     // Sem ninguém atribuído, vale a regra antiga (todo Editor edita tudo). O dono do app edita sempre.
     R.acessos = {};
     // as chaves ap_* são os aprovadores de desconto, não travam o cadastro
-    R.areasConfiguradas = () => Object.entries(R.acessos || {}).some(([k, l]) => !/^ap_/.test(k) && l && l.length);
+    R.areasConfiguradas = () => Object.entries(R.acessos || {}).some(([k, l]) => !/^(ap|svc)_/.test(k) && l && l.length);
     R.areaOk = (area) => {
       if (R.mode === 'local') return true;
       if (!R.canEditCadastro) return false;
       if (R.isOwner || !area || !R.areasConfiguradas()) return true;
       return ((R.acessos || {})[area] || []).includes(R.me);
     };
-    R.minhasAreas = () => Object.entries(R.acessos || {}).filter(([k, l]) => !/^ap_/.test(k) && (l || []).includes(R.me)).map(([a]) => a);
+    R.minhasAreas = () => Object.entries(R.acessos || {}).filter(([k, l]) => !/^(ap|svc)_/.test(k) && (l || []).includes(R.me)).map(([a]) => a);
     R.setAcessos = async (areas, desc) => {
       if (R.mode !== 'shared') throw new Error('As áreas responsáveis valem só no app compartilhado.');
       if (!R.isOwner) throw new Error('Só o dono do app define quem cuida de cada área.');
@@ -8945,7 +8945,8 @@ window.PRICER_ESCOPO_PADRAO = {
     for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
       const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : false));
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
-    if (ui.view === 'servico' && !(LSF() && (!lsfMe || temServico()))) ui.view = 'inicio';
+    if (!LSF()) { const ns = document.getElementById('navServico'); if (ns) ns.hidden = !SVC_CLAUDE(); }
+    if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
     if (ui.view === 'servico') { atualizaSaveSt(); decorar(document); return; }
     const nm = spv ? state.spv.numero : fx ? state.facts.numero : txt('PROPOSTA', 'C5'), cli = spv ? state.spv.cliente : fx ? state.facts.cliente : txt('PROPOSTA', 'F5');
@@ -11631,7 +11632,7 @@ window.PRICER_ESCOPO_PADRAO = {
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
   const areaOfTab = (t) => (AREAS.find((a) => a[3].some((x) => x[0] === t)) || AREAS[0])[0];
-  const areaName = (k) => (AREAS.find((a) => a[0] === k) || PAPEIS_AP.find((a) => a[0] === k) || [0, k])[1];
+  const areaName = (k) => (AREAS.find((a) => a[0] === k) || PAPEIS_AP.find((a) => a[0] === k) || [['svc_gestor', 'Serviço de campo: Gestor'], ['svc_coordenador', 'Serviço de campo: Coordenador'], ['svc_supervisor', 'Serviço de campo: Supervisor'], ['svc_tecnico', 'Serviço de campo: Técnico']].find((a) => a[0] === k) || [0, k])[1];
   // o modelo da proposta fica em Configurações, mas quem edita continua sendo o responsável do Cadastro geral
   const PERM_TAB = { propmodelo: 'geral' };
   const canEd = () => REG.areaOk(PERM_TAB[ui.cad] || areaOfTab(ui.cad));
@@ -12809,8 +12810,8 @@ window.PRICER_ESCOPO_PADRAO = {
   function vAcessos0() {
     if (REG.mode !== 'shared') return perfisCard() + logoCard() + avisosCard() + '<section class="card"><p class="sub" style="margin:0">Os responsáveis por área e os aprovadores valem no app compartilhado (claude.ai). Neste arquivo, quem abre edita e aprova tudo.</p></section>';
     const own = REG.isOwner; const ac = REG.acessos || {};
-    const rows = AREAS.filter((a) => a[0] !== 'sistema').concat(PAPEIS_AP).map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
-      <td>${(ac[k] || []).map((id) => `<span class="pchip"><span data-uid="${esc(id)}">…</span>${own ? `<button class="restore" data-acrm="${k}|${esc(id)}" aria-label="Remover">×</button>` : ''}</span>`).join(' ') || `<span class="sub">${/^ap_/.test(k) ? 'ninguém: qualquer Editor aprova' : 'ninguém (só o dono edita)'}</span>`}</td>
+    const rows = AREAS.filter((a) => a[0] !== 'sistema').concat(PAPEIS_AP, LSF() ? [] : PAPEIS_SVC).map(([k, lb, d]) => `<tr><td><b>${esc(lb)}</b><br><small class="sub">${esc(d)}</small></td>
+      <td>${(ac[k] || []).map((id) => `<span class="pchip"><span data-uid="${esc(id)}">…</span>${own ? `<button class="restore" data-acrm="${k}|${esc(id)}" aria-label="Remover">×</button>` : ''}</span>`).join(' ') || `<span class="sub">${/^ap_/.test(k) ? 'ninguém: qualquer Editor aprova' : /^svc_/.test(k) ? (k === 'svc_gestor' ? 'ninguém: todo Editor é Gestor' : k === 'svc_tecnico' ? 'ninguém: quem não é Editor fica como Técnico' : 'ninguém') : 'ninguém (só o dono edita)'}</span>`}</td>
       <td>${own ? `<button class="btn sm" data-acadd="${k}">+ Pessoa</button>` : ''}</td></tr>`).join('');
     return `<div class="stack">
       <section class="card"><h2>Responsáveis por área</h2>
@@ -13939,7 +13940,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 02:33 · commit c41d486</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 02:44 · commit 6fabb87</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14260,7 +14261,7 @@ window.PRICER_ESCOPO_PADRAO = {
   const temServico = () => !!(lsfMe && lsfMe.servico && lsfMe.servico !== 'nenhum');
   function mostraServico(on) {
     const host = document.getElementById('svcHost'), ap = document.getElementById('app'); if (!host || !ap) return;
-    if (on && !host.querySelector('iframe')) host.innerHTML = '<iframe src="/servico/" title="Serviço de campo" allow="camera; geolocation"></iframe>';
+    if (on && !host.querySelector('iframe')) host.innerHTML = `<iframe src="${LSF() ? '/servico/' : 'servico-claude/index.html'}" title="Serviço de campo" allow="camera; geolocation"></iframe>`;
     host.hidden = !on; ap.hidden = !!on;
   }
   function contaBtn() {
@@ -14279,14 +14280,18 @@ window.PRICER_ESCOPO_PADRAO = {
       $('#csSair', o).onclick = async () => { if (dirty && assinatura() !== ui.assinaturaAberta && !await DLG.confirmar('Há alterações não salvas nesta proposta. Sair mesmo assim?')) return; window.LSF.sair(); };
     });
   }
+  window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe'); if (e.data && e.data.tipo === 'lsf-orcamento' && (e.origin === location.origin || (fr && e.source === fr.contentWindow))) orcamentoDoRelatorio(e.data.relatorioId); });
   if (LSF()) {
     window.LSF.me().then((m) => { lsfMe = m; const n = document.getElementById('navServico'); if (n) n.hidden = !temServico(); contaBtn(); render(); }).catch(() => {});
-    window.addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.tipo === 'lsf-orcamento') orcamentoDoRelatorio(e.data.relatorioId); });
+
     const q = new URLSearchParams(location.search).get('orcRel'); if (q) { history.replaceState(null, '', location.pathname); setTimeout(() => orcamentoDoRelatorio(q), 1200); }
   }
   // relatório de inspeção → proposta de serviço (SPV) com as não conformidades no escopo; os preços são feitos aqui, como sempre
   async function orcamentoDoRelatorio(id) {
-    let r; try { r = (await window.LSF.api('/api/svc/relatorios/' + encodeURIComponent(id))).relatorio; } catch (er) { toast('Não consegui ler o relatório: ' + errMsg(er)); return; }
+    let r; try {
+      if (LSF()) r = (await window.LSF.api('/api/svc/relatorios/' + encodeURIComponent(id))).relatorio;
+      else { const rel = (await svcLer('relatorios')).find((x) => String(x.id) === String(id)); if (!rel) throw new Error('relatório não encontrado'); const ct = (await svcLer('contratos')).find((c) => c.id === rel.contratoId); r = resumoRelatorio(rel, ct); }
+    } catch (er) { toast('Não consegui ler o relatório: ' + errMsg(er)); return; }
     if (dirty && assinatura() !== ui.assinaturaAberta && !await DLG.confirmar('A proposta aberta tem alterações não salvas. Começar o orçamento numa proposta nova mesmo assim? (as alterações se perdem)')) return;
     SPV.novoSpv('SMC');
     const s = state.spv; const nc = r.naoConformidades || [];
@@ -14300,12 +14305,14 @@ window.PRICER_ESCOPO_PADRAO = {
   }
   // proposta ganha de inspeção/contrato → contrato no Serviço de campo
   function servicoHtml(s) {
-    if (!LSF() || !lsfMe || !state.id || !(s.blocos.contrato || s.tipo === 'ITM')) return '';
+    if (!(LSF() ? !!lsfMe : SVC_CLAUDE()) || !state.id || !(s.blocos.contrato || s.tipo === 'ITM')) return '';
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id); if (!salva || salva.status !== 'ganha') return '';
-    const pode = lsfMe.nivelPricer >= 2 && (lsfMe.pricer === 'admin' || !!(lsfMe.permissoesServico || {}).gerenciarContratos);
-    if (!temServico()) return '';
+    const pode = LSF() ? lsfMe.nivelPricer >= 2 && (lsfMe.pricer === 'admin' || !!(lsfMe.permissoesServico || {}).gerenciarContratos) : REG.canSaveShared && !!(PERF_SVC[perfilSvcClaude()] || {}).ct;
+    if (LSF() && !temServico()) return '';
     const ct = svcCt[state.uid];
-    if (ct === undefined) { svcCt[state.uid] = null; window.LSF.api('/api/svc/contratos?propostaUid=' + encodeURIComponent(state.uid)).then((j) => { svcCt[state.uid] = (j.contratos || [])[0] || false; render(); }).catch(() => { svcCt[state.uid] = false; render(); }); return ''; }
+    if (ct === undefined) { svcCt[state.uid] = null; const uid = state.uid;
+      (LSF() ? window.LSF.api('/api/svc/contratos?propostaUid=' + encodeURIComponent(uid)).then((j) => j.contratos || []) : svcLer('contratos').then((l) => l.filter((c) => c.propostaUid === uid)))
+        .then((l) => { svcCt[uid] = l[0] || false; render(); }).catch(() => { svcCt[uid] = false; render(); }); return ''; }
     if (ct === null) return '';
     if (ct) return `<div class="banner ok" data-svcct>Contrato <b>${esc(ct.codigo)}</b> criado no Serviço de campo. <button class="restore" data-view="servico">Abrir o Serviço de campo</button></div>`;
     if (!pode) return '<div class="banner info" data-svcct>Proposta ganha: quem tem o perfil Gestor no Serviço de campo cria o contrato de manutenção.</div>';
@@ -14316,7 +14323,13 @@ window.PRICER_ESCOPO_PADRAO = {
     const body = { propostaUid: state.uid, propostaId: state.id, propostaNumero: s.numero || '', cliente: s.razao || s.cliente || '', cnpj: s.cnpj || '', endereco: s.local || '', contato: s.contato || '',
       duracaoMeses: s.blocos.contrato ? (+s.contrato.meses || 12) : 12, visitasAno: s.blocos.contrato ? (+s.contrato.visitas || null) : null,
       valorMensal: r.ct ? Math.round(r.ct.mensal * 100) / 100 : 0, dataInicio: new Date().toISOString().slice(0, 10) };
-    try { const j = await window.LSF.api('/api/svc/contratos', body); svcCt[state.uid] = j.contrato; render(); toast(j.existia ? 'O contrato ' + j.contrato.codigo + ' já existia para esta proposta' : 'Contrato ' + j.contrato.codigo + ' criado no Serviço de campo'); logEv({ tipo: 'Contrato de serviço criado', ref: state.id, desc: (s.numero || '') + ' → contrato ' + j.contrato.codigo, mudancas: [] }); }
+    try { let j;
+      if (LSF()) j = await window.LSF.api('/api/svc/contratos', body);
+      else { const ja = (await svcLer('contratos')).find((c) => c.propostaUid === state.uid);
+        if (ja) j = { contrato: ja, existia: true };
+        else { const c = Object.assign({ id: Date.now(), codigo: await svcNum('contrato'), tecnicoId: null, telefone: '', email: '', validade: '', proximaVisita: '', equipamentos: [], origem: 'pricer', criadoEm: new Date().toISOString() }, body);
+          await REG.db.doc('svc_contratos/' + svcId(c.id)).set({ d: c, cri: c.criadoEm, upd: c.criadoEm, by: REG.me || null }); delete svcCache.contratos; j = { contrato: c, existia: false }; } }
+      svcCt[state.uid] = j.contrato; render(); toast(j.existia ? 'O contrato ' + j.contrato.codigo + ' já existia para esta proposta' : 'Contrato ' + j.contrato.codigo + ' criado no Serviço de campo'); logEv({ tipo: 'Contrato de serviço criado', ref: state.id, desc: (s.numero || '') + ' → contrato ' + j.contrato.codigo, mudancas: [] }); }
     catch (er) { toast('Não criei o contrato: ' + errMsg(er)); }
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-svccontrato]')) criarContratoServico(); });
@@ -14385,6 +14398,75 @@ window.PRICER_ESCOPO_PADRAO = {
     if (e.target.closest('[data-lsfnovo]')) { usuarioModal(null); return; }
     const ed = e.target.closest('[data-lsfedit]'); if (ed) { const l = (document.getElementById('lsfUsersBody') || {})._usuarios || []; const u = l.find((x) => x.id === ed.dataset.lsfedit); if (u) usuarioModal(u); }
   });
+
+  // ---------------- Serviço de campo no claude.ai (visualização) ----------------
+  // O módulo (pasta servico-claude, publicada junto com o Pricer) roda numa moldura e pede os dados ao Pricer por mensagens;
+  // o Pricer guarda cada registro no banco do claude.ai (coleções svc_*). Perfis: dono = Administrador; listas "Serviço de
+  // campo" em Responsáveis por área; sem lista, Editor = Gestor e os demais = Técnico. Aqui as regras são do app, não do banco:
+  // quem tem acesso de Editor ao link consegue ler tudo. Por isso é só visualização; o uso de verdade é no servidor LS Fire.
+  const SVC_CLAUDE = () => !LSF() && REG.mode === 'shared' && !!REG.db;
+  const PAPEIS_SVC = [['svc_gestor', 'Serviço de campo: Gestor', 'contratos com valor, técnicos, agenda, aprovação de relatórios'], ['svc_coordenador', 'Serviço de campo: Coordenador', 'técnicos, agenda, relatórios e aprovação; não altera contratos'],
+    ['svc_supervisor', 'Serviço de campo: Supervisor', 'agenda, relatórios e aprovação'], ['svc_tecnico', 'Serviço de campo: Técnico', 'agenda e relatórios, sem valores e sem aprovação']];
+  const PERF_SVC = { admin: { val: 1, ct: 1, tec: 1, ag: 1, insp: 1, aprov: 1, exc: 1 }, gestor: { val: 1, ct: 1, tec: 1, ag: 1, insp: 1, aprov: 1 }, coordenador: { val: 1, tec: 1, ag: 1, insp: 1, aprov: 1 }, supervisor: { val: 1, ag: 1, insp: 1, aprov: 1 }, tecnico: { ag: 1, insp: 1 } };
+  function perfilSvcClaude() {
+    if (REG.isOwner) return 'admin'; const ac = REG.acessos || {};
+    for (const k of ['gestor', 'coordenador', 'supervisor', 'tecnico']) if ((ac['svc_' + k] || []).includes(REG.me)) return k;
+    return REG.canEditCadastro ? 'gestor' : 'tecnico';
+  }
+  const CAMPO_VALOR = /^(valor|preco|custo|margem|desconto)/i;
+  const semVal = (x) => (Array.isArray(x) ? x.map(semVal) : x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).filter(([k]) => !CAMPO_VALOR.test(k)).map(([k, v]) => [k, semVal(v)])) : x);
+  const repoeVal = (g, n) => { if (Array.isArray(g) && Array.isArray(n)) return n.map((v, i) => repoeVal(g[i], v)); if (g && n && typeof g === 'object' && typeof n === 'object' && !Array.isArray(g)) { const o = Object.assign({}, n); for (const [k, v] of Object.entries(g)) { if (CAMPO_VALOR.test(k)) o[k] = v; else if (k in o) o[k] = repoeVal(v, o[k]); } return o; } return n; };
+  const svcCache = {}; const svcId = (id) => String(id).replace(/[^A-Za-z0-9_.~:@+-]/g, '_').slice(0, 150) || '_';
+  const DESC = { relatorios: 1, auditoria: 1, notificacoes: 1 };
+  async function svcLer(k) {
+    const q = await REG.db.collection('svc_' + k).get();
+    const docs = q.docs.map((d) => d.data()).filter((x) => x && x.d && x.d.id != null).sort((a, b) => String(a.cri || a.upd || '').localeCompare(String(b.cri || b.upd || '')) * (DESC[k] ? -1 : 1));
+    svcCache[k] = new Map(docs.map((x) => [String(x.d.id), { js: JSON.stringify(x.d), cri: x.cri || x.upd }])); return docs.map((x) => x.d);
+  }
+  async function svcGravar(k, arr, perfil) {
+    const P = PERF_SVC[perfil] || {}; const pode = { contratos: P.ct, tecnicos: P.tec, visitas: P.ag || P.insp, relatorios: P.insp, auditoria: 1, notificacoes: 1 }[k];
+    if (!pode || !Array.isArray(arr)) return;
+    if (!svcCache[k]) await svcLer(k); const antes = svcCache[k]; const ids = new Set(); const agora = new Date().toISOString();
+    for (const r of arr) {
+      if (!r || r.id == null) continue; const id = String(r.id); ids.add(id); const a = antes.get(id); const ga = a ? JSON.parse(a.js) : null; let rec = r;
+      if (!P.val && ga) rec = repoeVal(ga, rec);
+      if (k === 'auditoria' && a) continue;
+      if (k === 'relatorios' && !P.aprov) { const st = ga && (ga.aprovacao || {}).status; if (st === 'aprovado') continue; const nst = (rec.aprovacao || {}).status;
+        if (nst === 'aprovado' || (nst === 'devolvido' && st !== 'devolvido')) rec = Object.assign({}, rec, { aprovacao: ga ? ga.aprovacao : Object.assign({}, rec.aprovacao, { status: 'pendente' }) }); }
+      const js = JSON.stringify(rec); if (a && a.js === js) continue;
+      const cri = (a && a.cri) || agora;
+      await REG.db.doc('svc_' + k + '/' + svcId(id)).set({ d: JSON.parse(js), cri, upd: agora, by: REG.me || null }); antes.set(id, { js, cri });
+    }
+    if (P.exc) for (const id of [...antes.keys()]) if (!ids.has(id)) { await REG.db.doc('svc_' + k + '/' + svcId(id)).delete(); antes.delete(id); }
+  }
+  async function svcNum(tipo) {
+    const ref = REG.db.doc('svc_meta/seq'); try { await ref.acquire({ holder: REG.me || 'anon', ttlMs: 5000 }); } catch (e) { /* segue */ }
+    const cur = await ref.get(); const d = cur.exists ? cur.data() : {}; const n = Math.max(Number(d[tipo]) || 0, tipo === 'contrato' ? 199999 : 699999) + 1;
+    await ref.set(Object.assign({}, d, { [tipo]: n })); return String(n);
+  }
+  async function svcRpc(op, a) {
+    const perfil = perfilSvcClaude();
+    if (op === 'me') { let nome = 'Você'; try { const m = REG.user && REG.user.me ? await REG.user.me() : null; if (m && m.name) nome = m.name; } catch (e) { /* sem nome */ }
+      return { id: REG.me || 'eu', login: '', nome, servico: perfil, nivelPricer: REG.isOwner ? 4 : REG.canEditCadastro ? 3 : REG.canSaveShared ? 2 : 1, tecnicoId: null, clienteId: null, trocarSenha: false }; }
+    if (op === 'get') { const arr = await svcLer(a.k); return JSON.stringify((PERF_SVC[perfil] || {}).val ? arr : arr.map(semVal)); }
+    if (op === 'set') { let arr; try { arr = JSON.parse(a.v); } catch (e) { return null; } try { await svcGravar(a.k, arr, perfil); } catch (er) { toast('Serviço de campo: não gravou (' + errMsg(er) + '). No claude.ai, contratos e técnicos só são gravados por quem tem acesso de Editor; agenda, visitas e relatórios, por Contribuidor ou acima.'); throw er; } return null; }
+    if (op === 'num') return svcNum(a.tipo === 'contrato' ? 'contrato' : 'atendimento');
+    throw new Error('Operação desconhecida: ' + op);
+  }
+  window.addEventListener('message', async (e) => {
+    const d = e.data; if (!d || !d.lsfRpc || LSF()) return;
+    const fr = document.querySelector('#svcHost iframe'); if (!fr || e.source !== fr.contentWindow) return;
+    let valor = null, erro = null; try { if (!SVC_CLAUDE()) throw new Error('O banco ainda não conectou'); valor = await svcRpc(d.op, d.args || {}); } catch (er) { erro = errMsg(er); }
+    e.source.postMessage({ lsfRes: d.lsfRpc, valor, erro }, '*');
+  });
+  // relatório → resumo para o orçamento (o mesmo que o servidor monta em /api/svc/relatorios)
+  function resumoRelatorio(r, ct) {
+    const nok = []; const anda = (o, onde) => { if (Array.isArray(o)) o.forEach((x) => anda(x, onde)); else if (o && typeof o === 'object') {
+      if ((o.status === 'nok' || o.status === 'NOK' || o.conforme === false) && (o.texto || o.item || o.descricao)) nok.push({ item: String(o.texto || o.item || o.descricao), obs: String(o.obs || o.observacao || ''), onde });
+      for (const v of Object.values(o)) if (v && typeof v === 'object') anda(v, o.nome || o.titulo || onde); } };
+    anda(r, '');
+    return { id: r.id, codigo: r.codigo || r.referencia, tipo: r.tipo, data: r.data || r.dataExecucao || r.criadoEm, cliente: r.cliente || (ct && ct.cliente) || '', endereco: r.endereco || (ct && ct.endereco) || '', contato: (ct && ct.contato) || r.contato || '', contratoCodigo: ct ? ct.codigo : '', contratoId: r.contratoId ?? null, naoConformidades: nok.slice(0, 200) };
+  }
   async function abrirVinculo(id) {
     const p = (REG.listPropostas() || []).find((x) => x.id === id); if (!p) { toast('Proposta vinculada não encontrada.'); return; }
     if (dirty && assinatura() !== ui.assinaturaAberta) { await $('#bSave').onclick(); if (dirty) return; }

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head><script>(function(){if(window.top===window)return;var n=0,p={};function rpc(op,args){return new Promise(function(ok,fa){var id=++n;p[id]={ok:ok,fa:fa};window.parent.postMessage({lsfRpc:id,op:op,args:args||{}},"*");setTimeout(function(){if(p[id]){delete p[id];fa(new Error("O Pricer não respondeu"));}},30000);});}
+window.addEventListener("message",function(e){if(e.source!==window.parent)return;var d=e.data;if(d&&d.lsfRes&&p[d.lsfRes]){var q=p[d.lsfRes];delete p[d.lsfRes];d.erro?q.fa(new Error(d.erro)):q.ok(d.valor);}});
+window.__LSF_CLAUDE=true;window.__lsfRpc=rpc;
+window.storage={get:function(k){return rpc("get",{k:k}).then(function(v){return v==null?null:{value:v};});},set:function(k,v){return rpc("set",{k:k,v:v}).then(function(){return{ok:true};});},delete:function(){return Promise.resolve({ok:true});}};
+window.offlineSync={syncNow:function(){return Promise.resolve({ok:true});},getQueue:function(){return Promise.resolve([]);},getStatus:function(){return Promise.resolve({online:navigator.onLine,pending:0,lastSync:new Date().toISOString()});}};
+var f0=window.fetch.bind(window);var R=function(o,st){return new Response(JSON.stringify(o),{status:st||200,headers:{"Content-Type":"application/json"}});};
+window.fetch=function(u,o){u=String(u).split("?")[0];if(u.slice(-7)==="/api/me")return rpc("me").then(function(m){return m?R(m):R({error:"sem acesso"},401);});
+if(u.slice(-20)==="/api/allocate-number")return rpc("num",JSON.parse((o&&o.body)||"{}")).then(function(x){return R({numero:x});});
+if(u.slice(-11)==="/api/logout"||u.slice(-9)==="/api/sync")return Promise.resolve(R({ok:true}));return f0(u,o);};})();</script>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="./favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#FF6600" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="LS Serviço" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <title>LS Fire — Serviço de campo</title>
+    <script type="module" crossorigin src="./assets/index-DiJigmG0.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-prK4vBUK.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

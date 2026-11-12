@@ -25,7 +25,7 @@ const SYNCABLE_KEYS = new Set(["contratos", "tecnicos", "visitas", "relatorios",
 // confere o que cada perfil pode gravar. Os cabeçalhos abaixo vão em toda chamada à API.
 const API_HEADERS = { "Content-Type": "application/json", "X-LSF": "1" };
 const ME_CACHE_KEY = "lsfire:me";
-function irParaLogin() { try { window.top.location.replace("/login?volta=" + encodeURIComponent("/servico/")); } catch { window.location.replace("/login?volta=/servico/"); } }
+function irParaLogin() { if (typeof window !== "undefined" && window.__LSF_CLAUDE) return; try { window.top.location.replace("/login?volta=" + encodeURIComponent("/servico/")); } catch { window.location.replace("/login?volta=/servico/"); } }
 
 // Token de app compartilhado entre servidor e todos os dispositivos instalados,
 // definido em tempo de build (import.meta.env.VITE_SYNC_TOKEN). Impede que
@@ -2785,7 +2785,7 @@ export default function App() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if ("serviceWorker" in navigator) {
+    if ("serviceWorker" in navigator && !window.__LSF_CLAUDE) {
       navigator.serviceWorker.register("/servico/sw.js", { scope: "/servico/" }).catch(() => {});
     }
 
@@ -3262,10 +3262,12 @@ export default function App() {
               <DollarSign size={14} /> Abrir o LS Pricer
             </a>
           )}
+          {!window.__LSF_CLAUDE && (
           <button onClick={fazerLogout}
                   className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-50" style={{ color: C.nok }}>
             <LogOut size={14} /> Sair
           </button>
+          )}
         </div>
 
         <div className="p-4 border-t text-center" style={{ borderColor: C.border }}>
