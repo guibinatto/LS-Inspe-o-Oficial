@@ -196,6 +196,161 @@
       return [...m.values()].map((g) => Object.assign(g, { pct: g.venda ? g.margem / g.venda : 0 })).sort((a, b) => b.venda - a.venda);
     }
 
+    // ---------- relatórios gerenciais: custo previsto × realizado ----------
+    // Previsto = custo da formação congelada na baixa. Realizado = linha conferida pelo valor lançado; linha ainda não
+    // conferida conta pelo previsto (por isso a base padrão é "com custo real lançado" e a conferência aparece sempre).
+    const DIMS = [['familia', 'Família'], ['vendedor', 'Vendedor'], ['cliente', 'Cliente'], ['mes', 'Mês do fechamento'], ['div', 'Divisão']];
+    const BASES = [['real', 'Com custo real lançado'], ['completas', 'Só 100% conferidas'], ['todas', 'Todas as ganhas']];
+    const mesLb = (k) => { const [y, m] = String(k).split('-').map(Number); if (!y || !m) return 'sem data'; return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', ''); };
+    function vendedorDe(F) {
+      const p = (REG.todasPropostas ? REG.todasPropostas() : REG.listPropostas() || []).find((x) => x.id === (F.propId || F.id)) || {};
+      const v = (p.spv && p.spv.vendedor) || (p.facts && p.facts.vendedor) || ((p.doc || {}).PROPOSTA || {}).C8;
+      return String(v || '').trim() || 'Sem vendedor';
+    }
+    function relDados() {
+      const B = base(); const bs = ui.rlBase || 'real';
+      const pacs = B.fechadas.filter((f) => (bs === 'todas' ? true : bs === 'completas' ? f.linhas > 0 && f.cobertura >= 1 : f.apontadas > 0));
+      const its = []; const comps = new Map(); const tipo = { mat: { prev: 0, real: 0 }, mo: { prev: 0, real: 0 }, extra: { prev: 0, real: 0 }, sem: { prev: 0, real: 0 } };
+      for (const f of pacs) {
+        const vend = vendedorDe(f.F); const mes = String(f.F.fechadoEm || '').slice(0, 7);
+        for (const x of f.itens) {
+          its.push({ pid: f.F.id, div: f.F.div || 'SEQ', familia: x.familiaNome || x.familia || 'Sem família', vendedor: vend, cliente: f.F.cliente || f.F.nome || 'Sem cliente', mes,
+            venda: x.venda, base: x.venda * x.bf, custo: x.custo, custoReal: x.custoReal, margem: x.margem, margemReal: x.margemReal, linhas: x.linhas.length, apont: x.apont });
+          for (const l of x.linhas) {
+            const real = typeof l.real === 'number' ? l.real : l.prev; const t = ehMO(l) ? tipo.mo : tipo.mat; t.prev += l.prev; t.real += real;
+            if (typeof l.real !== 'number') continue;
+            const k = norm(l.desc || l.rot || l.k); if (!comps.has(k)) comps.set(k, { desc: l.desc || l.rot || l.k, fam: l.fam || l.grupo || '', mo: ehMO(l), prev: 0, real: 0, n: 0, pacs: new Set() });
+            const c = comps.get(k); c.prev += l.prev; c.real += l.real; c.n++; c.pacs.add(f.F.numero || f.F.id);
+          }
+          for (const e of x.extras) { tipo.extra.real += e.v; const k = 'NAO PREVISTO ' + norm(e.desc); if (!comps.has(k)) comps.set(k, { desc: e.desc, fam: 'não previsto', extra: true, prev: 0, real: 0, n: 0, pacs: new Set() }); const c = comps.get(k); c.real += e.v; c.n++; c.pacs.add(f.F.numero || f.F.id); }
+          if (x.resto > 0) { tipo.sem.prev += x.resto; tipo.sem.real += x.resto; }
+        }
+      }
+      return { B, pacs, its, comps: [...comps.values()].map((c) => Object.assign(c, { dif: c.real - c.prev, difPct: c.prev ? (c.real - c.prev) / c.prev : null, pacs: [...c.pacs] })), tipo };
+    }
+    function agrupar(its, dim) {
+      const m = new Map();
+      for (const e of its) { const k = e[dim] || '—'; if (!m.has(k)) m.set(k, { k, label: dim === 'mes' ? mesLb(k) : k, pids: new Set(), venda: 0, base: 0, custo: 0, custoReal: 0, margem: 0, margemReal: 0, linhas: 0, apont: 0 });
+        const g = m.get(k); g.pids.add(e.pid); for (const f of ['venda', 'base', 'custo', 'custoReal', 'margem', 'margemReal', 'linhas', 'apont']) g[f] += num(e[f]); }
+      const L = [...m.values()].map((g) => Object.assign(g, { n: g.pids.size, dif: g.custoReal - g.custo, difPct: g.custo ? (g.custoReal - g.custo) / g.custo : null, mPrev: g.base ? g.margem / g.base : null, mReal: g.base ? g.margemReal / g.base : null, cob: g.linhas ? g.apont / g.linhas : 0 }));
+      return dim === 'mes' ? L.sort((a, b) => String(a.k).localeCompare(String(b.k))) : L.sort((a, b) => b.custo - a.custo);
+    }
+    // escala com passos redondos
+    function passos(lo, hi, n = 4) {
+      if (!(hi > lo)) hi = lo + 1; const raw = (hi - lo) / n; const p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; const st = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+      const a = Math.floor(lo / st + 1e-9) * st, b = Math.ceil(hi / st - 1e-9) * st; const t = []; for (let v = a; v <= b + st / 2; v += st) t.push(Math.round(v / st) * st); return t;
+    }
+    // barras horizontais genéricas (valor com sinal; uma ou duas séries; dica ao passar o mouse)
+    function barras(rows, opt = {}) {
+      if (!rows.length) return '<p class="sub">Sem dados no filtro.</p>';
+      const W = opt.w || 640; const ns = opt.series ? opt.series.length : 1; const bh = ns > 1 ? 11 : 16, gap = 2; const rowH = ns * bh + (ns - 1) * gap + 16;
+      const L = 188, R = 84; const pw = W - L - R; const all = rows.flatMap((r) => r.vals.filter((v) => typeof v === 'number'));
+      const tk = passos(Math.min(0, ...all), Math.max(0, ...all)); const lo = tk[0], hi = tk[tk.length - 1]; const x = (v) => L + ((v - lo) / (hi - lo)) * pw;
+      const H = rows.length * rowH + 26; let g = '';
+      for (const t of tk) g += `<line x1="${x(t)}" x2="${x(t)}" y1="4" y2="${H - 20}" class="vz-grid"/><text x="${x(t)}" y="${H - 6}" class="vz-ax" text-anchor="middle">${esc(opt.fmtAx(t))}</text>`;
+      rows.forEach((r, i) => {
+        const y0 = 6 + i * rowH; const mid = y0 + (ns * bh + (ns - 1) * gap) / 2;
+        g += `<text x="${L - 8}" y="${mid + (r.sub ? -2 : 4)}" class="vz-lb" text-anchor="end">${esc(cut(r.label, 26))}</text>`;
+        if (r.sub) g += `<text x="${L - 8}" y="${mid + 11}" class="vz-ax" text-anchor="end">${esc(cut(r.sub, 30))}</text>`;
+        r.vals.forEach((v, k) => {
+          if (typeof v !== 'number') return; const y = y0 + k * (bh + gap); const x0 = x(Math.min(0, v)), x1 = x(Math.max(0, v)); const w = Math.max(1, x1 - x0); const rad = Math.min(4, w / 2, bh / 2);
+          const path = v >= 0 ? `M${x0},${y}h${w - rad}a${rad},${rad} 0 0 1 ${rad},${rad}v${bh - 2 * rad}a${rad},${rad} 0 0 1 -${rad},${rad}h-${w - rad}z` : `M${x1},${y}h-${w - rad}a${rad},${rad} 0 0 0 -${rad},${rad}v${bh - 2 * rad}a${rad},${rad} 0 0 0 ${rad},${rad}h${w - rad}z`;
+          g += `<path d="${path}" class="vz-s${(opt.cor || [])[k] || k + 1}"/><rect x="${L}" y="${y - 1}" width="${pw}" height="${bh + 2}" fill="transparent" data-tip="${esc((r.tips && r.tips[k]) || '')}"/>`;
+          g += v >= 0 ? `<text x="${x1 + 6}" y="${y + bh / 2 + 4}" class="vz-val">${esc(opt.fmt(v))}</text>` : `<text x="${x0 - 6}" y="${y + bh / 2 + 4}" class="vz-val" text-anchor="end">${esc(opt.fmt(v))}</text>`;
+        });
+      });
+      g += `<line x1="${x(0)}" x2="${x(0)}" y1="2" y2="${H - 20}" class="vz-base"/>`;
+      const legend = ns > 1 ? `<div class="vz-legend">${opt.series.map((s, k) => `<span><i class="vz-k${(opt.cor || [])[k] || k + 1}"></i>${esc(s)}</span>`).join('')}</div>` : '';
+      return `${legend}<svg class="vz" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.aria || 'gráfico')}">${g}</svg>`;
+    }
+    // linhas por mês (margem prevista e realizada), com marcador e dica por mês
+    function linhasMes(G, opt = {}) {
+      const pts = G.filter((g) => g.mPrev !== null);
+      if (pts.length < 2) return `<p class="sub">${pts.length ? 'Só um mês no filtro: ' + esc(pts[0].label) + ' · previsto ' + pct(pts[0].mPrev, 1) + ' · realizado ' + pct(pts[0].mReal, 1) + '. Com mais meses, a evolução aparece aqui.' : 'Sem dados no filtro.'}</p>`;
+      const W = 1300, H = 250, L = 58, R = 120, T = 14, B = 30; const pw = W - L - R, ph = H - T - B;
+      const vals = pts.flatMap((g) => [g.mPrev, g.mReal]); const tk = passos(Math.min(...vals), Math.max(...vals)); const lo = tk[0], hi = tk[tk.length - 1];
+      const x = (i) => L + (pts.length === 1 ? pw / 2 : (i / (pts.length - 1)) * pw); const y = (v) => T + (1 - (v - lo) / (hi - lo)) * ph;
+      let g = '';
+      const casas = tk.length > 1 && tk[1] - tk[0] < 0.00999 ? 1 : 0; // passo de meio ponto: o rótulo leva uma casa, para não repetir
+      for (const t of tk) g += `<line x1="${L}" x2="${L + pw}" y1="${y(t)}" y2="${y(t)}" class="vz-grid"/><text x="${L - 8}" y="${y(t) + 4}" class="vz-ax" text-anchor="end">${NF[casas].format(t * 100)}%</text>`;
+      const passo = Math.ceil(pts.length / 12);
+      pts.forEach((p, i) => { if (i % passo === 0 || i === pts.length - 1) g += `<text x="${x(i)}" y="${H - 8}" class="vz-ax" text-anchor="middle">${esc(p.label)}</text>`; });
+      [['mPrev', 1], ['mReal', 2]].forEach(([f, s]) => {
+        g += `<polyline class="vz-l${s}" points="${pts.map((p, i) => x(i) + ',' + y(p[f])).join(' ')}"/>`;
+        g += pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p[f])}" r="4" class="vz-p${s}"/>`).join('');
+        const u = pts[pts.length - 1]; g += `<text x="${x(pts.length - 1) + 10}" y="${y(u[f]) + 4}" class="vz-val">${f === 'mPrev' ? 'Previsto' : 'Realizado'} ${NF[1].format(u[f] * 100)}%</text>`;
+      });
+      const larg = pw / Math.max(1, pts.length - 1);
+      pts.forEach((p, i) => { g += `<rect x="${x(i) - larg / 2}" y="${T}" width="${larg}" height="${ph}" fill="transparent" data-tip="${esc(`${p.label}: previsto ${pct(p.mPrev, 1)} · realizado ${pct(p.mReal, 1)} · ${p.n} pacote(s) · venda ${brl(p.venda)}`)}"/>`; });
+      return `<div class="vz-legend"><span><i class="vz-k1"></i>Margem prevista</span><span><i class="vz-k2"></i>Margem realizada</span></div><svg class="vz" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.aria || 'margem por mês')}">${g}</svg>`;
+    }
+    const sinal = (v, f) => (Math.abs(v) < 0.005 ? '0' : (v > 0 ? '+' : '−') + f(Math.abs(v)));
+    const difHtml = (v, base) => { if (Math.abs(v) < 0.005) return '<span class="sub">0,00</span>'; return `<b class="${v > 0 ? 'bad-t' : 'ok-t'}">${v > 0 ? '+' : '−'}${brl(Math.abs(v)).replace('R$ ', '')}</b>${base ? `<br><small class="sub">${v > 0 ? '+' : '−'}${NF[1].format(Math.abs(v / base) * 100)}%</small>` : ''}`; };
+    function vRelatorios() {
+      const D = relDados(); const dim = ui.rlDim || 'familia'; const dimLb = (DIMS.find((d) => d[0] === dim) || DIMS[0])[1];
+      const sel = (id, v, opts, lb) => `<label class="sub rlsel">${lb} <select id="${id}">${opts.map(([k, l]) => `<option value="${k}"${v === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`;
+      const barra = `<div class="sheetbar rlbar">${sel('rlDim', dim, DIMS, 'Agrupar por')}${sel('rlBase', ui.rlBase || 'real', BASES, 'Base')}<button class="btn sm" data-rlxls data-ico="file-spreadsheet" style="margin-left:auto">Baixar relatório (Excel)</button></div>`;
+      const T = { venda: 0, base: 0, custo: 0, custoReal: 0, margem: 0, margemReal: 0, linhas: 0, apont: 0 }; for (const e of D.its) for (const k in T) T[k] += num(e[k]);
+      const nGan = D.B.fechadas.length;
+      if (!D.pacs.length) return barra + `<section class="card"><h2>Custo previsto × realizado</h2><p class="sub" style="margin:0">${nGan ? `Há ${nGan} proposta(s) ganha(s) no filtro, mas nenhuma ${ui.rlBase === 'completas' ? 'com o custo real 100% conferido' : 'com custo real lançado'}. Engenharia e Custos lançam o custo real em Margens → Ganhas → Custo real.` : 'Nenhuma proposta ganha no filtro. Os relatórios usam as propostas com baixa (Dar baixa) e o custo real lançado depois.'}</p></section>`;
+      const dif = T.custoReal - T.custo; const mP = T.base ? T.margem / T.base : 0, mR = T.base ? T.margemReal / T.base : 0;
+      const kpis = `<div class="kpis">
+        <div class="kpi"><span>Venda fechada</span><b>${mi(T.venda)}</b><em>${D.pacs.length} pacote(s) de ${nGan} ganha(s) no filtro</em></div>
+        <div class="kpi"><span>Custo previsto</span><b>${mi(T.custo)}</b><em>formação congelada na baixa</em></div>
+        <div class="kpi lead"><span>Custo realizado</span><b>${mi(T.custoReal)}</b><em class="${dif > 0.005 ? 'bad-t' : 'ok-t'}">${sinal(dif, brl)} (${T.custo ? sinal(dif / T.custo, (v) => NF[1].format(v * 100) + '%') : '—'}) ${dif > 0.005 ? 'acima do previsto' : dif < -0.005 ? 'abaixo do previsto' : 'igual ao previsto'}</em></div>
+        <div class="kpi"><span>Margem prevista → realizada</span><b>${pct(mP, 1)} → ${pct(mR, 1)}</b><em class="${mR < mP - 0.0005 ? 'bad-t' : 'ok-t'}">${sinal(mR - mP, (v) => NF[1].format(v * 100) + ' p.p.')}</em></div>
+        <div class="kpi"><span>Conferência</span><b>${pct(T.linhas ? T.apont / T.linhas : 0, 0)}</b><em>${T.apont} de ${T.linhas} linhas com custo real; as demais contam pelo previsto</em></div></div>`;
+      const G = agrupar(D.its, dim); const top = dim === 'mes' ? G : G.slice(0, 12);
+      const cmp = top.map((g) => ({ label: g.label, sub: `${g.n} pacote(s) · ${pct(g.cob, 0)} conferido`, vals: [g.custo, g.custoReal], tips: [`${g.label} · custo previsto ${brl(g.custo)}`, `${g.label} · custo realizado ${brl(g.custoReal)} (${sinal(g.dif, brl)})`] }));
+      const dsv = top.filter((g) => g.difPct !== null).map((g) => ({ label: g.label, sub: sinal(g.dif, mi), vals: [g.difPct], tips: [`${g.label}: custo ${sinal(g.dif, brl)} (${sinal(g.difPct, (v) => NF[1].format(v * 100) + '%')}) · margem ${pct(g.mPrev, 1)} → ${pct(g.mReal, 1)}`] }));
+      const GM = agrupar(D.its, 'mes');
+      const tp = D.tipo; const tipoRow = (lb, t) => `<tr><td>${lb}</td><td class="n">${brl(t.prev)}</td><td class="n">${brl(t.real)}</td><td class="n">${difHtml(t.real - t.prev, t.prev)}</td></tr>`;
+      const comps = D.comps.filter((c) => Math.abs(c.dif) >= 0.5).sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif)).slice(0, 15);
+      const tab = `<div class="tw"><table class="t"><thead><tr><th>${esc(dimLb)}</th><th>Pacotes</th><th>Venda</th><th>Custo previsto</th><th>Custo realizado</th><th>Desvio</th><th>Margem prevista</th><th>Margem realizada</th><th>Conferido</th></tr></thead><tbody>
+        ${G.map((g) => `<tr><td><b>${esc(g.label)}</b></td><td class="n">${g.n}</td><td class="n">${brl(g.venda)}</td><td class="n">${brl(g.custo)}</td><td class="n">${brl(g.custoReal)}</td><td class="n">${difHtml(g.dif, g.custo)}</td><td class="n">${g.mPrev === null ? '—' : pct(g.mPrev, 1)}</td><td class="n"><b class="${g.mReal < g.mPrev - 0.0005 ? 'bad-t' : ''}">${g.mReal === null ? '—' : pct(g.mReal, 1)}</b></td><td class="n">${pct(g.cob, 0)}</td></tr>`).join('')}
+        <tr class="tot"><td>Total</td><td class="n">${D.pacs.length}</td><td class="n">${brl(T.venda)}</td><td class="n">${brl(T.custo)}</td><td class="n">${brl(T.custoReal)}</td><td class="n">${difHtml(dif, T.custo)}</td><td class="n">${pct(mP, 1)}</td><td class="n">${pct(mR, 1)}</td><td class="n">${pct(T.linhas ? T.apont / T.linhas : 0, 0)}</td></tr></tbody></table></div>`;
+      return `${barra}${kpis}
+        <p class="sub rlnota">Previsto é o custo da formação congelada na baixa. Realizado usa o valor lançado em cada linha conferida; linha ainda não conferida conta pelo previsto. A margem é sobre a receita líquida (venda − impostos), a mesma conta da formação.</p>
+        <div class="vzgrid">
+          <section class="card"><h2>Custo previsto × realizado <span class="sub">por ${esc(dimLb.toLowerCase())}${G.length > top.length ? ' · os 12 maiores' : ''}</span></h2>${barras(cmp, { series: ['Previsto', 'Realizado'], fmt: mi, fmtAx: (v) => mi(v).replace('R$ ', ''), aria: 'custo previsto e realizado por ' + dimLb })}</section>
+          <section class="card"><h2>Desvio de custo <span class="sub">realizado − previsto, em % do previsto</span></h2>${barras(dsv, { fmt: (v) => sinal(v, (a) => NF[1].format(a * 100) + '%'), fmtAx: (v) => NF[0].format(v * 100) + '%', cor: [2], aria: 'desvio de custo por ' + dimLb })}</section>
+          <section class="card span-all"><h2>Margem prevista × realizada por mês <span class="sub">mês do fechamento</span></h2>${linhasMes(GM)}
+            <details class="rltab"><summary>Ver em tabela</summary><div class="tw"><table class="t"><thead><tr><th>Mês</th><th>Pacotes</th><th>Venda</th><th>Margem prevista</th><th>Margem realizada</th><th>Diferença</th></tr></thead><tbody>${GM.map((g) => `<tr><td>${esc(g.label)}</td><td class="n">${g.n}</td><td class="n">${brl(g.venda)}</td><td class="n">${pct(g.mPrev, 1)}</td><td class="n">${pct(g.mReal, 1)}</td><td class="n">${sinal(g.mReal - g.mPrev, (v) => NF[1].format(v * 100) + ' p.p.')}</td></tr>`).join('')}</tbody></table></div></details></section>
+          <section class="card span-all"><h2>Onde o custo mudou <span class="sub">por tipo de custo</span></h2><div class="tw"><table class="t"><thead><tr><th>Tipo</th><th>Previsto</th><th>Realizado</th><th>Desvio</th></tr></thead><tbody>
+            ${tipoRow('Materiais e componentes', tp.mat)}${tipoRow('Mão de obra', tp.mo)}${tipoRow('Custos não previstos', tp.extra)}${tp.sem.prev > 0.5 ? tipoRow('Outros custos sem linha', tp.sem) : ''}</tbody></table></div></section>
+          <section class="card span-all"><h2>Componentes com maior desvio <span class="sub">os 15 maiores, em R$</span></h2>${comps.length ? `<div class="tw"><table class="t"><thead><tr><th>Componente</th><th>Previsto</th><th>Realizado</th><th>Desvio</th></tr></thead><tbody>${comps.map((c) => `<tr><td>${esc(c.desc)}<br><small class="sub">${esc([c.extra ? 'NÃO PREVISTO' : c.mo ? 'MÃO DE OBRA' : '', c.fam, c.pacs.length + ' pacote(s): ' + c.pacs.slice(0, 3).join(', ') + (c.pacs.length > 3 ? '…' : '')].filter(Boolean).join(' · '))}</small></td><td class="n">${c.extra ? '—' : brl(c.prev)}</td><td class="n">${brl(c.real)}</td><td class="n">${difHtml(c.dif, c.prev)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="sub">Nenhuma linha conferida com valor diferente do previsto.</p>'}</section>
+          <section class="card span-all"><h2>Por ${esc(dimLb.toLowerCase())}</h2>${tab}</section>
+        </div>`;
+    }
+    async function excelRel() {
+      const D = relDados(); if (!D.pacs.length) { toast('Nada para exportar no filtro'); return; }
+      const ExcelJS = await excelLib(); const wbx = new ExcelJS.Workbook(); wbx.creator = 'LS Pricer';
+      const OR = 'FFE8570A', INK = 'FF1E1F21'; const money = '#,##0.00;[Red]-#,##0.00', perc = '0.0%;[Red]-0.0%';
+      const cab = (ws, cols) => { const r = ws.addRow(cols); r.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INK } }; c.alignment = { vertical: 'middle', wrapText: true }; }); r.height = 30; };
+      const titulo = (ws, t) => { const r = ws.addRow([t]); r.font = { bold: true, size: 14, color: { argb: OR } };
+        ws.addRow([`Período: ${({ '12m': 'últimos 12 meses', ano: 'este ano', tudo: 'tudo' })[ui.mgPer || '12m']} · Divisão: ${({ todas: 'SEQ e SPV', SEQ: 'só SEQ', SPV: 'só SPV' })[ui.mgDiv || 'todas']} · Base: ${(BASES.find((b) => b[0] === (ui.rlBase || 'real')) || BASES[0])[1].toLowerCase()} · gerado em ${new Date().toLocaleString('pt-BR')}`]).font = { color: { argb: 'FF52514E' } };
+        ws.addRow(['Previsto = custo da formação congelada na baixa. Realizado = valor lançado nas linhas conferidas; as não conferidas contam pelo previsto.']).font = { italic: true, size: 9, color: { argb: 'FF52514E' } }; ws.addRow([]); };
+      for (const [dim, lb] of DIMS) {
+        const ws = wbx.addWorksheet('Por ' + lb.split(' ')[0].toLowerCase(), { views: [{ showGridLines: false, state: 'frozen', ySplit: 5 }] });
+        ws.columns = [{ width: 38 }, { width: 10 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 11 }, { width: 12 }, { width: 12 }, { width: 11 }];
+        titulo(ws, 'LS FIRE — CUSTO PREVISTO × REALIZADO POR ' + lb.toUpperCase());
+        cab(ws, [lb, 'Pacotes', 'Venda (R$)', 'Custo previsto (R$)', 'Custo realizado (R$)', 'Desvio (R$)', 'Desvio %', 'Margem prevista', 'Margem realizada', 'Conferido']);
+        for (const g of agrupar(D.its, dim)) { const r = ws.addRow([g.label, g.n, g.venda, g.custo, g.custoReal, g.dif, g.difPct, g.mPrev, g.mReal, g.cob]); [3, 4, 5, 6].forEach((c) => (r.getCell(c).numFmt = money)); [7, 8, 9, 10].forEach((c) => (r.getCell(c).numFmt = perc)); }
+      }
+      const wp = wbx.addWorksheet('Pacotes', { views: [{ showGridLines: false, state: 'frozen', ySplit: 5 }] });
+      wp.columns = [{ width: 12 }, { width: 8 }, { width: 14 }, { width: 34 }, { width: 22 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 11 }, { width: 11 }, { width: 11 }];
+      titulo(wp, 'LS FIRE — PACOTES GANHOS: PREVISTO × REALIZADO');
+      cab(wp, ['Fechada em', 'Divisão', 'Número', 'Cliente', 'Vendedor', 'Venda (R$)', 'Custo previsto (R$)', 'Custo realizado (R$)', 'Desvio (R$)', 'Margem prevista', 'Margem realizada', 'Conferido']);
+      for (const f of D.pacs.slice().sort((a, b) => String(a.F.fechadoEm).localeCompare(String(b.F.fechadoEm)))) { const r = wp.addRow([fmtD(f.F.fechadoEm), f.F.div, f.F.numero || '', f.F.cliente || f.F.nome || '', vendedorDe(f.F), f.venda, f.custo, f.custoReal, f.custoReal - f.custo, f.margemPct, f.margemRealPct, f.cobertura]); [6, 7, 8, 9].forEach((c) => (r.getCell(c).numFmt = money)); [10, 11, 12].forEach((c) => (r.getCell(c).numFmt = perc)); }
+      const wc = wbx.addWorksheet('Componentes', { views: [{ showGridLines: false, state: 'frozen', ySplit: 5 }] });
+      wc.columns = [{ width: 52 }, { width: 20 }, { width: 14 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 11 }, { width: 10 }];
+      titulo(wc, 'LS FIRE — COMPONENTES CONFERIDOS (MAIOR DESVIO PRIMEIRO)');
+      cab(wc, ['Componente', 'Família / grupo', 'Tipo', 'Previsto (R$)', 'Realizado (R$)', 'Desvio (R$)', 'Desvio %', 'Vezes']);
+      for (const c of D.comps.slice().sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif))) { const r = wc.addRow([c.desc, c.fam, c.extra ? 'não previsto' : c.mo ? 'mão de obra' : 'material', c.prev, c.real, c.dif, c.difPct, c.n]); [4, 5, 6].forEach((k) => (r.getCell(k).numFmt = money)); r.getCell(7).numFmt = perc; }
+      const nome = 'Relatório previsto × realizado ' + new Date().toISOString().slice(0, 10) + '.xlsx';
+      const ok = await REG.save(nome, await wbx.xlsx.writeBuffer(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); if (!ok) toast('Download cancelado');
+    }
+
     // ---------- painel ----------
     function vMargens() {
       ensure();
@@ -212,7 +367,7 @@
       const baixo = B.abertas.filter((p) => p.resumo.minimo && p.resumo.margemPct < p.resumo.minimo).length;
       const sel = (id, v, opts) => `<select id="${id}" aria-label="${id}">${opts.map(([k, l]) => `<option value="${k}"${v === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
       const filtros = `<div class="sheetbar">${sel('mgPer', ui.mgPer || '12m', [['12m', 'Últimos 12 meses'], ['ano', 'Este ano'], ['tudo', 'Tudo']])}${sel('mgDiv', ui.mgDiv || 'todas', [['todas', 'SEQ e SPV'], ['SEQ', 'Só SEQ'], ['SPV', 'Só SPV']])}
-        <div class="hchips" style="margin-left:auto">${[['painel', 'Painel'], ['fechadas', `Ganhas (${B.fechadas.length})`], ['abertas', `Em andamento (${B.abertas.length})`], ['aprovacoes', `Aprovações${nAp ? ' (' + nAp + ' pendente' + (nAp > 1 ? 's' : '') + ')' : ''}`]].map(([k, l]) => `<button class="hchip${tab === k ? ' on' : ''}" data-mgtab="${k}">${l}</button>`).join('')}</div></div>`;
+        <div class="hchips" style="margin-left:auto">${[['painel', 'Painel'], ['fechadas', `Ganhas (${B.fechadas.length})`], ['abertas', `Em andamento (${B.abertas.length})`], ['aprovacoes', `Aprovações${nAp ? ' (' + nAp + ' pendente' + (nAp > 1 ? 's' : '') + ')' : ''}`], ['relatorios', 'Relatórios']].map(([k, l]) => `<button class="hchip${tab === k ? ' on' : ''}" data-mgtab="${k}">${l}</button>`).join('')}</div></div>`;
       const kpis = `<div class="kpis">
         <div class="kpi"><span>Em andamento</span><b>${mi(vAb)}</b><em>${B.abertas.length} proposta(s) · margem ${mAb === null ? '—' : pct(mAb, 1)}</em></div>
         <div class="kpi"><span>Ganhas</span><b>${mi(vFe)}</b><em>${B.fechadas.length} pacote(s) · margem fechada ${mFe === null ? '—' : pct(mFe, 1)}</em></div>
@@ -222,6 +377,7 @@
       const fila = B.fechadas.filter((f) => f.cobertura < 1 && liberaReal(f.F.id)).sort((a, b) => String(b.F.fechadoEm).localeCompare(String(a.F.fechadoEm))).slice(0, 6);
       const filaHtml = fila.length ? `<section class="card"><h2>Custo real a lançar <span class="sub">fechadas com linhas sem custo real</span></h2><div class="tw"><table class="t"><tbody>${fila.map((f) => `<tr><td><span class="divb ${f.F.div.toLowerCase()}">${f.F.div}</span> <b>${esc(f.F.numero || '—')}</b> <span class="sub">${esc(f.F.cliente || '')} · fechada em ${fmtD(f.F.fechadoEm)}</span></td><td class="n">${pct(f.cobertura, 0)} conferido</td><td style="text-align:right"><button class="btn sm pri" data-mgopen="${esc(f.F.id)}">Lançar custo real</button></td></tr>`).join('')}</tbody></table></div></section>` : '';
       let body = filaHtml;
+      if (tab === 'relatorios') body = vRelatorios(); else
       if (tab === 'aprovacoes') body = vAprovacoes(); else
       if (tab === 'painel') {
         const divs = ['SEQ', 'SPV'].map((d) => { const a = itAb.filter((x) => x.div === d), f = itFe.filter((x) => x.div === d); const pa = wavg(a, (x) => x.venda, (x) => x.margem), pf = wavg(f, (x) => x.venda, (x) => x.margem);
@@ -252,6 +408,7 @@
           <td class="n">${brl(p.resumo.venda)}</td><td class="n"><b class="${low ? 'bad-t' : ''}">${pct(p.resumo.margemPct, 1)}</b>${low ? ' <span class="pill bad">abaixo do mínimo</span>' : ''}</td><td class="sub">${esc((p.resumo.itens || []).map((x) => x.nome).join(' · ').slice(0, 90))}</td>
           <td style="white-space:nowrap"><button class="btn sm" data-hopen="${esc(p.id)}">Abrir</button> <button class="btn sm pri" data-mgclose="${esc(p.id)}">Dar baixa</button></td></tr>`; }).join('') || '<tr><td colspan="6" class="sub">Nenhuma proposta em aberto com margem calculada.</td></tr>'}</tbody></table></div></section>`;
       }
+      if (tab === 'relatorios') return `<div class="stack"><div class="flowhead"><div><h1>Relatórios gerenciais</h1><div class="sub">Custo previsto × realizado das propostas ganhas, por família, vendedor, cliente, mês ou divisão.</div></div></div>${filtros}${body}</div>`;
       return `<div class="stack"><div class="flowhead"><div><h1>Margens</h1><div class="sub">Propostas em aberto e fechadas: margem prevista, fechada e realizada (com o custo real de compras e fabricação).</div></div></div>${filtros}${kpis}${body}</div>`;
     }
 
@@ -534,7 +691,7 @@
     // ---------- eventos ----------
     document.addEventListener('change', (e) => {
       const el = e.target; if (ui.view !== 'margens') return;
-      if (el.id === 'mgPer' || el.id === 'mgDiv' || el.id === 'mgFam') { ui[el.id] = el.value; ctx.render(); return; }
+      if (el.id === 'mgPer' || el.id === 'mgDiv' || el.id === 'mgFam' || el.id === 'rlDim' || el.id === 'rlBase') { ui[el.id] = el.value; ctx.render(); return; }
       if (el.dataset.rq || el.dataset.ru) {
         const [n, k] = (el.dataset.rq || el.dataset.ru).split('|'); const t = el.value.trim(); const x = parseInput(t, 'num'); if (typeof x !== 'number' || x < 0) { toast('Número inválido'); return; }
         const F = fech.find((f) => f.id === ui.mgId); const it = F && realizado(F).itens.find((y) => y.n === n); const l = it && it.linhas.find((y) => y.k === k); if (!l) return;
@@ -557,6 +714,7 @@
       const rl = t.closest('[data-mgreal]'); if (rl) { ensure(); const id = rl.dataset.mgreal; if (!liberaReal(id)) { toast(fechDe(id) ? 'O custo real é lançado só com a proposta ganha.' : 'O custo real é lançado depois da baixa da proposta ganha.'); return; } ui.view = 'margens'; ui.mgId = id; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); const it = rl.dataset.mgitem; if (it) setTimeout(() => { const el = document.getElementById('cr_' + it); if (el) el.scrollIntoView({ block: 'start' }); }, 60); return; }
       const cl = t.closest('[data-mgclose]'); if (cl) { const p = (REG.listPropostas() || []).find((x) => x.id === cl.dataset.mgclose); if (p) fecharModal(p); return; }
       if (ui.view !== 'margens') return;
+      if (t.closest('[data-rlxls]')) { excelRel().catch((er) => toast(er.message || 'Não consegui gerar o Excel')); return; }
       const tb = t.closest('[data-mgtab]'); if (tb) { ui.mgTab = tb.dataset.mgtab; ui.apId = null; ctx.render(); return; }
       const op = t.closest('[data-mgopen]'); if (op) { ui.mgId = op.dataset.mgopen; ui.mgNova = null; ctx.render(); window.scrollTo(0, 0); return; }
       if (t.closest('[data-mgback]')) { ui.mgId = null; ctx.render(); return; }

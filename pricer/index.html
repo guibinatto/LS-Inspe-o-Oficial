@@ -557,6 +557,10 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 @media (max-width:980px){.vzgrid{grid-template-columns:1fr}}
 .vz{width:100%;height:auto;display:block;overflow:visible}
 .vz .vz-s1{fill:var(--s1)}.vz .vz-s2{fill:var(--s2)}
+.vz .vz-l1,.vz .vz-l2{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.vz .vz-l1{stroke:var(--s1)}.vz .vz-l2{stroke:var(--s2)}
+.vz .vz-p1,.vz .vz-p2{stroke:var(--card);stroke-width:2}.vz .vz-p1{fill:var(--s1)}.vz .vz-p2{fill:var(--s2)}
+.rlbar{flex-wrap:wrap;gap:10px;align-items:center}.rlsel{display:inline-flex;align-items:center;gap:6px}
+.rlnota{margin:0;max-width:110ch}.rltab{margin-top:8px}.rltab summary{cursor:pointer;color:var(--or-ink);font-weight:600;font-size:13.5px}
 .vz .vz-grid{stroke:var(--vz-grid);stroke-width:1}
 .vz .vz-base{stroke:var(--ink3);stroke-width:1}
 .vz .vz-min{stroke:var(--ink2);stroke-width:1.5;stroke-dasharray:4 3}
@@ -960,6 +964,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovações</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass"><span class="nl">Em andamento</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="fechadas" data-ico="trophy"><span class="nl">Ganhas e custo real</span></button>
+      <button type="button" data-go="margens" data-gk="mgTab" data-gv="relatorios" data-ico="chart-no-axes-combined"><span class="nl">Relatórios gerenciais</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check"><span class="nl">Auditoria de cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
       </div>
