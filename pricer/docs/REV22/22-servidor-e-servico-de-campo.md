@@ -44,6 +44,27 @@ A decisão foi colocar **tudo no servidor da LS Fire**, com login próprio e per
 
 **No próprio módulo.** O menu do técnico no celular e as abas dentro do Pricer têm os mesmos grupos: Operação, Relatórios, Contratos e equipe, Controle.
 
+## Técnico e inspetor
+
+**O inspetor do relatório é o técnico do cadastro.** Os campos que pedem o técnico mostram a lista dos técnicos cadastrados, com a licença (CREA) ao lado de cada nome:
+- **Técnico / Inspetor**, na Identificação. Escolher o técnico também preenche o responsável e a licença;
+- **Técnico Responsável**, no start-up;
+- **Técnico LS Fire**, nas assinaturas.
+
+A opção **Outro (digitar o nome)** serve para um inspetor de fora da equipe.
+
+**Quem está logado como técnico já vem preenchido:**
+- na visita que ele agenda, aparece como "(você)";
+- no relatório que ele preenche, aparece como inspetor, com a licença do cadastro.
+
+O técnico é reconhecido assim:
+- no servidor, pelo vínculo do login com o técnico, em Usuários e acessos;
+- na visualização do claude.ai, que não tem esse vínculo, pelo nome igual ao do cadastro.
+
+**Quem não é técnico** (gestor, coordenador) agenda e o relatório traz o técnico da visita, ou o do contrato.
+
+**Correção:** no relatório avulso, o inspetor vinha como o primeiro técnico da lista, qualquer que fosse. Agora vem quem executa.
+
 ## Acessos
 
 Cada pessoa tem um nível no **Pricer** e um perfil no **Serviço de campo**, independentes. As tabelas completas estão em `servidor/SEGURANCA.md`. Em resumo:

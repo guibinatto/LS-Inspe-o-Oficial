@@ -5169,14 +5169,15 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
   const [data, setData] = useState(initial?.data || new Date().toISOString().slice(0, 10));
   const [demanda, setDemanda] = useState("");
   const [anexos, setAnexos] = useState([]);
-  const [tecnicoId, setTecnicoId] = useState(() => {
-    const c = contratos.find(x => x.id === (contratoFixo || contratos[0]?.id));
-    return c?.tecnicoId || tecnicos[0]?.id || "";
-  });
+  // técnico da visita: quem agenda sendo técnico fica como executante; senão o técnico do contrato
+  const { sessao } = useAuth();
+  const meu = meuTecnico(sessao, tecnicos);
+  const tecPadrao = (c) => (sessao?.perfil === "tecnico" && meu ? meu.id : (c?.tecnicoId || meu?.id || tecnicos[0]?.id || ""));
+  const [tecnicoId, setTecnicoId] = useState(() => tecPadrao(contratos.find(x => x.id === (contratoFixo || contratos[0]?.id))));
 
   useEffect(() => {
     const c = contratos.find(x => x.id === contratoId);
-    if (c) setTecnicoId(c.tecnicoId || tecnicos[0]?.id || "");
+    if (c) setTecnicoId(tecPadrao(c));
   }, [contratoId]);
 
   const ehItm = tipo === "itm";
@@ -5253,7 +5254,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
         <Field label="Data"><input type="date" value={data} onChange={e => setData(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Técnico">
           <select value={tecnicoId} onChange={e => setTecnicoId(parseInt(e.target.value))} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }}>
-            {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+            {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}{meu && t.id === meu.id ? " (você)" : ""}</option>)}
           </select>
         </Field>
       </div>
@@ -5642,7 +5643,11 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
 function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft, onSaveDraft }) {
   const D = initialDraft || {};
   const contrato = !visita.avulsa ? contratos.find(c => c.id === visita.contratoId) : null;
-  const tecnico  = !visita.avulsa ? tecnicos.find(t => t.id === visita.tecnicoId) : tecnicos[0];
+  // técnico do relatório: quem está logado como técnico executa; senão, o técnico da visita (nunca "o primeiro da lista")
+  const { sessao } = useAuth();
+  const meu = meuTecnico(sessao, tecnicos);
+  const tecVisita = tecnicos.find(t => t.id === visita.tecnicoId) || null;
+  const tecnico  = (sessao?.perfil === "tecnico" && meu) ? meu : (tecVisita || meu || null);
   const tipoCfg  = TIPO_REL[visita.tipo || "inspecao"];
   const isNFPA   = tipoCfg.modo === "nfpa";
   const isStartup = tipoCfg.modo === "startup";
@@ -5662,6 +5667,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
     contratoNum: contrato?.id ? `CT-${contrato.id}` : "",
     os: "",
     inspetor: tecnico?.nome || "",
+    tecnicoId: tecnico?.id ?? null,
     licenca: tecnico?.licenca || "",
     contratado: "LS Fire",
     enderecoContratado: "lsfire.com.br",
@@ -5874,7 +5880,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
 
       {/* Conteúdo */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        {currentStep.id === "id"    && <StepIdentificacao state={identificacao} setState={setIdentificacao} isNFPA={isNFPA} isStartup={isStartup} />}
+        {currentStep.id === "id"    && <StepIdentificacao state={identificacao} setState={setIdentificacao} isNFPA={isNFPA} isStartup={isStartup} tecnicos={tecnicos} meuId={meu?.id ?? null} />}
         {currentStep.id === "id" && !isStartup && (
           <div className="max-w-3xl mx-auto mt-5">
             <div className="border rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap" style={{ borderColor: C.border, background: fazerPerformance ? C.orangeLight : "#fff" }}>
@@ -5904,7 +5910,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
         {currentStep.id === "perfeq" && <StepStartupDados startup={perfData} setStartup={setPerfData} soEquipamentos />}
         {currentStep.id === "perf"   && <StepStartupTestes startup={perfData} setStartup={setPerfData} />}
         {currentStep.id === "check" && <StepNFPA groups={nfpaGroups} setGroups={setNfpaGroups} freqs={visitaFreqs} equip={equipNFPA} setEquip={setEquipNFPA} />}
-        {currentStep.id === "std"   && <StepStartupDados startup={startup} setStartup={setStartup} />}
+        {currentStep.id === "std"   && <StepStartupDados startup={startup} setStartup={setStartup} tecnicos={tecnicos} meuId={meu?.id ?? null} />}
         {currentStep.id === "stc"   && <StepStartupChecklist startup={startup} setStartup={setStartup} />}
         {currentStep.id === "stt"   && <StepStartupTestes startup={startup} setStartup={setStartup} />}
         {currentStep.id === "cas"   && <StepCasas casas={casas} setCasas={setCasas} tipo={visita.tipo} />}
@@ -5913,7 +5919,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
         {currentStep.id === "des"   && <StepDeslocamento deslocs={deslocs} setDeslocs={setDeslocs} />}
         {currentStep.id === "tre"   && <StepTreinamento trein={trein} setTrein={setTrein} />}
         {currentStep.id === "obs"   && <StepObservacoes obs={obs} setObs={setObs} tipo={visita.tipo} />}
-        {currentStep.id === "ass"   && <StepAssinaturas assins={assins} setAssins={setAssins} />}
+        {currentStep.id === "ass"   && <StepAssinaturas assins={assins} setAssins={setAssins} tecnicos={tecnicos} meuId={meu?.id ?? null} />}
       </div>
 
       {/* Rodapé navegação */}
@@ -5945,7 +5951,37 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
 // ═══════════════════════════════════════════════════════════════════════════
 // STEPS DO ITM FLOW
 // ═══════════════════════════════════════════════════════════════════════════
-function StepIdentificacao({ state, setState, isNFPA, isStartup }) {
+// ─── técnico / inspetor ────────────────────────────────────────────────────
+// O inspetor do relatório é o técnico do cadastro. Quem está logado como técnico já vem preenchido: pelo vínculo do
+// login com o técnico (Usuários e acessos) e, sem vínculo (visualização no claude.ai), pelo nome igual ao do cadastro.
+const normNome = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+function meuTecnico(sessao, tecnicos) {
+  if (!sessao || !Array.isArray(tecnicos)) return null;
+  if (sessao.tecnicoId != null) { const t = tecnicos.find(x => String(x.id) === String(sessao.tecnicoId)); if (t) return t; }
+  if (sessao.perfil === "tecnico" && normNome(sessao.nome)) return tecnicos.find(x => normNome(x.nome) === normNome(sessao.nome)) || null;
+  return null;
+}
+// lista dos técnicos cadastrados; "Outro" abre o campo de texto (inspetor de fora da equipe)
+function CampoTecnico({ tecnicos, value, onPick, rotulo = "técnico", meuId = null }) {
+  const lista = Array.isArray(tecnicos) ? tecnicos : [];
+  const achado = lista.find(t => normNome(t.nome) && normNome(t.nome) === normNome(value));
+  const [outro, setOutro] = useState(() => !!String(value || "").trim() && !achado);
+  const selVal = outro ? "__outro" : (achado ? String(achado.id) : "");
+  const est = { borderColor: C.border };
+  return (
+    <div className="space-y-2">
+      <select aria-label={"Escolher o " + rotulo} value={selVal} className="w-full border rounded-lg px-3 py-2 text-sm" style={est}
+              onChange={e => { const v = e.target.value; if (v === "__outro") { setOutro(true); onPick(achado ? "" : (value || ""), null); return; } setOutro(false); const t = lista.find(x => String(x.id) === v); onPick(t ? t.nome : "", t || null); }}>
+        <option value="">— escolha o {rotulo} —</option>
+        {lista.map(t => <option key={t.id} value={String(t.id)}>{t.nome}{t.licenca ? " · " + t.licenca : ""}{meuId != null && String(t.id) === String(meuId) ? " (você)" : ""}</option>)}
+        <option value="__outro">Outro (digitar o nome)</option>
+      </select>
+      {outro && <input aria-label={"Nome do " + rotulo} value={value || ""} onChange={e => onPick(e.target.value, null)} placeholder="Nome de quem executou" className="w-full border rounded-lg px-3 py-2 text-sm" style={est} />}
+    </div>
+  );
+}
+
+function StepIdentificacao({ state, setState, isNFPA, isStartup, tecnicos = [], meuId = null }) {
   const upd = (k, v) => setState(s => ({ ...s, [k]: v }));
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -5975,11 +6011,12 @@ function StepIdentificacao({ state, setState, isNFPA, isStartup }) {
         <Field label="Código do Documento"><input value={state.codigo} onChange={e => upd("codigo", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
       </div>
 
-      <h3 className="text-sm font-bold mt-4" style={{ color: C.orangeDark }}>Período / Inspetor</h3>
+      <h3 className="text-sm font-bold mt-4" style={{ color: C.orangeDark }}>Período / Técnico (inspetor)</h3>
       <div className="grid md:grid-cols-4 gap-4">
         <Field label="Início da Execução"><input type="date" value={state.periodoIni} onChange={e => upd("periodoIni", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Fim da Execução"><input type="date" value={state.periodoFim} onChange={e => upd("periodoFim", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Inspetor"><input value={state.inspetor} onChange={e => upd("inspetor", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Técnico / Inspetor"><CampoTecnico tecnicos={tecnicos} meuId={meuId} rotulo="técnico (inspetor)" value={state.inspetor}
+          onPick={(nome, t) => setState(s => ({ ...s, inspetor: nome, tecnicoId: t ? t.id : null, ...(t ? { responsavel: t.nome, licenca: t.licenca || s.licenca } : {}) }))} /></Field>
         <Field label="Data de Emissão"><input type="date" value={state.dataEmissao} onChange={e => upd("dataEmissao", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
       </div>
 
@@ -6102,7 +6139,7 @@ function StepNFPA({ groups, setGroups, freqs, equip, setEquip }) {
   );
 }
 
-function StepStartupDados({ startup, setStartup, soEquipamentos = false }) {
+function StepStartupDados({ startup, setStartup, soEquipamentos = false, tecnicos = [], meuId = null }) {
   if (!startup) return null;
   const updInfo = (k, v) => setStartup(s => ({ ...s, info: { ...s.info, [k]: v } }));
   const updEquip = (id, key, value) => setStartup(s => ({
@@ -6138,7 +6175,7 @@ function StepStartupDados({ startup, setStartup, soEquipamentos = false }) {
         <h3 className="text-sm font-bold mb-3" style={{ color: TIPO_REL.startup.color }}>Identificação RQ 48</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Equipamento"><input value={startup.info.equipamento} onChange={e => updInfo("equipamento", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-          <Field label="Técnico Responsável"><input value={startup.info.tecnicoResponsavel} onChange={e => updInfo("tecnicoResponsavel", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+          <Field label="Técnico Responsável"><CampoTecnico tecnicos={tecnicos} meuId={meuId} rotulo="técnico responsável" value={startup.info.tecnicoResponsavel} onPick={(nome) => updInfo("tecnicoResponsavel", nome)} /></Field>
           <Field label="Local de Instalação"><input value={startup.info.localInstalacao} onChange={e => updInfo("localInstalacao", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
           <Field label="Nº de Série"><input value={startup.info.numeroSerie} onChange={e => updInfo("numeroSerie", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
           <Field label="Norma"><input value={startup.info.norma} onChange={e => updInfo("norma", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
@@ -6773,13 +6810,13 @@ function StepObservacoes({ obs, setObs, tipo }) {
   );
 }
 
-function StepAssinaturas({ assins, setAssins }) {
+function StepAssinaturas({ assins, setAssins, tecnicos = [], meuId = null }) {
   return (
     <div className="max-w-3xl mx-auto">
       <h2 className="text-xl font-black mb-4" style={{ color: C.gray }}>Assinaturas</h2>
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Responsável do Cliente"><input value={assins.cliente} onChange={e => setAssins({ ...assins, cliente: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Técnico LS Fire"><input value={assins.tecnico} onChange={e => setAssins({ ...assins, tecnico: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Técnico LS Fire"><CampoTecnico tecnicos={tecnicos} meuId={meuId} rotulo="técnico que assina" value={assins.tecnico} onPick={(nome) => setAssins({ ...assins, tecnico: nome })} /></Field>
       </div>
       <div className="grid md:grid-cols-2 gap-4 mt-4">
         <SignaturePad label="Assinatura do cliente" value={assins.clienteImg} onChange={img => setAssins(a => ({ ...a, clienteImg: img }))} />

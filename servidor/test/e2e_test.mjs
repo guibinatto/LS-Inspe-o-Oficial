@@ -28,7 +28,7 @@ try {
   await api("POST", "/api/usuarios", { login: "gestor", nome: "Gestor Serviço", pricer: "comercial", servico: "gestor", senha: "Senha1234" });
   await api("POST", "/api/usuarios", { login: "tecnico", nome: "Técnico Um", pricer: "nenhum", servico: "tecnico", tecnicoId: 1, senha: "Senha1234" });
   const dados = { contratos: [{ id: 1, codigo: "200001", cliente: "Indústria Exemplo", endereco: "Rua A, 100 — Joinville/SC", contato: "Eng. Ana", tecnicoId: 1, duracaoMeses: 12, valorMensal: 4800, dataInicio: "2026-11-01", validade: "2027-10-31", equipamentos: [] }],
-    tecnicos: [{ id: 1, nome: "Técnico Um", iniciais: "TU", cor: "#16A34A" }],
+    tecnicos: [{ id: 1, nome: "Técnico Um", iniciais: "TU", cor: "#16A34A", licenca: "CREA-SC 5072345" }, { id: 2, nome: "Técnica Dois", iniciais: "TD", cor: "#2563EB", licenca: "CREA-SC 8811223" }],
     relatorios: [{ id: 100, codigo: "700100", referencia: "700100", contratoId: 1, cliente: "Indústria Exemplo", tipo: "itm", modo: "nfpa", data: "2026-11-10", tecnicoId: 1, aprovacao: { status: "aprovado", supervisor: "Gestor" },
       grupos: [{ nome: "Bomba diesel", itens: [{ texto: "Vazamento na gaxeta da bomba", status: "nok", obs: "gotejamento contínuo" }, { texto: "Nível de óleo do motor", status: "ok" }] }] }] };
   await api("POST", "/api/sync", { deviceId: "seed", changes: Object.entries(dados).map(([key, v]) => ({ key, value: JSON.stringify(v), action: "set", updatedAt: new Date().toISOString() })) });
@@ -98,6 +98,24 @@ try {
   const semDb = await t.evaluate(() => fetch("/api/db/query", { method: "POST", headers: { "Content-Type": "application/json", "X-LSF": "1" }, body: JSON.stringify({ path: "propostas" }) }).then((x) => x.status));
   confere("técnico não lê propostas nem pelo console do navegador", semDb === 403, semDb);
   confere("celular: módulo sem rolagem lateral", await t.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  // técnico logado: ao agendar, ele vem como técnico da visita; no relatório, o inspetor é ele, com a licença do cadastro
+  const abreFab = async (txt) => { await t.click('button[aria-label="Nova ação"]'); await t.click(`button:has-text("${txt}")`); await t.waitForTimeout(500); };
+  await abreFab("Nova Visita");
+  const tecAg = await t.evaluate(() => { const s = [...document.querySelectorAll("select")].find((x) => [...x.options].some((o) => /Técnica Dois/.test(o.text))); return s ? s.options[s.selectedIndex].text : ""; });
+  confere("agendar: técnico logado já vem escolhido (marcado como você)", /Técnico Um \(você\)/.test(tecAg), tecAg);
+  await t.keyboard.press("Escape"); await t.waitForTimeout(300);
+  if (await t.$('button:has-text("Agendar")')) { const x = await t.$('[aria-label="Fechar"], button[title="Fechar"]'); if (x) await x.click(); }
+  await t.reload(); await t.waitForTimeout(2500);
+  await abreFab("Relatório Avulso");
+  await t.click('button:has-text("Iniciar")'); await t.waitForTimeout(1500);
+  const ins = await t.evaluate(() => { const s = document.querySelector('select[aria-label="Escolher o técnico (inspetor)"]'); const lic = [...document.querySelectorAll("label")].find((l) => /licen/i.test(l.innerText)); return { sel: s ? s.options[s.selectedIndex].text : "", opts: s ? [...s.options].map((o) => o.text) : [], lic: lic ? lic.querySelector("input").value : "" }; });
+  confere("relatório: inspetor é o técnico logado, escolhido na lista do cadastro", /^Técnico Um/.test(ins.sel) && ins.opts.some((o) => /Técnica Dois/.test(o)) && ins.opts.some((o) => /Outro/.test(o)), ins.sel + " | " + ins.opts.join(", "));
+  confere("relatório: licença do técnico logado já preenchida", ins.lic === "CREA-SC 5072345", ins.lic);
+  await t.selectOption('select[aria-label="Escolher o técnico (inspetor)"]', { label: "Técnica Dois · CREA-SC 8811223" }); await t.waitForTimeout(200);
+  const lic2 = await t.evaluate(() => [...document.querySelectorAll("label")].find((l) => /licen/i.test(l.innerText)).querySelector("input").value);
+  confere("relatório: trocar o técnico troca a licença", lic2 === "CREA-SC 8811223", lic2);
+  await t.selectOption('select[aria-label="Escolher o técnico (inspetor)"]', "__outro"); await t.waitForTimeout(200);
+  confere("relatório: \"Outro\" abre o campo para digitar o nome", !!(await t.$('input[aria-label="Nome do técnico (inspetor)"]')));
   await t.screenshot({ path: path.join(AQUI, "e2e_tecnico.png") });
   await ct.close();
   confere("sem erro de JavaScript", !errs.length, errs.slice(0, 3).join(" | "));

@@ -101,6 +101,11 @@ const FAKE = (perfil) => `(() => { if (window.top !== window) return;
     await fr.evaluate(() => [...document.querySelectorAll('nav button')].find((x) => /Contratos/.test(x.innerText)).click()); await p.waitForTimeout(800);
     const t2 = await fr.evaluate(() => document.body.innerText);
     confere('técnico vê o contrato sem valor', /Indústria Exemplo/.test(t2) && !/4\.800/.test(t2));
+    // sem vínculo de login no claude.ai: o técnico é achado pelo nome igual ao do cadastro
+    await fr.click('button[aria-label="Nova ação"]'); await fr.click('button:has-text("Nova Visita")'); await p.waitForTimeout(600);
+    const tecAg = await fr.evaluate(() => { const s = [...document.querySelectorAll('select')].find((x) => [...x.options].some((o) => /Técnico Um/.test(o.text))); return s ? s.options[s.selectedIndex].text : ''; });
+    confere('técnico agendando no claude.ai vem escolhido pelo nome (você)', /Técnico Um \(você\)/.test(tecAg), tecAg);
+    await fr.evaluate(() => location.reload()); await p.waitForTimeout(3000); fr = p.frames().find((f) => /servico-claude/.test(f.url()));
     await fr.evaluate(async () => { const r = JSON.parse((await window.storage.get('relatorios')).value); r[0].aprovacao = { status: 'aprovado' }; r.push({ id: 101, codigo: '700101', contratoId: 1, aprovacao: { status: 'aprovado' } }); await window.storage.set('relatorios', JSON.stringify(r)); });
     const r101 = await p.evaluate(() => window.__docs.get('svc_relatorios/101'));
     confere('relatório do técnico entra como pendente (não aprova)', r101 && r101.d.aprovacao.status === 'pendente');
