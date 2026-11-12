@@ -9,7 +9,9 @@ import { lerJson, gravadorJson } from "./arquivo.js";
 import { NIVEL_PRICER, PERFIS_SERVICO } from "./acesso.js";
 
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
-const MAX_FALHAS = 5, BLOQUEIO_MS = 15 * 60 * 1000;
+// bloqueio por senha errada: 5 erros do mesmo endereço travam aquele login só para aquele endereço (quem erra a senha de
+// outra pessoa não a tranca para fora); 25 erros somando todos os endereços travam o login para todos (ataque espalhado).
+const MAX_FALHAS = 5, MAX_FALHAS_TOTAL = 25, BLOQUEIO_MS = 15 * 60 * 1000;
 
 export function criarUsuarios(dataDir, { sessaoDias = 30 } = {}) {
   const ARQ_US = path.join(dataDir, "usuarios.json");
@@ -87,19 +89,22 @@ export function criarUsuarios(dataDir, { sessaoDias = 30 } = {}) {
       if (atual === nova) throw erro(400, "A senha nova precisa ser diferente da atual.");
       u.senha = credencial(nova); u.trocarSenha = false; gravaUs(); return limpo(u);
     },
-    entrar(login, senha) {
+    entrar(login, senha, ip) {
       login = normLogin(login); const agora = Date.now();
-      const f = falhas.get(login);
-      if (f && f.ate > agora) throw erro(429, "Muitas tentativas. Tente de novo em alguns minutos.");
+      const kIp = login + "|" + String(ip || "?");
+      const f = falhas.get(kIp), ft = falhas.get(login);
+      if ((f && f.ate > agora) || (ft && ft.ate > agora)) throw erro(429, "Muitas tentativas. Tente de novo em alguns minutos.");
       const u = db.usuarios.find((x) => x.login === login);
       // compara mesmo sem usuário, para não revelar quais logins existem pelo tempo de resposta
       const ok = u ? confere(u, senha) : (hashSenha(senha, "00".repeat(16)), false);
       if (!ok || !u.ativo) {
-        const n = (f && !(f.ate && f.ate <= agora) ? f.n : 0) + 1; // depois que um bloqueio vence, recomeça a contar
-        falhas.set(login, { n, ate: n >= MAX_FALHAS ? agora + BLOQUEIO_MS : 0 });
+        const conta = (x, max, k) => { const n = (x && !(x.ate && x.ate <= agora) ? x.n : 0) + 1; // depois que um bloqueio vence, recomeça a contar
+          falhas.set(k, { n, ate: n >= max ? agora + BLOQUEIO_MS : 0 }); };
+        conta(f, MAX_FALHAS, kIp); conta(ft, MAX_FALHAS_TOTAL, login);
+        if (falhas.size > 20000) for (const [k, v] of falhas) if (!v.ate || v.ate <= agora) falhas.delete(k); // não cresce sem fim
         throw erro(401, "Login ou senha incorretos.");
       }
-      falhas.delete(login);
+      falhas.delete(kIp);
       const token = crypto.randomBytes(32).toString("hex");
       ss.sessoes[sha(token)] = { userId: u.id, criada: agora, vista: agora };
       u.ultimoLogin = new Date(agora).toISOString(); gravaUs(); gravaSs();

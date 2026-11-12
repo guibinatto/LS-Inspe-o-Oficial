@@ -115,6 +115,39 @@ try {
   await sync(adm, { visitas: val(await sync(adm, {}), "visitas").concat([{ id: 11, contratoId: 2, tecnicoId: 1, data: "2026-12-05", status: "agendada" }]) });
   await sync(ges, { visitas: [{ id: 10, contratoId: 1, tecnicoId: 1, data: "2026-12-01", status: "em_andamento" }] }, new Date(Date.now() - 60000).toISOString());
   confere("visita nova de outro aparelho não some na sincronização", val(await sync(adm, {}), "visitas").some((v) => v.id === 11));
+  // ---- revisão de segurança: valores com outros nomes, aprovação forjada, notificações e auditoria ----
+  let base = await sync(adm, {});
+  await sync(adm, { contratos: val(base, "contratos").map((c) => (c.id === 1 ? Object.assign({}, c, { mensalidade: 5000, totalContrato: 60000, honorarioAnual: 48000, bdi: 0.27, equipamentos: [{ nome: "Bomba diesel", total: 18000, maoDeObra: 4000 }] }) : c)),
+    relatorios: val(base, "relatorios").concat([{ id: 102, codigo: "700102", contratoId: 1, cliente: "Cliente A", stats: { ok: 3, total: 4 }, aprovacao: { status: "pendente" } }]),
+    notificacoes: [{ id: 501, tipo: "aviso", texto: "aviso 1", lidaPor: [] }, { id: 502, tipo: "aviso", texto: "aviso 2", lidaPor: [] }] });
+  r = await sync(tec, {});
+  const c1t = val(r, "contratos").find((c) => c.id === 1);
+  confere("técnico não vê valor com outro nome (mensalidade, total, honorário, BDI, total do equipamento)", c1t && !/5000|60000|48000|0\.27|18000|4000/.test(JSON.stringify(c1t)) && c1t.equipamentos[0].nome === "Bomba diesel", JSON.stringify(c1t));
+  confere("técnico vê a contagem do relatório (stats.total não é dinheiro)", val(r, "relatorios").find((x) => x.id === 102).stats.total === 4);
+  const sT = new Date(Date.now() + 1000).toISOString();
+  await sync(tec, { relatorios: val(r, "relatorios").map((x) => (x.id === 102 ? Object.assign({}, x, { obsTecnico: "ok", aprovacao: { status: "Aprovado ", supervisor: "FALSO", aprovadoEm: "2026-01-01" } }) : x)),
+    visitas: val(r, "visitas").map((v) => (v.id === 10 ? Object.assign({}, v, { status: "concluida", relatorio: { id: 102, aprovacao: { status: "aprovado" } } }) : v)),
+    notificacoes: [], auditoria: [{ id: 999, usuario: "Administrador", login: "admin", acao: "excluiu tudo" }] }, sT);
+  base = await sync(adm, {});
+  const r102 = val(base, "relatorios").find((x) => x.id === 102);
+  confere("técnico não aprova escrevendo 'Aprovado ' (maiúsculas/espaço)", r102.aprovacao.status === "pendente" && !r102.aprovacao.supervisor && !r102.aprovacao.aprovadoEm && r102.obsTecnico === "ok", JSON.stringify(r102.aprovacao));
+  const v10 = val(base, "visitas").find((v) => v.id === 10);
+  confere("técnico não conclui a visita nem aprova a cópia do relatório nela", v10.status !== "concluida" && v10.relatorio && v10.relatorio.aprovacao.status === "pendente", JSON.stringify(v10));
+  confere("técnico não apaga notificações dos outros", val(base, "notificacoes").length === 2);
+  const aud = val(base, "auditoria").find((a) => a.id === 999);
+  confere("auditoria: o autor é quem está logado, não o que o aparelho diz", aud && aud.login === "tecnico" && aud.usuario === "Técnico Um", JSON.stringify(aud));
+  r = await sync(tec, {});
+  await sync(tec, { notificacoes: val(r, "notificacoes").map((n) => (n.id === 501 ? Object.assign({}, n, { lidaPor: [uTec.id], texto: "mudado" }) : n)) }, new Date(Date.now() + 1000).toISOString());
+  const n501 = val(await sync(adm, {}), "notificacoes").find((n) => n.id === 501);
+  confere("técnico marca a notificação como lida, sem mudar o texto", n501.lidaPor.includes(uTec.id) && n501.texto === "aviso 1");
+  // devolvido → técnico corrige e reenvia (volta a pendente, com a devolução no histórico)
+  base = await sync(ges, {});
+  await sync(ges, { relatorios: val(base, "relatorios").map((x) => (x.id === 102 ? Object.assign({}, x, { aprovacao: { status: "devolvido", motivo: "falta foto", devolvidoPor: "Gestor Serviço", devolvidoEm: "2026-11-01" } }) : x)) }, new Date(Date.now() + 1000).toISOString());
+  r = await sync(tec, {});
+  await sync(tec, { relatorios: val(r, "relatorios").map((x) => (x.id === 102 ? Object.assign({}, x, { fotos: 1, aprovacao: { status: "pendente", supervisor: "FALSO" } }) : x)) }, new Date(Date.now() + 1000).toISOString());
+  const r102b = val(await sync(adm, {}), "relatorios").find((x) => x.id === 102);
+  confere("reenvio do devolvido: volta a pendente, devolução no histórico, sem aprovador forjado", r102b.aprovacao.status === "pendente" && r102b.aprovacao.historico.length === 1 && r102b.aprovacao.historico[0].motivo === "falta foto" && r102b.aprovacao.supervisor !== "FALSO" && r102b.fotos === 1, JSON.stringify(r102b.aprovacao));
+  confere("caminho do banco com __proto__/constructor é recusado", (await adm.post("/api/db/set", { path: "constructor/prototype", data: { a: 1 } })).status >= 400 && (await adm.post("/api/db/set", { path: "propostas/__proto__", data: { a: 1 } })).status >= 400);
   // cliente
   const uCli = await cria({ login: "cliente.a", nome: "Cliente A", pricer: "nenhum", servico: "cliente", clienteId: 1 });
   const cli = await entra("cliente.a");

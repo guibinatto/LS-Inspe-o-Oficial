@@ -9,8 +9,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
-  --or:#E8570A; --or-ink:#B8440A; --or-soft:#FFF1E8; --or-line:#F6C9AE;
-  --ink:#1B1C1E; --ink2:#4E5157; --ink3:#83868C; --line:#E4E2DE; --line2:#D2CFC9;
+  --or:#E8570A; --or-fill:#C94A06; --or-fill-h:#A93E05; --or-ink:#B8440A; --or-soft:#FFF1E8; --or-line:#F6C9AE;
+  --ink:#1B1C1E; --ink2:#4E5157; --ink3:#6B6E74; --line:#E4E2DE; --line2:#D2CFC9;
   --bg:#F4F3F0; --card:#FFFFFF; --bar:#1E1F21; --bar-ink:#F1EFEA; --bar-dim:#9C9EA3;
   --entry:#FFF7DD; --entry-line:#EBD58C; --auto:#EDF5F0; --auto-line:#BFD9C8; --auto-ink:#2F6B46;
   --ok:#1E7A45; --ok-bg:#E6F4EC; --bad:#B42F22; --bad-bg:#FCEBE8; --warn:#9A6200; --warn-bg:#FDF4DE;
@@ -19,8 +19,8 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   color-scheme:dark;
-  --or:#FF7A33; --or-ink:#FF9A62; --or-soft:#3A2418; --or-line:#6B3A20;
-  --ink:#ECEAE6; --ink2:#B9B6B0; --ink3:#8A8781; --line:#34332F; --line2:#46443F;
+  --or:#FF7A33; --or-fill:#C94A06; --or-fill-h:#B04005; --or-ink:#FF9A62; --or-soft:#3A2418; --or-line:#6B3A20;
+  --ink:#ECEAE6; --ink2:#B9B6B0; --ink3:#9A978F; --line:#34332F; --line2:#46443F;
   --bg:#161615; --card:#1F1F1D; --bar:#0E0E0D; --bar-ink:#F1EFEA; --bar-dim:#8E8C87;
   --entry:#35301B; --entry-line:#6A5B24; --auto:#1B2B22; --auto-line:#2F5140; --auto-ink:#8CD3A8;
   --ok:#6FCF97; --ok-bg:#16301F; --bad:#FF8A7A; --bad-bg:#3A1B17; --warn:#F2C04E; --warn-bg:#352A12;
@@ -28,8 +28,8 @@
 }}
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --or:#FF7A33; --or-ink:#FF9A62; --or-soft:#3A2418; --or-line:#6B3A20;
-  --ink:#ECEAE6; --ink2:#B9B6B0; --ink3:#8A8781; --line:#34332F; --line2:#46443F;
+  --or:#FF7A33; --or-fill:#C94A06; --or-fill-h:#B04005; --or-ink:#FF9A62; --or-soft:#3A2418; --or-line:#6B3A20;
+  --ink:#ECEAE6; --ink2:#B9B6B0; --ink3:#9A978F; --line:#34332F; --line2:#46443F;
   --bg:#161615; --card:#1F1F1D; --bar:#0E0E0D; --bar-ink:#F1EFEA; --bar-dim:#8E8C87;
   --entry:#35301B; --entry-line:#6A5B24; --auto:#1B2B22; --auto-line:#2F5140; --auto-ink:#8CD3A8;
   --ok:#6FCF97; --ok-bg:#16301F; --bad:#FF8A7A; --bad-bg:#3A1B17; --warn:#F2C04E; --warn-bg:#352A12;
@@ -68,7 +68,7 @@ body.side-mini .nav button,body.side-mini .side-col{justify-content:center;paddi
 body.side-mini .nav .nbadge{position:absolute;top:2px;right:4px}
 .navq{padding:2px 2px 8px}.navq input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--bar-ink);border-radius:8px;padding:7px 10px;font-size:13.5px}.navq input::placeholder{color:var(--bar-dim)}.navq input:focus{outline:2px solid var(--or);outline-offset:1px}
 .navg{display:flex;flex-direction:column;gap:2px;margin-top:6px}
-.nav .navgh{font-size:11.5px;letter-spacing:.1em;padding:6px 12px 4px;color:var(--bar-dim);opacity:.85;justify-content:space-between}
+.nav .navgh{font-size:11.5px;letter-spacing:.1em;padding:6px 12px 4px;color:var(--bar-dim);justify-content:space-between}
 .nav .navgh::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s ease;margin-right:4px}
 .nav .navgh[aria-expanded="true"]::after{transform:rotate(45deg)}
 .navsub{display:flex;flex-direction:column;gap:1px;margin:0 0 4px 12px;padding-left:8px;border-left:1px solid rgba(255,255,255,.1)}
@@ -143,8 +143,8 @@ body.side-mini .nav [data-view]:hover::after,body.side-mini .nav [data-view]:foc
 .btn:hover{border-color:var(--or)}
 .btn:active{transform:translateY(1px)}
 .btn:disabled,.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
-.btn.pri{background:var(--or);border-color:var(--or);color:#fff}
-.btn.pri:hover{background:var(--or-ink);border-color:var(--or-ink)}
+.btn.pri{background:var(--or-fill);border-color:var(--or-fill);color:#fff}
+.btn.pri:hover{background:var(--or-fill-h);border-color:var(--or-fill-h)}
 .btn.ghost{background:transparent;border-color:rgba(255,255,255,.18);color:var(--bar-ink)}
 .btn.ghost:hover{border-color:var(--or)}
 .hbtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}.hbtns .btn{margin:0;white-space:nowrap}
@@ -413,7 +413,7 @@ select.moeda,td select[data-sp$=".moeda"]{min-width:64px}
 /* modo simples */
 .fields > .f{align-content:start}
 .f > small.sub{font-size:12px;line-height:1.35}
-.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}.thumbs button{border:2px solid var(--line);border-radius:6px;padding:2px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--ink2)}.thumbs button.on{border-color:#e4650e;box-shadow:0 0 0 2px rgba(228,101,14,.25)}.thumbs img{height:104px;display:block}.req{color:var(--accent,#e8590c);font-weight:700}.f > label .req{margin-right:auto;margin-left:-2px}.pctl{align-items:center;gap:6px}.pctl .unit{color:var(--ink3);font-size:13px}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}.thumbs button{border:2px solid var(--line);border-radius:6px;padding:2px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--ink2)}.thumbs button.on{border-color:#e4650e;box-shadow:0 0 0 2px rgba(228,101,14,.25)}.thumbs img{height:104px;display:block}.req:not(.f){color:var(--or-ink);font-weight:700}.sub select{color:var(--ink2);background:var(--card)}.f > label .req{margin-right:auto;margin-left:-2px}.pctl{align-items:center;gap:6px}.pctl .unit{color:var(--ink3);font-size:13px}
 .pctl input,.pctl select,.t.reg td.in input,.t.reg td.in select{width:100%;min-width:0;border:1px solid var(--entry-line);background:var(--entry);border-radius:6px;padding:5px 8px;font-size:14px}
 .pctl input.over,.pctl select.over,.t.reg td.in .over{border-color:var(--or)}
 .t.reg td.in input{min-width:110px}
@@ -453,7 +453,7 @@ select.moeda,td select[data-sp$=".moeda"]{min-width:64px}
 .step b{display:block;font-family:var(--f-cond);font-size:16px;letter-spacing:.04em;text-transform:uppercase}
 .step small{display:block;color:var(--ink3);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .step.on{border-color:var(--or);box-shadow:inset 0 -3px 0 var(--or)}
-.step.on .sn{background:var(--or);color:#fff;border-color:var(--or)}
+.step.on .sn{background:var(--or-fill);color:#fff;border-color:var(--or-fill)}
 .step.done .sn{background:var(--ok-bg);color:var(--ok);border-color:transparent}
 @media (max-width:640px){.steps{grid-template-columns:1fr}}
 .steps.six{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.steps.six .step{padding:8px 9px;gap:7px}.steps.six .step b{font-size:14px}.steps.six .step small{font-size:11.5px}
@@ -513,7 +513,7 @@ button.start{cursor:pointer}
 button.start:hover{border-color:var(--or)}
 .start b{font-family:var(--f-cond);font-size:22px;font-weight:700;letter-spacing:.02em}
 .start small{color:var(--ink3);font-size:13.5px}
-.start .tag,.divb{display:inline-block;font-family:var(--f-cond);font-weight:700;letter-spacing:.08em;font-size:12.5px;padding:1px 8px;border-radius:5px;background:var(--or);color:#fff}
+.start .tag,.divb{display:inline-block;font-family:var(--f-cond);font-weight:700;letter-spacing:.08em;font-size:12.5px;padding:1px 8px;border-radius:5px;background:var(--or-fill);color:#fff}
 .divb{justify-self:start}.start .tag{justify-self:center}
 .start.spv .tag,.divb.spv{background:var(--ink);color:var(--card)}
 .tchips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px;width:100%}
@@ -578,7 +578,7 @@ small.hist{color:var(--auto-ink);font-size:11.5px}
 .t td.in input[data-robs]{text-align:left;min-width:160px}
 .alerts li.ack{background:var(--bg);color:var(--ink2)}
 .alerts .alact{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
-.nbadge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--or);color:#fff;font-size:11px;line-height:18px;text-align:center;vertical-align:1px}
+.nbadge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--or-fill);color:#fff;font-size:11px;line-height:18px;text-align:center;vertical-align:1px}
 .seg{display:inline-flex;flex-wrap:wrap;gap:4px}
 .f.req > label{justify-content:flex-start;gap:3px}.f.req > label::after{content:"*";color:var(--bad,#c0392b)}
 .f.miss input,.f.miss select,.f.miss .seg,.f.miss .autov{outline:2px solid var(--bad,#c0392b);outline-offset:1px;border-radius:7px}
@@ -912,6 +912,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" data-go="documentos" data-ico="paperclip"><span class="nl">Documentos</span></button>
       </div>
     </div>
+    <!-- logo depois do Comercial: proposta ganha → contrato → atendimento em campo -->
+    <div class="navg" id="navServico" hidden>
+      <button data-view="servico" data-ico="wrench" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
+    </div>
     <div class="navg" data-navg="cadastros">
       <button type="button" class="navgh" data-navgt="cadastros" aria-expanded="false" aria-controls="navs_cadastros"><span class="nl">Cadastros</span></button>
       <button data-view="cadastro" data-ico="database" title="Cadastros"><span class="nl">Cadastros</span></button>
@@ -954,9 +958,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check"><span class="nl">Auditoria de cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
       </div>
-    </div>
-    <div class="navg" id="navServico" hidden>
-      <button data-view="servico" data-ico="wrench" title="Serviço de campo: contratos de manutenção, agenda, técnicos, inspeções NFPA 25/20 e relatórios"><span class="nl">Serviço de campo</span></button>
     </div>
     <div class="navg" data-navg="admin">
       <button type="button" class="navgh" data-navgt="admin" aria-expanded="false" aria-controls="navs_admin"><span class="nl">Administração</span></button>
@@ -8854,7 +8855,9 @@ window.PRICER_ESCOPO_PADRAO = {
     let n = 0;
     for (const b of document.querySelectorAll('#nav [data-view], #nav [data-go]')) {
       const nl = b.querySelector('.nl'); const t = nl ? (nl.dataset.t || (nl.dataset.t = nl.textContent)) : '';
-      const ok = !nq || normMenu(t).includes(nq); b.hidden = !ok; if (ok) n++;
+      // grupo que não vale para este usuário (ex.: Serviço de campo sem acesso) não entra na contagem nem aparece na pesquisa
+      const fora = !!b.closest('.navg[hidden]');
+      const ok = !fora && (!nq || normMenu(t).includes(nq)); b.hidden = !ok; if (ok) n++;
       if (nl) { if (nq && ok) { const i = normMenu(t).indexOf(nq); nl.innerHTML = esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length)); } else nl.textContent = t; }
     }
     for (const h of document.querySelectorAll('#nav [data-navgt]')) { const k = h.dataset.navgt; const sb = document.getElementById('navs_' + k);
@@ -8948,7 +8951,7 @@ window.PRICER_ESCOPO_PADRAO = {
     for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
       const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : false));
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
-    if (!LSF()) { const ns = document.getElementById('navServico'); if (ns) ns.hidden = !SVC_CLAUDE(); }
+    if (!LSF()) { const ns = document.getElementById('navServico'); if (ns) { ns.hidden = !SVC_CLAUDE(); if (!ns.hidden && !String($('#navQ').value || '').trim()) for (const b of ns.querySelectorAll('[data-view]')) b.hidden = false; } }
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
     if (ui.view === 'servico') { atualizaSaveSt(); decorar(document); return; }
@@ -13943,7 +13946,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 02:59 · commit 881a246</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 03:47 · commit 9505a71</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14285,7 +14288,7 @@ window.PRICER_ESCOPO_PADRAO = {
   }
   window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe'); if (e.data && e.data.tipo === 'lsf-orcamento' && (e.origin === location.origin || (fr && e.source === fr.contentWindow))) orcamentoDoRelatorio(e.data.relatorioId); });
   if (LSF()) {
-    window.LSF.me().then((m) => { lsfMe = m; const n = document.getElementById('navServico'); if (n) n.hidden = !temServico(); contaBtn(); render(); }).catch(() => {});
+    window.LSF.me().then((m) => { lsfMe = m; const n = document.getElementById('navServico'); if (n) { n.hidden = !temServico(); if (!n.hidden) for (const b of n.querySelectorAll('[data-view]')) b.hidden = false; } contaBtn(); render(); }).catch(() => {});
 
     const q = new URLSearchParams(location.search).get('orcRel'); if (q) { history.replaceState(null, '', location.pathname); setTimeout(() => orcamentoDoRelatorio(q), 1200); }
   }

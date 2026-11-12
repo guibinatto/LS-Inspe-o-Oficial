@@ -370,7 +370,9 @@
     let n = 0;
     for (const b of document.querySelectorAll('#nav [data-view], #nav [data-go]')) {
       const nl = b.querySelector('.nl'); const t = nl ? (nl.dataset.t || (nl.dataset.t = nl.textContent)) : '';
-      const ok = !nq || normMenu(t).includes(nq); b.hidden = !ok; if (ok) n++;
+      // grupo que não vale para este usuário (ex.: Serviço de campo sem acesso) não entra na contagem nem aparece na pesquisa
+      const fora = !!b.closest('.navg[hidden]');
+      const ok = !fora && (!nq || normMenu(t).includes(nq)); b.hidden = !ok; if (ok) n++;
       if (nl) { if (nq && ok) { const i = normMenu(t).indexOf(nq); nl.innerHTML = esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length)); } else nl.textContent = t; }
     }
     for (const h of document.querySelectorAll('#nav [data-navgt]')) { const k = h.dataset.navgt; const sb = document.getElementById('navs_' + k);
@@ -464,7 +466,7 @@
     for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
       const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : false));
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
-    if (!LSF()) { const ns = document.getElementById('navServico'); if (ns) ns.hidden = !SVC_CLAUDE(); }
+    if (!LSF()) { const ns = document.getElementById('navServico'); if (ns) { ns.hidden = !SVC_CLAUDE(); if (!ns.hidden && !String($('#navQ').value || '').trim()) for (const b of ns.querySelectorAll('[data-view]')) b.hidden = false; } }
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
     if (ui.view === 'servico') { atualizaSaveSt(); decorar(document); return; }
@@ -5801,7 +5803,7 @@
   }
   window.addEventListener('message', (e) => { const fr = document.querySelector('#svcHost iframe'); if (e.data && e.data.tipo === 'lsf-orcamento' && (e.origin === location.origin || (fr && e.source === fr.contentWindow))) orcamentoDoRelatorio(e.data.relatorioId); });
   if (LSF()) {
-    window.LSF.me().then((m) => { lsfMe = m; const n = document.getElementById('navServico'); if (n) n.hidden = !temServico(); contaBtn(); render(); }).catch(() => {});
+    window.LSF.me().then((m) => { lsfMe = m; const n = document.getElementById('navServico'); if (n) { n.hidden = !temServico(); if (!n.hidden) for (const b of n.querySelectorAll('[data-view]')) b.hidden = false; } contaBtn(); render(); }).catch(() => {});
 
     const q = new URLSearchParams(location.search).get('orcRel'); if (q) { history.replaceState(null, '', location.pathname); setTimeout(() => orcamentoDoRelatorio(q), 1200); }
   }

@@ -11,6 +11,7 @@
 import express from "express";
 import crypto from "crypto";
 import fs from "fs";
+import zlib from "zlib";
 import path from "path";
 import { fileURLToPath } from "url";
 import { lerJson, gravadorJson } from "./lib/arquivo.js";
@@ -81,7 +82,11 @@ if (BACKUP_INTERVAL_HORAS > 0) { setTimeout(() => fazerBackup("inicial"), 10000)
 // ---- app ----
 const app = express();
 app.disable("x-powered-by");
-app.set("trust proxy", process.env.TRUST_PROXY === "0" ? false : 1);
+// Endereço de quem chama: só se confia no X-Forwarded-For quando quem repassa é o proxy desta mesma máquina (o Caddy do
+// INSTALACAO-TI.md). Exposto direto, o cabeçalho é ignorado e o limite por IP não pode ser burlado. Proxy em outra máquina:
+// TRUST_PROXY=<ip do proxy>. TRUST_PROXY=0 desliga.
+const TP = String(process.env.TRUST_PROXY ?? "").trim();
+app.set("trust proxy", TP === "0" ? false : TP ? TP.split(",").map((x) => x.trim()) : "loopback");
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "same-origin");
@@ -134,7 +139,7 @@ const meDe = (u) => ({ id: u.id, login: u.login, nome: u.nome, email: u.email ||
 app.get("/api/health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 app.post("/api/login", limite(20), json, trata(async (req, res) => {
   const { login, senha } = req.body || {};
-  const r = usuarios.entrar(login, senha); poeCookie(req, res, r.token);
+  const r = usuarios.entrar(login, senha, req.ip); poeCookie(req, res, r.token);
   res.json({ ok: true, me: meDe(usuarios.porId(r.usuario.id)) });
 }));
 app.post("/api/logout", (req, res) => { usuarios.sair(req.token); tiraCookie(req, res); res.json({ ok: true }); });
@@ -227,7 +232,7 @@ app.post("/api/sync", exigeServico, json, trata(async (req, res) => {
       const meta = (store._meta[ch.key] = store._meta[ch.key] || {});
       const r = juntar(ch.key, lista(ch.key), recebidos, req.user, meta, { ultimaSinc: typeof lastSync === "string" ? lastSync : null, agora });
       ignorados += r.ignorados;
-      if (r.mudou) { const arr = ch.key === "auditoria" ? r.lista.slice(-3000) : r.lista; guardaLista(ch.key, arr, agora); }
+      if (r.mudou) { const arr = ch.key === "auditoria" ? r.lista.slice(-3000) : ch.key === "notificacoes" ? r.lista.slice(-1000) : r.lista; guardaLista(ch.key, arr, agora); }
     }
     realinharContadores();
   }
@@ -317,18 +322,26 @@ app.post("/api/backup", adminOuToken, (_req, res) => { const d = fazerBackup("ma
 
 // ---------------- páginas ----------------
 const SHIM = '<script src="/lsf-shim.js"></script>';
-let cachePricer = { mtime: 0, html: "" };
+// O Pricer tem ~9 MB. Vai comprimido (gzip, ~1/5 do tamanho) e com ETag: o navegador guarda a cópia e, a cada visita,
+// só pergunta se mudou (304 sem corpo). Como o acesso é conferido antes, quem não tem nível no Pricer continua sem recebê-lo.
+let cachePricer = { mtime: 0, html: "", gz: null, etag: "" };
 function htmlPricer() {
   const st = fs.statSync(PRICER_HTML);
   if (st.mtimeMs !== cachePricer.mtime) { const h = fs.readFileSync(PRICER_HTML, "utf-8"); const i = h.search(/<head[^>]*>/i);
-    cachePricer = { mtime: st.mtimeMs, html: i >= 0 ? h.replace(/<head[^>]*>/i, (m) => m + SHIM) : SHIM + h }; }
-  return cachePricer.html;
+    const html = i >= 0 ? h.replace(/<head[^>]*>/i, (m) => m + SHIM) : SHIM + h;
+    cachePricer = { mtime: st.mtimeMs, html, gz: zlib.gzipSync(Buffer.from(html, "utf-8"), { level: 6 }), etag: '"' + crypto.createHash("sha1").update(html).digest("hex").slice(0, 20) + '"' }; }
+  return cachePricer;
 }
 app.get(["/", "/index.html"], (req, res) => {
   if (!req.user) return res.redirect(302, "/login");
   if (nivelPricer(req.user) < 1) return res.redirect(302, perfilServico(req.user) ? "/servico/" : "/login?semacesso=1");
   if (!fs.existsSync(PRICER_HTML)) return res.status(503).send("O arquivo do Pricer ainda não foi copiado para servidor/app/pricer.html (veja INSTALACAO-TI.md).");
-  res.setHeader("Cache-Control", "no-store"); res.type("html").send(htmlPricer());
+  const pc = htmlPricer();
+  res.setHeader("Cache-Control", "private, no-cache"); res.setHeader("ETag", pc.etag); res.setHeader("Vary", "Accept-Encoding, Cookie");
+  if (String(req.headers["if-none-match"] || "").split(/\s*,\s*/).includes(pc.etag)) return res.status(304).end();
+  res.type("html");
+  if (/\bgzip\b/.test(String(req.headers["accept-encoding"] || ""))) { res.setHeader("Content-Encoding", "gzip"); return res.send(pc.gz); }
+  res.send(pc.html);
 });
 app.get("/login", (_req, res) => { res.setHeader("Cache-Control", "no-store"); res.sendFile(path.join(PUBLIC_DIR, "login.html")); });
 app.use("/servico", express.static(path.join(PUBLIC_DIR, "servico"), { index: "index.html", maxAge: 0, setHeaders: (res, p) => { if (/sw\.js$|index\.html$|manifest/.test(p)) res.setHeader("Cache-Control", "no-cache"); } }));

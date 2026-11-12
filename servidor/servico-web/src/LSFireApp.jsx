@@ -345,6 +345,7 @@ function LogoLSFire({ size = 36, escuro = false }) {
 // Paleta = a do LS Pricer (variáveis CSS definidas em GlobalFonts, com tema claro e escuro iguais aos do Pricer)
 const C = {
   orange: "var(--or)",
+  orangeFill: "var(--or-fill)",
   orangeDark: "var(--or-ink)",
   orangeLight: "var(--or-soft)",
   orangeBg: "var(--or-line)",
@@ -1867,7 +1868,7 @@ function PumpCurveChart({ teste, compact = false }) {
     { key: "reference", label: "Curva fabricante/projeto", color: C.gray, dash: "" },
     { key: "discharge", label: "Recalque", color: C.blue, dash: "" },
     { key: "suction", label: "Sucção", color: C.amber, dash: "6 4" },
-    { key: "net", label: "Pressão líquida", color: C.orange, dash: "" },
+    { key: "net", label: "Pressão líquida", color: C.orangeDark, dash: "" },
     { key: "adjusted", label: "Líquida ajustada RPM", color: C.ok, dash: "4 4" },
   ].map(d => ({ ...d, points: series[d.key] || [] })).filter(d => d.points.length);
 
@@ -2029,11 +2030,19 @@ function PumpPowerChart({ teste, compact = false }) {
   );
 }
 
+// a cor escolhida para o técnico é escurecida só na tela, para as iniciais em branco ficarem legíveis (contraste 4,5:1)
+function corAvatar(c) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(c || "")); if (!m) return c || "#6B6E74";
+  const n = parseInt(m[1], 16), f = 0.72;
+  const h = (v) => Math.round(v * f).toString(16).padStart(2, "0");
+  return "#" + h(n >> 16) + h((n >> 8) & 255) + h(n & 255);
+}
+
 function Avatar({ tec, size = 32 }) {
   if (!tec) return null;
   return (
     <div className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-         style={{ width: size, height: size, background: tec.cor, fontSize: size * 0.4 }} title={tec.nome}>
+         style={{ width: size, height: size, background: corAvatar(tec.cor), fontSize: size * 0.4 }} title={tec.nome}>
       {tec.iniciais}
     </div>
   );
@@ -2161,7 +2170,7 @@ function SignaturePad({ label, value, onChange }) {
                 onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end} />
       </div>
       <div className="flex justify-end mt-1">
-        <button type="button" onClick={limpar} className="text-[11px] font-bold" style={{ color: C.orange }}>Limpar assinatura</button>
+        <button type="button" onClick={limpar} className="text-[11px] font-bold" style={{ color: C.orangeDark }}>Limpar assinatura</button>
       </div>
     </div>
   );
@@ -2203,7 +2212,7 @@ function AttachmentInput({ label, categoria, onAdd, accept, multiple = true, req
   };
   return (
     <label className="cursor-pointer px-3 py-2 rounded-lg text-xs font-bold border flex items-center gap-2"
-           style={{ borderColor: required ? C.orange : C.border, color: required ? C.orange : C.gray }}>
+           style={{ borderColor: required ? C.orange : C.border, color: required ? C.orangeDark : C.gray }}>
       <FilePlus2 size={14} /> {label}
       <input type="file" accept={accept} multiple={multiple} className="hidden"
              onChange={e => { handleFiles(e.target.files); e.target.value = ""; }} />
@@ -2217,13 +2226,13 @@ function AttachmentList({ anexos = [], onRemove, empty = "Nenhum anexo" }) {
     <div className="space-y-2">
       {anexos.map(a => (
         <div key={a.id} className="border rounded-lg px-3 py-2 flex items-center gap-3" style={{ borderColor: C.border }}>
-          <FileText size={14} style={{ color: C.orange }} />
+          <FileText size={14} style={{ color: C.orangeDark }} />
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold truncate" style={{ color: C.gray }}>{a.nome}</div>
             <div className="text-[10px]" style={{ color: C.grayMid }}>{a.categoria} · {formatBytes(a.tamanho)}</div>
           </div>
           {a.data && (
-            <a href={a.data} download={a.nome} className="text-[10px] font-bold underline" style={{ color: C.orange }}>
+            <a href={a.data} download={a.nome} className="text-[10px] font-bold underline" style={{ color: C.orangeDark }}>
               Baixar
             </a>
           )}
@@ -2266,13 +2275,13 @@ function AttachmentDocumentList({ anexos = [], empty = "Nenhum anexo" }) {
         return (
           <div key={a.id} className="border rounded-lg overflow-hidden" style={{ borderColor: C.border }}>
             <div className="px-3 py-2 flex items-center gap-3" style={{ background: C.grayLight }}>
-              <FileText size={14} style={{ color: C.orange }} />
+              <FileText size={14} style={{ color: C.orangeDark }} />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold truncate" style={{ color: C.gray }}>{a.nome}</div>
                 <div className="text-[10px]" style={{ color: C.grayMid }}>{a.categoria} · {formatBytes(a.tamanho)} · {a.tipo || "arquivo"}</div>
               </div>
               {a.data && (
-                <a href={a.data} download={a.nome} className="text-[10px] font-bold underline print:hidden" style={{ color: C.orange }}>
+                <a href={a.data} download={a.nome} className="text-[10px] font-bold underline print:hidden" style={{ color: C.orangeDark }}>
                   Baixar
                 </a>
               )}
@@ -2338,15 +2347,15 @@ function VisitaFreqsPills({ visita, max = 4 }) {
 }
 
 // Mesmo design do LS Pricer: fontes Barlow / Barlow Condensed / IBM Plex Mono, cores e tema claro/escuro.
-const TOKENS_CLARO = `--or:#E8570A; --or-ink:#B8440A; --or-soft:#FFF1E8; --or-line:#F6C9AE;
-  --ink:#1B1C1E; --ink2:#4E5157; --ink3:#83868C; --line:#E4E2DE; --line2:#D2CFC9;
+const TOKENS_CLARO = `--or:#E8570A; --or-fill:#C94A06; --or-fill-h:#A93E05; --or-ink:#B8440A; --or-soft:#FFF1E8; --or-line:#F6C9AE;
+  --ink:#1B1C1E; --ink2:#4E5157; --ink3:#6B6E74; --line:#E4E2DE; --line2:#D2CFC9;
   --bg:#F4F3F0; --card:#FFFFFF; --bar:#1E1F21; --bar-ink:#F1EFEA; --bar-dim:#9C9EA3;
   --ok:#1E7A45; --ok-bg:#E6F4EC; --bad:#B42F22; --bad-bg:#FCEBE8; --warn:#9A6200; --warn-bg:#FDF4DE;
   --blue:#2A63B8; --blue-bg:#E8F0FB; --purple:#7A3EB8; --purple-bg:#F2EAFB;
   --shadow:0 1px 2px rgba(30,20,10,.06),0 2px 8px rgba(30,20,10,.05); --row-h:#FBF8F4;`;
 const TOKENS_ESCURO = `color-scheme:dark;
-  --or:#FF7A33; --or-ink:#FF9A62; --or-soft:#3A2418; --or-line:#6B3A20;
-  --ink:#ECEAE6; --ink2:#B9B6B0; --ink3:#8A8781; --line:#34332F; --line2:#46443F;
+  --or:#FF7A33; --or-fill:#C94A06; --or-fill-h:#B04005; --or-ink:#FF9A62; --or-soft:#3A2418; --or-line:#6B3A20;
+  --ink:#ECEAE6; --ink2:#B9B6B0; --ink3:#9A978F; --line:#34332F; --line2:#46443F;
   --bg:#161615; --card:#1F1F1D; --bar:#0E0E0D; --bar-ink:#F1EFEA; --bar-dim:#8E8C87;
   --ok:#6FCF97; --ok-bg:#16301F; --bad:#FF8A7A; --bad-bg:#3A1B17; --warn:#F2C04E; --warn-bg:#352A12;
   --blue:#7FB0F2; --blue-bg:#18243A; --purple:#C29BF0; --purple-bg:#2A1E3A;
@@ -2389,7 +2398,7 @@ function GlobalFonts() {
       .lsfire-app-shell ::selection { background: var(--or-soft); }
       /* menu lateral e barra do celular: iguais aos do Pricer (fundo escuro, letras condensadas, marca laranja no item ativo) */
       .lsf-side { background: var(--bar) !important; color: var(--bar-ink); border-color: transparent !important;
-        --card: transparent; --bg: rgba(255,255,255,.06); --row-h: rgba(255,255,255,.05); --ink: var(--bar-ink); --ink2: var(--bar-dim); --ink3: var(--bar-dim); --line: rgba(255,255,255,.12); --line2: rgba(255,255,255,.18); }
+        --card: transparent; --bg: rgba(255,255,255,.06); --row-h: rgba(255,255,255,.05); --ink: var(--bar-ink); --ink2: var(--bar-dim); --ink3: var(--bar-dim); --blue: #8AB4FF; --bad: #FF8A7A; --line: rgba(255,255,255,.12); --line2: rgba(255,255,255,.18); }
       .lsf-nav-btn { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 12px; margin-bottom: 2px; border: 0; border-radius: 9px; background: none; cursor: pointer; text-align: left;
         color: var(--bar-dim); font-family: var(--f-cond); font-weight: 600; font-size: 15.5px; letter-spacing: .04em; text-transform: uppercase; }
       .lsf-nav-btn:hover { color: var(--bar-ink); background: rgba(255,255,255,.05); }
@@ -3161,7 +3170,7 @@ export default function App() {
         <div className="text-center max-w-sm">
           <LogoLSFire size={60} />
           <div className="mt-4 text-sm" style={{ color: C.gray }}>Seu usuário não tem acesso ao Serviço de campo, ou a sessão terminou.</div>
-          <a href="/login?volta=/servico/" className="inline-block mt-4 px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.orange }}>Entrar</a>
+          <a href="/login?volta=/servico/" className="inline-block mt-4 px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.orangeFill }}>Entrar</a>
         </div>
       </div>
     );
@@ -3232,7 +3241,7 @@ export default function App() {
             {(() => { const Pi = PERFIS[perfilAtual]?.Icon || User; return <Pi size={18} style={{ color: PERFIS[perfilAtual]?.cor }} />; })()}
             <div className="flex-1 min-w-0">
               <div className="text-xs font-bold truncate" style={{ color: C.gray }}>{sessao.nome}</div>
-              <div className="text-[10px] truncate" style={{ color: PERFIS[perfilAtual]?.cor }}>{PERFIS[perfilAtual]?.nome}</div>
+              <div className="text-[10px] truncate" style={{ color: "var(--bar-dim)" }}>{PERFIS[perfilAtual]?.nome}</div>
             </div>
           </div>
           {(sessao.nivelPricer || 0) >= 1 && window.top === window && (
@@ -3293,33 +3302,33 @@ export default function App() {
             {can(perfilAtual, "agendar") && (
               <button onClick={() => { setNewVisitOpen({}); setFabOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded text-sm font-semibold flex items-center gap-2 hover:bg-orange-50">
-                <Calendar size={16} style={{ color: C.orange }} /> Nova Visita
+                <Calendar size={16} style={{ color: C.orangeDark }} /> Nova Visita
               </button>
             )}
             {can(perfilAtual, "gerenciarContratos") && (
               <button onClick={() => { setContratoEdit({}); setFabOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded text-sm font-semibold flex items-center gap-2 hover:bg-orange-50">
-                <Building2 size={16} style={{ color: C.orange }} /> Novo Contrato
+                <Building2 size={16} style={{ color: C.orangeDark }} /> Novo Contrato
               </button>
             )}
             {can(perfilAtual, "gerenciarTecnicos") && (
               <button onClick={() => { setTecnicoEdit({}); setFabOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded text-sm font-semibold flex items-center gap-2 hover:bg-orange-50">
-                <User size={16} style={{ color: C.orange }} /> Novo Técnico
+                <User size={16} style={{ color: C.orangeDark }} /> Novo Técnico
               </button>
             )}
             {can(perfilAtual, "inspecionar") && (
               <button onClick={() => { setNewVisitOpen({ avulsa: true }); setFabOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded text-sm font-semibold flex items-center gap-2 hover:bg-orange-50">
-                <FilePlus2 size={16} style={{ color: C.orange }} /> Relatório Avulso
+                <FilePlus2 size={16} style={{ color: C.orangeDark }} /> Relatório Avulso
               </button>
             )}
           </div>
         )}
         {(can(perfilAtual, "agendar") || can(perfilAtual, "gerenciarContratos") || can(perfilAtual, "gerenciarTecnicos") || can(perfilAtual, "inspecionar")) && (
-          <button onClick={() => setFabOpen(f => !f)}
+          <button onClick={() => setFabOpen(f => !f)} aria-label={fabOpen ? "Fechar o menu de ações" : "Nova ação"} aria-expanded={fabOpen}
                   className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition"
-                  style={{ background: C.orange, color: "#fff" }}>
+                  style={{ background: C.orangeFill, color: "#fff" }}>
             {fabOpen ? <X size={24} /> : <Plus size={24} />}
           </button>
         )}
@@ -3648,7 +3657,7 @@ function Dashboard({ visitas, contratos, relatorios, tecnicos, kpiActions, podeA
       <section className="border rounded-xl p-5" style={{ borderColor: C.border }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-lg" style={{ color: C.gray }}>Próximas Visitas</h2>
-          <button onClick={kpiActions.agendadas} className="text-sm font-semibold flex items-center gap-1" style={{ color: C.orange }}>
+          <button onClick={kpiActions.agendadas} className="text-sm font-semibold flex items-center gap-1" style={{ color: C.orangeDark }}>
             Ver agenda <ChevronRight size={14} />
           </button>
         </div>
@@ -3659,13 +3668,13 @@ function Dashboard({ visitas, contratos, relatorios, tecnicos, kpiActions, podeA
           return (
             <button key={v.id} onClick={() => onOpenVisita(v)} className="w-full flex items-center gap-4 py-3 border-b last:border-0 text-left hover:bg-orange-50 px-2 rounded transition flex-wrap" style={{ borderColor: C.border }}>
               <div className="text-center" style={{ width: 56 }}>
-                <div className="text-[10px] font-bold uppercase" style={{ color: C.orange }}>{fmtMonth(v.data)}</div>
+                <div className="text-[10px] font-bold uppercase" style={{ color: C.orangeDark }}>{fmtMonth(v.data)}</div>
                 <div className="text-xl font-black font-display">{new Date(v.data + "T00:00:00").getDate()}</div>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-sm">
                   {v.referencia && (
-                    <span style={{ color: C.orange }}>
+                    <span style={{ color: C.orangeDark }}>
                       {v.referencia}{v.referenciaProvisoria && <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold align-middle" style={{ background: C.amberLight, color: "#92400E" }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>} |{" "}
                     </span>
                   )}
@@ -3711,7 +3720,7 @@ function Contratos({ contratos, visitas, relatorios, tecnicos, onOpen, onNew }) 
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <h1 className="text-2xl sm:text-3xl font-black" style={{ color: C.gray }}>Contratos</h1>
         {can("gerenciarContratos") && (
-          <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orange }}>
+          <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orangeFill }}>
             <Plus size={16} /> Novo Contrato
           </button>
         )}
@@ -3741,7 +3750,7 @@ function Contratos({ contratos, visitas, relatorios, tecnicos, onOpen, onNew }) 
                 <Avatar tec={tec} size={36} />
               </div>
               <div className="flex flex-wrap gap-1.5 mb-3">
-                <Pill bg={C.orangeLight} fg={C.orange}>Contrato de {getDuracaoMeses(c)} meses</Pill>
+                <Pill bg={C.orangeLight} fg={C.orangeDark}>Contrato de {getDuracaoMeses(c)} meses</Pill>
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs mb-3 pb-3 border-b" style={{ borderColor: C.border, color: C.grayMid }}>
                 {verValores ? (
@@ -3803,7 +3812,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
         {/* Header */}
         <div className="p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4" style={{ borderColor: C.border, background: C.orangeLight }}>
           <div className="flex-1 min-w-0">
-            <div className="text-xs uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5" style={{ color: C.orange }}>
+            <div className="text-xs uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5" style={{ color: C.orangeDark }}>
               Contrato {contrato.codigo ? `· ${contrato.codigo}` : ""}
               {contrato.codigoProvisorio && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold normal-case tracking-normal" style={{ background: C.amberLight, color: "#92400E" }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>}
             </div>
@@ -3835,7 +3844,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                       className="flex items-center gap-2 px-4 sm:px-5 py-3 text-sm font-bold border-b-2 transition shrink-0 whitespace-nowrap"
                       style={{
                         borderColor: active ? C.orange : "transparent",
-                        color: active ? C.orange : C.grayMid,
+                        color: active ? C.orangeDark : C.grayMid,
                         background: active ? C.orangeLight : "transparent"
                       }}>
                 <Icon size={14} /> {label}
@@ -3855,7 +3864,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
               )}
               {verValores && (
               <section>
-                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orange }}>Dados Contratuais</h3>
+                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Dados Contratuais</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <DataRow label="Valor mensal" value={fmtCurrency(contrato.valorMensal)} />
                   <DataRow label="Valor total do contrato" value={fmtCurrency((contrato.valorMensal || 0) * getDuracaoMeses(contrato))} />
@@ -3867,7 +3876,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
 
               {!verValores && (
                 <section>
-                  <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orange }}>Dados do Contrato</h3>
+                  <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Dados do Contrato</h3>
                   <div className="grid md:grid-cols-2 gap-3">
                     <DataRow label="Data de início" value={fmtDate(contrato.dataInicio)} />
                     <DataRow label={`Duração: ${getDuracaoMeses(contrato)} meses`} value={`Validade: ${fmtDate(contrato.validade)}`} accent={contrato.validade && contrato.validade < hoje ? C.nok : null} />
@@ -3876,7 +3885,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
               )}
 
               <section>
-                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orange }}>Cronograma NFPA 25 — {getDuracaoMeses(contrato)} meses</h3>
+                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Cronograma NFPA 25 — {getDuracaoMeses(contrato)} meses</h3>
                 <p className="text-xs mb-3" style={{ color: C.grayMid }}>
                   Visitas mensais previstas. Toda visita realiza inspeção <strong>Semanal</strong> e <strong>Mensal</strong>. A cada 3 meses adiciona <strong>Trimestral</strong>; a cada 6 meses, <strong>Semestral</strong>; a cada 12 meses, <strong>Anual</strong>.
                 </p>
@@ -3892,7 +3901,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                     return (
                       <div key={c.mes} className="border rounded-lg p-2.5 flex items-center gap-3 flex-wrap" style={{ borderColor: realizada ? C.ok : relStatus === "devolvido" ? C.nok : C.border, background: realizada ? "#F0FDF4" : relStatus === "devolvido" ? "#FFF3F3" : "transparent" }}>
                         <div className="text-center" style={{ width: 50 }}>
-                          <div className="text-[9px] font-bold uppercase" style={{ color: C.orange }}>MÊS</div>
+                          <div className="text-[9px] font-bold uppercase" style={{ color: C.orangeDark }}>MÊS</div>
                           <div className="text-lg font-black" style={{ color: C.gray }}>{c.mes}</div>
                         </div>
                         <div className="text-xs" style={{ color: C.grayMid, width: 90 }}>
@@ -3911,7 +3920,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                             <button onClick={() => onViewRel(realizada)} className="px-2.5 py-1 rounded text-[11px] font-bold border flex items-center gap-1" style={{ borderColor: C.border, color: C.gray }}>
                               <Eye size={12} /> Ver checklist
                             </button>
-                            <button onClick={() => onPrintRel?.(realizada)} className="px-2.5 py-1 rounded text-[11px] font-bold text-white flex items-center gap-1" style={{ background: C.orange }}>
+                            <button onClick={() => onPrintRel?.(realizada)} className="px-2.5 py-1 rounded text-[11px] font-bold text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
                               <Printer size={12} /> Imprimir
                             </button>
                           </div>
@@ -3935,7 +3944,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                           </div>
                         ) : visitaMes ? (
                           visitaMes.despacho ? (
-                            <button onClick={() => (onWorkVisita || onOpenVisita)(visitaMes)} className="px-2.5 py-1 rounded text-[11px] font-bold text-white flex items-center gap-1" style={{ background: C.orange }}>
+                            <button onClick={() => (onWorkVisita || onOpenVisita)(visitaMes)} className="px-2.5 py-1 rounded text-[11px] font-bold text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
                               <ClipboardCheck size={12} /> {visitaMes.rascunhoItm ? "Continuar atendimento" : "Iniciar atendimento"}
                             </button>
                           ) : (
@@ -3945,7 +3954,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                           )
                         ) : (
                           podeAgendar ? (
-                            <button onClick={() => onSchedule?.({ data: c.data })} className="px-2.5 py-1 rounded text-[11px] font-bold border flex items-center gap-1" style={{ borderColor: C.orange, color: C.orange }}>
+                            <button onClick={() => onSchedule?.({ data: c.data })} className="px-2.5 py-1 rounded text-[11px] font-bold border flex items-center gap-1" style={{ borderColor: C.orange, color: C.orangeDark }}>
                               <Plus size={12} /> Agendar visita
                             </button>
                           ) : (
@@ -3959,13 +3968,13 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
               </section>
 
               <section>
-                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orange }}>Equipamentos do contrato</h3>
+                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Equipamentos do contrato</h3>
                 {(contrato.equipamentos && contrato.equipamentos.length > 0) ? (
                   <div className="flex flex-wrap gap-2">
                     {contrato.equipamentos.map(e => (
                       <div key={e.id} className="border rounded-lg px-3 py-2 text-xs" style={{ borderColor: C.border }}>
                         <span className="font-bold" style={{ color: C.gray }}>{e.nome || "—"}</span>
-                        <span className="ml-2" style={{ color: C.orange }}>{equipTipoLabel(e.tipo)}</span>
+                        <span className="ml-2" style={{ color: C.orangeDark }}>{equipTipoLabel(e.tipo)}</span>
                       </div>
                     ))}
                   </div>
@@ -3975,7 +3984,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
               </section>
 
               <section>
-                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orange }}>Contato e Responsável</h3>
+                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Contato e Responsável</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <DataRow label="Contato" value={contrato.contato} />
                   <DataRow label="Telefone" value={contrato.telefone || "—"} />
@@ -3988,7 +3997,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
 
           {tab === "historico" && (
             <div>
-              <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orange }}>Histórico de Visitas e Relatórios</h3>
+              <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Histórico de Visitas e Relatórios</h3>
               {visitasOrdenadas.length === 0 && (
                 <div className="text-center py-12 text-sm" style={{ color: C.grayMid }}>
                   Nenhuma visita registrada para este contrato
@@ -4001,13 +4010,13 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                   return (
                     <div key={v.id} className="border rounded-lg p-3 flex items-center gap-3" style={{ borderColor: C.border }}>
                       <div className="text-center" style={{ width: 48 }}>
-                        <div className="text-[10px] font-bold uppercase" style={{ color: C.orange }}>{fmtMonth(v.data)}</div>
+                        <div className="text-[10px] font-bold uppercase" style={{ color: C.orangeDark }}>{fmtMonth(v.data)}</div>
                         <div className="text-lg font-black font-display">{new Date(v.data + "T00:00:00").getDate()}</div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           {(v.referencia || v.codigoAtendimento) && (
-                            <span className="text-xs font-black" style={{ color: C.orange }}>{v.referencia || v.codigoAtendimento}</span>
+                            <span className="text-xs font-black" style={{ color: C.orangeDark }}>{v.referencia || v.codigoAtendimento}</span>
                           )}
                           <TipoBadge tipo={v.tipo} />
                           <VisitaFreqsPills visita={v} />
@@ -4018,7 +4027,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                         <div className="text-xs flex items-center gap-1" style={{ color: C.grayMid }}><User size={11} /> {tecV?.nome || "—"}</div>
                       </div>
                       {v.relatorio ? (
-                        <button onClick={() => onViewRel(v.relatorio)} className="px-3 py-1.5 rounded text-xs font-bold text-white" style={{ background: C.orange }}>
+                        <button onClick={() => onViewRel(v.relatorio)} className="px-3 py-1.5 rounded text-xs font-bold text-white" style={{ background: C.orangeFill }}>
                           Ver relatório
                         </button>
                       ) : (
@@ -4035,11 +4044,11 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
 
           {tab === "agendar" && (
             <div className="text-center py-8">
-              <Calendar size={48} className="mx-auto mb-3" style={{ color: C.orange }} />
+              <Calendar size={48} className="mx-auto mb-3" style={{ color: C.orangeDark }} />
               <p className="text-sm mb-4" style={{ color: C.grayMid }}>
                 Agende uma nova visita para este contrato escolhendo o tipo (ITM, Inspeção, Preventiva ou Corretiva).
               </p>
-              <button onClick={onSchedule} className="px-5 py-2.5 rounded-lg text-sm font-bold text-white inline-flex items-center gap-2" style={{ background: C.orange }}>
+              <button onClick={onSchedule} className="px-5 py-2.5 rounded-lg text-sm font-bold text-white inline-flex items-center gap-2" style={{ background: C.orangeFill }}>
                 <Plus size={16} /> Agendar Nova Visita
               </button>
             </div>
@@ -4120,12 +4129,12 @@ function ContratoForm({ initial, tecnicos, onSave }) {
       <div className="border rounded-lg p-4" style={{ borderColor: C.border }}>
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: C.orange }}>Equipamentos do contrato</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: C.orangeDark }}>Equipamentos do contrato</h3>
             <p className="text-[11px] mt-0.5" style={{ color: C.grayMid }}>
               Cadastre os conjuntos de bomba existentes neste cliente. O checklist NFPA 25 do ITM passa a mostrar só os equipamentos cadastrados aqui — sem precisar marcar N/A a cada visita.
             </p>
           </div>
-          <button type="button" onClick={addEquip} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1 shrink-0" style={{ background: C.orange }}>
+          <button type="button" onClick={addEquip} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1 shrink-0" style={{ background: C.orangeFill }}>
             <Plus size={14} /> Adicionar
           </button>
         </div>
@@ -4140,7 +4149,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
                 <input value={e.nome} onChange={ev => updEquip(e.id, "nome", ev.target.value)} placeholder="Identificação (ex.: Bomba Diesel 01)"
                        className="flex-1 border rounded-lg px-3 py-2 text-sm min-w-0" style={{ borderColor: C.border }} />
                 <div className="flex gap-2">
-                  <select value={e.tipo} onChange={ev => updEquip(e.id, "tipo", ev.target.value)}
+                  <select aria-label="Tipo do equipamento" value={e.tipo} onChange={ev => updEquip(e.id, "tipo", ev.target.value)}
                           className="flex-1 sm:flex-none border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border, minWidth: 150 }}>
                     {TIPOS_EQUIP_CONTRATO.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
                   </select>
@@ -4161,7 +4170,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
               <button key={d} type="button" onClick={() => upd("duracaoMeses", d)}
                       className="flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 transition"
                       style={{
-                        background: data.duracaoMeses === d ? C.orange : "transparent",
+                        background: data.duracaoMeses === d ? C.orangeFill : "transparent",
                         color: data.duracaoMeses === d ? "#fff" : C.gray,
                         borderColor: data.duracaoMeses === d ? C.orange : C.border,
                       }}>
@@ -4175,7 +4184,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
       {data.dataInicio && (
         <div className="border rounded-lg p-3 text-xs" style={{ borderColor: C.border, background: C.grayLight }}>
           <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-            <span className="font-bold uppercase tracking-wide" style={{ color: C.orange }}>Cronograma NFPA 25</span>
+            <span className="font-bold uppercase tracking-wide" style={{ color: C.orangeDark }}>Cronograma NFPA 25</span>
             <span style={{ color: C.grayMid }}>
               Validade: <strong style={{ color: C.gray }}>{fmtDate(validade)}</strong> ·
               Valor total: <strong style={{ color: C.gray }}>{fmtCurrency((data.valorMensal || 0) * data.duracaoMeses)}</strong>
@@ -4184,7 +4193,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
           <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5">
             {cronograma.map(c => (
               <div key={c.mes} className="bg-white border rounded p-1.5 text-center" style={{ borderColor: C.border }}>
-                <div className="text-[9px] font-bold" style={{ color: C.orange }}>MÊS {c.mes}</div>
+                <div className="text-[9px] font-bold" style={{ color: C.orangeDark }}>MÊS {c.mes}</div>
                 <div className="text-[10px] mb-1" style={{ color: C.gray }}>{fmtDate(c.data)}</div>
                 <div className="flex flex-wrap justify-center gap-0.5">
                   {c.freqs.map(f => (
@@ -4207,7 +4216,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
       <div className="flex justify-end pt-4 border-t" style={{ borderColor: C.border }}>
         <button onClick={handleSave} disabled={!data.cliente || !data.endereco || !data.dataInicio || salvando}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2"
-                style={{ background: C.orange }}>
+                style={{ background: C.orangeFill }}>
           {salvando ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />} {salvando ? "Gerando número…" : "Salvar Contrato"}
         </button>
       </div>
@@ -4234,23 +4243,23 @@ function Agenda({ visitas, contratos, tecnicos, onDespacho, onItm, onDocumento }
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <h1 className="text-3xl font-black" style={{ color: C.gray }}>Agenda</h1>
         <div className="flex items-center gap-3 flex-wrap">
-          <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)}
+          <select aria-label="Filtrar por tipo" value={filterTipo} onChange={e => setFilterTipo(e.target.value)}
                   className="border rounded-lg px-3 py-2 text-sm font-semibold" style={{ borderColor: C.border }}>
             <option value="todos">Todos os tipos</option>
             {Object.values(TIPO_REL).map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
           </select>
-          <select value={filterTec} onChange={e => setFilterTec(e.target.value)}
+          <select aria-label="Filtrar por técnico" value={filterTec} onChange={e => setFilterTec(e.target.value)}
                   className="border rounded-lg px-3 py-2 text-sm font-semibold" style={{ borderColor: C.border }}>
             <option value="todos">Todos os técnicos</option>
             {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
           </select>
           <div className="border rounded-lg p-1 flex" style={{ borderColor: C.border }}>
             <button onClick={() => setView("lista")} className="px-3 py-1 text-xs font-semibold rounded"
-                    style={{ background: view === "lista" ? C.orange : "transparent", color: view === "lista" ? "#fff" : C.gray }}>
+                    style={{ background: view === "lista" ? C.orangeFill : "transparent", color: view === "lista" ? "#fff" : C.gray }}>
               Lista
             </button>
             <button onClick={() => setView("calendario")} className="px-3 py-1 text-xs font-semibold rounded"
-                    style={{ background: view === "calendario" ? C.orange : "transparent", color: view === "calendario" ? "#fff" : C.gray }}>
+                    style={{ background: view === "calendario" ? C.orangeFill : "transparent", color: view === "calendario" ? "#fff" : C.gray }}>
               Calendário
             </button>
           </div>
@@ -4268,13 +4277,13 @@ function Agenda({ visitas, contratos, tecnicos, onDespacho, onItm, onDocumento }
             return (
               <div key={v.id} className="p-4 flex items-center gap-4 flex-wrap">
                 <div className="text-center" style={{ width: 56 }}>
-                  <div className="text-[10px] font-bold uppercase" style={{ color: C.orange }}>{fmtMonth(v.data)}</div>
+                  <div className="text-[10px] font-bold uppercase" style={{ color: C.orangeDark }}>{fmtMonth(v.data)}</div>
                   <div className="text-2xl font-black font-display">{new Date(v.data + "T00:00:00").getDate()}</div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm">
                     {v.referencia && (
-                    <span style={{ color: C.orange }}>
+                    <span style={{ color: C.orangeDark }}>
                       {v.referencia}{v.referenciaProvisoria && <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold align-middle" style={{ background: C.amberLight, color: "#92400E" }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>} |{" "}
                     </span>
                   )}
@@ -4307,7 +4316,7 @@ function Agenda({ visitas, contratos, tecnicos, onDespacho, onItm, onDocumento }
                   </button>
                   <button onClick={() => onItm(v)} disabled={!v.despacho}
                           className="px-3 py-1.5 text-xs font-bold rounded-lg text-white disabled:opacity-40"
-                          style={{ background: C.orange }}>
+                          style={{ background: C.orangeFill }}>
                     {v.status === "concluida" ? "Ver" : v.status === "devolvida" ? "Corrigir" : (v.rascunhoItm ? "Continuar" : "Iniciar")}
                   </button>
                 </div>
@@ -4358,7 +4367,7 @@ function NotificationBell({ notificacoes, naoLidas, onOpenNotificacao, onMarkAll
           <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-white border rounded-xl shadow-xl z-50" style={{ borderColor: C.border }}>
             <div className="p-3 border-b flex items-center justify-between sticky top-0 bg-white" style={{ borderColor: C.border }}>
               <span className="text-xs font-bold uppercase tracking-wide" style={{ color: C.gray }}>Notificações</span>
-              {naoLidas > 0 && <button onClick={onMarkAllRead} className="text-[11px] font-bold" style={{ color: C.orange }}>Marcar todas como lidas</button>}
+              {naoLidas > 0 && <button onClick={onMarkAllRead} className="text-[11px] font-bold" style={{ color: C.orangeDark }}>Marcar todas como lidas</button>}
             </div>
             {notificacoes.length === 0 ? (
               <div className="p-6 text-center text-xs" style={{ color: C.grayMid }}>Nenhuma notificação por aqui.</div>
@@ -4367,7 +4376,7 @@ function NotificationBell({ notificacoes, naoLidas, onOpenNotificacao, onMarkAll
                 const Icon = ICONS[n.tipo] || Bell;
                 return (
                   <button key={n.id} onClick={() => { onOpenNotificacao(n); setOpen(false); }}
-                          className="w-full text-left p-3 border-b flex items-start gap-2.5 hover:bg-gray-50" style={{ borderColor: C.border, background: n.lida ? "#fff" : "#FFF9F5" }}>
+                          className="w-full text-left p-3 border-b flex items-start gap-2.5 hover:bg-gray-50" style={{ borderColor: C.border, background: n.lida ? C.white : C.orangeLight }}>
                     <Icon size={15} style={{ color: CORES[n.tipo] || C.gray, marginTop: 2, flexShrink: 0 }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs" style={{ color: C.gray, fontWeight: n.lida ? 400 : 700 }}>{texto(n)}</div>
@@ -4436,7 +4445,7 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
   const Seletor = souGestor && (
     <div className="mb-6">
       <div className="field-lbl text-[10px] uppercase font-bold tracking-wide mb-1" style={{ color: C.grayMid }}>Ver atendimentos de</div>
-      <select value={filtroTecnico} onChange={e => setFiltroTecnico(e.target.value)}
+      <select aria-label="Filtrar por técnico" value={filtroTecnico} onChange={e => setFiltroTecnico(e.target.value)}
               className="border rounded-lg px-3 py-2 text-sm font-semibold" style={{ borderColor: C.border }}>
         <option value="todos">Todos os técnicos</option>
         {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
@@ -4459,11 +4468,11 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
   const Row = ({ v, obs }) => (
     <div className="p-4 flex items-center gap-4 flex-wrap border-b last:border-0" style={{ borderColor: C.border }}>
       <div className="text-center" style={{ width: 56 }}>
-        <div className="text-[10px] font-bold uppercase" style={{ color: C.orange }}>{v.data ? fmtMonth(v.data) : "—"}</div>
+        <div className="text-[10px] font-bold uppercase" style={{ color: C.orangeDark }}>{v.data ? fmtMonth(v.data) : "—"}</div>
         <div className="text-2xl font-black font-display">{v.data ? new Date(v.data + "T00:00:00").getDate() : "—"}</div>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-bold text-sm" style={{ color: C.gray }}>{v.referencia && <span style={{ color: C.orange }}>{v.referencia} | </span>}{v._cliente}</div>
+        <div className="font-bold text-sm" style={{ color: C.gray }}>{v.referencia && <span style={{ color: C.orangeDark }}>{v.referencia} | </span>}{v._cliente}</div>
         <div className="text-xs flex gap-2 mt-1 flex-wrap items-center" style={{ color: C.grayMid }}>
           <TipoBadge tipo={v.tipo} />
           {modoTodos && <span className="flex items-center gap-1 font-bold" style={{ color: C.blue }}><User size={11} /> {v._tecnicoNome}</span>}
@@ -4475,9 +4484,9 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
         {v._status === "devolvida" ? (
           <button onClick={() => onItm(v)} className="px-3 py-1.5 text-xs font-bold rounded-lg text-white" style={{ background: C.nok }}>Corrigir</button>
         ) : v.despacho || v.avulsa ? (
-          <button onClick={() => onItm(v)} className="px-3 py-1.5 text-xs font-bold rounded-lg text-white" style={{ background: v.rascunhoItm ? "#B45309" : C.orange }}>{v.rascunhoItm ? "Continuar" : "Iniciar"}</button>
+          <button onClick={() => onItm(v)} className="px-3 py-1.5 text-xs font-bold rounded-lg text-white" style={{ background: v.rascunhoItm ? "#B45309" : C.orangeFill }}>{v.rascunhoItm ? "Continuar" : "Iniciar"}</button>
         ) : (
-          <button onClick={() => onDespacho(v)} className="px-3 py-1.5 text-xs font-bold rounded-lg border" style={{ borderColor: "#B45309", color: "#B45309" }}>Fazer despacho</button>
+          <button onClick={() => onDespacho(v)} className="px-3 py-1.5 text-xs font-bold rounded-lg border" style={{ borderColor: C.amber, color: C.amber }}>Fazer despacho</button>
         )}
       </div>
     </div>
@@ -4507,7 +4516,7 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
         </>
       )}
 
-      <div className="mb-3 text-xs uppercase font-bold tracking-wide" style={{ color: C.orange }}>Próximos atendimentos ({futuros.length})</div>
+      <div className="mb-3 text-xs uppercase font-bold tracking-wide" style={{ color: C.orangeDark }}>Próximos atendimentos ({futuros.length})</div>
       {futuros.length === 0 ? (
         <div className="p-6 text-center text-sm border rounded-xl mb-8" style={{ borderColor: C.border, color: C.grayMid }}>Nenhum atendimento futuro agendado.</div>
       ) : (
@@ -4522,7 +4531,7 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
           <div className="border rounded-xl divide-y" style={{ borderColor: C.border }}>
             {aguardandoAprovacao.map(v => (
               <div key={v.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
-                <div className="font-bold text-sm" style={{ color: C.gray }}>{v.referencia && <span style={{ color: C.orange }}>{v.referencia} | </span>}{v._cliente}</div>
+                <div className="font-bold text-sm" style={{ color: C.gray }}>{v.referencia && <span style={{ color: C.orangeDark }}>{v.referencia} | </span>}{v._cliente}</div>
                 <Pill bg={C.amberLight} fg="#92400E">Aguardando aprovação</Pill>
               </div>
             ))}
@@ -4612,18 +4621,18 @@ function VisitasTecnicas({ visitas, relatorios, contratos, tecnicos, onDespacho,
           <p className="text-sm mt-1" style={{ color: C.grayMid }}>Atendimentos de contrato e avulsos, com filtros por tipo, origem e status.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)}
+          <select aria-label="Filtrar por tipo" value={filterTipo} onChange={e => setFilterTipo(e.target.value)}
                   className="border rounded-lg px-3 py-2 text-sm font-semibold" style={{ borderColor: C.border }}>
             <option value="todos">Todos os tipos</option>
             {Object.values(TIPO_REL).map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
           </select>
-          <select value={filterOrigem} onChange={e => setFilterOrigem(e.target.value)}
+          <select aria-label="Filtrar por origem" value={filterOrigem} onChange={e => setFilterOrigem(e.target.value)}
                   className="border rounded-lg px-3 py-2 text-sm font-semibold" style={{ borderColor: C.border }}>
             <option value="todos">Todas as origens</option>
             <option value="contrato">Contrato</option>
             <option value="avulsa">Avulsa</option>
           </select>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          <select aria-label="Filtrar por situação" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
                   className="border rounded-lg px-3 py-2 text-sm font-semibold" style={{ borderColor: C.border }}>
             <option value="todos">Todos os status</option>
             {Object.entries(statusLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -4636,11 +4645,11 @@ function VisitasTecnicas({ visitas, relatorios, contratos, tecnicos, onDespacho,
         {filtered.map(item => (
           <div key={item.id} className="p-4 flex items-center gap-4 flex-wrap">
             <div className="text-center" style={{ width: 56 }}>
-              <div className="text-[10px] font-bold uppercase" style={{ color: C.orange }}>{fmtMonth(item.data)}</div>
+              <div className="text-[10px] font-bold uppercase" style={{ color: C.orangeDark }}>{fmtMonth(item.data)}</div>
               <div className="text-2xl font-black">{item.data ? new Date(item.data + "T00:00:00").getDate() : "—"}</div>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-sm" style={{ color: C.gray }}>{item.referencia && <span style={{ color: C.orange }}>{item.referencia} | </span>}{item.cliente}</div>
+              <div className="font-bold text-sm" style={{ color: C.gray }}>{item.referencia && <span style={{ color: C.orangeDark }}>{item.referencia} | </span>}{item.cliente}</div>
               <div className="text-xs flex gap-2 mt-1 flex-wrap items-center" style={{ color: C.grayMid }}>
                 <TipoBadge tipo={item.tipo} />
                 <Pill bg={item.origem === "avulsa" ? C.purpleLight : C.blueLight} fg={item.origem === "avulsa" ? C.purple : C.blue}>
@@ -4681,7 +4690,7 @@ function VisitasTecnicas({ visitas, relatorios, contratos, tecnicos, onDespacho,
               )}
               {item.relatorio && (
                 <button onClick={() => onViewRel(item.relatorio)}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg text-white flex items-center gap-1" style={{ background: C.orange }}>
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
                   <Eye size={12} /> Relatório
                 </button>
               )}
@@ -4713,7 +4722,7 @@ function DocumentoInternoAtendimento({ visita, contrato, tecnico }) {
   return (
     <div>
       <div className="flex justify-end mb-4 print:hidden">
-        <button onClick={handlePrint} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orange }}>
+        <button onClick={handlePrint} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orangeFill }}>
           <Printer size={14} /> Imprimir Documento Interno
         </button>
       </div>
@@ -4855,7 +4864,7 @@ function TecnicosView({ tecnicos, visitas, onNew, onEdit, onDelete }) {
     <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <h1 className="text-2xl sm:text-3xl font-black" style={{ color: C.gray }}>Técnicos</h1>
-        <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orange }}>
+        <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orangeFill }}>
           <Plus size={16} /> Novo Técnico
         </button>
       </div>
@@ -4867,14 +4876,14 @@ function TecnicosView({ tecnicos, visitas, onNew, onEdit, onDelete }) {
           return (
             <div key={t.id} className="border rounded-xl p-5 relative" style={{ borderColor: C.border }}>
               <div className="absolute top-2 right-2 flex gap-1">
-                <button onClick={() => onEdit(t)} className="p-1.5 rounded hover:bg-gray-100"><Pencil size={14} /></button>
+                <button onClick={() => onEdit(t)} aria-label="Editar técnico" title="Editar" className="p-1.5 rounded hover:bg-gray-100"><Pencil size={14} /></button>
                 {podeExcluir && (
                   <button onClick={() => {
                     const aviso = totalVinculos > 0
                       ? `O técnico "${t.nome}" tem ${totalVinculos} atendimento(s) vinculado(s) (agendados e/ou já concluídos). Excluindo o técnico, os relatórios já feitos perdem a atribuição de quem realizou o serviço. Deseja continuar mesmo assim?`
                       : `Excluir o técnico "${t.nome}"?`;
                     if (confirm(aviso)) onDelete(t.id);
-                  }} className="p-1.5 rounded hover:bg-gray-100"><Trash2 size={14} style={{ color: C.nok }} /></button>
+                  }} aria-label="Excluir técnico" title="Excluir" className="p-1.5 rounded hover:bg-gray-100"><Trash2 size={14} style={{ color: C.nok }} /></button>
                 )}
               </div>
               <div className="text-center pb-3 border-b" style={{ borderColor: C.border }}>
@@ -4889,7 +4898,7 @@ function TecnicosView({ tecnicos, visitas, onNew, onEdit, onDelete }) {
               </div>
               <div className="grid grid-cols-2 gap-2 text-center">
                 <div className="border rounded-lg p-2" style={{ borderColor: C.border }}>
-                  <div className="text-lg font-black font-display" style={{ color: C.orange }}>{ag}</div>
+                  <div className="text-lg font-black font-display" style={{ color: C.orangeDark }}>{ag}</div>
                   <div className="text-[10px] uppercase font-bold" style={{ color: C.grayMid }}>Agendadas</div>
                 </div>
                 <div className="border rounded-lg p-2" style={{ borderColor: C.border }}>
@@ -4926,7 +4935,7 @@ function TecnicoForm({ initial, onSave }) {
       <div className="flex justify-end pt-4 border-t" style={{ borderColor: C.border }}>
         <button onClick={() => onSave(data)} disabled={!data.nome}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2"
-                style={{ background: C.orange }}>
+                style={{ background: C.orangeFill }}>
           <Save size={14} /> Salvar Técnico
         </button>
       </div>
@@ -4949,7 +4958,7 @@ function AprovacoesView({ relatorios, onView }) {
         <p className="text-sm mt-1" style={{ color: C.grayMid }}>Relatórios aguardando sua análise.</p>
       </div>
 
-      <div className="mb-3 text-xs uppercase font-bold tracking-wide" style={{ color: C.orange }}>Aguardando aprovação ({pendentes.length})</div>
+      <div className="mb-3 text-xs uppercase font-bold tracking-wide" style={{ color: C.orangeDark }}>Aguardando aprovação ({pendentes.length})</div>
       {pendentes.length === 0 ? (
         <div className="p-6 text-center text-sm border rounded-xl mb-8" style={{ borderColor: C.border, color: C.grayMid }}>Nada pendente por aqui.</div>
       ) : (
@@ -4963,7 +4972,7 @@ function AprovacoesView({ relatorios, onView }) {
                   <span><Calendar size={11} className="inline mr-1" />{fmtDate(r.dataEmissao)}</span>
                 </div>
               </div>
-              <button onClick={() => onView(r)} className="px-3 py-1.5 text-xs font-bold rounded-lg text-white flex items-center gap-1" style={{ background: C.orange }}>
+              <button onClick={() => onView(r)} className="px-3 py-1.5 text-xs font-bold rounded-lg text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
                 <Eye size={12} /> Analisar
               </button>
             </div>
@@ -5092,7 +5101,7 @@ function Relatorios({ relatorios, contratos, onView, onDelete }) {
                   <Trash2 size={12} /> Apagar
                 </button>
               )}
-              <button onClick={() => onView(r)} className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1 text-white" style={{ background: C.orange }}>
+              <button onClick={() => onView(r)} className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1 text-white" style={{ background: C.orangeFill }}>
                 <Eye size={12} /> Visualizar
               </button>
             </div>
@@ -5103,14 +5112,19 @@ function Relatorios({ relatorios, contratos, onView, onDelete }) {
   );
 }
 
+// botão marcado: fundo na cor do status e texto na cor do cartão (claro no tema claro, escuro no escuro);
+// o laranja usa o tom mais fechado para o texto branco ficar legível
+const corMarcada = (c) => (c === C.orange ? [C.orangeFill, "#fff"] : [c, C.white]);
+
 function TabPill({ label, Icon, active, onClick, color, bg }) {
+  const [fundo, texto] = corMarcada(color);
   return (
     <button onClick={onClick}
             className="px-3 py-1.5 rounded-full text-xs font-bold border transition flex items-center gap-1.5"
             style={{
-              background: active ? color : bg,
-              color: active ? "#fff" : color,
-              borderColor: active ? color : "transparent"
+              background: active ? fundo : bg,
+              color: active ? texto : color,
+              borderColor: active ? fundo : "transparent"
             }}>
       {Icon && <Icon size={12} />} {label}
     </button>
@@ -5254,7 +5268,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
           ) : (
             <>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: C.orange }}>
+                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: C.orangeDark }}>
                   Inspeções previstas — Mês {mesContrato} de {duracao}
                 </span>
               </div>
@@ -5274,7 +5288,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
       <div className="pt-3 flex justify-end gap-2 border-t" style={{ borderColor: C.border }}>
         {initial?.avulsa ? (
           <button onClick={() => criar("iniciar")} disabled={!podeSalvar || gerandoNumero}
-                  className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2" style={{ background: C.orange }}>
+                  className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2" style={{ background: C.orangeFill }}>
             {gerandoNumero && <RefreshCw size={14} className="animate-spin" />} {gerandoNumero ? "Gerando número…" : "Iniciar Relatório"}
           </button>
         ) : (
@@ -5285,7 +5299,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
               {gerandoNumero && <RefreshCw size={14} className="animate-spin" />} Agendar
             </button>
             <button onClick={() => criar("despachar")} disabled={!podeSalvar || gerandoNumero}
-                    className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2" style={{ background: C.orange }}>
+                    className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2" style={{ background: C.orangeFill }}>
               {gerandoNumero && <RefreshCw size={14} className="animate-spin" />} {gerandoNumero ? "Gerando número…" : "Agendar / Despachar"}
             </button>
           </>
@@ -5404,7 +5418,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
       {isItm && (
         <div className="mb-5 pb-5 border-b" style={{ borderColor: C.border }}>
           <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
-            <div className="text-xs font-bold uppercase tracking-wide" style={{ color: C.orange }}>
+            <div className="text-xs font-bold uppercase tracking-wide" style={{ color: C.orangeDark }}>
               Quais inspeções serão realizadas nesta visita?
             </div>
             {contrato && mesAtual && (
@@ -5447,7 +5461,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
                       Inspeção {f}
                     </span>
                     <div className="flex items-center gap-1">
-                      {ehBase && <Pill bg={C.orangeLight} fg={C.orange}>BASE</Pill>}
+                      {ehBase && <Pill bg={C.orangeLight} fg={C.orangeDark}>BASE</Pill>}
                       {ativa
                         ? <CheckCircle2 size={16} style={{ color: FREQ_COLOR[f]?.fg }} />
                         : <div className="w-4 h-4 rounded border-2" style={{ borderColor: C.border }} />}
@@ -5465,7 +5479,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
                     </span>
                   </div>
                   {ehPrevista && !ehBase && (
-                    <div className="mt-1.5 text-[9px] font-bold flex items-center gap-1" style={{ color: C.orange }}>
+                    <div className="mt-1.5 text-[9px] font-bold flex items-center gap-1" style={{ color: C.orangeDark }}>
                       ★ Prevista no cronograma
                     </div>
                   )}
@@ -5475,7 +5489,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
           </div>
           {freqsSelecionadas.length > 1 && (
             <div className="mt-3 p-2 rounded text-[11px] flex items-start gap-2" style={{ background: C.orangeLight, color: C.gray }}>
-              <ClipboardCheck size={12} className="mt-0.5 flex-shrink-0" style={{ color: C.orange }} />
+              <ClipboardCheck size={12} className="mt-0.5 flex-shrink-0" style={{ color: C.orangeDark }} />
               <span>
                 Esta visita realizará <strong>{freqsSelecionadas.length} inspeções</strong>: {freqsSelecionadas.join(" + ")}. Todos os checklists NFPA 25 dessas frequências serão carregados no ITM.
               </span>
@@ -5536,7 +5550,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
             <span className="flex items-center gap-1" style={{ color: C.ok }}><CheckCircle2 size={12} /> {ok}</span>
             <span className="flex items-center gap-1" style={{ color: C.nok }}><XCircle size={12} /> {nok}</span>
             <span className="flex items-center gap-1" style={{ color: C.na }}><MinusCircle size={12} /> {na}</span>
-            <span style={{ color: C.orange }}>{done}/{total} ({pct}%)</span>
+            <span style={{ color: C.orangeDark }}>{done}/{total} ({pct}%)</span>
           </div>
         </div>
         <div className="h-2 rounded-full" style={{ background: C.grayLight }}>
@@ -5546,7 +5560,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
       <div className="grid md:grid-cols-2 gap-4">
         {DESPACHO_GRUPOS.map(g => (
           <div key={g.titulo} className="border rounded-lg p-3" style={{ borderColor: C.border }}>
-            <div className="font-bold text-sm mb-2" style={{ color: C.orange }}>{g.titulo}</div>
+            <div className="font-bold text-sm mb-2" style={{ color: C.orangeDark }}>{g.titulo}</div>
             {g.items.map(it => {
               const v = state[it] || { status: "", obs: "" };
               return (
@@ -5579,7 +5593,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
         )}
         <button onClick={() => onSave({ checklist: state, demanda: demandaDespacho, orientacoes, anexos: anexosDespacho, confirmadoEm: new Date().toISOString() }, freqsSelecionadas)} disabled={!podeConfirmar}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40"
-                style={{ background: C.orange }}>
+                style={{ background: C.orangeFill }}>
           {pct < 100 ? `Faltam ${total - done} itens` :
            isItm && freqsSelecionadas.length === 0 ? "Selecione ao menos 1 inspeção" :
            isStartup && !startupChecklistOk ? "Anexe o checklist do cliente" :
@@ -5820,7 +5834,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
                       className="flex items-center gap-2 px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition"
                       style={{
                         borderColor: active ? C.orange : "transparent",
-                        color: active ? C.orange : C.grayMid,
+                        color: active ? C.orangeDark : C.grayMid,
                         background: active ? C.orangeLight : "transparent"
                       }}>
                 <Icon size={14} /> {i + 1}. {s.label}
@@ -5847,12 +5861,12 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
               <div className="flex gap-2">
                 <button onClick={() => setFazerPerformance(false)}
                         className="px-4 py-2 rounded-lg text-sm font-bold border"
-                        style={{ borderColor: C.border, background: !fazerPerformance ? C.gray : "#fff", color: !fazerPerformance ? "#fff" : C.gray }}>
+                        style={{ borderColor: C.border, background: !fazerPerformance ? C.gray : C.white, color: !fazerPerformance ? C.white : C.gray }}>
                   Não
                 </button>
                 <button onClick={() => setFazerPerformance(true)}
                         className="px-4 py-2 rounded-lg text-sm font-bold border"
-                        style={{ borderColor: C.orange, background: fazerPerformance ? C.orange : "#fff", color: fazerPerformance ? "#fff" : C.orange }}>
+                        style={{ borderColor: C.orange, background: fazerPerformance ? C.orangeFill : C.white, color: fazerPerformance ? "#fff" : C.orangeDark }}>
                   Sim
                 </button>
               </div>
@@ -5884,14 +5898,14 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
         <div className="flex-1" />
         {step < steps.length - 1 && (
           <button onClick={() => setStep(s => Math.min(steps.length - 1, s + 1))}
-                  className="px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.orange }}>
+                  className="px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.orangeFill }}>
             Próximo →
           </button>
         )}
         {step === steps.length - 1 && (
           <button onClick={finalizar}
                   className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2"
-                  style={{ background: C.orange }}>
+                  style={{ background: C.orangeFill }}>
             <FileText size={14} /> Finalizar e Gerar Relatório
           </button>
         )}
@@ -5922,7 +5936,7 @@ function StepIdentificacao({ state, setState, isNFPA, isStartup }) {
         </div>
       )}
 
-      <h3 className="text-sm font-bold mt-2" style={{ color: C.orange }}>Propriedade Inspecionada</h3>
+      <h3 className="text-sm font-bold mt-2" style={{ color: C.orangeDark }}>Propriedade Inspecionada</h3>
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Nome da Propriedade"><input value={state.cliente} onChange={e => upd("cliente", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         {!isNFPA && <Field label="Empreendimento"><input value={state.empreendimento} onChange={e => upd("empreendimento", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>}
@@ -5933,7 +5947,7 @@ function StepIdentificacao({ state, setState, isNFPA, isStartup }) {
         <Field label="Código do Documento"><input value={state.codigo} onChange={e => upd("codigo", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
       </div>
 
-      <h3 className="text-sm font-bold mt-4" style={{ color: C.orange }}>Período / Inspetor</h3>
+      <h3 className="text-sm font-bold mt-4" style={{ color: C.orangeDark }}>Período / Inspetor</h3>
       <div className="grid md:grid-cols-4 gap-4">
         <Field label="Início da Execução"><input type="date" value={state.periodoIni} onChange={e => upd("periodoIni", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Fim da Execução"><input type="date" value={state.periodoFim} onChange={e => upd("periodoFim", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
@@ -5941,7 +5955,7 @@ function StepIdentificacao({ state, setState, isNFPA, isStartup }) {
         <Field label="Data de Emissão"><input type="date" value={state.dataEmissao} onChange={e => upd("dataEmissao", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
       </div>
 
-      <h3 className="text-sm font-bold mt-4" style={{ color: C.orange }}>Contratado</h3>
+      <h3 className="text-sm font-bold mt-4" style={{ color: C.orangeDark }}>Contratado</h3>
       <div className="grid md:grid-cols-3 gap-4">
         <Field label="Nome do Contratado"><input value={state.contratado} onChange={e => upd("contratado", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Endereço do Contratado"><input value={state.enderecoContratado} onChange={e => upd("enderecoContratado", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
@@ -6018,7 +6032,7 @@ function StepNFPA({ groups, setGroups, freqs, equip, setEquip }) {
               return (
                 <button key={c} onClick={() => toggleEquip(c)}
                         className="px-3 py-2 rounded-lg text-sm font-bold border flex items-center gap-2"
-                        style={{ borderColor: ativo ? C.orange : C.border, background: ativo ? C.orange : "#fff", color: ativo ? "#fff" : C.grayMid }}>
+                        style={{ borderColor: ativo ? C.orange : C.border, background: ativo ? C.orangeFill : C.white, color: ativo ? "#fff" : C.grayMid }}>
                   {ativo ? <CheckCircle2 size={15} /> : <MinusCircle size={15} />}
                   {EQUIP_NFPA_LABEL[c] || c}
                 </button>
@@ -6029,7 +6043,7 @@ function StepNFPA({ groups, setGroups, freqs, equip, setEquip }) {
       )}
       {freqsArr.length > 1 && (
         <div className="p-3 rounded-lg flex items-start gap-2 text-xs" style={{ background: C.orangeLight, color: C.gray }}>
-          <ClipboardCheck size={14} className="mt-0.5 flex-shrink-0" style={{ color: C.orange }} />
+          <ClipboardCheck size={14} className="mt-0.5 flex-shrink-0" style={{ color: C.orangeDark }} />
           <div>
             <strong>Esta visita realiza {freqsArr.length} inspeções:</strong>{" "}
             {freqsArr.map((f, i) => (
@@ -6110,7 +6124,7 @@ function StepStartupDados({ startup, setStartup, soEquipamentos = false }) {
           <h3 className="text-sm font-bold" style={{ color: TIPO_REL.startup.color }}>Equipamentos Instalados</h3>
           <div className="flex gap-2 flex-wrap items-center">
             <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: C.grayMid }}>{equipamentos.length} conjuntos</span>
-            <button type="button" onClick={() => addEquip("diesel")} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.gray }}><Plus size={13} /> Diesel</button>
+            <button type="button" onClick={() => addEquip("diesel")} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1" style={{ background: C.gray, color: C.white }}><Plus size={13} /> Diesel</button>
             <button type="button" onClick={() => addEquip("eletrica")} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.blue }}><Plus size={13} /> Elétrica</button>
             <button type="button" onClick={() => addEquip("jockey")} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: TIPO_REL.startup.color }}><Plus size={13} /> Jockey / Pilot</button>
           </div>
@@ -6425,7 +6439,7 @@ function StepCasas({ casas, setCasas, tipo }) {
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <h2 className="text-xl font-black" style={{ color: C.gray }}>Casas de Bombas</h2>
-        <button onClick={addCasa} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orange }}>
+        <button onClick={addCasa} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
           <Plus size={14} /> Nova Casa
         </button>
       </div>
@@ -6477,7 +6491,7 @@ function CasaCard({ casa, onUpdate, onDelete }) {
                   <button key={tipo} onClick={() => addEquip(tipo)}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-1.5"
                           style={{ borderColor: C.border, color: C.gray }}>
-                    <Icon size={14} style={{ color: C.orange }} /> {tpl.nome}
+                    <Icon size={14} style={{ color: C.orangeDark }} /> {tpl.nome}
                   </button>
                 );
               })}
@@ -6529,7 +6543,7 @@ function ChecklistSection({ title, items, onChange }) {
 
   return (
     <div className="border rounded-lg overflow-hidden" style={{ borderColor: C.border }}>
-      <div className="px-3 py-2 text-sm font-bold text-white" style={{ background: C.orange }}>{title}</div>
+      <div className="px-3 py-2 text-sm font-bold text-white" style={{ background: C.orangeFill }}>{title}</div>
       <div className="divide-y" style={{ borderColor: C.border }}>
         {items.map(it => {
           const fotos = it.fotos || [];
@@ -6549,7 +6563,7 @@ function ChecklistSection({ title, items, onChange }) {
                 className="w-full mt-2 px-2 py-1.5 text-xs border rounded resize-y"
                 style={{ borderColor: it.status === "nok" ? C.nok : C.border, background: it.status === "nok" ? "#FFFBFB" : "#fff" }} />
               <div className="mt-2 flex items-center gap-2 flex-wrap">
-                <label className="cursor-pointer px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1" style={{ borderColor: C.orange, color: C.orange }}>
+                <label className="cursor-pointer px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1" style={{ borderColor: C.orange, color: C.orangeDark }}>
                   <Camera size={12} /> Adicionar foto
                   <input type="file" accept="image/*" className="hidden"
                          onChange={e => { const f = e.target.files?.[0]; if (f) addFoto(it.id, f); e.target.value = ""; }} />
@@ -6580,10 +6594,11 @@ function ChecklistSection({ title, items, onChange }) {
 }
 
 function StatusBtn({ label, color, active, onClick }) {
+  const [fundo, texto] = corMarcada(color);
   return (
     <button onClick={onClick}
             className="px-2 py-1 rounded text-[10px] font-bold border transition"
-            style={{ background: active ? color : "transparent", color: active ? "#fff" : color, borderColor: color }}>
+            style={{ background: active ? fundo : "transparent", color: active ? texto : color, borderColor: color }}>
       {label}
     </button>
   );
@@ -6619,14 +6634,14 @@ function StepMaoObra({ maoObra, setMaoObra }) {
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <h2 className="text-xl font-black" style={{ color: C.gray }}>Mão de Obra</h2>
-        <button onClick={add} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orange }}>
+        <button onClick={add} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
           <Plus size={14} /> Apontamento
         </button>
       </div>
       <div className="space-y-3">
         {maoObra.map((m, i) => (
           <div key={m.id} className="border rounded-lg p-4 grid grid-cols-1 md:grid-cols-5 gap-3 items-end" style={{ borderColor: C.border }}>
-            <div className="text-xs font-bold uppercase" style={{ color: C.orange }}>#{i + 1}</div>
+            <div className="text-xs font-bold uppercase" style={{ color: C.orangeDark }}>#{i + 1}</div>
             <Field label="Início"><input type="datetime-local" value={m.dataIni} onChange={e => upd(m.id, { dataIni: e.target.value })} className="w-full border rounded px-2 py-1.5 text-xs" style={{ borderColor: C.border }} /></Field>
             <Field label="Fim"><input type="datetime-local" value={m.dataFim} onChange={e => upd(m.id, { dataFim: e.target.value })} className="w-full border rounded px-2 py-1.5 text-xs" style={{ borderColor: C.border }} /></Field>
             <div className="text-xs text-center" style={{ color: C.grayMid }}>{m.dataIni && m.dataFim && <span style={{ color: C.gray }}>{calcHoras(m.dataIni, m.dataFim)}</span>}</div>
@@ -6649,8 +6664,8 @@ function StepDeslocamento({ deslocs, setDeslocs }) {
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <h2 className="text-xl font-black" style={{ color: C.gray }}>Deslocamento</h2>
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="text-sm">Total: <span className="font-black text-base" style={{ color: C.orange }}>{totalKm} km</span></div>
-          <button onClick={add} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orange }}>
+          <div className="text-sm">Total: <span className="font-black text-base" style={{ color: C.orangeDark }}>{totalKm} km</span></div>
+          <button onClick={add} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
             <Plus size={14} /> Trecho
           </button>
         </div>
@@ -6660,7 +6675,7 @@ function StepDeslocamento({ deslocs, setDeslocs }) {
           const dif = (parseInt(d.kmFim) || 0) - (parseInt(d.kmIni) || 0);
           return (
             <div key={d.id} className="border rounded-lg p-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" style={{ borderColor: C.border }}>
-              <div className="text-xs font-bold uppercase" style={{ color: C.orange }}>#{i + 1}</div>
+              <div className="text-xs font-bold uppercase" style={{ color: C.orangeDark }}>#{i + 1}</div>
               <Field label="Início"><input type="datetime-local" value={d.dataIni} onChange={e => upd(d.id, { dataIni: e.target.value })} className="w-full border rounded px-2 py-1.5 text-xs" style={{ borderColor: C.border }} /></Field>
               <Field label="Km inicial"><input type="number" value={d.kmIni} onChange={e => upd(d.id, { kmIni: e.target.value })} className="w-full border rounded px-2 py-1.5 text-xs" style={{ borderColor: C.border }} /></Field>
               <Field label="Fim"><input type="datetime-local" value={d.dataFim} onChange={e => upd(d.id, { dataFim: e.target.value })} className="w-full border rounded px-2 py-1.5 text-xs" style={{ borderColor: C.border }} /></Field>
@@ -6691,7 +6706,7 @@ function StepTreinamento({ trein, setTrein }) {
       {trein.houve && (
         <div>
           <div className="flex justify-end mb-2">
-            <button onClick={addPart} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orange }}>
+            <button onClick={addPart} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
               <Plus size={14} /> Participante
             </button>
           </div>
@@ -6901,7 +6916,7 @@ ${root.innerHTML}
       <div className="sticky top-0 bg-white border-b px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 z-10 print:hidden flex-wrap" style={{ borderColor: C.border }}>
         <button onClick={onClose} className="p-2 rounded hover:bg-gray-100 shrink-0"><ArrowLeft size={18} /></button>
         <div className="flex-1 min-w-0">
-          <div className="text-xs uppercase font-bold flex items-center gap-2 flex-wrap" style={{ color: C.orange }}>
+          <div className="text-xs uppercase font-bold flex items-center gap-2 flex-wrap" style={{ color: C.orangeDark }}>
             <tipoCfg.Icon size={12} /> <span className="truncate">Preview — {tipoCfg.nomeLong}</span>
             <ApprovalBadge rel={rel} />
             {rel.freq && <span className="px-2 py-0.5 rounded-full text-[10px]" style={{ background: FREQ_COLOR[rel.freq]?.bg, color: FREQ_COLOR[rel.freq]?.fg }}>{rel.freq}</span>}
@@ -6914,11 +6929,11 @@ ${root.innerHTML}
         </button>
         {(window.__LSF_ME?.nivelPricer || 0) >= 2 && (
           <button onClick={() => abrirOrcamentoPricer(rel)} className="px-2.5 sm:px-3 py-2 rounded-lg text-sm font-bold border flex items-center gap-2 shrink-0"
-                  style={{ borderColor: C.orange, color: C.orange }} title="Montar no LS Pricer a proposta de serviço com o que não está conforme neste relatório">
+                  style={{ borderColor: C.orange, color: C.orangeDark }} title="Montar no LS Pricer a proposta de serviço com o que não está conforme neste relatório">
             <DollarSign size={14} /> <span className="hidden sm:inline">Orçar no Pricer</span>
           </button>
         )}
-        <button onClick={handlePrint} disabled={isPendingApproval} className="px-3 sm:px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2 disabled:opacity-40 shrink-0" style={{ background: C.orange }}>
+        <button onClick={handlePrint} disabled={isPendingApproval} className="px-3 sm:px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2 disabled:opacity-40 shrink-0" style={{ background: C.orangeFill }}>
           <Printer size={14} /> <span className="hidden sm:inline">Imprimir / Salvar PDF</span>
         </button>
       </div>
@@ -7023,7 +7038,7 @@ function ReportHeader({ rel }) {
       </div>
       <div style={{ padding: 8, borderRight: "1px solid #000", textAlign: "center" }}>
         <div className="font-display" style={{ fontSize: 11, fontWeight: 700 }}>RELATÓRIO TÉCNICO</div>
-        <div className="font-display" style={{ fontSize: 12, fontWeight: 700, color: C.orange }}>{TIPO_REL[rel.tipo]?.nomeLong.toUpperCase()}</div>
+        <div className="font-display" style={{ fontSize: 12, fontWeight: 700, color: C.orangeDark }}>{TIPO_REL[rel.tipo]?.nomeLong.toUpperCase()}</div>
       </div>
       <div style={{ padding: 4, textAlign: "center", fontSize: 10 }}>
         <div style={{ fontWeight: 700 }}>{rel.codigo}</div>
@@ -7041,7 +7056,7 @@ function ReportFooter() {
   return (
     <div style={{ marginTop: "auto", padding: "0 12mm 8mm" }}>
       <div style={{ borderTop: `3px solid ${C.orange}`, paddingTop: 6, textAlign: "center" }}>
-        <div className="font-display" style={{ fontSize: 11, fontWeight: 900, color: C.orange, letterSpacing: 1 }}>A FORÇA DA ÁGUA É A NOSSA FORÇA</div>
+        <div className="font-display" style={{ fontSize: 11, fontWeight: 900, color: C.orangeDark, letterSpacing: 1 }}>A FORÇA DA ÁGUA É A NOSSA FORÇA</div>
         <div style={{ fontSize: 9, color: C.gray }}>LS Fire | lsfire.com.br | Sistemas de Bombeamento para Combate a Incêndio</div>
       </div>
     </div>
@@ -7052,7 +7067,7 @@ function ReportSectionTitle({ children }) {
   return <h1 style={{ fontSize: 18, fontWeight: 900, color: "#000", borderBottom: `3px solid ${C.orange}`, paddingBottom: 4, marginTop: 12, marginBottom: 10 }}>{children}</h1>;
 }
 function ReportSubTitle({ children }) {
-  return <h2 style={{ fontSize: 13, fontWeight: 700, color: C.orange, marginTop: 12, marginBottom: 6 }}>{children}</h2>;
+  return <h2 style={{ fontSize: 13, fontWeight: 700, color: C.orangeDark, marginTop: 12, marginBottom: 6 }}>{children}</h2>;
 }
 
 function KVReportTable({ rows }) {
@@ -7156,7 +7171,7 @@ function ReportNFPA({ rel }) {
           <div style={{ height: 40 }} />
           <div className="text-center">
             <div className="font-display" style={{ fontSize: 22, fontWeight: 900, color: "#000", letterSpacing: -0.5 }}>RELATÓRIO TÉCNICO</div>
-            <div className="font-display" style={{ fontSize: 30, fontWeight: 900, color: C.orange, marginTop: 4, letterSpacing: -0.5 }}>INSPEÇÃO, TESTE E MANUTENÇÃO</div>
+            <div className="font-display" style={{ fontSize: 30, fontWeight: 900, color: C.orangeDark, marginTop: 4, letterSpacing: -0.5 }}>INSPEÇÃO, TESTE E MANUTENÇÃO</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: C.gray, marginTop: 4 }}>Conforme NFPA 25 / NFPA 20</div>
           </div>
           <div style={{ height: 24 }} />
@@ -7205,7 +7220,7 @@ function ReportNFPA({ rel }) {
 
         {/* Cabeçalho oficial NFPA */}
         <div style={{ border: "2px solid #000", padding: 0, marginBottom: 12 }}>
-          <div style={{ background: C.orange, color: "#fff", padding: "6px 10px", fontWeight: 900, fontSize: 12, textAlign: "center", letterSpacing: 1 }}>
+          <div style={{ background: C.orangeFill, color: "#fff", padding: "6px 10px", fontWeight: 900, fontSize: 12, textAlign: "center", letterSpacing: 1 }}>
             INSPEÇÃO, TESTE E MANUTENÇÃO {rel.freq.toUpperCase()} DA BOMBA DE INCÊNDIO
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
@@ -7232,7 +7247,7 @@ function ReportNFPA({ rel }) {
                 <td style={{ border: "1px solid #000", padding: "5px 8px", background: C.grayLight, fontWeight: 700 }}>OS Nº:</td>
                 <td style={{ border: "1px solid #000", padding: "5px 8px" }}>{rel.os || "—"}</td>
                 <td style={{ border: "1px solid #000", padding: "5px 8px", background: C.grayLight, fontWeight: 700 }}>Frequência:</td>
-                <td style={{ border: "1px solid #000", padding: "5px 8px", fontWeight: 900, color: C.orange }}>{rel.freq}</td>
+                <td style={{ border: "1px solid #000", padding: "5px 8px", fontWeight: 900, color: C.orangeDark }}>{rel.freq}</td>
               </tr>
             </tbody>
           </table>
@@ -7680,7 +7695,7 @@ function ReportPadrao({ rel }) {
           <div style={{ height: 60 }} />
           <div className="text-center">
             <div className="font-display" style={{ fontSize: 30, fontWeight: 900, color: "#000", letterSpacing: -0.5 }}>RELATÓRIO TÉCNICO DE</div>
-            <div className="font-display" style={{ fontSize: 38, fontWeight: 900, color: C.orange, marginTop: 4, letterSpacing: -0.5 }}>{tituloCapa}</div>
+            <div className="font-display" style={{ fontSize: 38, fontWeight: 900, color: C.orangeDark, marginTop: 4, letterSpacing: -0.5 }}>{tituloCapa}</div>
           </div>
           <div style={{ height: 50 }} />
           <div style={{ width: "70%", borderTop: `3px solid ${C.orange}` }} />
@@ -7786,7 +7801,7 @@ function ReportCasa({ rel, casa, index }) {
             <ReportSubTitle>{index}.{i + 2} {eq.nome}</ReportSubTitle>
             {eq.sections.map(s => (
               <div key={s.id} style={{ marginBottom: 6 }}>
-                <div style={{ background: C.orange, color: "#fff", padding: "4px 8px", fontSize: 10, fontWeight: 700 }}>{s.titulo.toUpperCase()}</div>
+                <div style={{ background: C.orangeFill, color: "#fff", padding: "4px 8px", fontSize: 10, fontWeight: 700 }}>{s.titulo.toUpperCase()}</div>
                 <ChecklistReportTable items={s.items} />
               </div>
             ))}
@@ -7858,7 +7873,7 @@ function ReportDeslocamento({ rel }) {
           })}
           <tr>
             <td colSpan={5} style={{ border: "1px solid #BFBFBF", padding: "4px 6px", background: C.orangeBg, textAlign: "right", fontWeight: 700 }}>TOTAL</td>
-            <td style={{ border: "1px solid #BFBFBF", padding: "4px 6px", background: C.orangeBg, textAlign: "center", fontWeight: 900, color: C.orange }}>{total} km</td>
+            <td style={{ border: "1px solid #BFBFBF", padding: "4px 6px", background: C.orangeBg, textAlign: "center", fontWeight: 900, color: C.orangeDark }}>{total} km</td>
           </tr>
         </tbody>
       </table>
@@ -7975,7 +7990,7 @@ function LoginScreen({ onLogin, usuarios, onRestaurar }) {
             )}
             <button onClick={submit} disabled={loading || !login || !senha}
                     className="w-full py-2.5 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center justify-center gap-2"
-                    style={{ background: C.orange }}>
+                    style={{ background: C.orangeFill }}>
               {loading ? "Entrando…" : <><KeyRound size={16} /> Entrar</>}
             </button>
             {soAdminPadrao && (
@@ -7999,7 +8014,7 @@ function LoginScreen({ onLogin, usuarios, onRestaurar }) {
             )}
           </div>
         </div>
-        <div className="text-center mt-4 text-[11px] font-bold tracking-wider font-display" style={{ color: C.orange }}>
+        <div className="text-center mt-4 text-[11px] font-bold tracking-wider font-display" style={{ color: C.orangeDark }}>
           A FORÇA DA ÁGUA É A NOSSA FORÇA
         </div>
       </div>
@@ -8037,7 +8052,7 @@ function LockScreen({ sessao, onUnlock, onLogout }) {
           {erro && <div className="text-xs flex items-center justify-center gap-1.5" style={{ color: C.nok }}><AlertTriangle size={14} /> {erro}</div>}
           <button onClick={submit} disabled={loading || !senha}
                   className="w-full py-2.5 rounded-lg text-sm font-bold text-white disabled:opacity-40"
-                  style={{ background: C.orange }}>
+                  style={{ background: C.orangeFill }}>
             {loading ? "Verificando…" : "Desbloquear"}
           </button>
           <button onClick={onLogout} className="w-full py-1.5 text-xs font-semibold" style={{ color: C.grayMid }}>
@@ -8056,7 +8071,7 @@ function UsuariosView({ usuarios, contratos, onNew, onEdit, onDelete }) {
     <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <h1 className="text-2xl sm:text-3xl font-black" style={{ color: C.gray }}>Usuários</h1>
-        <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orange }}>
+        <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orangeFill }}>
           <Plus size={16} /> Novo Usuário
         </button>
       </div>
@@ -8173,7 +8188,7 @@ function UsuarioForm({ initial, contratos, usuarios = [], tecnicos = [], onSave 
       <div className="flex justify-end pt-4 border-t" style={{ borderColor: C.border }}>
         <button onClick={() => onSave(data, novaSenha)} disabled={!podeSalvar}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2"
-                style={{ background: C.orange }}>
+                style={{ background: C.orangeFill }}>
           <Save size={14} /> Salvar Usuário
         </button>
       </div>

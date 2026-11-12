@@ -57,7 +57,7 @@ No servidor, o exemplo Cocamar dá o mesmo total do Pricer local (R$ 4.258.300,0
 
 | Teste | O que confere | Resultado |
 |---|---|---|
-| `servidor/test/api_test.mjs` (`npm test`) | Login, senha provisória, CSRF, níveis do Pricer, perfis do serviço (sem valores, aprovação protegida, cliente só o dele), junção sem perder dados, ligações, bloqueio, sessão, nenhum segredo no disco | 61 ok |
+| `servidor/test/api_test.mjs` (`npm test`) | Login, senha provisória, CSRF, níveis do Pricer, perfis do serviço (sem valores, aprovação protegida, cliente só o dele), junção sem perder dados, ligações, bloqueio, sessão, nenhum segredo no disco | 70 ok |
 | `servidor/test/e2e_test.mjs` | No navegador: gestor entra, abre o Serviço de campo dentro do Pricer, o relatório vira SPV, salva no servidor, proposta de contrato ganha vira contrato. Técnico entra direto no serviço, sem Pricer e sem valores, sem rolagem lateral no celular | 17 ok |
 | `servidor/test/migracao_test.mjs` | Backup completo do Pricer → servidor: cadastro, propostas, mesmo total | 10 ok |
 | Testes do Pricer (`separa`, `servico_html`, `ux`, `sim`) e regressões | O Pricer no claude.ai e no arquivo local continua igual | ok |

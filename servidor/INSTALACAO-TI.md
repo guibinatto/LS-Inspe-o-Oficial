@@ -64,7 +64,9 @@ app.lsfire.com.br {
 }
 ```
 
-O Caddy emite e renova o certificado sozinho. Com outro proxy (nginx, IIS), repasse o cabeçalho `X-Forwarded-Proto` e use `COOKIE_SECURE=1`.
+O Caddy emite e renova o certificado sozinho. Com outro proxy (nginx, IIS), repasse os cabeçalhos `X-Forwarded-Proto` e `X-Forwarded-For` e use `COOKIE_SECURE=1`. Se o proxy estiver em outra máquina, defina `TRUST_PROXY` com o IP dele.
+
+O Pricer (~9 MB) vai comprimido (~2,5 MB) e o navegador guarda a cópia: nas visitas seguintes, só confere se mudou. Não precisa configurar compressão no proxy.
 
 ## 5. Rodar como serviço
 
@@ -81,6 +83,7 @@ O Caddy emite e renova o certificado sozinho. Com outro proxy (nginx, IIS), repa
 | `BACKUP_INTERVAL_HORAS` / `BACKUP_MANTER` | 6 / 30 | backup automático em `data/backups/` |
 | `RATE_LIMIT_MAX` | 600 | requisições por minuto por IP na API. O login tem limite próprio |
 | `COOKIE_SECURE` | segue o protocolo | `1` = cookie só por HTTPS (produção) |
+| `TRUST_PROXY` | só o proxy desta máquina | de quem aceitar o `X-Forwarded-For`. Com o Caddy na mesma máquina, deixe vazio. Proxy em outra máquina: o IP dele. `0` = não aceitar de ninguém |
 | `DATA_DIR` | `./data` | onde ficam os dados |
 
 ## 7. Primeiros passos no sistema (administrador)
