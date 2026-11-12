@@ -2296,8 +2296,9 @@
   function ctxHeader() {
     const spv = isSpv(), fx = isFacts(); const sv = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
     let num, cli, tot, mg, mMin, custo, nItens, pend;
-    if (spv) { const sn = SPV.snapshot(state.spv); num = state.spv.numero; cli = state.spv.cliente; tot = SPV.total(); mg = sn.margemPct; mMin = sn.minimo; custo = sn.custo; nItens = sn.itens.length; }
-    else if (fx) { const sn = FX.snapshot(state.facts); num = state.facts.numero; cli = state.facts.cliente; tot = FX.total(); mg = sn.margemPct; mMin = sn.minimo; custo = sn.custo; nItens = sn.itens.length; }
+    let rS = null, rF = null, tit = '';
+    if (spv) { const sn = SPV.snapshot(state.spv); rS = SPV.calc(state.spv); tit = SPV.titulo ? SPV.titulo(state.spv) : ''; num = state.spv.numero; cli = state.spv.cliente; tot = rS.total; mg = rS.lucroPct; mMin = rS.mk.lucro_min; custo = sn.custo; nItens = sn.itens.length; }
+    else if (fx) { const sn = FX.snapshot(state.facts); rF = FX.calc(state.facts); tit = 'Teste automático de bombas · ' + rF.nSets + ' conjunto(s)'; num = state.facts.numero; cli = state.facts.cliente; tot = FX.total(); mg = sn.margemPct; mMin = sn.minimo; custo = sn.custo; nItens = sn.itens.length; }
     else { const P = 'PROPOSTA'; num = txt(P, 'C5'); cli = txt(P, 'F5'); tot = val(P, 'B16'); mg = val(P, 'J16'); mMin = val('PARÂMETROS', 'C34'); custo = val(P, 'G16'); nItens = ITEMS.filter((s, i) => used(i)).length; }
     if (!spv && !fx) { const rc = resumoConf(); pend = rc.imped + rc.aviso; } else pend = 0;
     // as automáticas repetem os itens da conferência: na SEQ entram só as manuais, para não contar duas vezes
@@ -2306,11 +2307,11 @@
     const baixa = typeof mg === 'number' && typeof mMin === 'number' && mg < mMin;
     const ipiTxt = spv ? 'com impostos' : 'com IPI';
     return `<section class="ctxh${ui.ctxOpen ? ' open' : ''}" aria-label="Resumo da proposta">
-      <div class="ctx-id"><span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : fx ? 'FACTS' : 'SEQ'}</span><div class="ctx-tt"><h1>${esc(num || 'Proposta sem número')}</h1><div class="sub">${esc(cli || 'Cliente não informado')}</div></div>
+      <div class="ctx-id"><span class="divb ${spv ? 'spv' : 'seq'}">${spv ? 'SPV' : fx ? 'FACTS' : 'SEQ'}</span><div class="ctx-tt"><h1>${esc(num || 'Proposta sem número')}</h1><div class="sub">${esc(cli || 'Cliente não informado')}${tit ? ' · ' + esc(tit) : ''}</div></div>
         <div class="ctx-tags">${revSelo()}<span class="pill ${sit[1]}">${esc(sit[2] === 'aprovacao' && MG.faseLb ? MG.faseLb('aprovacao') : sit[0])}</span>${spv || fx ? '' : apSelo()}${podeCancelar() ? `<button class="btn sm ghost" data-cancelar data-ico="x" title="${sv ? 'Descartar o que não foi salvo' : 'Desistir da criação desta proposta'}">Cancelar</button>` : ''}</div></div>
       <div class="ctx-kpis sumbar sticky">
-        <div class="k"><span>Valor total</span><b>${brl(tot)}</b><em>${ipiTxt}</em></div>
-        <div class="k${spv || fx ? '' : ' kneg'}"${spv || fx ? '' : ' data-step="4" data-scrollto="#simMgCard" role="button" tabindex="0" title="Negociar: desconto, margem ou valor final"'}><span>Margem</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}</em></div>
+        <div class="k"><span>${rS && rS.ct ? 'Preço do contrato' : 'Valor total'}</span><b>${brl(tot)}</b><em>${rS && rS.ct ? brl(rS.ct.mensal) + ' por mês' : rF ? 'sem IPI · ' + brl(rF.nSets ? rF.Veq / rF.nSets : 0) + ' por conjunto' : ipiTxt}</em></div>
+        <div class="k${spv || fx ? '' : ' kneg'}"${spv || fx ? '' : ' data-step="4" data-scrollto="#simMgCard" role="button" tabindex="0" title="Negociar: desconto, margem ou valor final"'}><span>${spv ? 'Lucro líquido' : fx ? 'Margem líquida' : 'Margem'}</span><b class="${baixa ? 'bad-t' : ''}">${pct(mg)}</b><em>${typeof mMin === 'number' ? `mín. ${pct(mMin, 0)}` : ''}${((spv && rS && rS.V) || (fx && rF && rF.V)) && !baixa ? ' · dentro da meta' : ''}</em></div>
         <div class="k x"><span>Custo</span><b>${brl(custo)}</b><em></em></div>
         <div class="k x"><span>Itens</span><b>${nItens}</b><em></em></div>
         <div class="k kpend" ${spv || fx ? 'data-view="pendencias"' : 'data-step="5"'} role="button" tabindex="0" title="Ver as pendências"><span>Pendências</span><b class="${pend || pnAb ? 'warn-t' : 'ok-t'}">${pend + pnAb}</b><em>${pend ? pend + ' na conferência' : ''}${pend && pnAb ? ' · ' : ''}${pnAb ? pnAb + ' em acompanhamento' : pend ? '' : 'nada pendente'}</em></div>

@@ -62,4 +62,13 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
     - **Números em cartões separados:** como no painel do serviço.
     - **Cartões e respiro da página:** cantos de 12 px e as mesmas margens do módulo.
     - **Fórmulas:** nenhuma mudou.
+31. Segundo passo da padronização com o Serviço de campo.
+    - **Campos de digitação:** brancos com borda cinza, como no módulo, em vez do fundo amarelo. Os campos automáticos continuam verdes e o valor alterado à mão continua com a borda laranja.
+    - **Títulos das seções:** em laranja, como os do módulo.
+    - **Largura da página:** ocupa a tela até 1.920 px, sem a faixa vazia nas laterais.
+    - **Propostas SPV e FACTS sem cabeçalho repetido:** saíram o botão "← Início", o segundo título, o segundo Rev./Revisar e o segundo quadro de preço. Ficou só o cabeçalho da proposta.
+    - **Tipo da proposta:** passou para o subtítulo, ao lado do cliente (ex.: "Ipiranga · Peças e sobressalentes"; na FACTS, "Teste automático de bombas · N conjunto(s)").
+    - **Indicadores na SPV:** mostram o "Lucro líquido" com o mesmo número e o mesmo mínimo de antes. No contrato recorrente, aparecem o preço do contrato e o valor mensal.
+    - **Indicadores na FACTS:** "Margem líquida", e o valor total passa a dizer "sem IPI", junto com o valor por conjunto. Antes dizia "com IPI" por engano: o número mostrado sempre foi sem IPI.
+    - **Fórmulas:** nenhuma mudou.
 17. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).

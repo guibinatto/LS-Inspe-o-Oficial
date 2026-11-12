@@ -458,8 +458,6 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const pdocs = docsDaProposta(st().uid);
       const blk = (k, lb) => `<label class="chip"><input type="checkbox" data-spblk="${k}"${s.blocos[k] ? ' checked' : ''}> ${lb}</label>`;
       return `<div class="stack">
-        <div class="flowhead"><div style="min-width:0"><button class="btn sm" data-view="inicio">← Início</button><h1 style="margin-top:8px"><span class="divb spv">SPV</span> ${esc((TIPO_INI[s.tipo] || {}).titulo || ti.nome)} ${s.numero ? '· ' + esc(s.numero) : ''}</h1><div class="sub">${esc(ti.nome)} · ${esc(s.cliente || 'cliente a definir')}</div></div>
-          <div class="sumbar">${ctx.revSelo ? ctx.revSelo() : ''}<div><span>Preço${r.ct ? ' do contrato' : ''}</span><b>${brl(r.total)}</b></div>${r.ct ? `<div><span>Mensal</span><b>${brl(r.ct.mensal)}</b></div>` : ''}<div><span>Lucro líquido</span><b class="${below ? 'bad-t' : ''}">${pct(r.lucroPct, 1)}</b></div><div>${below ? '<span class="pill bad">abaixo de ' + pct(r.mk.lucro_min, 0) + '</span>' : r.V ? '<span class="pill ok">dentro da meta</span>' : ''}</div></div></div>
         ${ctx.servicoHtml ? ctx.servicoHtml(s) : ''}
         ${s.vinculo ? (() => { const v = ctx.vinculo ? ctx.vinculo(s.vinculo.uid) : null; const n = (v && v.numero) || s.vinculo.numero || 's/ nº';
           return `<div class="banner info" data-vinculo>🔗 ${s.vinculo.papel === 'mo' ? 'As peças deste serviço estão na proposta' : 'A mão de obra destas peças está na proposta'} nº <b>${esc(n)}</b>${v && v.total != null ? ' · ' + brl(v.total) : ''}${v && v.numero && s.vinculo.numero && v.numero !== s.vinculo.numero ? ' <small class="sub">(o número mudou: confira "Propostas relacionadas")</small>' : ''}. Cada uma tem o seu número e o seu PDF. ${v ? `<button class="restore" data-spvinc="${esc(v.id)}">Abrir a nº ${esc(n)}</button>` : '<span class="sub">(ainda não está nas propostas salvas)</span>'}</div>`; })() : ''}
@@ -803,7 +801,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
 
     const docList2 = (list) => (list.length ? docList(list) : '<p class="sub" style="margin:0">Nenhum documento ligado.</p>');
     const blobDoc = async (id) => { const d = docs.find((x) => x.id === id); if (!d) return null; try { return d.assetId ? await (await fetch('/_blob/' + d.assetId)).blob() : await idbGet(d.id); } catch (e) { return null; } };
-    return { deImportacao, propostaDados, blobDoc, abrirDoc, docsDoInsumo: (id) => docList2(docs.filter((d) => (d.insumos || []).includes(id))), cfg, vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
+    return { deImportacao, propostaDados, blobDoc, abrirDoc, docsDoInsumo: (id) => docList2(docs.filter((d) => (d.insumos || []).includes(id))), cfg, vHome, vSpv, vDocs, cfgSec, snapshot, lerDocumento, titulo: (s) => (TIPO_INI[s.tipo] || {}).titulo || tipoInfo(s.tipo).nome, docs: () => docs, salvarDoc, STATUS, calc, novoSpv, uid, famprod, docsDaProposta, ensureDocs, total: () => (S() ? calc(S()).total : null) };
   }
   window.PricerSPV = SPV;
 })();

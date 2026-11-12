@@ -38,7 +38,7 @@ const num = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   await p.fill('#sepNumPc', '10.342'); await p.click('#sepOk'); await p.waitForTimeout(2500);
 
   // mão de obra (esta)
-  const h1Mo = await p.evaluate(() => (document.querySelector('.flowhead h1') || {}).innerText || '');
+  const h1Mo = await p.evaluate(() => (document.querySelector('.ctxh .ctx-tt') || {}).innerText || '');
   confere('MO: na família escolhida (SMF · Serviço em fábrica)', /Serviço em fábrica/.test(h1Mo) && /10\.339/.test(h1Mo), h1Mo);
   const banMo = await p.evaluate(() => (document.querySelector('[data-vinculo]') || {}).innerText || '');
   confere('MO: aviso de vínculo com a proposta de peças 10.342', /peças deste serviço estão na proposta nº 10\.342/.test(banMo), banMo.slice(0, 90));
@@ -56,7 +56,7 @@ const num = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
   await aba('(DADOS|SERVI|PROPOSTA)'); await p.evaluate(() => window.scrollTo(0, 0));
   const vinc = await p.$('[data-spvinc]'); confere('MO: botão Abrir a proposta vinculada', !!vinc);
   if (vinc) { await vinc.click(); await p.waitForTimeout(1200); }
-  const h1 = await p.evaluate(() => (document.querySelector('.flowhead h1') || {}).innerText || '');
+  const h1 = await p.evaluate(() => (document.querySelector('.ctxh .ctx-tt') || {}).innerText || '');
   confere('peças: abriu a 10.342 na família escolhida (PAN · Painéis)', /10\.342/.test(h1) && /Painéis/.test(h1), h1);
   const banPc = await p.evaluate(() => (document.querySelector('[data-vinculo]') || {}).innerText || '');
   confere('peças: aviso de vínculo com a MO 10.339', /mão de obra destas peças está na proposta nº 10\.339/i.test(banPc), banPc.slice(0, 90));
