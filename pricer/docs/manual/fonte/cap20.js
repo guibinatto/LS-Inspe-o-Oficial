@@ -1,0 +1,106 @@
+// Capítulo 20 — Versão interativa da proposta (HTML), técnica e comercial em dois PDFs, memorial em Excel e os dois fatores
+const os = require('os'), path = require('path');
+const ARQ = path.join(os.tmpdir(), 'manual-interativa.html');
+module.exports = {
+  n: 20, titulo: 'Versão interativa, memorial em Excel e fatores', slug: 'interativa', libs: true,
+  inicio: async (p, h) => { await h.exemplo(); await h.salvar(); },
+  capturas: [
+    { id: '20-01', nome: 'interativa-botoes', titulo: 'Aba Documentos: os botões de gerar a proposta',
+      prep: async (p, h) => { await h.aba(6); },
+      clip: '#pcCard .docbar:has([data-pchtml])', pad: 10,
+      marcas: [
+        { sel: '#pcCard [data-pcimprimir]', txt: 'Imprimir (A4): resumo para imprimir ou salvar como PDF pelo navegador.', pos: 'b' },
+        { sel: '#pcCard [data-pcgerar]', txt: 'Gerar a proposta em PDF (o documento escolhido acima).', pos: 't' },
+        { sel: '#pcCard [data-pcgerar2]', txt: 'Técnica + Comercial: dois PDFs, a técnica sem preços e a comercial.', pos: 'b' },
+        { sel: '#pcCard [data-pchtml]', txt: 'Versão interativa (HTML): página com o PDF oficial dentro.', pos: 't' },
+      ] },
+    { id: '20-02', nome: 'interativa-memorial-excel', titulo: 'Memorial de cálculo: Memorial (PDF) e Memorial (Excel)',
+      prep: async (p, h) => { await h.aba('memorial'); await h.topo(); },
+      clip: '#app .stack > div:first-child', pad: 8,
+      marcas: [
+        { sel: '#app .stack > div:first-child [data-doc="memorialxlsx"]', txt: 'Memorial (Excel): abas Memorial e Itens, valores como número.', pos: 'b' },
+      ] },
+    { id: '20-03', nome: 'interativa-fatores', titulo: 'Memorial: as linhas dos dois fatores, logo depois da margem',
+      clip: ['tr:has(td[title^="Subtotal negociado"])', 'tr:has(td[title^="Preço de venda com impostos"])', '#app .nota-fat'], pad: 8,
+      marcas: [
+        { sel: 'td[title^="Subtotal negociado"]', txt: 'Fator praticado: subtotal negociado ÷ custo dos itens (régua da política de desconto).', pos: 'l' },
+        { sel: 'td[title^="Preço de venda com impostos"]', txt: 'Fator sobre o preço final: preço com IPI ÷ custo total.', pos: 'l' },
+        { sel: '#app .nota-fat', txt: 'Nota que explica os dois fatores (sai também no PDF e no Excel).', pos: 'l' },
+      ] },
+    { id: '20-04', nome: 'interativa-capa', titulo: 'Versão interativa aberta no navegador: capa',
+      prep: async (p, h) => { await h.aba(6); const dl = p.waitForEvent('download', { timeout: 180000 }); await p.click('[data-pchtml]'); const d = await dl; await d.saveAs(ARQ); await p.goto('file://' + ARQ); await p.waitForTimeout(1200);
+        // só para a captura: sem rolagem suave e sem animação (a medição das marcas não pode pegar o meio do movimento)
+        await p.addStyleTag({ content: 'html{scroll-behavior:auto!important} .rv{opacity:1!important;transform:none!important;transition:none!important}' }); await p.waitForTimeout(300); },
+      marcas: [
+        { sel: '.top nav', txt: 'Menu que acompanha a rolagem: Resumo, Equipamentos, Condições, Notas e Contatos.', pos: 'b' },
+        { sel: '.top .btnpdf', txt: 'PDF oficial: baixa o mesmo PDF gerado pelo app.', pos: 'bl' },
+        { sel: '.hero h1', txt: 'Cliente e obra.', pos: 'r' },
+        { sel: '.hero .chips', txt: 'Número, revisão, data, validade e contato.', pos: 't' },
+      ] },
+    { id: '20-05', nome: 'interativa-resumo', titulo: 'Versão interativa: resumo',
+      prep: async (p) => { await p.evaluate(() => { document.querySelectorAll('.rv').forEach((x) => x.classList.add('vis')); ['top', 'prog'].forEach((i) => { const e = document.getElementById(i); if (e) e.style.display = 'none'; }); document.getElementById('resumo').scrollIntoView(); }); await p.waitForTimeout(900); },
+      clip: '#resumo .stats', pad: 10,
+      marcas: [
+        { sel: '#resumo .stat.lead', txt: 'Investimento total (com IPI).', pos: 'b' },
+        { sel: '#resumo .stat:nth-child(2)', txt: 'Prazo, validade e condição de pagamento.', pos: 'b' },
+      ] },
+    { id: '20-06', nome: 'interativa-item', titulo: 'Versão interativa: um item, com o que está incluso',
+      clip: '#item3', pad: 10,
+      marcas: [
+        { sel: '#item3 .ino', txt: 'Número do item.', pos: 'l' },
+        { sel: '#item3 h3', txt: 'Descrição completa; abaixo, a descrição breve.', pos: 'b' },
+        { sel: '#item3 .preco', txt: 'Quantidade, unitário e total do item.', pos: 'l' },
+        { sel: '#item3 .dados', txt: 'Condição de projeto (vazão × pressão).', pos: 'l' },
+        { sel: '#item3 .egs', txt: 'O que está incluso, por grupo.', pos: 'l' },
+      ] },
+    { id: '20-07', nome: 'interativa-rodape', titulo: 'Versão interativa: rodapé com o aviso e o SHA-256 do PDF oficial',
+      prep: async (p) => { await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await p.waitForTimeout(500); },
+      clip: 'footer .in', pad: 16, alto: 1400,
+      marcas: [
+        { sel: 'footer p', txt: 'O documento oficial é o PDF; em caso de divergência, vale o PDF.', pos: 't' },
+        { sel: 'footer code', txt: 'SHA-256 do PDF: para conferir que o PDF baixado é o mesmo.', pos: 't' },
+        { sel: 'footer .btnpdf', txt: 'Baixar o PDF oficial.', pos: 'r' },
+      ] },
+  ],
+  conteudo: [
+    { t: 'p', x: 'Além do PDF da proposta (capítulo 5), a aba **Documentos** gera a **versão interativa** em HTML e a técnica e a comercial em dois arquivos. O **Memorial de cálculo** sai também em Excel e mostra os dois fatores da proposta.' },
+    { t: 'fig', id: '20-01' },
+    { t: 'h', x: 'Versão interativa (HTML)' },
+    { t: 'p', x: 'É uma página para abrir no navegador ou no celular, com o mesmo conteúdo da proposta: capa em tela cheia, resumo, "Conheça a LS Fire", cada item com o que está incluso, especificações, curva e desenhos (clique para ampliar), condições, notas e exclusões e contatos. Os blocos aparecem com uma animação leve ao rolar. Quem configurou o sistema para reduzir movimento vê tudo parado.' },
+    { t: 'fig', id: '20-04' },
+    { t: 'tut', titulo: 'Gerar a versão interativa', objetivo: 'Ter a proposta numa página bonita para apresentar ou mandar ao cliente, com o PDF oficial dentro.', quem: 'Quem gera o PDF da proposta (Contribuidor, Editor ou dono). No modo local não há controle de acesso.', pre: ['Proposta com itens precificados e, de preferência, salva (assim o PDF fica guardado nos documentos da proposta).'], passos: [
+      'Abra a aba **Documentos**.',
+      'No cartão **Proposta técnica e comercial**, escolha o padrão, o documento, o idioma e a moeda, como para o PDF.',
+      { x: 'Clique em **Versão interativa (HTML)**.', fig: '20-01' },
+      'No app publicado, confirme **Salvar arquivo** na janela do navegador. Sai **um arquivo só**, terminado em "_interativa.html".',
+      'Abra o arquivo no navegador para conferir.',
+    ], resultado: 'Um arquivo .html com o PDF oficial dentro. O PDF também fica guardado nos documentos da proposta, como quando se gera só o PDF.', atencao: 'O documento oficial é o **PDF**. A página diz isso no rodapé e mostra o SHA-256 do PDF para conferência.', dica: 'Em proposta grande (SEQ), mande o PDF como documento formal e a versão interativa como apresentação. Em serviço pequeno, só o PDF basta.' },
+    { t: 'fig', id: '20-05' },
+    { t: 'fig', id: '20-06' },
+    { t: 'fig', id: '20-07' },
+    { t: 'h', x: 'Como enviar ao cliente' },
+    { t: 'lista', itens: [
+      'O app gera um **arquivo**, não um link. Para o cliente abrir por link, alguém da LS Fire publica o arquivo num endereço da empresa (por exemplo, o site).',
+      'O arquivo também pode ir como **anexo** do e-mail: abre direto no navegador, sem internet.',
+      'O link do app no claude.ai é privado e pede login. Não serve para o cliente.',
+      'A página não chama nenhum endereço de fora: sem rastreamento e sem fontes externas. Imagens, fontes e o PDF vão dentro dela (cerca de 1,5 MB a 3 MB).',
+    ] },
+    { t: 'h', x: 'Técnica + Comercial em dois PDFs' },
+    { t: 'p', x: 'Na proposta SEQ, o botão **Técnica + Comercial (2 PDFs)** gera dois arquivos, um depois do outro: a **técnica**, sem preços (escopo de fornecimento, folhas de dados, comissionamento, prazos e documentos), e a **comercial**, com a planilha de preços e as condições. Os dois ficam guardados nos documentos da proposta. No app publicado, confirme **Salvar arquivo** duas vezes.' },
+    { t: 'h', x: 'Memorial em Excel e os dois fatores' },
+    { t: 'fig', id: '20-02' },
+    { t: 'p', x: 'Na aba **Memorial de cálculo**, o botão **Memorial (Excel)** gera uma planilha com duas abas: **Memorial**, com as mesmas linhas da tela (valores como número, percentuais formatados), e **Itens**. Serve para o financeiro trabalhar os números sem redigitar.' },
+    { t: 'fig', id: '20-03' },
+    { t: 'tab', cab: ['Fator', 'Conta', 'Para que serve'], lin: [
+      ['Fator praticado', 'subtotal negociado ÷ custo dos itens', 'É a régua da política de desconto: comparado ao piso da família, diz se o desconto cabe. Não é margem. O subtotal é o custo dos itens × o fator de tabela, menos os descontos, antes de frete, start-up e impostos'],
+      ['Fator sobre o preço final', 'preço com IPI ÷ custo total (itens + start-up + frete)', 'Mostra quantas vezes o custo o cliente paga, com tudo dentro'],
+    ] },
+    { t: 'nota', x: 'Os dois fatores aparecem também no cartão **Negociar** (capítulo 4), na simulação ao lado dos atuais. São só leitura: não entram em nenhuma conta do memorial.' },
+  ],
+  glossario: [
+    ['Versão interativa', 'Página HTML da proposta, de um arquivo só, com o PDF oficial dentro e o SHA-256 dele no rodapé.'],
+    ['SHA-256', 'Código calculado a partir do arquivo; se o PDF mudar um byte, o código muda. Serve para conferir que o PDF é o mesmo.'],
+    ['Fator praticado', 'Subtotal negociado ÷ custo dos itens; régua da política de desconto, comparada ao piso da família.'],
+    ['Fator sobre o preço final', 'Preço com IPI ÷ custo total (itens, start-up e frete).'],
+  ],
+};

@@ -1,0 +1,23 @@
+const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
+(async () => {
+  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+  await p.route('https://**', (r) => r.abort()); const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('dialog', (d) => d.accept());
+  await p.goto('file://' + require('path').resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1200);
+  await p.click('[data-view="cadastro"]'); await p.click('[data-cad="fiscal"]'); await p.waitForTimeout(200); await p.click('[data-cad="cenarios"]'); await p.waitForTimeout(300);
+  await p.click('[data-cennovo="2027"]'); await p.waitForTimeout(500);
+  console.log('tributos:', await p.$$eval('table.cent tbody tr', (x) => x.slice(0, 5).map((e) => e.innerText.replace(/\s+/g, ' ').slice(0, 80))));
+  console.log('exemplo:', await p.$eval('section.card:last-child .kpis', (x) => x.innerText.replace(/\s+/g, ' ')), await p.$$eval('section.card:last-child .bad-t', (x) => x.map((e) => e.innerText)));
+  await p.fill('[data-cenf="t.2.aliq"]', '8,8'); await p.press('[data-cenf="t.2.aliq"]', 'Tab'); await p.waitForTimeout(500);
+  await p.click('[data-cenradd]'); await p.waitForTimeout(400);
+  await p.fill('[data-cenf="r.0.valor"]', '8413'); await p.press('[data-cenf="r.0.valor"]', 'Tab'); await p.waitForTimeout(300);
+  await p.selectOption('[data-cenf="r.0.trib"]', 'IPI'); await p.waitForTimeout(300);
+  await p.fill('[data-cenf="r.0.num"]', '0'); await p.press('[data-cenf="r.0.num"]', 'Tab'); await p.waitForTimeout(300);
+  console.log('exemplo 2:', await p.$eval('section.card:last-child .kpis', (x) => x.innerText.replace(/\s+/g, ' ')));
+  await p.screenshot({ path: __dirname + '/trib_cfg.png', fullPage: true });
+  await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(800);
+  await p.click('[data-view="proposta"]'); await p.click('[data-step="4"]'); await p.waitForTimeout(500);
+  const card = await p.$('section.card:has(h2:text("Reforma tributária"))');
+  console.log('comparação:', (await card.innerText()).split('\n').filter((l) => l.trim()).slice(0, 14).join(' // '));
+  await card.screenshot({ path: __dirname + '/trib_prop.png' });
+  console.log('erros', errs); await b.close();
+})();

@@ -1,0 +1,106 @@
+// Capítulo 10 — Kits de motor diesel e de bomba: lista, ficha, duplicar, comparar e onde é usado
+const KITS = async (p, h, k) => { await h.nav('cadastro'); await h.cad('insumos'); await h.cad(k || 'motor'); };
+module.exports = {
+  n: 10, titulo: 'Kits', slug: 'kits',
+  capturas: [
+    { id: '10-01', nome: 'kits-lista', titulo: 'Cadastros → Custos → Kits de motor diesel', alto: 1200,
+      prep: async (p, h) => { await KITS(p, h, 'motor'); await h.topo(); },
+      clip: '.subtabs', pad: 8,
+      marcas: [
+        { sel: '.subtabs [data-cad="motor"]', txt: 'Kits de motor diesel. Ao lado, Kits de bomba.', pos: 't' },
+        { sel: '#kitQ', txt: 'Buscar kit pela descrição, origem ou marca.', pos: 'l' },
+        { sel: '#app .sheetbar .sub', txt: 'Linhas usadas da aba da planilha (limite de 70 kits de motor e 77 de bomba).', pos: 't' },
+        { sel: '#kitCmp', txt: 'Comparar (N): liberado com 2 ou mais kits marcados.', pos: 'b' },
+        { sel: '#kitNew', txt: '+ Novo kit (só para quem pode editar Custos).', pos: 'b' },
+        { sel: 'tr[data-kit] [data-kitsel]', txt: 'Marque para comparar. Clique no resto da linha para abrir o kit.', pos: 'l' },
+        { sel: '#app section.card thead th:nth-child(7)', txt: 'Total que o montador usa (com o painel padrão). A coluna anterior é o total NBR 13714.', pos: 't' },
+      ] },
+    { id: '10-02', nome: 'kits-ficha', titulo: 'Ficha do kit de motor diesel, com Onde é usado', alto: 1500,
+      prep: async (p, h) => { await h.clicar('tr[data-kit="m002"] td:nth-child(2)', 600); },
+      clip: '.modal .card', pad: 8,
+      marcas: [
+        { sel: '#kDesc', txt: 'Descrição: tem de ser igual à do insumo no CADASTRO.', pos: 'l' },
+        { sel: '#kTipo', txt: 'Origem: NAC ou IMP.', pos: 'l' },
+        { sel: '#kMarca', txt: 'Marca.', pos: 'r' },
+        { sel: '#kParts', txt: 'Componentes (R$): valor de cada parte do kit.', pos: 'l' },
+        { sel: '#kTot', txt: 'Totais recalculados enquanto você digita.', pos: 'l' },
+        { sel: '#kSave', txt: 'Salvar. Ao lado: Duplicar, Excluir e Cancelar.', pos: 'l' },
+        { sel: '.modal .card h2:nth-of-type(3)', txt: 'Onde é usado: insumo de mesmo nome, modelos prontos e propostas.', pos: 'l' },
+        { sel: '.modal .card h2:nth-of-type(4)', txt: 'Histórico deste kit: cada alteração, com data e quem fez.', pos: 'l' },
+      ] },
+    { id: '10-03', nome: 'kits-duplicar', titulo: 'Kit duplicado: Novo kit com a descrição terminada em (CÓPIA)', alto: 1300,
+      prep: async (p, h) => { await h.clicar('#kDup', 700); },
+      clip: '.modal .card', pad: 8,
+      marcas: [
+        { sel: '#kDesc', txt: 'A cópia abre como Novo kit, com os mesmos componentes: troque a descrição pela do insumo novo.', pos: 'l' },
+        { sel: '#kWarn', txt: 'Aviso enquanto a descrição não existir no CADASTRO.', pos: 'l' },
+        { sel: '#kSave', txt: 'Cadastrar kit: grava o kit novo.', pos: 'l' },
+      ],
+      depois: async (p, h) => { await h.esc(); } },
+    { id: '10-04', nome: 'kits-comparar', titulo: 'Comparar kits: componente por componente', alto: 1100,
+      prep: async (p, h) => {
+        const c = await p.$$('tr[data-kit] [data-kitsel]'); await c[0].check(); await c[1].check(); await h.esperar(300);
+        await h.clicar('#kitCmp', 600);
+      },
+      clip: '.modal .card', pad: 8,
+      marcas: [
+        { sel: '.modal .card h2', txt: 'Uma coluna por kit marcado.', pos: 'l' },
+        { sel: '.modal tr.cf-aviso', txt: 'Linha destacada: o valor difere entre os kits.', pos: 'l' },
+        { sel: '.modal tr.tot', txt: 'Total de cada kit.', pos: 'l' },
+      ],
+      depois: async (p, h) => { await h.esc(); const c = await p.$$('tr[data-kit] [data-kitsel]'); await c[0].uncheck(); await c[1].uncheck(); } },
+    { id: '10-05', nome: 'kits-bomba', titulo: 'Cadastros → Custos → Kits de bomba', alto: 1200,
+      prep: async (p, h) => { await h.cad('bomba'); await h.topo(); },
+      clip: '.subtabs', pad: 8,
+      marcas: [
+        { sel: '.subtabs [data-cad="bomba"]', txt: 'Kits de bomba.', pos: 't' },
+        { sel: '#app section.card p.sub', txt: 'Qual total o montador usa: end suction sem as válvulas; split case (bipartida) com o total completo.', pos: 'l' },
+        { sel: '#app section.card thead th:nth-child(6)', txt: 'Total end suction.', pos: 't' },
+        { sel: '#app section.card thead th:nth-child(7)', txt: 'Total split case.', pos: 't' },
+      ] },
+  ],
+  conteudo: [
+    { t: 'p', x: 'Os **kits** guardam o custo de conjuntos comprados como um pacote. O montador lê daqui o custo total do conjunto do motor diesel (motor, painel, base, tanque, escape, bateria, acoplamento etc.) e o custo da bomba com os acessórios (manômetro, manovacuômetro e válvulas). Eles ficam nas abas KIT MOTORES DIESEL e KIT BOMBA da planilha.' },
+    { t: 'p', x: 'O caminho é **Cadastros → Custos → Kits de motor diesel** ou **Kits de bomba**.' },
+    { t: 'tab', cab: ['Papel', 'O que pode fazer'], lin: [
+      ['Leitor, Contribuidor', 'Ver a lista, abrir a ficha, comparar e ver onde o kit é usado. Os campos ficam bloqueados e só aparece o botão Fechar.'],
+      ['Editor', 'Criar, alterar, duplicar e excluir kits. Se o dono definiu responsáveis por área, só o responsável pela área Custos (ou o dono) edita.'],
+      ['Modo local', 'Sem login: quem abre o arquivo edita tudo. Use só para estudo e treino.'],
+    ] },
+    { t: 'aviso', x: 'No modo compartilhado, gravar kits exige o papel Editor, verificado no banco da equipe. A mudança vale para as propostas de toda a equipe.' },
+    { t: 'h', x: 'A lista de kits' },
+    { t: 'p', x: 'Cada linha mostra a descrição, a origem (NAC ou IMP), a marca, o valor do motor ou da bomba, os totais e a data da última atualização. Um kit sem insumo de mesmo nome no cadastro aparece com o selo "sem insumo de mesmo nome".' },
+    { t: 'fig', id: '10-01' },
+    { t: 'nota', x: 'A descrição do kit tem de ser igual à do insumo no CADASTRO (família 01.MOTORDIESEL para motor, 11.BOMBAMANCAL para bomba). É por esse nome que o montador acha o kit, e sem o insumo o seletor do item não oferece o kit.' },
+    { t: 'tut', titulo: 'Alterar os valores de um kit', objetivo: 'Atualizar o custo de uma ou mais partes de um kit.', quem: 'Editor (no modo compartilhado; responsável pela área Custos, se as áreas estiverem definidas). No modo local não há controle de acesso.', pre: ['Os valores novos de cada parte, em R$.'], passos: [
+      'Abra **Cadastros → Custos → Kits de motor diesel** (ou **Kits de bomba**).',
+      'Digite parte da descrição em **Buscar kit…** e clique na linha do kit.',
+      { x: 'Confira **Onde é usado** antes de mudar: insumo de mesmo nome, modelos prontos e propostas que usam o kit.', fig: '10-02' },
+      'Altere os valores em **Componentes (R$)**. Os totais no fim da ficha mudam enquanto você digita.',
+      'Clique em **Salvar**.',
+    ], resultado: 'O aviso "Kit salvo" aparece, a coluna Atualizado muda e a alteração entra em **Histórico deste kit** e em Configurações → Histórico. Se nada mudou, o aviso é "Nada mudou".', atencao: 'Os rascunhos de proposta passam a usar o valor novo. Propostas enviadas, aprovadas e ganhas guardam os valores do kit da época e não mudam sozinhas; a troca é feita em Custos → **Comparar e atualizar**, na própria proposta.', dica: 'Para ver o valor anterior de uma parte, abra **Histórico deste kit**, no fim da ficha.' },
+    { t: 'tut', titulo: 'Cadastrar um kit novo a partir de um parecido (duplicar)', objetivo: 'Criar um kit para um motor ou bomba novos aproveitando a composição de um kit existente.', quem: 'Editor (responsável pela área Custos, se definida). No modo local não há controle de acesso.', pre: ['O insumo do motor ou da bomba já cadastrado, com a mesma descrição que o kit vai ter.', 'Linha livre na aba (o contador mostra "N de 70" ou "N de 77").'], passos: [
+      'Abra o kit mais parecido e clique em **Duplicar**.',
+      { x: 'Na janela **Novo kit**, troque a descrição terminada em "(CÓPIA)" pela descrição exata do insumo e ajuste os componentes.', fig: '10-03' },
+      'Clique em **Cadastrar kit**.',
+    ], resultado: 'O aviso "Kit salvo" aparece e o kit entra na lista.', atencao: 'Enquanto a descrição não existir no CADASTRO, a ficha avisa: "Essa descrição não está no CADASTRO. Cadastre o insumo também (família …) para ele aparecer no seletor do montador." Sem descrição, aparece "Informe a descrição.". Sem linha livre, o erro é "Não há linha livre na aba KIT MOTORES DIESEL (limite de 70)." (ou KIT BOMBA, limite de 77).', dica: 'Também é possível começar do zero com **+ Novo kit**.' },
+    { t: 'tut', titulo: 'Comparar kits', objetivo: 'Ver, parte a parte, a diferença de custo entre dois ou mais kits.', quem: 'Qualquer usuário (comparar não grava nada). No modo local não há controle de acesso.', pre: ['Pelo menos dois kits na lista.'], passos: [
+      'Na lista, marque a caixa no começo da linha de cada kit a comparar.',
+      'Clique em **Comparar (N)**.',
+      { x: 'Na janela **Comparar kits**, as linhas em destaque são as partes com valores diferentes. A última linha traz o total de cada kit.', fig: '10-04' },
+      'Clique em **Fechar**.',
+    ], resultado: 'Uma tabela com uma coluna por kit e uma linha por componente, em R$.', dica: 'Use a busca antes de marcar para achar os kits da mesma marca ou potência.' },
+    { t: 'tut', titulo: 'Excluir um kit', objetivo: 'Tirar da lista um kit que não é mais usado.', quem: 'Editor (responsável pela área Custos, se definida). No modo local não há controle de acesso.', pre: ['Conferir em **Onde é usado** que nenhum modelo pronto usa o kit.'], passos: [
+      'Abra o kit e confira **Onde é usado**.',
+      'Clique em **Excluir** e depois em **Confirmar exclusão**.',
+    ], resultado: 'O aviso "Kit excluído" aparece e a exclusão fica no histórico.', atencao: 'A exclusão não pede justificativa e não tem botão de desfazer na ficha. Se um modelo pronto usar o kit, o item passa a não encontrá-lo.' },
+    { t: 'h', x: 'Kits de bomba' },
+    { t: 'p', x: 'A tela de kits de bomba é igual, com os totais **Total end suction** e **Total split case**. A bomba end suction usa o total sem as válvulas; a split case (bipartida) usa o total completo. Quem decide qual total vale é o Tipo/config. do insumo no CADASTRO.' },
+    { t: 'fig', id: '10-05' },
+    { t: 'nv', x: 'A janela Onde é usado conta propostas pelo nome do kit nos itens ou pelos preços da época guardados. Não foi conferido, com propostas reais do banco compartilhado, se a lista de propostas exibida corresponde a todas as propostas que usam o kit.' },
+  ],
+  glossario: [
+    ['Kit de motor diesel', 'Conjunto do motor diesel com painel, base, tanque, escape, bateria e demais partes; o montador usa o total do kit.'],
+    ['Kit de bomba', 'Bomba com manômetro, manovacuômetro e válvulas; tem total end suction e total split case.'],
+  ],
+};

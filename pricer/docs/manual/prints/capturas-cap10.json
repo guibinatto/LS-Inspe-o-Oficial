@@ -1,0 +1,217 @@
+{
+ "10-01": {
+  "id": "10-01",
+  "cap": 10,
+  "nome": "kits-lista",
+  "titulo": "Cadastros → Custos → Kits de motor diesel",
+  "vp": "desktop",
+  "arquivo": "10-01-kits-lista.png",
+  "data": "2026-11-11T01:05:47.665Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Kits de motor diesel. Ao lado, Kits de bomba.",
+    "sel": ".subtabs [data-cad=\"motor\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Buscar kit pela descrição, origem ou marca.",
+    "sel": "#kitQ",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Linhas usadas da aba da planilha (limite de 70 kits de motor e 77 de bomba).",
+    "sel": "#app .sheetbar .sub",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Comparar (N): liberado com 2 ou mais kits marcados.",
+    "sel": "#kitCmp",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "+ Novo kit (só para quem pode editar Custos).",
+    "sel": "#kitNew",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Marque para comparar. Clique no resto da linha para abrir o kit.",
+    "sel": "tr[data-kit] [data-kitsel]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Total que o montador usa (com o painel padrão). A coluna anterior é o total NBR 13714.",
+    "sel": "#app section.card thead th:nth-child(7)",
+    "ok": true
+   }
+  ]
+ },
+ "10-02": {
+  "id": "10-02",
+  "cap": 10,
+  "nome": "kits-ficha",
+  "titulo": "Ficha do kit de motor diesel, com Onde é usado",
+  "vp": "desktop",
+  "arquivo": "10-02-kits-ficha.png",
+  "data": "2026-11-11T01:05:49.927Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Descrição: tem de ser igual à do insumo no CADASTRO.",
+    "sel": "#kDesc",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Origem: NAC ou IMP.",
+    "sel": "#kTipo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Marca.",
+    "sel": "#kMarca",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Componentes (R$): valor de cada parte do kit.",
+    "sel": "#kParts",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Totais recalculados enquanto você digita.",
+    "sel": "#kTot",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Salvar. Ao lado: Duplicar, Excluir e Cancelar.",
+    "sel": "#kSave",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Onde é usado: insumo de mesmo nome, modelos prontos e propostas.",
+    "sel": ".modal .card h2:nth-of-type(3)",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Histórico deste kit: cada alteração, com data e quem fez.",
+    "sel": ".modal .card h2:nth-of-type(4)",
+    "ok": true
+   }
+  ]
+ },
+ "10-03": {
+  "id": "10-03",
+  "cap": 10,
+  "nome": "kits-duplicar",
+  "titulo": "Kit duplicado: Novo kit com a descrição terminada em (CÓPIA)",
+  "vp": "desktop",
+  "arquivo": "10-03-kits-duplicar.png",
+  "data": "2026-11-11T01:05:51.147Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "A cópia abre como Novo kit, com os mesmos componentes: troque a descrição pela do insumo novo.",
+    "sel": "#kDesc",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Aviso enquanto a descrição não existir no CADASTRO.",
+    "sel": "#kWarn",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Cadastrar kit: grava o kit novo.",
+    "sel": "#kSave",
+    "ok": true
+   }
+  ]
+ },
+ "10-04": {
+  "id": "10-04",
+  "cap": 10,
+  "nome": "kits-comparar",
+  "titulo": "Comparar kits: componente por componente",
+  "vp": "desktop",
+  "arquivo": "10-04-kits-comparar.png",
+  "data": "2026-11-11T01:05:52.604Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Uma coluna por kit marcado.",
+    "sel": ".modal .card h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Linha destacada: o valor difere entre os kits.",
+    "sel": ".modal tr.cf-aviso",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Total de cada kit.",
+    "sel": ".modal tr.tot",
+    "ok": true
+   }
+  ]
+ },
+ "10-05": {
+  "id": "10-05",
+  "cap": 10,
+  "nome": "kits-bomba",
+  "titulo": "Cadastros → Custos → Kits de bomba",
+  "vp": "desktop",
+  "arquivo": "10-05-kits-bomba.png",
+  "data": "2026-11-11T01:05:54.443Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Kits de bomba.",
+    "sel": ".subtabs [data-cad=\"bomba\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Qual total o montador usa: end suction sem as válvulas; split case (bipartida) com o total completo.",
+    "sel": "#app section.card p.sub",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Total end suction.",
+    "sel": "#app section.card thead th:nth-child(6)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Total split case.",
+    "sel": "#app section.card thead th:nth-child(7)",
+    "ok": true
+   }
+  ]
+ }
+}

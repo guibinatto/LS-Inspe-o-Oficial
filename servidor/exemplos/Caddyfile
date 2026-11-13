@@ -1,0 +1,7 @@
+# HTTPS automático (Let's Encrypt) com Caddy — caminho mais simples.
+# Pré-requisito: o DNS de app.lsfire.com.br apontando para o IP público deste servidor.
+# Instale o Caddy, coloque este arquivo em /etc/caddy/Caddyfile e rode: systemctl reload caddy
+
+app.lsfire.com.br {
+    reverse_proxy 127.0.0.1:8080
+}

@@ -1,0 +1,171 @@
+# Importar proposta antiga (planilha LS PRICER + PDFs) e documento comercial com parcelas, volumes e opções
+
+Data: 10/11/2026. Origem: o processo da proposta 10.262 Rev.5 da Ipiranga. A formação foi feita na planilha "LS PRICER - Oficial - 01" (formato REV12). A proposta técnica e a comercial saíram em PDF por outro gerador. O pedido foi trazer esse processo para o app, nas quatro partes escolhidas:
+
+1. cadastrar esta proposta;
+2. importar planilhas antigas;
+3. os recursos que esta proposta usa e o app não tinha;
+4. técnica e comercial como dois PDFs separados.
+
+## 1. Importar proposta antiga
+
+**Onde:** Nova → **Importar proposta antiga (planilha + PDFs)**. Escolha a planilha (.xlsx) e, se tiver, os PDFs da técnica e da comercial, todos de uma vez.
+
+**O que vem da planilha (formação):**
+
+| Planilha antiga (REV12) | No app |
+|---|---|
+| PROPOSTA C5:C10, F5:F9, J5:J9 (número, revisão, data, vendedor, desconto global, validade, cliente, obra, UF, segmento, norma, cadastro fiscal, pagamento, comissões, NCM) | mesmas células |
+| ITEM: descrição, família de produto, quantidade, norma, desconto, ICMS manual, folga, encargo | mesmas células |
+| Frete de cada item (modalidade, valor por unidade × quantidade) | frete da proposta (PROPOSTA B13 e F13), rateado entre os itens pelo custo, como o app já faz |
+| Start-up (km, diárias, valor da diária, valor fechado) | mesmas células da linha 12 |
+| Escopo, linhas 19 a 68 (bloco, família, insumo, fabricante, quantidade, custo, origem) | escopo à mão, linhas 68 a 112 (até 45 linhas; o app avisa se passar) |
+| Família do equipamento (C75: SKID, CONTAINER…) | C21 |
+
+Regras do escopo:
+- **O custo de cada linha é o que a planilha usou:** o digitado ou o do cadastro dela na época. Assim a formação fica com os custos cotados, não com os de hoje.
+- **Custo total digitado por cima** vira custo unitário (H ÷ quantidade), com aviso. Na Ipiranga isso aconteceu no painel jockey: R$ 6.300 por cima de R$ 6.700.
+- **Família:** "1.MOTORDIESEL" vira "01.MOTORDIESEL", no formato do cadastro do app.
+
+Planilha REV13 em diante (mesmo layout do app): as células digitadas são copiadas como estão.
+
+**O que vem dos PDFs** (prevalecem sobre a planilha, porque foram o que o cliente recebeu):
+- número, revisão, data, validade, obra, cidade e "aos cuidados de";
+- código do item (008-00167), descrição breve e completa;
+- condição de projeto (vira vazão e pressão do ponto de trabalho) e vazão nominal;
+- condição de pagamento, prazo de fabricação e de entrega;
+- notas, desvios, exclusões e observações;
+- das observações, as tabelas de parcelas e de volumes e a opção de fornecimento vão para os campos novos (seção 2);
+- desvios no formato "Item X da especificação técnica…" vão para "Desvios por item da especificação".
+
+Como a leitura funciona:
+- O negrito desses PDFs é texto desenhado duas vezes; o leitor junta e lê uma vez só.
+- A nota genérica "A definição do motor diesel considera a perda de potência por altitude" **não é importada**. O app calcula a perda quando a altitude e a temperatura são informadas (doc. 17).
+
+**Preço**, escolhido na prévia:
+- **Manter o da planilha** (padrão): o desconto de negociação de cada item é ajustado até o preço unitário com impostos bater, com diferença menor que meio centavo.
+- **Manter o do PDF:** o mesmo ajuste, com o preço do PDF.
+- **Recalcular com as regras do app.**
+
+A prévia mostra lado a lado o custo, o preço da planilha, o do PDF e o recalculado. Nada é gravado até salvar. A importação fica no histórico ("Proposta — importada", com os arquivos e a escolha de preço).
+
+## 2. Campos novos do documento comercial
+
+Ficam em Dados gerais → "Para o documento da proposta" → **Condições e opções do documento comercial**:
+
+| Campo | No PDF (comercial e técnica-comercial; padrão clássico e Folha de dados; impressão A4) |
+|---|---|
+| Prazo de cada parcela + **Parcelas por marco** (% e marco) | "Parcelas de pagamento": "Todas as parcelas terão prazo de pagamento de 30 DDL, conforme os marcos abaixo" + tabela. A tela soma as parcelas e avisa se não der 100% |
+| **Dimensões e pesos para transporte** (volume, comprimento, largura, altura, peso) | tabela "Dimensões e pesos para transporte" |
+| **Opções de fornecimento** (opção, o que muda, valor) | "Opção de fornecimento — …", o texto e "A escolha desta opção resulta em um abatimento (ou acréscimo) de R$ X sobre o valor total da proposta". Valor negativo = abatimento. É informativo: não muda o total da proposta |
+| **Desvios por item da especificação** (item, desvio) | na lista de desvios: "Item 5.3 da especificação técnica: …" |
+
+Os textos entram na tradução automática quando a proposta sai em inglês ou espanhol. Nada disso mexe em fórmula, custo ou preço.
+
+## 3. Técnica e comercial em dois PDFs
+
+Em Documentos há um botão novo, **Técnica + Comercial (2 PDFs)**. Ele gera a técnica (sem preços) e depois a comercial (com planilha de preços e condições). Os dois ficam guardados nos documentos da proposta. O seletor de tipo e o botão de um PDF só continuam como antes.
+
+## 4. A proposta da Ipiranga
+
+Importada com os três arquivos enviados (teste `importa_test`, 20 verificações):
+
+| | Planilha | PDF | App |
+|---|---|---|---|
+| Custo do item | R$ 556.097,20 | — | R$ 556.097,20 (36 linhas, iguais) |
+| Preço unitário com impostos | R$ 1.090.070,53 | R$ 1.181.732,20 (total R$ 1.222.154,79) | R$ 1.058.132,15 pelas regras do app; com "manter o da planilha", R$ 1.090.070,53 |
+
+O que precisa de atenção:
+- **A planilha e o PDF não batem entre si.** A planilha (salva em 10/11) dá R$ 1.090.070,53. O PDF Rev.5 (09/11) diz R$ 1.181.732,20 no item e R$ 1.222.154,79 no total; a diferença de R$ 40.422,59 entre o item e o total não aparece em nenhuma linha do PDF. A planilha tem "desconto na bomba aprovado (09/11/26)", então provavelmente mudou depois do PDF. Escolha na prévia qual preço manter.
+- **Impostos:** a planilha antiga aplica ICMS de 8,8%, PIS/COFINS sem ICMS na base e IRPJ/CSLL de 3,39%. O app (REV21) dá ICMS de 5,14%, base cheia e 3,08% para este caso, por isso o mesmo custo dá 2,9% a menos. Com "manter o preço", o valor fica igual e o ICMS do documento sai o do app (5,14%), não os 8,80% do PDF antigo. **A área fiscal deve confirmar o ICMS para RO, contribuinte.**
+- **Condição de pagamento:** a planilha dizia "30% entrada + 30% desenhos + 20% embarque + 20% 28DDL". O PDF diz "CP-005 — outras condições, vide observações", com 30% + 70% em 30 DDL. Ficou a do PDF, com as parcelas na tabela.
+- **Código e descrição:** saem os do PDF (008-00167). A codificação da planilha antiga gerava "SKD LSF DD 0 453…" sem o jockey.
+
+**Como cadastrar esta proposta no seu app:** Nova → Importar proposta antiga → escolha os três arquivos → Criar a proposta → Salvar. Leva uns 4 segundos. O app não tem acesso aos dados gravados no seu navegador, por isso a importação precisa ser feita aí.
+
+## 5. Custo 556.097,20 × 626.451,20 e o simulador "Desconto × margem"
+
+**Os dois custos estão certos; medem coisas diferentes.**
+- **R$ 556.097,20** é o custo dos itens: peças, materiais e serviços de fabricação. É o que a planilha mostra em H69 e o app mostra em "Custo total dos itens" (G16).
+- **R$ 626.451,20** é o custo total do memorial, que soma também o start-up (R$ 18.354,00) e o frete CIF (R$ 52.000,00). A diferença é exatamente R$ 70.354,00, e a própria tela explica isso abaixo da composição.
+
+Na planilha antiga a conta era outra:
+- o frete entrava no resultado como R$ 42.497,55 (52.000 ÷ fator de frete 1,2236);
+- o start-up não entrava como custo.
+
+Por isso a margem da planilha antiga (32,7%) parece maior. O app (REV21) desconta o frete inteiro e o start-up, e mostra 32,5% neste caso.
+
+**Novo: cartão "Desconto × margem"** em Formação de preço (etapa 4), logo abaixo da composição do preço, e também no alto da página do Memorial de cálculo:
+- **Desconto global (%)**: mostra na hora preço, impostos, comissões, custo e margem (R$ e %), ao lado dos valores atuais e da diferença. Negativo = acréscimo.
+- **Margem líquida desejada (%)**: procura o desconto global que dá essa margem (menos de 1 segundo) e mostra os mesmos valores.
+- **Valor final ao cliente (R$, com IPI)**: procura o desconto global que leva a esse valor, com diferença de até 1 centavo, e mostra a margem.
+- Avisa se a proposta passaria a precisar de aprovação (margem abaixo do mínimo ou item abaixo do piso da política).
+- Nada muda até **Aplicar à proposta**, que grava o desconto global e registra no histórico.
+
+O cálculo é o mesmo da proposta, numa cópia; nenhuma fórmula mudou.
+
+**Novo: Memorial (Excel)**, ao lado do Memorial (PDF), no Memorial de cálculo e em Documentos da proposta. É o mesmo conteúdo do PDF, com os valores como número (dá para somar e filtrar), R$ e % formatados, e duas abas:
+- **Memorial**: dados da proposta, resumo e as linhas do memorial por item e total, com o cabeçalho fixo;
+- **Itens**: código, descrição, quantidade, preços, IPI, origem e margem.
+
+**Fator praticado no memorial.** O memorial tem uma linha nova, **Fator praticado (subtotal ÷ custo)**, logo depois da Margem líquida, na tela, no PDF e no Excel:
+- por item, é o mesmo número da aba do item (ITEM!P83);
+- no total da proposta, é a soma dos subtotais ÷ a soma dos custos.
+
+É só leitura: não entra em nenhuma conta do memorial. Na Ipiranga dá 1,5295, igual à planilha antiga.
+
+**Os dois fatores** aparecem no simulador Desconto × margem (agora × simulação) e no memorial (tela, PDF e Excel), com uma nota que explica cada um:
+- **Fator praticado = subtotal negociado ÷ custo dos itens.**
+  - O subtotal é o custo dos itens × o fator de tabela da família, menos os descontos, antes de frete, start-up e impostos.
+  - O custo dos itens é peças, materiais e serviços de fabricação, sem frete nem start-up.
+  - É a régua da política de desconto, comparada ao piso da família. Não é margem.
+- **Fator sobre o preço final = preço ao cliente (com impostos, IPI, frete e start-up) ÷ custo total (itens + start-up + frete).** Mostra quantas vezes o custo o cliente paga, com tudo dentro.
+
+Na Ipiranga: fator praticado 1,5295. Com o preço da planilha (R$ 1.090.070,53), o fator sobre o preço final é 1,7401; recalculado pelo app (R$ 1.058.132,15), 1,6891.
+
+## 6. Serviços e peças (SPV)
+
+Usa o mesmo botão: Nova → **Importar proposta antiga**. O app reconhece que é serviço ou peça por três sinais:
+- a planilha de serviços **PRECIFICAÇÃO SERVIÇOS MASTERDOC** (abas Produto ATP e Markup);
+- a família do item na LS PRICER (serviços, peças, inspeções, contratos, locação…);
+- o formato do PDF (código SERV-…, seção "Notas e desvios").
+
+**O que vem de cada arquivo:**
+
+| Origem | No app |
+|---|---|
+| MASTERDOC, aba Produto ATP | Equipe (diárias por técnico), km, passagem aérea, locação de carro, hotel, alimentação, ART, frete de insumos e outros. A troca de insumos entra em "outros". As quantidades ficam fixas, como na planilha. |
+| MASTERDOC, aba Markup | Multiplicador (1 + margem bruta), PIS, COFINS, IRPJ, ISS, comissões e pagamento a prazo. |
+| MASTERDOC, aba Insumos | Peças da proposta, quando houver. |
+| LS PRICER (formação) | Preço do serviço e de cada peça; custo da peça (linha do escopo). |
+| PDF | Número, revisão, data, validade, razão social, CNPJ do cliente, contato, obra, cidade/UF, código (SERV-017, 033-06130), descrição breve, escopo, pagamento, prazo, frete, notas, desvios e exclusões. |
+
+**Tipo da proposta:** com serviço, sai SMC (ou SMF, se a família for de fábrica); só com peças, sai PAR.
+
+**Preço:**
+- Manter o da planilha ou o do PDF: o app ajusta o multiplicador do serviço e o fator de cada peça para chegar no valor.
+- Ou recalcular pelas regras do app.
+
+**WEG Tintas** (teste `importa_spv_test`, 11/11):
+
+| Proposta | Arquivos | Custo | Preço mantido | Regras do app |
+|---|---|---|---|---|
+| 10.339 — serviço de troca do radiador (SMC, SERV-017) | MASTERDOC + LS PRICER VALORES + PDF | R$ 2.530,00 (Yago 2 diárias, 100 km, 2 alimentações, R$ 800 de insumos), igual à MASTERDOC | R$ 5.233,49 | R$ 7.590,00 (multiplicador 3 da MASTERDOC) |
+| 10.342 — radiador 7006121C91E (PAR, 033-06130) | LS PRICER VALORES + PDF | R$ 17.999,69 | R$ 37.233,71 | R$ 26.999,53 (fator 1,5) |
+
+O que conferir:
+- **Na planilha de preços do PDF, os impostos saem pelas regras do app** (no serviço, ISS 5%; na peça, ICMS de SC 17% e PIS/COFINS 3,65%). O PDF antigo mostrava 0,00%. O preço total é o mesmo.
+- **O multiplicador que dá o preço da planilha (2,07) fica abaixo do da MASTERDOC (3).** O lucro líquido sai abaixo dos 40% que a MASTERDOC pede, e o app avisa na proposta.
+
+## 7. Testes e regressão
+
+| Verificação | Resultado |
+|---|---|
+| Motor × REV21 (80 cenários, 6.216 valores) | 0 diferença |
+| SPV/FACTS (11 cenários) | 0 diferença |
+| Financeiro pela tela × versão anterior | 0 diferença |
+| `importa_test` (novo, com os arquivos da Ipiranga) | 20/20 |
+| `sim`, `imp`, `idioma`, `derat`, `cad_fd`, `fd`, `varredura` | todos passaram |
+| `simmargem_test` (novo) | 9/9: desconto 5% → margem 29,78%; margem 30% → desconto 4,69% em 0,7 s; valor final R$ 4.000.000,00 → desconto 6,09% e margem 28,99%; cartão também no Memorial; Memorial (Excel) com 2 abas e valores numéricos; proposta intacta até aplicar; aplicado, margem 30,0% |
+
+Não houve teste em aparelho físico.

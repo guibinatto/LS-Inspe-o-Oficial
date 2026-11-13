@@ -1,0 +1,11 @@
+// Compara duas auditorias (mobile_audit.js): node mobile_relatorio.js antes.json depois.json > tabela.md
+const [A, D] = process.argv.slice(2).map((f) => require(require('path').resolve(f)));
+const soma = (R) => { const t = Object.values(R.telas).filter((m) => !m.falhou); const s = (k) => t.reduce((n, m) => n + (m[k] || 0), 0);
+  return { telas: t.length, falhas: Object.values(R.telas).length - t.length, hscroll: t.filter((m) => m.hscroll).length, fora: s('fora'), peq: s('peq'), alvos: s('alvos'), fonte: s('fonte'), campos: s('campos'), baixo: s('baixo'), cort: s('cortados'), fixo: Math.max(...t.map((m) => m.fixoPct || 0)) }; };
+const pc = (a, b) => (b ? Math.round((a / b) * 100) + '%' : '—');
+const NOMES = { '320': '320 × 568', '360': '360 × 780', '375': '375 × 667', '390': '390 × 844', '414': '414 × 896', '430': '430 × 932', '768': '768 × 1024 (tablet)', '1024': '1024 × 768 (computador pequeno, mouse)', '844p': '844 × 390 (celular deitado)', '1024r': '1024 × 1366 (tablet grande, toque)' };
+const L = ['| Resolução | Telas | Rolagem lateral da página (antes → depois) | Alvos de toque < 44 px | Campos com letra < 16 px | Campos < 44 px de altura | Barras fixas (máx. da altura) |', '|---|---|---|---|---|---|---|'];
+for (const k of Object.keys(D)) { if (!A[k]) continue; const a = soma(A[k]), d = soma(D[k]);
+  L.push(`| ${NOMES[k] || k} | ${d.telas}${d.falhas ? ' (' + d.falhas + ' não abriram)' : ''} | ${a.hscroll} → **${d.hscroll}** | ${a.peq} de ${a.alvos} (${pc(a.peq, a.alvos)}) → **${d.peq} de ${d.alvos} (${pc(d.peq, d.alvos)})** | ${a.fonte} de ${a.campos} → **${d.fonte} de ${d.campos}** | ${a.baixo} → **${d.baixo}** | ${a.fixo}% → ${d.fixo}% |`); }
+const det = []; for (const k of Object.keys(D)) for (const [n, m] of Object.entries(D[k].telas)) { if (m.falhou) det.push(`| ${NOMES[k] || k} | ${n} | não abriu: ${m.falhou} |`); else if (m.hscroll || m.peq || m.fonte) det.push(`| ${NOMES[k] || k} | ${n} | ${[m.hscroll ? 'rolagem lateral (' + m.largura + ' px' + (m.causa ? ', ' + m.causa : '') + ')' : '', m.peq ? m.peq + ' alvo(s) pequeno(s): ' + m.peqEx.join(', ') : '', m.fonte ? m.fonte + ' campo(s) com letra < 16 px' : ''].filter(Boolean).join('; ')} |`); }
+console.log(L.join('\n') + '\n\n' + (det.length ? '| Resolução | Tela | O que sobrou |\n|---|---|---|\n' + det.join('\n') : 'Nenhuma tela com pendência.'));

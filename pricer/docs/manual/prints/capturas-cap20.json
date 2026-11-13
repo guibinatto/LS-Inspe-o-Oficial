@@ -1,0 +1,225 @@
+{
+ "20-01": {
+  "id": "20-01",
+  "cap": 20,
+  "nome": "interativa-botoes",
+  "titulo": "Aba Documentos: os botões de gerar a proposta",
+  "vp": "desktop",
+  "arquivo": "20-01-interativa-botoes.png",
+  "data": "2026-11-11T01:20:58.850Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Imprimir (A4): resumo para imprimir ou salvar como PDF pelo navegador.",
+    "sel": "#pcCard [data-pcimprimir]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Gerar a proposta em PDF (o documento escolhido acima).",
+    "sel": "#pcCard [data-pcgerar]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Técnica + Comercial: dois PDFs, a técnica sem preços e a comercial.",
+    "sel": "#pcCard [data-pcgerar2]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Versão interativa (HTML): página com o PDF oficial dentro.",
+    "sel": "#pcCard [data-pchtml]",
+    "ok": true
+   }
+  ]
+ },
+ "20-02": {
+  "id": "20-02",
+  "cap": 20,
+  "nome": "interativa-memorial-excel",
+  "titulo": "Memorial de cálculo: Memorial (PDF) e Memorial (Excel)",
+  "vp": "desktop",
+  "arquivo": "20-02-interativa-memorial-excel.png",
+  "data": "2026-11-11T01:20:59.895Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Memorial (Excel): abas Memorial e Itens, valores como número.",
+    "sel": "#app .stack > div:first-child [data-doc=\"memorialxlsx\"]",
+    "ok": true
+   }
+  ]
+ },
+ "20-03": {
+  "id": "20-03",
+  "cap": 20,
+  "nome": "interativa-fatores",
+  "titulo": "Memorial: as linhas dos dois fatores, logo depois da margem",
+  "vp": "desktop",
+  "arquivo": "20-03-interativa-fatores.png",
+  "data": "2026-11-11T01:21:00.936Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Fator praticado: subtotal negociado ÷ custo dos itens (régua da política de desconto).",
+    "sel": "td[title^=\"Subtotal negociado\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Fator sobre o preço final: preço com IPI ÷ custo total.",
+    "sel": "td[title^=\"Preço de venda com impostos\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Nota que explica os dois fatores (sai também no PDF e no Excel).",
+    "sel": "#app .nota-fat",
+    "ok": true
+   }
+  ]
+ },
+ "20-04": {
+  "id": "20-04",
+  "cap": 20,
+  "nome": "interativa-capa",
+  "titulo": "Versão interativa aberta no navegador: capa",
+  "vp": "desktop",
+  "arquivo": "20-04-interativa-capa.png",
+  "data": "2026-11-11T01:21:01.676Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Menu que acompanha a rolagem: Resumo, Equipamentos, Condições, Notas e Contatos.",
+    "sel": ".top nav",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "PDF oficial: baixa o mesmo PDF gerado pelo app.",
+    "sel": ".top .btnpdf",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Cliente e obra.",
+    "sel": ".hero h1",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Número, revisão, data, validade e contato.",
+    "sel": ".hero .chips",
+    "ok": true
+   }
+  ]
+ },
+ "20-05": {
+  "id": "20-05",
+  "cap": 20,
+  "nome": "interativa-resumo",
+  "titulo": "Versão interativa: resumo",
+  "vp": "desktop",
+  "arquivo": "20-05-interativa-resumo.png",
+  "data": "2026-11-11T01:21:06.486Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Investimento total (com IPI).",
+    "sel": "#resumo .stat.lead",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Prazo, validade e condição de pagamento.",
+    "sel": "#resumo .stat:nth-child(2)",
+    "ok": true
+   }
+  ]
+ },
+ "20-06": {
+  "id": "20-06",
+  "cap": 20,
+  "nome": "interativa-item",
+  "titulo": "Versão interativa: um item, com o que está incluso",
+  "vp": "desktop",
+  "arquivo": "20-06-interativa-item.png",
+  "data": "2026-11-11T01:21:07.785Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Número do item.",
+    "sel": "#item3 .ino",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Descrição completa; abaixo, a descrição breve.",
+    "sel": "#item3 h3",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Quantidade, unitário e total do item.",
+    "sel": "#item3 .preco",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Condição de projeto (vazão × pressão).",
+    "sel": "#item3 .dados",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "O que está incluso, por grupo.",
+    "sel": "#item3 .egs",
+    "ok": true
+   }
+  ]
+ },
+ "20-07": {
+  "id": "20-07",
+  "cap": 20,
+  "nome": "interativa-rodape",
+  "titulo": "Versão interativa: rodapé com o aviso e o SHA-256 do PDF oficial",
+  "vp": "desktop",
+  "arquivo": "20-07-interativa-rodape.png",
+  "data": "2026-11-11T01:21:08.215Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O documento oficial é o PDF; em caso de divergência, vale o PDF.",
+    "sel": "footer p",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "SHA-256 do PDF: para conferir que o PDF baixado é o mesmo.",
+    "sel": "footer code",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Baixar o PDF oficial.",
+    "sel": "footer .btnpdf",
+    "ok": true
+   }
+  ]
+ }
+}

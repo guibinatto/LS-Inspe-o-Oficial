@@ -1,0 +1,370 @@
+{
+ "08-01": {
+  "id": "08-01",
+  "cap": 8,
+  "nome": "cadastro-campos-por-familia",
+  "titulo": "Cadastro geral → Campos por família",
+  "vp": "desktop",
+  "arquivo": "08-01-cadastro-campos-por-familia.png",
+  "data": "2026-11-11T01:04:50.019Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Modelo da descrição técnica: {campo} é trocado pelo valor; [ ... ] é um trecho opcional.",
+    "sel": "tr:has([data-campofam^=\"01.\"]) td.code",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quantos campos técnicos a família tem.",
+    "sel": "tr:has([data-campofam^=\"01.\"]) td:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Cobertura: quantos nomes do cadastro já seguem o modelo.",
+    "sel": "tr:has([data-campofam^=\"01.\"]) td:nth-child(5)",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "\"padrão REV21\" ou \"ajustado\" (alterado nesta tela).",
+    "sel": "tr:has([data-campofam^=\"01.\"]) .pill",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Editar campos e modelo (ou Criar modelo, numa família sem padrão).",
+    "sel": "[data-campofam^=\"01.\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Família sem modelo: texto livre, conferido só pelas regras gerais de escrita.",
+    "sel": "tr:has([data-campofam^=\"14.\"]) td.code",
+    "ok": true
+   }
+  ]
+ },
+ "08-02": {
+  "id": "08-02",
+  "cap": 8,
+  "nome": "cadastro-campos-modelo",
+  "titulo": "Campos e modelo de uma família (motor elétrico)",
+  "vp": "desktop",
+  "arquivo": "08-02-cadastro-campos-modelo.png",
+  "data": "2026-11-11T01:04:52.308Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Modelo da descrição técnica.",
+    "sel": "#cmMod",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Modelo da descrição comercial.",
+    "sel": "#cmCom",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Validação extra (expressão regular, opcional).",
+    "sel": "#cmRe",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Campos: chave, rótulo, tipo, unidade, opções, obrigatório e minúsculas na comercial.",
+    "sel": "#cmCampos table",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "+ Campo.",
+    "sel": "#cmAdd",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Prévia: exemplo montado e quantos nomes do cadastro seguem o modelo.",
+    "sel": "#cmPrev",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Nesta família as fórmulas leem o nome: se o modelo deixar de casar com os nomes, o app pede confirmação.",
+    "sel": ".modal .banner.warn",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Salvar.",
+    "sel": "#cmOk",
+    "ok": true
+   }
+  ]
+ },
+ "08-03": {
+  "id": "08-03",
+  "cap": 8,
+  "nome": "cadastro-descricao-gerada",
+  "titulo": "Aba Características técnicas: campos da família que montam a descrição",
+  "vp": "desktop",
+  "arquivo": "08-03-cadastro-descricao-gerada.png",
+  "data": "2026-11-11T01:04:53.765Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Padrão da família e o modelo usado.",
+    "sel": "#fCarSub",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Potência em CV, como o fabricante publica (nada é convertido).",
+    "sel": "[data-car=\"cv\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Campo opcional: \"—\" deixa o trecho fora da descrição.",
+    "sel": ".seg:has([data-carr=\"freq\"])",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Montagem: MANCAL ou MONOBLOCO.",
+    "sel": ".seg:has([data-carr=\"mont\"])",
+    "ok": true
+   }
+  ]
+ },
+ "08-04": {
+  "id": "08-04",
+  "cap": 8,
+  "nome": "cadastro-duplicidade",
+  "titulo": "Verificação de duplicidade: mesmo produto e semelhantes",
+  "vp": "desktop",
+  "arquivo": "08-04-cadastro-duplicidade.png",
+  "data": "2026-11-11T01:04:58.890Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Descrição gerada, igual à de um item já cadastrado.",
+    "sel": "#fProd",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Mesmo produto: mesma descrição, ou mesmo fabricante e código do fabricante.",
+    "sel": "#fDup .pill.bad",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Semelhante, com diferenças: o app diz em que campo difere.",
+    "sel": "#fDup .pill.mute",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Nada é juntado automaticamente.",
+    "sel": "#fDup .banner > small",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Ao salvar um \"mesmo produto\", o app avisa; só um segundo clique grava.",
+    "sel": "#fErr",
+    "ok": true
+   }
+  ]
+ },
+ "08-05": {
+  "id": "08-05",
+  "cap": 8,
+  "nome": "cadastro-excecao-padrao",
+  "titulo": "Descrição fora do padrão: justificativa da exceção",
+  "vp": "desktop",
+  "arquivo": "08-05-cadastro-excecao-padrao.png",
+  "data": "2026-11-11T01:05:02.874Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Desmarcado: a descrição é digitada à mão.",
+    "sel": "#fGerWrap",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Texto fora do modelo da família.",
+    "sel": "#fProd",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Aviso: \"Fora do padrão da família\" e o modelo esperado.",
+    "sel": "#fPad",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Justificativa da exceção: obrigatória para gravar fora do padrão.",
+    "sel": "#fExc",
+    "ok": true
+   }
+  ]
+ },
+ "08-06": {
+  "id": "08-06",
+  "cap": 8,
+  "nome": "cadastro-sinonimos",
+  "titulo": "Cadastro geral → Sinônimos e abreviações",
+  "vp": "desktop",
+  "arquivo": "08-06-cadastro-sinonimos.png",
+  "data": "2026-11-11T01:05:04.363Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Termo.",
+    "sel": "#app section.card tbody tr td.code",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Também procura por: as outras grafias.",
+    "sel": "#app section.card tbody tr td:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Remover o grupo.",
+    "sel": "[data-sinrm]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Novo termo.",
+    "sel": "#sinK",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Outras grafias, separadas por vírgula.",
+    "sel": "#sinV",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Incluir.",
+    "sel": "[data-sinadd]",
+    "ok": true
+   }
+  ]
+ },
+ "08-07": {
+  "id": "08-07",
+  "cap": 8,
+  "nome": "cadastro-padronizacao",
+  "titulo": "Cadastro geral → Padronização de descrições",
+  "vp": "desktop",
+  "arquivo": "08-07-cadastro-padronizacao.png",
+  "data": "2026-11-11T01:05:05.884Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Padrão de descrição de cada família.",
+    "sel": "#app section.card .kv",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Família.",
+    "sel": "#padFam",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Confiança da sugestão: alta, media ou baixa.",
+    "sel": "#padConf",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Pendentes, aplicados, avisos, alterados à mão.",
+    "sel": "#padSt",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Buscar nome ou código.",
+    "sel": "#padQ",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Aplicar marcadas.",
+    "sel": "[data-padapply]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Marque cada sugestão que vai aplicar.",
+    "sel": "[data-padsel]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Nome atual (riscado quando aplicado) → nome padronizado.",
+    "sel": ".tw table tbody tr td:nth-child(3)",
+    "ok": true
+   }
+  ]
+ },
+ "08-08": {
+  "id": "08-08",
+  "cap": 8,
+  "nome": "cadastro-descricao-gerada-geral",
+  "titulo": "Aba Geral: descrição técnica gerada e descrição comercial sugerida",
+  "vp": "desktop",
+  "arquivo": "08-08-cadastro-descricao-gerada-geral.png",
+  "data": "2026-11-11T01:04:57.457Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Descrição técnica montada pelo modelo.",
+    "sel": "#fProd",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "\"Gerada pelo padrão da família.\"",
+    "sel": "#fPad",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Descrição comercial sugerida (botão Sugerir).",
+    "sel": "#fCom",
+    "ok": true
+   }
+  ]
+ }
+}

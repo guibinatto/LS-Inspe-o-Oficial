@@ -1,0 +1,859 @@
+{
+ "21-01": {
+  "id": "21-01",
+  "cap": 21,
+  "nome": "zero-vendedor",
+  "titulo": "Cadastros → Precificação: incluir o vendedor (uma vez só)",
+  "vp": "desktop",
+  "arquivo": "21-01-zero-vendedor.png",
+  "data": "2026-11-11T03:53:00.914Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nome do vendedor.",
+    "sel": "#vNome",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Papel: Vendedor ou Agente de negócio (AN).",
+    "sel": "#app section.card:has(#vNome) .seg",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Incluir. Feito uma vez, vale para todas as propostas.",
+    "sel": "#vAdd",
+    "ok": true
+   }
+  ]
+ },
+ "21-02": {
+  "id": "21-02",
+  "cap": 21,
+  "nome": "zero-inicio",
+  "titulo": "Tela Início: por onde começar",
+  "vp": "desktop",
+  "arquivo": "21-02-zero-inicio.png",
+  "data": "2026-11-11T03:53:03.286Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Atalho: já começa a proposta pela família do equipamento.",
+    "sel": ".start.seq [data-seqfam=\"CONJUNTO MOTOBOMBA\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Nova: proposta em branco, SPV, exemplo ou importar uma antiga.",
+    "sel": "#bNew",
+    "ok": true
+   }
+  ]
+ },
+ "21-03": {
+  "id": "21-03",
+  "cap": 21,
+  "nome": "zero-nova",
+  "titulo": "Botão Nova: escolha SEQ em branco",
+  "vp": "desktop",
+  "arquivo": "21-03-zero-nova.png",
+  "data": "2026-11-11T03:53:04.364Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "SEQ em branco: proposta de equipamento do zero.",
+    "sel": "#mBlank",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "SPV: serviço, peças ou contrato (capítulo 22).",
+    "sel": "#mSpv",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Exemplo pronto para treinar.",
+    "sel": "#mExample",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Importar uma proposta feita na planilha antiga (capítulo 19).",
+    "sel": "#mImport",
+    "ok": true
+   }
+  ]
+ },
+ "21-04": {
+  "id": "21-04",
+  "cap": 21,
+  "nome": "zero-cliente",
+  "titulo": "Dados gerais → cartão Cliente preenchido",
+  "vp": "desktop",
+  "arquivo": "21-04-zero-cliente.png",
+  "data": "2026-11-11T03:53:06.329Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "CNPJ ou CPF. Com internet, Buscar na Receita preenche razão social, UF e cadastro fiscal.",
+    "sel": "#cnpjIn",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Cliente (razão social). Cliente já usado: o app recupera CNPJ, UF e cadastro fiscal.",
+    "sel": "#c_PROPOSTA_F5",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Obra / local.",
+    "sel": "#c_PROPOSTA_F6",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "UF de destino: muda o ICMS.",
+    "sel": "#c_PROPOSTA_F7",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Cadastro fiscal: contribuinte ou consumidor final (muda ICMS e DIFAL).",
+    "sel": "#c_PROPOSTA_J5",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Segmento.",
+    "sel": "#c_PROPOSTA_F8",
+    "ok": true
+   }
+  ]
+ },
+ "21-05": {
+  "id": "21-05",
+  "cap": 21,
+  "nome": "zero-proposta",
+  "titulo": "Dados gerais → cartão Proposta preenchido",
+  "vp": "desktop",
+  "arquivo": "21-05-zero-proposta.png",
+  "data": "2026-11-11T03:53:09.174Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Número da proposta.",
+    "sel": "#c_PROPOSTA_C5",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Revisão 0 e data de hoje já vêm preenchidas.",
+    "sel": "#c_PROPOSTA_C7",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Validade em um clique: 15, 30 ou 60 dias.",
+    "sel": "[data-valdias=\"30\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Condição de pagamento: mexe no preço.",
+    "sel": "#c_PROPOSTA_J6",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Norma.",
+    "sel": "#app label:has(> input[name=\"c_PROPOSTA_F9\"][value=\"NFPA20\"])",
+    "ok": true
+   }
+  ]
+ },
+ "21-06": {
+  "id": "21-06",
+  "cap": 21,
+  "nome": "zero-vendedor-frete",
+  "titulo": "Dados gerais → Vendedor e comissões e Frete",
+  "vp": "desktop",
+  "arquivo": "21-06-zero-vendedor-frete.png",
+  "data": "2026-11-11T03:53:11.329Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Vendedor: com um só cadastrado, já vem marcado.",
+    "sel": "#app label:has(> [data-ppcell=\"C8\"])",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Marque Agente de negócio (AN) só se houver.",
+    "sel": "#app label:has(> [data-pcom=\"J8\"])",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Frete: FOB ou CIF (com CIF, informe a distância).",
+    "sel": "#c_PROPOSTA_B13",
+    "ok": true
+   }
+  ]
+ },
+ "21-07": {
+  "id": "21-07",
+  "cap": 21,
+  "nome": "zero-proximo",
+  "titulo": "Fim de Dados gerais: Próximo",
+  "vp": "desktop",
+  "arquivo": "21-07-zero-proximo.png",
+  "data": "2026-11-11T03:53:12.161Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Próximo: só segue com o cabeçalho completo; se faltar algo, os campos ficam em destaque.",
+    "sel": "[data-cabnext]",
+    "ok": true
+   }
+  ]
+ },
+ "21-08": {
+  "id": "21-08",
+  "cap": 21,
+  "nome": "zero-itens-vazio",
+  "titulo": "Aba Itens, ainda sem equipamento",
+  "vp": "desktop",
+  "arquivo": "21-08-zero-itens-vazio.png",
+  "data": "2026-11-11T03:53:13.462Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "+ Adicionar item: modelo pronto ou montagem própria.",
+    "sel": "[data-additem]",
+    "ok": true
+   }
+  ]
+ },
+ "21-09": {
+  "id": "21-09",
+  "cap": 21,
+  "nome": "zero-familia",
+  "titulo": "Item novo: escolher a família",
+  "vp": "desktop",
+  "arquivo": "21-09-zero-familia.png",
+  "data": "2026-11-11T03:53:13.821Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Família do equipamento (aqui, conjunto motobomba).",
+    "sel": ".famgrid [data-fam=\"CONJUNTO MOTOBOMBA\"]",
+    "ok": true
+   }
+  ]
+ },
+ "21-10": {
+  "id": "21-10",
+  "cap": 21,
+  "nome": "zero-modelo",
+  "titulo": "Escolher o modelo pronto (pesquisa \"1000\")",
+  "vp": "desktop",
+  "arquivo": "21-10-zero-modelo.png",
+  "data": "2026-11-11T03:53:15.183Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Quantidade.",
+    "sel": "#app .stepper",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Pesquise por vazão, bomba, motor ou arranjo.",
+    "sel": "#app [data-cfgq]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Filtro por acionamento.",
+    "sel": "#app label.chip:has([data-cfgac=\"DIESEL\"])",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Usar este: o item se monta sozinho.",
+    "sel": "#app [data-usemodel=\"CMB DIESEL 1000 USgpm — 1 BOMBA\"]",
+    "ok": true
+   }
+  ]
+ },
+ "21-11": {
+  "id": "21-11",
+  "cap": 21,
+  "nome": "zero-modelo-aplicado",
+  "titulo": "Modelo aplicado: características do equipamento",
+  "vp": "desktop",
+  "arquivo": "21-11-zero-modelo-aplicado.png",
+  "data": "2026-11-11T03:53:17.306Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Modelo pronto em uso.",
+    "sel": "#app section.card:has(.pill[title=\"Origem do valor\"]) tr:nth-child(2) td:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "De onde veio cada valor (modelo, escolhido, calculado).",
+    "sel": "#app section.card:has(.pill[title=\"Origem do valor\"]) tr:nth-child(5) .pill",
+    "ok": true
+   }
+  ]
+ },
+ "21-12": {
+  "id": "21-12",
+  "cap": 21,
+  "nome": "zero-compor",
+  "titulo": "Etapa Compor: os componentes que a estrutura montou",
+  "vp": "desktop",
+  "arquivo": "21-12-zero-compor.png",
+  "data": "2026-11-11T03:53:19.428Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Obrigatório, condicional, opcional, incluído pelo fornecedor, adicionado na proposta.",
+    "sel": "#app .cfglegenda",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Grupos com subtotal e % do item.",
+    "sel": "#app .cfgcomp tr.grp",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Por quê?: mostra a regra que trouxe o componente.",
+    "sel": "#app .cfgcomp tbody tr:nth-child(2) [data-cfgsel]",
+    "ok": true
+   }
+  ]
+ },
+ "21-13": {
+  "id": "21-13",
+  "cap": 21,
+  "nome": "zero-conferir-item",
+  "titulo": "Etapa Conferir: preço, custo e verificações do item",
+  "vp": "desktop",
+  "arquivo": "21-13-zero-conferir-item.png",
+  "data": "2026-11-11T03:53:21.447Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Código e descrição gerados.",
+    "sel": "#app .cfg .codebox",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Preço unitário calculado.",
+    "sel": "#app .cfg .kpis .kpi.lead",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Verificações: impeditivo, atenção, informativo. \"Seguir assim\" pede justificativa.",
+    "sel": "#app .cfgalerts",
+    "ok": true
+   }
+  ]
+ },
+ "21-14": {
+  "id": "21-14",
+  "cap": 21,
+  "nome": "zero-incluir",
+  "titulo": "Confirmar e Incluir na proposta",
+  "vp": "desktop",
+  "arquivo": "21-14-zero-incluir.png",
+  "data": "2026-11-11T03:53:23.034Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Incluir na proposta (depois das confirmações de técnica, custo e escopo).",
+    "sel": "#app [data-cfgincluir]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Incluído: a proposta foi gravada com o item.",
+    "sel": "#app .cfgincl .banner",
+    "ok": true
+   }
+  ]
+ },
+ "21-15": {
+  "id": "21-15",
+  "cap": 21,
+  "nome": "zero-itens",
+  "titulo": "Aba Itens com o equipamento incluído",
+  "vp": "desktop",
+  "arquivo": "21-15-zero-itens.png",
+  "data": "2026-11-11T03:53:56.372Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Total do item com IPI.",
+    "sel": "#app .icard:first-child .itotal",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quantidade, margem e origem.",
+    "sel": "#app .icard:first-child .ifacts",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Abrir para ajustar (ou clique no título).",
+    "sel": "#app .icard:first-child footer [data-goitem]",
+    "ok": true
+   }
+  ]
+ },
+ "21-16": {
+  "id": "21-16",
+  "cap": 21,
+  "nome": "zero-custos",
+  "titulo": "Aba Custos: origem e validade de cada custo",
+  "vp": "desktop",
+  "arquivo": "21-16-zero-custos.png",
+  "data": "2026-11-11T03:53:57.422Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Custo total do item.",
+    "sel": "#app section.card:has([data-custofiltro]) .kpi:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Impeditivos: componente sem preço.",
+    "sel": "#app section.card:has([data-custofiltro]) .kpi:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ver só o que pede atenção ou todas as linhas.",
+    "sel": "[data-custofiltro=\"todos\"]",
+    "ok": true
+   }
+  ]
+ },
+ "21-17": {
+  "id": "21-17",
+  "cap": 21,
+  "nome": "zero-formacao",
+  "titulo": "Aba Formação de preço: indicadores e preço por item",
+  "vp": "desktop",
+  "arquivo": "21-17-zero-formacao.png",
+  "data": "2026-11-11T03:53:58.760Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Preço total com IPI.",
+    "sel": "#app .stack > .kpis .kpi.lead",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Margem líquida e o mínimo da política.",
+    "sel": "#app .stack > .kpis .kpi:nth-child(3)",
+    "ok": true
+   }
+  ]
+ },
+ "21-18": {
+  "id": "21-18",
+  "cap": 21,
+  "nome": "zero-negociar-5",
+  "titulo": "Negociar: o cliente pediu 5% — a margem fica abaixo do mínimo",
+  "vp": "desktop",
+  "arquivo": "21-18-zero-negociar-5.png",
+  "data": "2026-11-11T03:53:59.853Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Atalho 5%: simula sem mudar a proposta.",
+    "sel": "[data-smq=\"desc|0.05\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Margem simulada abaixo de 30%.",
+    "sel": "#smRes table",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "O app avisa que precisa de aprovação.",
+    "sel": "#smRes div.banner",
+    "ok": true
+   }
+  ]
+ },
+ "21-19": {
+  "id": "21-19",
+  "cap": 21,
+  "nome": "zero-negociar-min",
+  "titulo": "Negociar: a margem mínima mostra o desconto possível",
+  "vp": "desktop",
+  "arquivo": "21-19-zero-negociar-min.png",
+  "data": "2026-11-11T03:54:03.547Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Margem mínima (30%): o app acha o maior desconto dentro da política.",
+    "sel": "[data-smq^=\"margem|\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Desconto global, preço ao cliente e margem de 30,00%.",
+    "sel": "#smRes table",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Aplicar à proposta.",
+    "sel": "[data-smaplica]",
+    "ok": true
+   }
+  ]
+ },
+ "21-20": {
+  "id": "21-20",
+  "cap": 21,
+  "nome": "zero-aplicado",
+  "titulo": "Desconto aplicado: o resumo do topo mostra o novo valor",
+  "vp": "desktop",
+  "arquivo": "21-20-zero-aplicado.png",
+  "data": "2026-11-11T03:54:07.427Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Valor total já com o desconto.",
+    "sel": ".ctx-kpis .k:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Margem dentro do mínimo. Clique aqui para negociar de novo.",
+    "sel": ".ctx-kpis .kneg",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Alterações não salvas: falta salvar.",
+    "sel": "#saveSt",
+    "ok": true
+   }
+  ]
+ },
+ "21-21": {
+  "id": "21-21",
+  "cap": 21,
+  "nome": "zero-salvar",
+  "titulo": "Salvar",
+  "vp": "desktop",
+  "arquivo": "21-21-zero-salvar.png",
+  "data": "2026-11-11T03:54:09.131Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Salvar (ou Ctrl+S).",
+    "sel": "#bSave",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "\"Salvo às …\": gravado.",
+    "sel": "#saveSt",
+    "ok": true
+   }
+  ]
+ },
+ "21-22": {
+  "id": "21-22",
+  "cap": 21,
+  "nome": "zero-conferencia",
+  "titulo": "Aba Conferência: o que falta antes de enviar",
+  "vp": "desktop",
+  "arquivo": "21-22-zero-conferencia.png",
+  "data": "2026-11-11T03:54:10.851Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Impede seguir: precisa ser zero.",
+    "sel": "#confCentral .kpi:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Pede tratamento ou justificativa.",
+    "sel": "#confCentral .kpi:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ir: abre o lugar da correção.",
+    "sel": "#confCentral [data-confgo]",
+    "ok": true
+   }
+  ]
+ },
+ "21-23": {
+  "id": "21-23",
+  "cap": 21,
+  "nome": "zero-para-documento",
+  "titulo": "Dados gerais → Para o documento da proposta (contato, cidade e prazos)",
+  "vp": "desktop",
+  "arquivo": "21-23-zero-para-documento.png",
+  "data": "2026-11-11T03:54:11.916Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Aos cuidados de: sai na capa e na planilha de preços.",
+    "sel": "#pcf_aosCuidados",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Cidade da obra.",
+    "sel": "#pcf_cidade",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Altitude e temperatura: corrigem a potência do diesel (NFPA 20).",
+    "sel": "#pcf_altitude",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Prazos de fabricação e de entrega: viram \"Prazo Total\".",
+    "sel": "#pcf_prazoFab",
+    "ok": true
+   }
+  ]
+ },
+ "21-24": {
+  "id": "21-24",
+  "cap": 21,
+  "nome": "zero-documentos",
+  "titulo": "Aba Documentos: escolher e gerar a proposta",
+  "vp": "desktop",
+  "arquivo": "21-24-zero-documentos.png",
+  "data": "2026-11-11T03:54:15.487Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Padrão, documento (técnica e comercial, comercial ou técnica), idioma e moeda.",
+    "sel": "#pcCard .pcopts",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Gerar a proposta em PDF.",
+    "sel": "#pcCard [data-pcgerar]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ou a versão interativa (HTML), com o PDF dentro.",
+    "sel": "#pcCard [data-pchtml]",
+    "ok": true
+   }
+  ]
+ },
+ "21-25": {
+  "id": "21-25",
+  "cap": 21,
+  "nome": "zero-pdf",
+  "titulo": "O PDF gerado: capa e planilha de preços",
+  "vp": "desktop",
+  "arquivo": "21-25-zero-pdf.png",
+  "data": "2026-11-11T03:54:16.545Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Capa: cliente, obra, número, revisão e validade, vindos de Dados gerais.",
+    "sel": "#pdfPrev img:nth-child(1)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Planilha de preços e condições: os valores da formação, com o desconto aplicado.",
+    "sel": "#pdfPrev img:nth-child(2)",
+    "ok": true
+   }
+  ]
+ },
+ "21-26": {
+  "id": "21-26",
+  "cap": 21,
+  "nome": "zero-situacao",
+  "titulo": "Situação e próximo passo: PDF conferido, pronto para enviar",
+  "vp": "desktop",
+  "arquivo": "21-26-zero-situacao.png",
+  "data": "2026-11-11T03:54:22.832Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Próximo passo: Enviar ao cliente.",
+    "sel": "#app .stack > section.card:first-child [data-hnext]",
+    "ok": true
+   }
+  ]
+ },
+ "21-27": {
+  "id": "21-27",
+  "cap": 21,
+  "nome": "zero-enviada",
+  "titulo": "Marcada como enviada ao cliente; o próximo passo é dar baixa",
+  "vp": "desktop",
+  "arquivo": "21-27-zero-enviada.png",
+  "data": "2026-11-11T03:54:23.188Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Dar baixa: quando o cliente fechar (ganha) ou recusar (perdida).",
+    "sel": "#app .stack > section.card:first-child [data-hnext]",
+    "ok": true
+   }
+  ]
+ },
+ "21-28": {
+  "id": "21-28",
+  "cap": 21,
+  "nome": "zero-baixa",
+  "titulo": "Dar baixa: proposta fechada (ganha)",
+  "vp": "desktop",
+  "arquivo": "21-28-zero-baixa.png",
+  "data": "2026-11-11T03:54:24.968Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Venda, custo e margem congelados no fechamento.",
+    "sel": ".modal .kpis, .modal .kv",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Pedido / OC do cliente.",
+    "sel": "#fcPed",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Valor fechado sem IPI.",
+    "sel": "#fcVal",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Dar baixa. Depois, Compras e Produção lançam o custo real.",
+    "sel": "#fcOk",
+    "ok": true
+   }
+  ]
+ },
+ "21-29": {
+  "id": "21-29",
+  "cap": 21,
+  "nome": "zero-inicio-lista",
+  "titulo": "Tela Início: a proposta na lista, com a situação e as etapas",
+  "vp": "desktop",
+  "arquivo": "21-29-zero-inicio-lista.png",
+  "data": "2026-11-11T03:54:26.963Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Número e cliente.",
+    "sel": ".home table.t tbody tr:first-child td:nth-child(2)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Situação: enviada ao cliente.",
+    "sel": ".home table.t tbody tr:first-child td:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Próxima etapa direto da lista.",
+    "sel": ".home table.t tbody tr:first-child [data-hnext]",
+    "ok": true
+   }
+  ]
+ }
+}

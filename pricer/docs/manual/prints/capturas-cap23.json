@@ -1,0 +1,457 @@
+{
+ "23-01": {
+  "id": "23-01",
+  "cap": 23,
+  "nome": "adm-configuracoes",
+  "titulo": "Configurações: as abas da administração",
+  "vp": "desktop",
+  "arquivo": "23-01-adm-configuracoes.png",
+  "data": "2026-11-11T03:59:17.062Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Histórico, acessos (perfis, logo e e-mails), backup e as demais abas de administração.",
+    "sel": ".subtabs",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Menu Configurações.",
+    "sel": "#nav [data-view=\"config\"]",
+    "ok": true
+   }
+  ]
+ },
+ "23-02": {
+  "id": "23-02",
+  "cap": 23,
+  "nome": "adm-logo",
+  "titulo": "Logo da empresa (sai nos documentos)",
+  "vp": "desktop",
+  "arquivo": "23-02-adm-logo.png",
+  "data": "2026-11-11T03:59:18.235Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Enviar o logo (PNG ou JPG).",
+    "sel": "label[for=\"logoUp\"]",
+    "ok": true
+   }
+  ]
+ },
+ "23-03": {
+  "id": "23-03",
+  "cap": 23,
+  "nome": "adm-emails",
+  "titulo": "E-mails das áreas (avisos de baixa, aprovação e custo real)",
+  "vp": "desktop",
+  "arquivo": "23-03-adm-emails.png",
+  "data": "2026-11-11T03:59:19.256Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Um e-mail por área: Financeiro, Engenharia, Compras… (exemplo fictício).",
+    "sel": "#av_financeiro",
+    "ok": true
+   }
+  ]
+ },
+ "23-04": {
+  "id": "23-04",
+  "cap": 23,
+  "nome": "adm-acessos",
+  "titulo": "Perfis e permissões: quem pode o quê",
+  "vp": "desktop",
+  "arquivo": "23-04-adm-acessos.png",
+  "data": "2026-11-11T03:59:20.064Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Perfis: Administrador, Diretoria, Comercial, Engenharia, Compras/Custos, Financeiro/Fiscal, Consulta.",
+    "sel": "table.perm thead",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Onde cada regra é garantida (banco ou app).",
+    "sel": "table.perm tbody tr:first-child td:last-child",
+    "ok": true
+   }
+  ]
+ },
+ "23-05": {
+  "id": "23-05",
+  "cap": 23,
+  "nome": "adm-numeracao",
+  "titulo": "Administração → Numeração e máscaras: ligar a série de propostas SEQ",
+  "vp": "desktop",
+  "arquivo": "23-05-adm-numeracao.png",
+  "data": "2026-11-11T03:59:20.553Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Ligada: aparece o botão \"gerar nº\" na proposta.",
+    "sel": "[data-numserie=\"seq\"] [data-nm=\"ativa\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Prefixo, ano e posições do número.",
+    "sel": "[data-numserie=\"seq\"] [data-nm=\"prefixo\"]",
+    "ok": true
+   }
+  ]
+ },
+ "23-06": {
+  "id": "23-06",
+  "cap": 23,
+  "nome": "adm-backup",
+  "titulo": "Backup e restauração (baixar o backup completo)",
+  "vp": "desktop",
+  "arquivo": "23-06-adm-backup.png",
+  "data": "2026-11-11T03:59:22.414Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Baixar backup completo: faça com frequência e guarde fora do computador.",
+    "sel": "[data-bkbaixa]",
+    "ok": true
+   }
+  ]
+ },
+ "23-07": {
+  "id": "23-07",
+  "cap": 23,
+  "nome": "adm-vendedores",
+  "titulo": "Cadastros → Precificação: vendedores e agentes de negócio",
+  "vp": "desktop",
+  "arquivo": "23-07-adm-vendedores.png",
+  "data": "2026-11-11T03:59:24.123Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nome.",
+    "sel": "#vNome",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Papel: Vendedor ou AN.",
+    "sel": "#app section.card:has(#vNome) .seg",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Incluir.",
+    "sel": "#vAdd",
+    "ok": true
+   }
+  ]
+ },
+ "23-08": {
+  "id": "23-08",
+  "cap": 23,
+  "nome": "adm-servicos",
+  "titulo": "Cadastros → Serviços: técnicos, diárias e deslocamento",
+  "vp": "desktop",
+  "arquivo": "23-08-adm-servicos.png",
+  "data": "2026-11-11T03:59:26.360Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "23-09": {
+  "id": "23-09",
+  "cap": 23,
+  "nome": "adm-modelo-proposta",
+  "titulo": "Configurações → Modelo da proposta: estrutura, imagens, contatos e textos",
+  "vp": "desktop",
+  "arquivo": "23-09-adm-modelo-proposta.png",
+  "data": "2026-11-11T03:59:27.913Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O que sai no PDF de todas as propostas: seções, imagens, contatos e textos em três idiomas.",
+    "sel": "#app section.card:has([data-pmlay]) h2",
+    "ok": true
+   }
+  ]
+ },
+ "23-10": {
+  "id": "23-10",
+  "cap": 23,
+  "nome": "adm-insumo-lista",
+  "titulo": "Cadastros → Custos → Insumos e preços: + Novo insumo",
+  "vp": "desktop",
+  "arquivo": "23-10-adm-insumo-lista.png",
+  "data": "2026-11-11T03:59:31.643Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Filtre pela família do insumo.",
+    "sel": "#insFam",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "+ Novo insumo.",
+    "sel": "#insNew",
+    "ok": true
+   }
+  ]
+ },
+ "23-11": {
+  "id": "23-11",
+  "cap": 23,
+  "nome": "adm-insumo-geral",
+  "titulo": "Ficha do insumo novo: aba Geral",
+  "vp": "desktop",
+  "arquivo": "23-11-adm-insumo-geral.png",
+  "data": "2026-11-11T03:59:34.451Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Abas da ficha: Geral, Características técnicas, Fornecedores, Compras e custos…",
+    "sel": ".modal .fichatabs",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Família: define os campos e o modelo da descrição.",
+    "sel": "#fFam",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Código gerado pela numeração da família.",
+    "sel": "#fCode",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Fabricante.",
+    "sel": "#fFab",
+    "ok": true
+   }
+  ]
+ },
+ "23-12": {
+  "id": "23-12",
+  "cap": 23,
+  "nome": "adm-insumo-tecnica",
+  "titulo": "Aba Características técnicas: os campos da família",
+  "vp": "desktop",
+  "arquivo": "23-12-adm-insumo-tecnica.png",
+  "data": "2026-11-11T03:59:36.041Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Potência, rotação, cilindros…: viram a descrição padronizada.",
+    "sel": "[data-car=\"hp\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Escolhas da família (tensão, arrefecimento, controle).",
+    "sel": ".seg:has([data-carr=\"vcc\"])",
+    "ok": true
+   }
+  ]
+ },
+ "23-13": {
+  "id": "23-13",
+  "cap": 23,
+  "nome": "adm-insumo-descricao",
+  "titulo": "Aba Geral: as três descrições geradas e o aviso de itens parecidos",
+  "vp": "desktop",
+  "arquivo": "23-13-adm-insumo-descricao.png",
+  "data": "2026-11-11T03:59:37.949Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Descrição do produto, montada pelas características.",
+    "sel": "#fProd",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Descrição comercial (vai na proposta).",
+    "sel": "#fCom",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Itens parecidos: evita cadastrar duas vezes.",
+    "sel": "#fDup .banner",
+    "ok": true
+   }
+  ]
+ },
+ "23-14": {
+  "id": "23-14",
+  "cap": 23,
+  "nome": "adm-insumo-cadastrar",
+  "titulo": "Botão Cadastrar (fim da ficha)",
+  "vp": "desktop",
+  "arquivo": "23-14-adm-insumo-cadastrar.png",
+  "data": "2026-11-11T03:59:39.127Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Cadastrar. Se já existir um igual, o app avisa e não grava.",
+    "sel": "#fSave",
+    "ok": true
+   }
+  ]
+ },
+ "23-15": {
+  "id": "23-15",
+  "cap": 23,
+  "nome": "adm-pedido",
+  "titulo": "Pedido de cadastro (feito por quem precisa do insumo)",
+  "vp": "desktop",
+  "arquivo": "23-15-adm-pedido.png",
+  "data": "2026-11-11T03:59:41.879Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Família.",
+    "sel": "#pdFam",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Características (a descrição sai padronizada).",
+    "sel": "[data-pdc=\"cv\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Enviar o pedido para Custos.",
+    "sel": "#pdOk",
+    "ok": true
+   }
+  ]
+ },
+ "23-16": {
+  "id": "23-16",
+  "cap": 23,
+  "nome": "adm-pedido-atender",
+  "titulo": "Custos atende o pedido: preço e situação",
+  "vp": "desktop",
+  "arquivo": "23-16-adm-pedido-atender.png",
+  "data": "2026-11-11T03:59:46.826Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Preço de custo.",
+    "sel": "#atVal",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Situação do insumo.",
+    "sel": "#atSit",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Cadastrar e atender: quem pediu é avisado.",
+    "sel": "#atOk",
+    "ok": true
+   }
+  ]
+ },
+ "23-17": {
+  "id": "23-17",
+  "cap": 23,
+  "nome": "adm-importar-colar",
+  "titulo": "Importar preços: colar a lista do fornecedor",
+  "vp": "desktop",
+  "arquivo": "23-17-adm-importar-colar.png",
+  "data": "2026-11-11T03:59:50.592Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Ou escolha o arquivo (Excel, CSV).",
+    "sel": "label[for=\"impFile\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Cole as colunas código e preço.",
+    "sel": "#impTxt",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ler o texto colado.",
+    "sel": "#impRead",
+    "ok": true
+   }
+  ]
+ },
+ "23-18": {
+  "id": "23-18",
+  "cap": 23,
+  "nome": "adm-importar-aplicar",
+  "titulo": "Importar preços: conferir a variação e aplicar",
+  "vp": "desktop",
+  "arquivo": "23-18-adm-importar-aplicar.png",
+  "data": "2026-11-11T03:59:52.707Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Coluna que identifica o insumo.",
+    "sel": "#impId",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Quantos mudam, iguais, não encontrados.",
+    "sel": "#app section.card:has(#impReset) .kpis",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Aplicar só os marcados (fica no histórico e dá para desfazer).",
+    "sel": "#impGo",
+    "ok": true
+   }
+  ]
+ }
+}

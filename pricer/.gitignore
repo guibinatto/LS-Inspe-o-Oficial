@@ -1,0 +1,8 @@
+docs/manual/saida/.img/
+tools/testes/libs
+tools/testes/libs/
+tools/testes/*.png
+tools/testes/*.xlsx
+tools/testes/*.pdf
+tools/testes/*.json
+tools/testes/interativa.html

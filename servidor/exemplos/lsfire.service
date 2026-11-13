@@ -1,0 +1,23 @@
+# systemd: mantém o servidor LS Fire (Pricer + Serviço de campo) sempre rodando e reinicia sozinho.
+# Copie para /etc/systemd/system/lsfire.service e ajuste caminhos/usuário.
+# Depois: systemctl daemon-reload && systemctl enable --now lsfire
+
+[Unit]
+Description=LS Fire - Pricer e Servico de campo
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/lsfire/servidor
+ExecStart=/usr/bin/node server.js
+EnvironmentFile=-/opt/lsfire/servidor/.env
+Environment=PORT=8080
+Environment=COOKIE_SECURE=1
+Restart=always
+RestartSec=3
+User=lsfire
+# a pasta data/ guarda banco, usuários e backups: só o usuário do serviço lê
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

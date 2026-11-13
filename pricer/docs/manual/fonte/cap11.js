@@ -1,0 +1,195 @@
+// Capítulo 11 — Modelos e famílias: famílias de equipamento e de insumo, NCM/unidade por família, modelos de item,
+// biblioteca de configurações já usadas, regras de configuração e modelos de serviço (SPV)
+const ENG = async (p, h, t) => { await h.nav('cadastro'); await h.cad('estruturas'); await h.cad(t); };
+module.exports = {
+  n: 11, titulo: 'Modelos e famílias', slug: 'modelos',
+  capturas: [
+    { id: '11-01', nome: 'modelos-familias-equipamento', titulo: 'Cadastros → Engenharia → Famílias: famílias de equipamento',
+      prep: async (p, h) => { await ENG(p, h, 'familias'); await h.topo(); },
+      clip: '#app section.card', clipNth: 1, pad: 8,
+      marcas: [
+        { sel: '#app section.card:nth-of-type(2) h2', txt: 'Famílias de equipamento: o que o item é.', pos: 'l' },
+        { sel: '#app section.card:nth-of-type(2) td.code', txt: 'Sigla da família no código do produto.', pos: 't' },
+        { sel: '#app section.card:nth-of-type(2) .pill.ok', txt: 'Estrutura: cadastrada ou "sem estrutura".', pos: 't' },
+        { sel: '#app section.card:nth-of-type(2) tbody tr:first-child td:nth-child(5)', txt: 'Quantos modelos prontos a família tem.', pos: 't' },
+        { sel: '[data-eqedit]', txt: 'Editar: nome, sigla e família de produto na política de preço.', pos: 'r' },
+        { sel: '[data-eqnew]', txt: '+ Nova família de equipamento (até 9).', pos: 'r' },
+      ] },
+    { id: '11-02', nome: 'modelos-familia-insumo', titulo: 'Editar uma família de insumo',
+      prep: async (p, h) => { await h.topo(); await h.clicar('[data-famedit]', 600); },
+      clip: '.modal .card', pad: 8,
+      marcas: [
+        { sel: '#fmCode', txt: 'Código: fixo depois de criada (1 a 98 na criação).', pos: 'l' },
+        { sel: '#fmNome', txt: 'Nome sem espaços, como no código do insumo.', pos: 't' },
+        { sel: '#fmDesc', txt: 'Descrição: para que serve a família.', pos: 'l' },
+        { sel: '.modal .card p.sub', txt: 'Renomear troca a família nos insumos e nas linhas da estrutura.', pos: 'l' },
+        { sel: '#fmOk', txt: 'Salvar.', pos: 'l' },
+      ],
+      depois: async (p, h) => { await h.esc(); } },
+    { id: '11-03', nome: 'modelos-ncm-familia', titulo: 'Cadastros → Fiscal → Impostos e NCM: NCM e unidade por família',
+      prep: async (p, h) => { await h.cad('fiscal'); await h.topo(); },
+      clip: '#app section.card', pad: 8,
+      marcas: [
+        { sel: '#app section.card h2', txt: 'NCM e unidade por família de equipamento: o item puxa daqui.', pos: 'l' },
+        { sel: 'select[data-ffam$="|ncm"]', txt: 'NCM da família (lista da tabela NCM e IPI).', pos: 't' },
+        { sel: 'select[data-ffam$="|unid"]', txt: 'Unidade da família.', pos: 't' },
+        { sel: '#app section.card > p.sub', txt: 'Família sem NCM: o item fica sem NCM e o alerta da FCI avisa.', pos: 'l' },
+      ] },
+    { id: '11-04', nome: 'modelos-item', titulo: 'Itens da proposta: Salvar como modelo e o quadro Modelos de item',
+      prep: async (p, h) => { await h.exemplo(); await h.aba(2);
+        // a janela "Nome do modelo" é um prompt do navegador: aqui ele confirma o nome sugerido (como clicar em OK)
+        await p.evaluate(() => { window.prompt = (msg, sug) => sug; });
+        await h.clicar('[data-modsave="0"]', 900); await h.topo(); },
+      clip: '.icards', pad: 8,
+      marcas: [
+        { sel: '[data-modsave="0"]', txt: 'Salvar como modelo: pede o nome e guarda a configuração do item.', pos: 'r' },
+        { sel: '[data-moduse]', txt: 'Usar: cria o item numa posição livre desta proposta.', pos: 'b' },
+        { sel: '[data-moddel]', txt: 'excluir: só quem criou o modelo (ou o dono).', pos: 't' },
+        { sel: '#app h2 [data-biblio]', txt: 'buscar em configurações já usadas: a biblioteca de itens de propostas salvas.', pos: 'r' },
+        { sel: '[data-additem]', txt: '+ Adicionar item: modelo pronto ou montagem própria.', pos: 'r' },
+      ] },
+    { id: '11-05', nome: 'modelos-biblioteca', titulo: 'Configurações já usadas: busca por "skid"',
+      prep: async (p, h) => { await h.salvar(); await h.clicar('#app h2 [data-biblio]', 600); await p.fill('#bbQ', 'skid'); await h.esperar(500); },
+      clip: '.modal .card', pad: 8,
+      marcas: [
+        { sel: '.modal .card h2', txt: 'Quantos itens existem nas propostas salvas.', pos: 'l' },
+        { sel: '#bbQ', txt: 'Busca por família, modelo, potência, vazão, cliente ou componente (aceita sinônimos).', pos: 'l' },
+        { sel: '#bbL thead', txt: 'Proposta, item, família/modelo e potência, vazão e pressão.', pos: 'l' },
+        { sel: '[data-bbuse]', txt: 'Usar: copia a configuração para uma posição livre desta proposta.', pos: 'l' },
+      ],
+      depois: async (p, h) => { await h.esc(); } },
+    { id: '11-06', nome: 'modelos-regra-nova', titulo: 'Nova regra de configuração com a condição Componente presente', alto: 1100,
+      prep: async (p, h) => {
+        await ENG(p, h, 'regras'); await h.clicar('[data-rgedit="novo"]', 500);
+        await p.fill('#rgNome', 'Tanque exige mangueira de combustível'); await p.selectOption('#rgSev', 'aviso'); await p.fill('#rgPri', '10');
+        await p.selectOption('#rgSt', 'rascunho'); await p.selectOption('.rgcond [data-rc="campo"]', '_comp'); await h.esperar(300);
+        await p.selectOption('.rgcond [data-rc="op"]', 'contem'); await p.fill('.rgcond [data-rc="valor"]', 'TANQUE');
+        await p.selectOption('#rgEf', 'exige'); await p.fill('#rgComp', 'MANGUEIRA'); await p.fill('#rgFonte', 'Exemplo de treinamento: decisão da Engenharia');
+        await p.evaluate(() => document.activeElement && document.activeElement.blur());
+      },
+      clip: '.modal .card', pad: 8,
+      marcas: [
+        { sel: '#rgNome', txt: 'Nome (obrigatório).', pos: 'l' },
+        { sel: '#rgSev', txt: 'Criticidade: Impeditiva, Atenção ou Informativa.', pos: 't' },
+        { sel: '#rgPri', txt: 'Prioridade: ordem de avaliação e de exibição (menor primeiro).', pos: 'l' },
+        { sel: '#rgSt', txt: 'Situação: Publicada (vale nas propostas), Rascunho (só no testador) ou Inativa.', pos: 'l' },
+        { sel: '.rgcond', txt: 'Quando: condições (todas precisam valer). "Componente presente" olha a descrição dos componentes do item.', pos: 'l' },
+        { sel: '#rgEf', txt: 'Então: exige, não pode ter, ou só avisa.', pos: 'l' },
+        { sel: '#rgComp', txt: 'Componente (parte da descrição) exigido ou proibido.', pos: 'l' },
+        { sel: '#rgFonte', txt: 'Fonte ou justificativa (obrigatória).', pos: 'l' },
+      ] },
+    { id: '11-07', nome: 'modelos-regras-lista', titulo: 'Regras de configuração: a regra salva em rascunho',
+      prep: async (p, h) => { await h.clicar('#rgOk', 800); await h.topo(); },
+      clip: '#app section.card', pad: 8,
+      marcas: [
+        { sel: '#app tbody td:first-child .code', txt: 'Identificador da regra (RG-001…).', pos: 'l' },
+        { sel: '#app tbody .pill.warn', txt: 'Situação (publicada, rascunho ou inativa), ao lado da prioridade e da versão (a versão sobe a cada alteração salva).', pos: 'b' },
+        { sel: '#app tbody td:nth-child(5)', txt: 'Fonte e responsável (quem salvou por último; no modo local fica "—").', pos: 'b' },
+        { sel: '[data-rgedit="0"]', txt: 'Editar: altera, duplica ou exclui a regra.', pos: 'b' },
+        { sel: '[data-rgedit="novo"]', txt: '+ Nova regra.', pos: 'r' },
+      ] },
+    { id: '11-08', nome: 'modelos-spv', titulo: 'Proposta SPV: Salvar esta proposta como modelo', alto: 1400,
+      prep: async (p, h) => { await h.nav('inicio'); await h.clicar('[data-spvnew]', 900); await h.clicar('[data-spsavemod]', 600); },
+      clip: '.modal .card', pad: 8,
+      marcas: [
+        { sel: '#moNome', txt: 'Nome do modelo (sugerido pelo tipo e pelo cliente).', pos: 'l' },
+        { sel: '#moTipo', txt: 'Tipo de serviço.', pos: 't' },
+        { sel: '#moVis', txt: 'Visitas por ano (vazio = serviço avulso).', pos: 'l' },
+        { sel: '#moEq', txt: 'Equipe: um técnico por linha, "nome; dias".', pos: 'l' },
+        { sel: '#moPc', txt: 'Peças e materiais padrão: "descrição; quantidade; valor unitário".', pos: 'l' },
+        { sel: '#moEsc', txt: 'Escopo; abaixo, Não incluso.', pos: 'l' },
+        { sel: '#moSave', txt: 'Salvar modelo.', pos: 'l' },
+      ],
+      depois: async (p, h) => { await h.esc(); } },
+  ],
+  conteudo: [
+    { t: 'p', x: 'Este capítulo reúne o que organiza e reaproveita configurações: as **famílias** (de equipamento e de insumo), o NCM e a unidade por família, os **modelos de item** e a **biblioteca de configurações já usadas**, as **regras de configuração** da Engenharia e os **modelos de serviço e contrato** da divisão SPV.' },
+    { t: 'tab', cab: ['Cadastro', 'Onde fica', 'Quem grava no modo compartilhado'], lin: [
+      ['Famílias de equipamento e de insumo', 'Cadastros → Engenharia → Famílias', 'Editor (responsável pela área Engenharia, se as áreas estiverem definidas)'],
+      ['NCM e unidade por família', 'Cadastros → Fiscal → Impostos e NCM', 'Editor (responsável pela área Fiscal, se definida)'],
+      ['Regras de configuração', 'Cadastros → Engenharia → Regras de configuração', 'Editor (responsável pela área Engenharia, se definida)'],
+      ['Modelos de serviço e contrato (SPV)', 'Proposta SPV → Salvar esta proposta como modelo; Cadastros → Serviços', 'Editor (responsável pela área Serviços, se definida)'],
+      ['Modelos de item (SEQ)', 'Proposta → etapa Itens → Salvar como modelo', 'Ver o bloco "Não validado" abaixo'],
+    ] },
+    { t: 'aviso', x: 'No modo local não existe login nem controle de acesso: quem abre o arquivo grava tudo, e os modelos ficam só neste navegador. No modo compartilhado, gravar famílias, regras e tabelas exige o papel Editor, verificado no banco da equipe.' },
+    { t: 'h', x: 'Famílias' },
+    { t: 'p', x: 'A tela **Famílias** tem dois quadros. **Famílias de insumo** agrupam o cadastro de insumos (código, nome, quantidade de insumos, quantos sem preço e quantas linhas da estrutura usam a família). **Famílias de equipamento** dizem o que o item é: cada uma tem sigla no código, família de produto na política de preço e estrutura padrão.' },
+    { t: 'p', x: 'O app já traz duas famílias de insumo sem insumos nem preços: **46 TESTESENSAIOS** (testes e ensaios: desempenho em fábrica, testemunhado, hidrostático, vibração, ruído e laudos) e **47 DOCUMENTOSDESENHOS** (desenhos para aprovação, dimensional, arranjo, diagramas, data book, memorial e ART). Os insumos dessas famílias são criados pela área de Custos, com preço. As sugestões da estrutura "teste de desempenho em fábrica com laudo", "data book" e "desenhos para aprovação do cliente" criam o insumo nelas, sem preço.' },
+    { t: 'fig', id: '11-01' },
+    { t: 'tut', titulo: 'Criar ou editar uma família de insumo', objetivo: 'Organizar o cadastro de insumos por família.', quem: 'Editor (responsável pela área Engenharia, se as áreas estiverem definidas). No modo local não há controle de acesso.', pre: ['Para criar: um código de 1 a 98 ainda não usado.'], passos: [
+      'Abra **Cadastros → Engenharia → Famílias**.',
+      'Clique em **Editar** na família, ou em **+ Nova família de insumo**.',
+      { x: 'Preencha **Nome** (sem espaços, como no código do insumo) e **Descrição**. Na criação, informe também o **Código**.', fig: '11-02' },
+      'Clique em **Salvar**.',
+    ], resultado: 'O aviso "Família criada: NN.NOME" ou "Família salva: NN.NOME" aparece.', atencao: 'Renomear troca a família em todos os insumos dela e nas linhas da estrutura padrão. Propostas já salvas mantêm o nome antigo no escopo digitado à mão. Mensagens: "Use um código de 1 a 98.", "Dê um nome à família.", "Já existe uma família com o código N.". Uma família sem insumos mostra **Excluir família vazia**.', dica: '**Ver insumos** abre a lista de insumos já filtrada pela família.' },
+    { t: 'nota', x: 'Na janela da família de equipamento, o nome das famílias de origem da planilha (Conjunto motobomba, Skid, Container, Especial, Bomba jockey + painel, Fabricantes) fica fixo, porque as fórmulas dependem dele. Depois de criar uma família nova, cadastre a estrutura dela em **Estruturas** (capítulo 9).' },
+    { t: 'h', x: 'NCM e unidade por família' },
+    { t: 'p', x: 'Cada família de equipamento tem NCM e unidade, escolhidos em **Cadastros → Fiscal → Impostos e NCM**. O item da proposta puxa os dois daqui; um item específico ainda pode trocar o NCM na tela do item.' },
+    { t: 'fig', id: '11-03' },
+    { t: 'h', x: 'Modelos de item e configurações já usadas' },
+    { t: 'p', x: 'Há duas formas de reaproveitar um equipamento já configurado em uma proposta SEQ:' },
+    { t: 'lista', itens: [
+      '**Modelo de item**: uma configuração guardada com nome, para usar em outras propostas. Fica no quadro **Modelos de item** da etapa Itens.',
+      '**Configurações já usadas** (biblioteca): qualquer item de proposta salva, pesquisável por família, modelo, potência, vazão, pressão, cliente e componentes.',
+    ] },
+    { t: 'tut', titulo: 'Salvar um item como modelo e usá-lo em outra proposta', objetivo: 'Guardar a configuração de um equipamento para começar outras propostas a partir dela.', quem: 'Quem edita a proposta. No modo local não há controle de acesso e o modelo fica só neste navegador.', pre: ['Proposta SEQ com o item configurado.', 'Para usar: proposta com posição de item livre (até 10 itens).'], passos: [
+      'Na proposta, abra a etapa **Itens**.',
+      { x: 'No cartão do item, clique em **Salvar como modelo**. Confirme ou troque o nome sugerido (a descrição do item) e clique em OK.', fig: '11-04' },
+      'Em outra proposta, na etapa **Itens**, clique em **Usar** no modelo, no quadro **Modelos de item**.',
+      'Confira e ajuste o item que abre.',
+    ], resultado: 'Ao salvar: aviso "Modelo salvo". Ao usar: o item é criado na primeira posição livre e o aviso é "Item criado a partir do modelo: confira e ajuste".', atencao: 'O modelo guarda a configuração do item (as escolhas), não os preços: o item novo calcula com o cadastro de hoje. O botão **Usar** some quando as 10 posições de item estão ocupadas.', dica: 'Para tirar um modelo do quadro, use **excluir** (só quem criou o modelo ou o dono vê o botão no modo compartilhado).' },
+    { t: 'tut', titulo: 'Criar um item a partir de uma configuração já usada', objetivo: 'Copiar um item de qualquer proposta salva para a proposta aberta.', quem: 'Quem edita a proposta. No modo local não há controle de acesso.', pre: ['Ao menos uma proposta SEQ salva.', 'Posição de item livre na proposta aberta.'], passos: [
+      'Na etapa **Itens**, clique em **buscar em configurações já usadas** (no título do quadro Modelos de item ou na dica abaixo dos itens).',
+      { x: 'Digite na busca: família, modelo da bomba, potência (ex.: 483HP), vazão, cliente ou componente.', fig: '11-05' },
+      'Clique em **Usar** na linha desejada.',
+    ], resultado: 'O aviso "ITEM NN criado a partir de <proposta> <item>, com os preços de hoje" aparece. A origem fica registrada no item e no histórico ("Configuração reaproveitada").', atencao: 'Se as 10 posições estiverem ocupadas, aparece "As 10 posições de item já estão em uso".' },
+    { t: 'nv', x: 'No modo compartilhado, os modelos de item ficam numa coleção própria do banco (modelos). Não foi verificado no banco qual papel (Contribuidor ou Editor) é exigido para gravar ou excluir um modelo de item.' },
+    { t: 'nota', x: 'Na tela do item há também **Salvar como modelo pronto**: aparece quando o item foi montado sem modelo pronto, já tem arranjo e não mistura diesel e elétrico. Ele cadastra um **modelo pronto** na tabela de modelos do MONTADOR (até 80), com nome gerado pela família, acionamento, vazão e número de bombas. É diferente do modelo de item: o modelo pronto entra na lista de modelos da estrutura, no testador e no impacto da publicação (capítulo 9).' },
+    { t: 'h', x: 'Regras de configuração' },
+    { t: 'p', x: 'As **regras de configuração** conferem cada item da proposta e mostram um alerta. Elas não alteram preço nem custo. O app não vem com regras prontas: cada regra exige fonte (norma, requisito do cliente ou decisão da Engenharia).' },
+    { t: 'tab', cab: ['Campo', 'Opções'], lin: [
+      ['Criticidade', 'Impeditiva (trava o envio ao cliente, se a política de Custos travar), Atenção, Informativa'],
+      ['Situação', 'Publicada (vale nas propostas), Rascunho (só no testador), Inativa'],
+      ['Prioridade', 'Número; as regras são avaliadas e listadas da menor para a maior (padrão 50)'],
+      ['Quando', 'Componente presente (descrição), Família, Arranjo (código), Bomba, Potência diesel (HP), Rotação (RPM), Arrefecimento, Potência elétrica (CV), Tensão do painel, Vazão, Bomba jockey; operadores é igual a, é diferente de, contém, é maior ou igual a, é menor ou igual a, está preenchido, está vazio'],
+      ['Então', 'exige componente adicional que contenha; não pode ter (incompatível ou já incluído) componente que contenha; só avisa'],
+      ['Versão e responsável', 'Preenchidos pelo app: a versão sobe a cada alteração salva; o responsável é quem salvou'],
+    ] },
+    { t: 'tut', titulo: 'Cadastrar uma regra em rascunho, testar e publicar', objetivo: 'Criar uma regra de dependência entre componentes (ex.: quando houver tanque, exigir mangueira de combustível) sem afetar as propostas antes do teste.', quem: 'Editor (responsável pela área Engenharia, se as áreas estiverem definidas). Sem permissão, a tela mostra "Só quem cuida de Engenharia altera as regras.". No modo local não há controle de acesso.', pre: ['A fonte da regra (norma, requisito do cliente ou decisão interna).'], passos: [
+      'Abra **Cadastros → Engenharia → Regras de configuração** e clique em **+ Nova regra**.',
+      { x: 'Preencha **Nome**, **Criticidade**, **Prioridade** e deixe **Situação** em Rascunho. Em **Quando**, escolha **Componente presente (descrição)**, o operador e o texto (ex.: TANQUE). Use **+ condição** para mais condições. Em **Então**, escolha o efeito e o **Componente**. Informe a **Fonte ou justificativa**.', fig: '11-06' },
+      { x: 'Clique em **Salvar regra**. A regra aparece na lista com o selo rascunho, a prioridade e a versão.', fig: '11-07' },
+      'Abra o **Testador de estruturas**, monte um modelo e confira o alerta da regra no resultado (as regras em rascunho entram só no testador).',
+      'Volte à regra, clique em **Editar**, troque **Situação** para Publicada e clique em **Salvar regra**.',
+    ], resultado: 'Aviso "Regra salva". Publicada, a regra passa a conferir os itens das propostas; o alerta mostra a mensagem e "(regra RG-NNN: nome)".', atencao: 'Sem nome: "Dê um nome à regra.". Sem fonte: "Informe a fonte ou a justificativa da regra.". Com efeito exige/não pode ter e sem componente: "Diga qual componente a regra exige ou proíbe.". A condição Componente presente procura o texto dentro da descrição dos componentes (sem diferença de maiúsculas e acentos).', dica: '**Duplicar** cria uma cópia em rascunho com "(cópia)" no nome, útil para variar uma regra existente. **Excluir** pede confirmação.' },
+    { t: 'p', x: 'Abaixo das regras, o quadro **Regras de seleção das estruturas** lista os componentes da estrutura que têm condição ou seleção por tabela. Eles são editados em **Estruturas**; o botão **Abrir** leva ao componente.' },
+    { t: 'h', x: 'Modelos de serviço e contrato (SPV)' },
+    { t: 'p', x: 'Na divisão SPV, um modelo preenche escopo, itens não inclusos, prazo, equipe, peças e frequência das visitas ao começar uma proposta. Na proposta SPV, o quadro **Modelo** mostra os modelos do tipo escolhido; clique em um para aplicar.' },
+    { t: 'tut', titulo: 'Salvar uma proposta SPV como modelo', objetivo: 'Reaproveitar o escopo, a equipe e as peças de uma proposta de serviço.', quem: 'Editor (responsável pela área Serviços, se as áreas estiverem definidas; o botão só aparece para quem pode editar Serviços). No modo local não há controle de acesso.', pre: ['Proposta SPV aberta com escopo e equipe preenchidos.'], passos: [
+      'No quadro **Modelo** da proposta SPV, clique em **Salvar esta proposta como modelo**.',
+      { x: 'Confira **Nome**, **Tipo**, **Visitas por ano**, **Duração (meses)**, **Prazo de execução**, **Equipe**, **Peças e materiais padrão**, **Escopo** e **Não incluso**.', fig: '11-08' },
+      'Clique em **Salvar modelo**.',
+    ], resultado: 'Aviso "Modelo salvo: <nome>". O modelo aparece no quadro Modelo das propostas do mesmo tipo e em Cadastros → Serviços → Modelos de serviço e contrato.', atencao: 'Sem nome, aparece "Dê um nome ao modelo.". Peça sem valor usa o último preço pago (orçamentos e propostas).', dica: 'Para ver e editar todos os modelos, clique em **ver todos os modelos**, no mesmo quadro.' },
+  ],
+  glossario: [
+    ['Família de equipamento', 'O que o item é (Conjunto motobomba, Skid, Container…): define a sigla no código, a família de produto na política de preço e a estrutura.'],
+    ['Família de insumo', 'Grupo do cadastro de insumos (ex.: 01.MOTORDIESEL); o código do insumo começa pelo número da família.'],
+    ['Modelo de item', 'Configuração de um item SEQ guardada com nome para usar em outras propostas.'],
+    ['Modelo pronto', 'Linha da tabela de modelos do MONTADOR (até 80) que o app oferece ao montar um item.'],
+    ['Regra de configuração', 'Regra da Engenharia que confere os itens e gera alerta (impeditivo, atenção ou informativo), sem mudar o preço.'],
+  ],
+};
+
+// ---- Codificação ----
+module.exports.capturas.push(
+  { id: '11-09', nome: 'modelos-codificacao', titulo: 'Engenharia → Codificação: padrões e a tabela Configurações de bomba', novo: true,
+    prep: async (p, h) => { await h.nav('cadastro'); await p.click('.areatabs [data-cad="estruturas"]'); await h.esperar(400); await h.cad('codificacao'); await h.topo(); },
+    clip: [['#app section.card', 0], ['#app section.card', 1]], alto: 1100, marcas: [] },
+);
+module.exports.conteudo.push(
+  { t: 'h', x: 'Codificação dos equipamentos' },
+  { t: 'p', x: 'Em **Cadastros** → **Engenharia** → **Codificação** ficam os padrões usados para montar o código e a descrição de cada item: **Segmento padrão**, **Marca padrão**, **Tensão do painel quando é diesel** e **Partida do painel quando é diesel**, e as tabelas de siglas — **Configurações de bomba**, **Rotações**, **Normas**, **Tensões do painel**, **Marcas** e **Segmentos da codificação**. Cada tabela tem **Adicionar** e **excluir** por linha. Mais abaixo ficam a **Configuração por modelo de bomba** (uma linha por modelo) e as **Listas do sistema**, só de leitura: as fórmulas comparam estes nomes, por isso não podem ser editadas aqui.' },
+  { t: 'fig', id: '11-09' },
+  { t: 'aviso', x: 'O código gerado tem limite de 60 caracteres no ERP (o item avisa quando passa). Mudar uma sigla muda o código dos itens novos; propostas já enviadas guardam o código que tinham.' },
+  { t: 'nv', x: 'Que propostas enviadas guardam o código anterior depende de a proposta não ser recalculada ao reabrir; não foi testado com uma mudança de sigla.' },
+);

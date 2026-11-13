@@ -1,0 +1,341 @@
+{
+ "02-01": {
+  "id": "02-01",
+  "cap": 2,
+  "nome": "navegacao-tela-inicial",
+  "titulo": "Tela inicial e menu lateral",
+  "vp": "desktop",
+  "arquivo": "02-01-navegacao-tela-inicial.png",
+  "data": "2026-11-11T01:00:01.652Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Logotipo e nome do sistema (LS Pricer, revisão REV22).",
+    "sel": ".sidenav .brand, .sidenav .logo-plate",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Pesquisar no menu: mostra só as entradas com o texto digitado.",
+    "sel": "#navQ",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Início: busca, novas propostas, painel e lista de propostas.",
+    "sel": "#nav [data-view=\"inicio\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Grupo (Propostas, Cadastros, Gestão, Administração, Ajuda): clique para abrir ou fechar os atalhos dele.",
+    "sel": "#nav [data-navgt=\"comercial\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Proposta aberta: a proposta em edição, com as abas da proposta.",
+    "sel": "#nav [data-view=\"proposta\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Pendências: o que depende de você ou da sua área.",
+    "sel": "#nav [data-view=\"pendencias\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Margens: propostas fechadas, indicadores e custo real.",
+    "sel": "#nav [data-view=\"margens\"]",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Cadastros: insumos, estruturas, kits, tabelas e regras.",
+    "sel": "#nav [data-view=\"cadastro\"]",
+    "ok": true
+   },
+   {
+    "n": 9,
+    "txt": "Configurações: histórico, responsáveis, numeração, backup e planilha.",
+    "sel": "#nav [data-view=\"config\"]",
+    "ok": true
+   },
+   {
+    "n": 10,
+    "txt": "Ajuda: guia de uso, atalhos de teclado e informações da versão.",
+    "sel": "#nav [data-view=\"guia\"]",
+    "ok": true
+   },
+   {
+    "n": 11,
+    "txt": "Recolher/expandir o menu lateral.",
+    "sel": "#bSideCol",
+    "ok": true
+   }
+  ]
+ },
+ "02-02": {
+  "id": "02-02",
+  "cap": 2,
+  "nome": "navegacao-barra-superior",
+  "titulo": "Barra superior com a proposta aberta",
+  "vp": "desktop",
+  "arquivo": "02-02-navegacao-barra-superior.png",
+  "data": "2026-11-11T01:00:02.212Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Proposta aberta: divisão (SEQ/SPV), número e cliente.",
+    "sel": "#docName",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Busca universal (também Ctrl+K): propostas, clientes e cadastros.",
+    "sel": "#bBusca",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Tema: automático, claro ou escuro.",
+    "sel": "#bTheme",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Alterna entre a visão guiada e a planilha completa (só na proposta SEQ).",
+    "sel": "#bMode",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Nova proposta (SEQ em branco, SPV ou exemplo).",
+    "sel": "#bNew",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Abrir uma proposta salva.",
+    "sel": "#bOpen",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Salvar (também Ctrl+S).",
+    "sel": "#bSave",
+    "ok": true
+   }
+  ]
+ },
+ "02-03": {
+  "id": "02-03",
+  "cap": 2,
+  "nome": "navegacao-menu-recolhido",
+  "titulo": "Menu lateral recolhido (só ícones)",
+  "vp": "desktop",
+  "arquivo": "02-03-navegacao-menu-recolhido.png",
+  "data": "2026-11-11T01:00:03.899Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Clique de novo para expandir. A escolha fica guardada neste navegador.",
+    "sel": "#bSideCol",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Com o menu recolhido, passe o mouse sobre o ícone para ver o nome.",
+    "sel": "#nav [data-view=\"inicio\"]",
+    "ok": true
+   }
+  ]
+ },
+ "02-04": {
+  "id": "02-04",
+  "cap": 2,
+  "nome": "navegacao-celular",
+  "titulo": "No celular: barra de navegação embaixo e barra superior compacta",
+  "vp": "celular",
+  "arquivo": "02-04-navegacao-celular.png",
+  "data": "2026-11-11T01:00:11.792Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Início.",
+    "sel": ".bnav [data-view=\"inicio\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Propostas: a proposta aberta.",
+    "sel": ".bnav [data-view=\"proposta\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Pendências, com o número das que esperam por você.",
+    "sel": ".bnav [data-view=\"pendencias\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Cadastros.",
+    "sel": ".bnav [data-view=\"cadastro\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Mais: abre o menu completo (Margens, Configurações, Ajuda).",
+    "sel": ".bnav [data-bmais]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Salvar fica sempre à vista.",
+    "sel": "#bSave",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Mais ações: Nova, Abrir, Cancelar, Tema e Modo detalhado.",
+    "sel": "#bMore",
+    "ok": true
+   }
+  ]
+ },
+ "02-05": {
+  "id": "02-05",
+  "cap": 2,
+  "nome": "navegacao-celular-mais-acoes",
+  "titulo": "No celular: painel Mais ações",
+  "vp": "celular",
+  "arquivo": "02-05-navegacao-celular-mais-acoes.png",
+  "data": "2026-11-11T01:00:14.363Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "As ações da barra superior do computador, com área de toque grande.",
+    "sel": ".msheet [data-msid=\"bNew\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Fechar (ou toque fora, ou Esc).",
+    "sel": ".msheet .msfechar",
+    "ok": true
+   }
+  ]
+ },
+ "02-06": {
+  "id": "02-06",
+  "cap": 2,
+  "nome": "navegacao-celular-menu",
+  "titulo": "No celular: menu completo pelo botão Mais",
+  "vp": "celular",
+  "arquivo": "02-06-navegacao-celular-menu.png",
+  "data": "2026-11-11T01:00:15.450Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "O menu abre por cima da tela; toque fora dele ou em ✕ para fechar.",
+    "sel": "#nav [data-view=\"margens\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Fechar o menu.",
+    "sel": "#bSideX",
+    "ok": true
+   }
+  ]
+ },
+ "02-07": {
+  "id": "02-07",
+  "cap": 2,
+  "nome": "navegacao-tablet",
+  "titulo": "No tablet: menu lateral em coluna de ícones com o nome",
+  "vp": "tablet",
+  "arquivo": "02-07-navegacao-tablet.png",
+  "data": "2026-11-11T01:00:18.583Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Mesmas entradas do computador, em coluna estreita, com o nome embaixo do ícone.",
+    "sel": "#nav [data-view=\"proposta\"]",
+    "ok": true
+   }
+  ]
+ },
+ "02-08": {
+  "id": "02-08",
+  "cap": 2,
+  "nome": "navegacao-submenu",
+  "titulo": "Grupo Cadastros aberto, com os atalhos para cada cadastro",
+  "vp": "desktop",
+  "arquivo": "02-08-navegacao-submenu.png",
+  "data": "2026-11-11T01:00:05.904Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Abre e fecha o grupo. Os grupos abertos ficam guardados neste navegador.",
+    "sel": "#nav [data-navgt=\"cadastros\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Atalho: leva direto à tela do cadastro.",
+    "sel": "#nav [data-go=\"cadastro\"][data-gv=\"insumos\"]",
+    "ok": true
+   }
+  ]
+ },
+ "02-09": {
+  "id": "02-09",
+  "cap": 2,
+  "nome": "navegacao-busca",
+  "titulo": "Busca universal (Ctrl+K)",
+  "vp": "desktop",
+  "arquivo": "02-09-navegacao-busca.png",
+  "data": "2026-11-11T01:00:07.902Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Digite parte do número, do cliente, do código ou da descrição (2 letras ou mais).",
+    "sel": "#gbQ",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Resultados por tipo: propostas, clientes, insumos, famílias, modelos, kits, estruturas, regras e documentos.",
+    "sel": "#gbRes .gbgh",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ação principal (Enter); ao lado, os outros atalhos do resultado.",
+    "sel": "#gbRes [data-gba=\"0|0\"]",
+    "ok": true
+   }
+  ]
+ }
+}

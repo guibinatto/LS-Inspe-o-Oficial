@@ -1,0 +1,31 @@
+const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
+const L = __dirname + '/libs/';
+(async () => {
+  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true })).newPage(); p.on('dialog', (d) => d.accept());
+  await p.route('https://cdnjs.cloudflare.com/**', (r) => { const u = r.request().url(); return u.endsWith('exceljs.min.js') ? r.fulfill({ path: L + 'exceljs-4.4.0/dist/exceljs.min.js', contentType: 'text/javascript' }) : r.abort(); });
+  await p.route('https://fonts.googleapis.com/**', (r) => r.abort());
+  const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto('file://' + require('path').resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1200);
+  await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(800); await p.click('#bSave'); await p.waitForTimeout(400);
+  await p.click('[data-view="proposta"]'); await p.click('[data-step="5"]'); await p.waitForTimeout(300);
+  console.log('card:', await p.$eval('.aprovbox', (x) => x.innerText.replace(/\s+/g, ' ')));
+  await p.click('.aprovbox [data-alaprov]'); await p.waitForTimeout(500);
+  console.log('kpis:', await p.$eval('.modal .kpis', (x) => x.innerText.replace(/\s+/g, ' ')));
+  await p.fill('#apAlvo', '4.000.000,00'); await p.waitForTimeout(200); console.log('prévia:', await p.$eval('#apPrev', (x) => x.innerText));
+  await p.fill('#apMot', 'Concorrente fechou por 4,0 mi; cliente estratégico'); await p.click('#apOk'); await p.waitForTimeout(600);
+  console.log('assunto:', await p.$eval('#emAss', (x) => x.value)); console.log('corpo:', (await p.$eval('#emTxt', (x) => x.value)).split('\n').slice(0, 8).join(' / '));
+  const [d] = await Promise.all([p.waitForEvent('download'), p.click('#emXls')]); await d.saveAs(__dirname + '/alvo.xlsx');
+  await p.click('.modal [data-close]'); await p.waitForTimeout(300);
+  console.log('card pendente:', await p.$eval('.aprovbox', (x) => x.innerText.replace(/\s+/g, ' ')));
+  await p.click('.aprovbox [data-apopen]'); await p.waitForTimeout(500);
+  console.log('detalhe sumbar:', await p.$eval('.sumbar', (x) => x.innerText.replace(/\s+/g, ' ')));
+  console.log('tabela:', (await p.$eval('#app table.t', (x) => x.innerText)).split('\n').filter((l) => /Preço|Margem|Conclus/.test(l)).map((l) => l.replace(/\t/g, ' ¦ ')).join('\n'));
+  for (const k of ['diretoria', 'financeiro']) { await p.click(`[data-apdec$="|${k}|aprovada"]`); await p.click('#adOk'); await p.waitForTimeout(400); }
+  await p.click('[data-apback]'); await p.waitForTimeout(200); console.log('lista:', await p.$eval('#app table.t tbody', (x) => x.innerText.replace(/\s+/g, ' ')));
+  await p.click('[data-view="proposta"]'); await p.click('[data-step="5"]'); await p.waitForTimeout(300);
+  console.log('card aprovado:', await p.$eval('.aprovbox', (x) => x.innerText.replace(/\s+/g, ' ')));
+  await p.click('[data-apaplica]'); await p.waitForTimeout(600);
+  console.log('após aplicar:', await p.$eval('.sumbar', (x) => x.innerText.replace(/\s+/g, ' ')), '|', await p.$eval('.aprovbox', (x) => x.innerText.replace(/\s+/g, ' ')));
+  await p.screenshot({ path: __dirname + '/alvo.png' });
+  console.log('erros', errs); await b.close();
+})();

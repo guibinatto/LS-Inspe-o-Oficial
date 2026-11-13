@@ -1,0 +1,830 @@
+{
+ "07-01": {
+  "id": "07-01",
+  "cap": 7,
+  "nome": "cadastro-insumos-lista",
+  "titulo": "Lista de insumos com busca, filtros, favorito e ordenação",
+  "vp": "desktop",
+  "arquivo": "07-01-cadastro-insumos-lista.png",
+  "data": "2026-11-11T01:03:11.251Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Busca: código, fabricante, modelo ou característica. Aceita sinônimos (aqui, IPW55 encontra os motores IP55).",
+    "sel": "#insQ",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Filtro por família.",
+    "sel": "#insFam",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Filtro por situação (ativo, provisório, aguardando validação, aguardando preço, inativo, descontinuado ou \"Com pendência\").",
+    "sel": "#insSit",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Só os insumos sem preço.",
+    "sel": "label.chk:has(#insSem)",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Só os favoritos.",
+    "sel": "label.chk:has(#insFavF)",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Clique no título da coluna para ordenar (Código, Produto, Valor, Cotação).",
+    "sel": "[data-insord=\"valor\"]",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Estrela: favorito. Os favoritos sobem para o topo da lista.",
+    "sel": ".star.on",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "+ Novo insumo abre a ficha guiada em branco.",
+    "sel": "#insNew",
+    "ok": true
+   }
+  ]
+ },
+ "07-02": {
+  "id": "07-02",
+  "cap": 7,
+  "nome": "cadastro-ficha-identificacao",
+  "titulo": "Aba Características técnicas: campos da família",
+  "vp": "desktop",
+  "arquivo": "07-02-cadastro-ficha-identificacao.png",
+  "data": "2026-11-11T01:03:18.358Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nome do padrão e modelo da descrição da família.",
+    "sel": "#fCarSub",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Campos técnicos; * = obrigatório.",
+    "sel": "[data-car=\"hp\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Listas curtas aparecem como botões; \"outro\" abre um campo livre.",
+    "sel": ".seg:has([data-carr=\"vcc\"])",
+    "ok": true
+   }
+  ]
+ },
+ "07-03": {
+  "id": "07-03",
+  "cap": 7,
+  "nome": "cadastro-ficha-descricoes",
+  "titulo": "Descrições do insumo e aviso de itens parecidos",
+  "vp": "desktop",
+  "arquivo": "07-03-cadastro-ficha-descricoes.png",
+  "data": "2026-11-11T01:03:20.641Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Descrição técnica: o nome que as fórmulas e as estruturas usam.",
+    "sel": "#fProd",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Marcado: a descrição é gerada pelas características (o campo fica travado).",
+    "sel": "#fGerWrap",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Conferência do padrão da família.",
+    "sel": "#fPad",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Descrição comercial, para documentos ao cliente.",
+    "sel": "#fCom",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Sugerir: monta a descrição comercial pelo modelo da família.",
+    "sel": "#fComSug",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Descrição do fabricante: texto original do catálogo ou da cotação.",
+    "sel": "#fDescFab",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Antes de salvar, confira: itens parecidos já cadastrados. Nada é juntado sozinho.",
+    "sel": "#fDup .banner",
+    "ok": true
+   }
+  ]
+ },
+ "07-04": {
+  "id": "07-04",
+  "cap": 7,
+  "nome": "cadastro-ficha-fornecedores",
+  "titulo": "Aba Fornecedores: cotações com o custo total",
+  "vp": "desktop",
+  "arquivo": "07-04-cadastro-ficha-fornecedores.png",
+  "data": "2026-11-11T01:03:23.239Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "+ Fornecedor: uma linha por cotação.",
+    "sel": "#foAdd",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Moeda da cotação (BRL, USD ou EUR).",
+    "sel": "[data-fo=\"1|moeda\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Câmbio em R$ (obrigatório para moeda estrangeira).",
+    "sel": "[data-fo=\"1|cambio\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Custo total = preço × câmbio × (1 + impostos) + frete. \"menor total\" é só indicação.",
+    "sel": ".modal .forn .pill.ok",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "\"usar este preço\" leva o custo total ao campo Valor do cadastro.",
+    "sel": "[data-fouse=\"0\"]",
+    "ok": true
+   }
+  ]
+ },
+ "07-05": {
+  "id": "07-05",
+  "cap": 7,
+  "nome": "cadastro-ficha-impacto-preco",
+  "titulo": "Mudança de preço: aviso e impacto na margem das propostas",
+  "vp": "desktop",
+  "arquivo": "07-05-cadastro-ficha-impacto-preco.png",
+  "data": "2026-11-11T01:03:32.972Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Valor (R$): o preço do cadastro, sempre em reais.",
+    "sel": "#fVal",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Origem do preço: fornecedor, nº do orçamento.",
+    "sel": "#fFonte",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Data da cotação: conta para a data do preço (vale a mais recente entre esta data e a da última mudança de preço).",
+    "sel": "#fDataCot",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Mudança de preço: de → para, variação e onde o insumo é usado.",
+    "sel": "#fImp .banner",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Calcula o impacto na margem das propostas salvas, sem gravar nada.",
+    "sel": "#fImpCalc",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Resultado: tabela com proposta, custo e margem antes → depois, ou o aviso de que nenhuma proposta muda.",
+    "sel": "#fImpRes",
+    "ok": true
+   }
+  ]
+ },
+ "07-06": {
+  "id": "07-06",
+  "cap": 7,
+  "nome": "cadastro-ficha-onde-usado",
+  "titulo": "Aba Estruturas e kits: onde o insumo é usado",
+  "vp": "desktop",
+  "arquivo": "07-06-cadastro-ficha-onde-usado.png",
+  "data": "2026-11-11T01:03:39.822Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Onde é usado: componentes de estrutura, formações fechadas e propostas.",
+    "sel": ".modal [data-fpane=\"uso\"] h2",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Componente, quando entra e em quais estruturas.",
+    "sel": ".modal [data-fpane=\"uso\"] ul.uso li",
+    "ok": true
+   }
+  ]
+ },
+ "07-07": {
+  "id": "07-07",
+  "cap": 7,
+  "nome": "cadastro-renomear",
+  "titulo": "Renomear um insumo usado em estrutura: o app mostra o impacto antes",
+  "vp": "desktop",
+  "arquivo": "07-07-cadastro-renomear.png",
+  "data": "2026-11-11T01:03:42.837Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Nova descrição técnica (aqui, sem o \" - \" fora do padrão).",
+    "sel": "#fProd",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "A conferência do padrão passa a mostrar \"No padrão.\"",
+    "sel": "#fPad",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Impacto: células de estrutura ou tabela, kits e propostas que passam a usar o novo nome.",
+    "sel": "#fErr",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Clique de novo em Salvar para confirmar.",
+    "sel": "#fSave",
+    "ok": true
+   }
+  ]
+ },
+ "07-08": {
+  "id": "07-08",
+  "cap": 7,
+  "nome": "cadastro-edicao-massa",
+  "titulo": "Edição em massa: campo, novo valor e prévia",
+  "vp": "desktop",
+  "arquivo": "07-08-cadastro-edicao-massa.png",
+  "data": "2026-11-11T01:03:47.348Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Campo: situação, fabricante, tipo, origem, reajuste de preço (%), data da cotação ou origem do preço.",
+    "sel": "#ltCampo",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Novo valor (no reajuste, o percentual: 5 ou -3).",
+    "sel": "#ltVal",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Prévia: atual, novo e se o item está em uso.",
+    "sel": "#ltPrev table",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "O nome não se edita em massa: ele é a chave das fórmulas.",
+    "sel": ".modal .card > p.sub",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Aplicar em N; o botão pede um segundo clique para confirmar.",
+    "sel": "#ltOk",
+    "ok": true
+   }
+  ]
+ },
+ "07-09": {
+  "id": "07-09",
+  "cap": 7,
+  "nome": "cadastro-historico-desfazer",
+  "titulo": "Configurações → Histórico: desfazer um lote",
+  "vp": "desktop",
+  "arquivo": "07-09-cadastro-historico-desfazer.png",
+  "data": "2026-11-11T01:03:51.783Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Filtro por tipo (aqui, Cadastro).",
+    "sel": "#histT",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Busca no histórico.",
+    "sel": "#histQ",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Quando e quem.",
+    "sel": ".hlist .hrow .hmeta",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Tipo da alteração: Edição em massa.",
+    "sel": ".hlist .hrow .pill",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "desfazer este lote (pede confirmação com um segundo clique).",
+    "sel": "[data-desfaz]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Cada insumo e campo: de → para.",
+    "sel": ".hlist .hrow table.mini",
+    "ok": true
+   }
+  ]
+ },
+ "07-10": {
+  "id": "07-10",
+  "cap": 7,
+  "nome": "cadastro-pedir-cadastro",
+  "titulo": "Pedir cadastro de insumo",
+  "vp": "desktop",
+  "arquivo": "07-10-cadastro-pedir-cadastro.png",
+  "data": "2026-11-11T01:03:55.883Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Família do item pedido.",
+    "sel": "#pdFam",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Campos básicos da família.",
+    "sel": "[data-pdc=\"cv\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Opções fixas viram botões.",
+    "sel": ".seg:has([data-pdc=\"polos\"])",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Descrição para o cadastro, montada no padrão.",
+    "sel": "#pdDesc",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Conferência do padrão.",
+    "sel": "#pdChk",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Aviso de itens parecidos já cadastrados: confira antes de pedir.",
+    "sel": "#pdSim .banner",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Prazo: normal ou urgente (proposta em aberto).",
+    "sel": "#pdUrg",
+    "ok": true
+   },
+   {
+    "n": 8,
+    "txt": "Enviar pedido: vai para a área de Custos.",
+    "sel": "#pdOk",
+    "ok": true
+   }
+  ]
+ },
+ "07-11": {
+  "id": "07-11",
+  "cap": 7,
+  "nome": "cadastro-atender-pedido",
+  "titulo": "Custos atende o pedido: preço e situação ao cadastrar",
+  "vp": "desktop",
+  "arquivo": "07-11-cadastro-atender-pedido.png",
+  "data": "2026-11-11T01:04:00.951Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Descrição no padrão da família (pode ser corrigida aqui).",
+    "sel": "#atDesc",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Preço de custo: obrigatório para liberar como Ativo.",
+    "sel": "#atVal",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Situação ao cadastrar: Ativo, Aguardando validação técnica ou Aguardando preço.",
+    "sel": "#atSit",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Fonte do preço.",
+    "sel": "#atFonte",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Cadastrar e atender.",
+    "sel": "#atOk",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Recusar (pede o motivo, que vai para quem pediu).",
+    "sel": "#atNo",
+    "ok": true
+   }
+  ]
+ },
+ "07-12": {
+  "id": "07-12",
+  "cap": 7,
+  "nome": "cadastro-qualidade",
+  "titulo": "Visão geral → Qualidade dos dados",
+  "vp": "desktop",
+  "arquivo": "07-12-cadastro-qualidade.png",
+  "data": "2026-11-11T01:04:02.447Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Impede ou distorce o cálculo.",
+    "sel": ".kpis .kpi",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Sem utilização: insumos sem nenhuma referência (lista no fim da página).",
+    "sel": ".kpis .kpi",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Filtro por criticidade.",
+    "sel": "[data-qf=\"qSev\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Filtro por tipo de problema.",
+    "sel": "[data-qf=\"qTipo\"]",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Filtro por família.",
+    "sel": "[data-qf=\"qFam\"]",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Abrir: leva à ficha do insumo para corrigir.",
+    "sel": "#app section.card button[data-ins]",
+    "ok": true
+   }
+  ]
+ },
+ "07-13": {
+  "id": "07-13",
+  "cap": 7,
+  "nome": "cadastro-importar-colar",
+  "titulo": "Importar preços: lista de preços colada",
+  "vp": "desktop",
+  "arquivo": "07-13-cadastro-importar-colar.png",
+  "data": "2026-11-11T01:04:08.856Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Escolher arquivo Excel (.xlsx), CSV ou texto.",
+    "sel": "label[for=\"impFile\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Ou cole as colunas copiadas de uma planilha (código ou descrição e preço).",
+    "sel": "#impTxt",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Ler o texto colado.",
+    "sel": "#impRead",
+    "ok": true
+   }
+  ]
+ },
+ "07-14": {
+  "id": "07-14",
+  "cap": 7,
+  "nome": "cadastro-importar-conferir",
+  "titulo": "Importar preços: colunas, conferência e aplicação",
+  "vp": "desktop",
+  "arquivo": "07-14-cadastro-importar-conferir.png",
+  "data": "2026-11-11T01:04:10.953Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Coluna que identifica o insumo (código ou descrição).",
+    "sel": "#impId",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Coluna do preço.",
+    "sel": "#impVal",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Primeira linha é cabeçalho.",
+    "sel": "#impHdr",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Quantos preços mudam, iguais, não encontrados e ilegíveis.",
+    "sel": "#app section.card:has(#impReset) .kpis",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Aplicar só os marcados; a importação entra no histórico como uma alteração.",
+    "sel": "#impGo",
+    "ok": true
+   }
+  ]
+ },
+ "07-15": {
+  "id": "07-15",
+  "cap": 7,
+  "nome": "cadastro-validade-alertas",
+  "titulo": "Custos → Validade e alertas",
+  "vp": "desktop",
+  "arquivo": "07-15-cadastro-validade-alertas.png",
+  "data": "2026-11-11T01:04:16.452Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "07-16": {
+  "id": "07-16",
+  "cap": 7,
+  "nome": "cadastro-cambio",
+  "titulo": "Custos → Câmbio e importação (peças importadas da SPV)",
+  "vp": "desktop",
+  "arquivo": "07-16-cadastro-cambio.png",
+  "data": "2026-11-11T01:04:22.789Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "07-17": {
+  "id": "07-17",
+  "cap": 7,
+  "nome": "cadastro-valvulas",
+  "titulo": "Custos → Válvulas de alívio",
+  "vp": "desktop",
+  "arquivo": "07-17-cadastro-valvulas.png",
+  "data": "2026-11-11T01:04:29.167Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "07-18": {
+  "id": "07-18",
+  "cap": 7,
+  "nome": "cadastro-facts-mecon",
+  "titulo": "Custos → FACTS (MECON): lista de preços e custos de importação",
+  "vp": "desktop",
+  "arquivo": "07-18-cadastro-facts-mecon.png",
+  "data": "2026-11-11T01:04:35.635Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": []
+ },
+ "07-19": {
+  "id": "07-19",
+  "cap": 7,
+  "nome": "cadastro-precos-vencidos",
+  "titulo": "Insumos com preço vencido: indicador, aviso, filtro e coluna Preço atualizado em",
+  "vp": "desktop",
+  "arquivo": "07-19-cadastro-precos-vencidos.png",
+  "data": "2026-11-11T01:04:42.129Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Preço vencido: quantos estão há mais de 30 dias sem atualizar, quantos em uso e quantos sem data.",
+    "sel": "#app .kpis .kpi:nth-child(4)",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Filtro \"Preço vencido (mais de 30 dias)\" (também há \"Preço sem data de atualização\").",
+    "sel": "#insSit",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Coluna Preço atualizado em: clique para ordenar do preço mais antigo ao mais novo.",
+    "sel": "button[data-insord=\"upd\"]",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Selo \"vencido · N d\" na data do preço.",
+    "sel": "tr[data-ins=\"01-1020\"] td:last-child .pill",
+    "ok": true
+   }
+  ]
+ },
+ "07-20": {
+  "id": "07-20",
+  "cap": 7,
+  "nome": "cadastro-ficha-geral",
+  "titulo": "Ficha do produto em abas: aba Geral de um novo insumo",
+  "vp": "desktop",
+  "arquivo": "07-20-cadastro-ficha-geral.png",
+  "data": "2026-11-11T01:03:15.510Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Abas da ficha: Geral, Características técnicas, Compras e custos, Fornecedores (no insumo já cadastrado também Estruturas e kits, Documentos e Histórico).",
+    "sel": ".modal .fichatabs",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Família: define os campos técnicos e o modelo de descrição.",
+    "sel": "#fFam",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Código: gerado pela família (aa-bbbb) e não muda depois.",
+    "sel": "#fCode",
+    "ok": true
+   },
+   {
+    "n": 4,
+    "txt": "Situação do item.",
+    "sel": "#fSit",
+    "ok": true
+   },
+   {
+    "n": 5,
+    "txt": "Fabricante (a marca fica aqui, não no nome).",
+    "sel": "#fFab",
+    "ok": true
+   },
+   {
+    "n": 6,
+    "txt": "Código do fabricante (usado também na verificação de duplicidade).",
+    "sel": "#fCodFab",
+    "ok": true
+   },
+   {
+    "n": 7,
+    "txt": "Cadastrar/Salvar e Cancelar ficam sempre visíveis, em qualquer aba.",
+    "sel": ".modal .fichaacoes",
+    "ok": true
+   }
+  ]
+ },
+ "07-21": {
+  "id": "07-21",
+  "cap": 7,
+  "nome": "cadastro-ficha-equivalentes",
+  "titulo": "Aba Características técnicas: equivalentes técnicos e alternativas",
+  "vp": "desktop",
+  "arquivo": "07-21-cadastro-ficha-equivalentes.png",
+  "data": "2026-11-11T01:03:30.246Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Equivalente registrado, com tipo, justificativa, restrições e data.",
+    "sel": "#fEquiv tbody tr",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Tipo: equivalência técnica, alternativa comercial ou substituto.",
+    "sel": "#eqTipo",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "+ Registrar equivalente (exige características comparadas e justificativa).",
+    "sel": "#eqAdd",
+    "ok": true
+   }
+  ]
+ },
+ "07-22": {
+  "id": "07-22",
+  "cap": 7,
+  "nome": "cadastro-ficha-historicos",
+  "titulo": "Abas Compras e custos (histórico de preço), Documentos e Histórico",
+  "vp": "desktop",
+  "arquivo": "07-22-cadastro-ficha-historicos.png",
+  "data": "2026-11-11T01:03:41.921Z",
+  "ok": true,
+  "problemas": [],
+  "marcas": [
+   {
+    "n": 1,
+    "txt": "Compras e custos: preço de aquisição e o histórico de preço (de, para, variação e origem). Fornecedores e cotações têm aba própria.",
+    "sel": ".modal [data-ftab=\"compras\"]",
+    "ok": true
+   },
+   {
+    "n": 2,
+    "txt": "Documentos: folha de dados técnica e os orçamentos, notas e fichas anexados ao insumo.",
+    "sel": ".modal [data-ftab=\"docs\"]",
+    "ok": true
+   },
+   {
+    "n": 3,
+    "txt": "Histórico deste insumo: cada campo alterado, quando e por quem.",
+    "sel": ".modal .hist",
+    "ok": true
+   }
+  ]
+ }
+}
