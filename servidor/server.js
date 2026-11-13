@@ -14,18 +14,25 @@ import fs from "fs";
 import zlib from "zlib";
 import path from "path";
 import { fileURLToPath } from "url";
-import { lerJson, gravadorJson } from "./lib/arquivo.js";
+import { lerJson, gravadorJson, gravarPendentes } from "./lib/arquivo.js";
 import { criarUsuarios, erro } from "./lib/usuarios.js";
 import { criarBanco } from "./lib/banco.js";
 import { NIVEL_PRICER, NOME_PRICER, PERFIS_SERVICO, CHAVES_SERVICO, nivelPricer, perfilServico, podeServico, podeLerPricer, podeGravarPricer,
   visivel, paraEnvio, juntar } from "./lib/acesso.js";
 
+// arquivo de dados corrompido (lib/arquivo.js): mensagem clara e saída, sem pilha de chamadas
+process.on("uncaughtException", (e) => { if (e && e.code === "LSF_CORROMPIDO") { console.error("\n  ERRO: " + e.message + "\n"); process.exit(2); } console.error(e); process.exit(1); });
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
+// Por padrão só atende a própria máquina (o Caddy do INSTALACAO-TI.md repassa para 127.0.0.1). Proxy em outra máquina: HOST=0.0.0.0.
+const HOST = String(process.env.HOST || "127.0.0.1").trim();
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, "data");
 const PUBLIC_DIR = path.join(__dirname, "public");
 const PRICER_HTML = path.join(__dirname, "app", "pricer.html");
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
+// Token para exportar/backup por script: só no cabeçalho X-Admin-Token. O valor de exemplo e tokens curtos ficam desligados.
+const TOKEN_CRU = String(process.env.ADMIN_TOKEN || "").trim();
+const TOKEN_FRACO = !!TOKEN_CRU && (TOKEN_CRU.length < 32 || /troque|exemplo|change|token/i.test(TOKEN_CRU));
+const ADMIN_TOKEN = TOKEN_FRACO ? "" : TOKEN_CRU;
 const BACKUP_INTERVAL_HORAS = Number(process.env.BACKUP_INTERVAL_HORAS ?? 6);
 const BACKUP_MANTER = Number(process.env.BACKUP_MANTER || 30);
 const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 600);
@@ -38,7 +45,8 @@ const BACKUP_DIR = path.join(DATA_DIR, "backups");
 const ASSET_DIR = path.join(DATA_DIR, "assets");
 fs.mkdirSync(BACKUP_DIR, { recursive: true }); fs.mkdirSync(ASSET_DIR, { recursive: true });
 
-const usuarios = criarUsuarios(DATA_DIR, { sessaoDias: SESSAO_DIAS });
+const usuarios = criarUsuarios(DATA_DIR, { sessaoDias: SESSAO_DIAS, sessaoMaxDias: Number(process.env.SESSAO_MAX_DIAS || 90) });
+setInterval(() => usuarios.limparSessoes(), 6 * 3600 * 1000).unref();
 const banco = criarBanco(DATA_DIR);
 
 // ---- dados do módulo de serviço: uma lista por chave + carimbo de cada registro (criado/alterado no servidor) ----
@@ -52,11 +60,15 @@ const guardaLista = (k, arr, agora) => { store[k] = { value: JSON.stringify(arr)
 // ---- numeração do serviço (atendimento 700000…, contrato 200000…) ----
 const SEQ_FILE = path.join(DATA_DIR, "seq_counters.json");
 const seqCounters = Object.assign({ atendimento: 699999, contrato: 199999 }, lerJson(SEQ_FILE, {}));
+for (const [k, ini] of [["atendimento", 699999], ["contrato", 199999]]) if (!Number.isSafeInteger(seqCounters[k]) || seqCounters[k] < ini) seqCounters[k] = ini; // conserta contador envenenado
 const gravaSeq = gravadorJson(SEQ_FILE, () => seqCounters, 10);
-const maiorNum = (arr, campos) => arr.reduce((m, it) => Math.max(m, ...campos.map((c) => (Number.isFinite(Number(it && it[c])) ? Number(it[c]) : 0))), 0);
+// o maior número já usado só conta se for um inteiro dentro da faixa daquela numeração (um aparelho não consegue
+// mandar referencia: 1e300 e travar a numeração de todos)
+const FAIXA = { atendimento: [700000, 1699999], contrato: [200000, 1199999] };
+const maiorNum = (arr, campos, [min, max]) => arr.reduce((m, it) => Math.max(m, ...campos.map((c) => { const n = Number(it && it[c]); return Number.isSafeInteger(n) && n >= min && n <= max ? n : 0; })), 0);
 function realinharContadores() {
-  const at = Math.max(seqCounters.atendimento, maiorNum(lista("visitas"), ["referencia", "codigoAtendimento"]), maiorNum(lista("relatorios"), ["referencia", "codigoAtendimento", "numero", "codigo"]));
-  const ct = Math.max(seqCounters.contrato, maiorNum(lista("contratos"), ["codigo"]));
+  const at = Math.max(seqCounters.atendimento, maiorNum(lista("visitas"), ["referencia", "codigoAtendimento"], FAIXA.atendimento), maiorNum(lista("relatorios"), ["referencia", "codigoAtendimento", "numero", "codigo"], FAIXA.atendimento));
+  const ct = Math.max(seqCounters.contrato, maiorNum(lista("contratos"), ["codigo"], FAIXA.contrato));
   if (at !== seqCounters.atendimento || ct !== seqCounters.contrato) { seqCounters.atendimento = at; seqCounters.contrato = ct; gravaSeq(); }
 }
 realinharContadores();
@@ -71,9 +83,22 @@ function fazerBackup(motivo = "agendado") {
     usuarios.gravarJa(); banco.gravarJa(); gravaStore.agora(); gravaSeq.agora();
     const carimbo = new Date().toISOString().replace(/[:.]/g, "-");
     const dest = path.join(BACKUP_DIR, "backup-" + carimbo); fs.mkdirSync(dest, { recursive: true });
-    for (const f of ["store.json", "pricer-db.json", "usuarios.json", "seq_counters.json"]) { const o = path.join(DATA_DIR, f); if (fs.existsSync(o)) fs.copyFileSync(o, path.join(dest, f)); }
+    for (const f of ["store.json", "pricer-db.json", "usuarios.json", "seq_counters.json", "auditoria-arquivo.jsonl"]) { const o = path.join(DATA_DIR, f); if (fs.existsSync(o)) fs.copyFileSync(o, path.join(dest, f)); }
+    // anexos: só os que ainda não estão no backup anterior (são imutáveis; cada backup fica completo com links físicos quando dá)
+    const destA = path.join(dest, "assets"); fs.mkdirSync(destA, { recursive: true });
+    const anterior = fs.readdirSync(BACKUP_DIR).filter((f) => f.startsWith("backup-") && f !== path.basename(dest)).sort().pop();
+    for (const f of fs.readdirSync(ASSET_DIR)) {
+      const o = path.join(ASSET_DIR, f), d = path.join(destA, f), prev = anterior ? path.join(BACKUP_DIR, anterior, "assets", f) : null;
+      try { if (prev && fs.existsSync(prev)) fs.linkSync(prev, d); else fs.copyFileSync(o, d); } catch { try { fs.copyFileSync(o, d); } catch {} }
+    }
+    // só roda a rotação se a cópia nova abre (um banco estragado não empurra para fora as cópias boas)
+    for (const f of ["store.json", "pricer-db.json", "usuarios.json"]) { const c = path.join(dest, f); if (fs.existsSync(c)) JSON.parse(fs.readFileSync(c, "utf-8")); }
     const pastas = fs.readdirSync(BACKUP_DIR).filter((f) => f.startsWith("backup-")).sort();
-    while (pastas.length > BACKUP_MANTER) fs.rmSync(path.join(BACKUP_DIR, pastas.shift()), { recursive: true, force: true });
+    // guarda os BACKUP_MANTER mais recentes e, além deles, o último de cada dia dos 14 dias anteriores
+    const recentes = new Set(pastas.slice(-BACKUP_MANTER)); const porDia = new Map();
+    for (const f of pastas) porDia.set(f.slice(7, 17), f);
+    const diarios = new Set([...porDia.values()].slice(-14));
+    for (const f of pastas) if (!recentes.has(f) && !diarios.has(f)) fs.rmSync(path.join(BACKUP_DIR, f), { recursive: true, force: true });
     console.log(`  [backup ${motivo}] ${path.basename(dest)}`); return dest;
   } catch (e) { console.error("  [backup] falhou:", e.message); return null; }
 }
@@ -91,6 +116,8 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "same-origin");
   res.setHeader("X-Frame-Options", "SAMEORIGIN"); // o Pricer mostra o serviço numa moldura do mesmo endereço; outros sites não
+  res.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=(self), payment=()");
+  if (req.secure) res.setHeader("Strict-Transport-Security", "max-age=15552000");
   next();
 });
 
@@ -107,7 +134,7 @@ function limite(max) {
 setInterval(() => { const a = Date.now(); for (const [k, b] of baldes) if (a - b.ini > 300000) baldes.delete(k); }, 300000).unref();
 
 // sessão pelo cookie
-function lerCookie(req, nome) { const c = req.headers.cookie || ""; for (const p of c.split(";")) { const [k, ...v] = p.trim().split("="); if (k === nome) return decodeURIComponent(v.join("=")); } return ""; }
+function lerCookie(req, nome) { const c = req.headers.cookie || ""; for (const p of c.split(";")) { const [k, ...v] = p.trim().split("="); if (k === nome) { try { return decodeURIComponent(v.join("=")); } catch { return ""; } } } return ""; }
 app.use((req, _res, next) => { req.token = lerCookie(req, COOKIE); req.user = usuarios.sessao(req.token); next(); });
 // senha provisória (primeiro acesso ou redefinida pelo administrador): só deixa trocar a senha, ver quem é e sair
 const LIVRE_TROCA = new Set(["/api/me", "/api/senha", "/api/logout", "/api/login", "/api/health", "/login", "/login.html", "/favicon.ico"]);
@@ -137,14 +164,14 @@ const meDe = (u) => ({ id: u.id, login: u.login, nome: u.nome, email: u.email ||
 
 // ---------------- autenticação ----------------
 app.get("/api/health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
-app.post("/api/login", limite(20), json, trata(async (req, res) => {
+app.post("/api/login", limite(20), express.json({ limit: "10kb" }), trata(async (req, res) => {
   const { login, senha } = req.body || {};
-  const r = usuarios.entrar(login, senha, req.ip); poeCookie(req, res, r.token);
+  const r = await usuarios.entrar(login, senha, req.ip); poeCookie(req, res, r.token);
   res.json({ ok: true, me: meDe(usuarios.porId(r.usuario.id)) });
 }));
 app.post("/api/logout", (req, res) => { usuarios.sair(req.token); tiraCookie(req, res); res.json({ ok: true }); });
 app.get("/api/me", exigeLogin, (req, res) => res.json(meDe(req.user)));
-app.post("/api/senha", exigeLogin, json, trata(async (req, res) => { usuarios.trocarSenha(req.user.id, (req.body || {}).atual, (req.body || {}).nova); res.json({ ok: true }); }));
+app.post("/api/senha", exigeLogin, express.json({ limit: "10kb" }), trata(async (req, res) => { await usuarios.trocarSenha(req.user.id, (req.body || {}).atual, (req.body || {}).nova, req.token); res.json({ ok: true }); }));
 app.get("/api/perfis", exigeLogin, (_req, res) => res.json({ pricer: NOME_PRICER, servico: Object.fromEntries(Object.entries(PERFIS_SERVICO).filter(([k]) => k !== "admin").map(([k, v]) => [k, v])) }));
 
 // ---------------- usuários (administrador) ----------------
@@ -157,7 +184,7 @@ app.patch("/api/usuarios/:id", exigeAdmin, json, trata(async (req, res) => {
 
 // ---------------- banco do Pricer ----------------
 // nomes da equipe (para "quem fez"): só para quem usa o Pricer
-app.post("/api/pessoas", exigePricer(1), json, (req, res) => res.json({ pessoas: usuarios.nomes((req.body || {}).ids || []) }));
+app.post("/api/pessoas", exigePricer(1), json, (req, res) => { const ids = (req.body || {}).ids; res.json({ pessoas: usuarios.nomes(Array.isArray(ids) ? ids.slice(0, 500) : []) }); });
 app.get("/api/pessoas", exigePricer(1), (req, res) => {
   const q = String(req.query.q || "").toLowerCase();
   res.json({ pessoas: usuarios.lista().filter((u) => u.ativo && nivelPricer(u) >= 1 && (!q || (u.nome + " " + u.login).toLowerCase().includes(q))).slice(0, 30).map((u) => ({ id: u.id, name: u.nome || u.login })) });
@@ -168,11 +195,41 @@ app.post("/api/db/query", exigePricer(1), json, trata(async (req, res) => {
   const p = caminho(req); if (!podeLerPricer(req.user, p)) throw erro(400, "Caminho inválido.");
   const b = req.body || {}; res.json({ docs: banco.query(p, { where: b.where || [], orderBy: b.orderBy || [], limit: Math.min(Number(b.limit) || 0, 5000) }) });
 }));
+// Histórico e aprovações: regras que o servidor confere (o app não decide sozinho).
+// - histórico: só recebe registros novos, assinados por quem está gravando; o que já foi gravado não muda nem some;
+// - aprovações: cada decisão (Diretoria/Financeiro) só pode ser escrita pela própria pessoa (by = quem está logado),
+//   com a hora de agora; ninguém apaga o pedido de aprovação. O administrador pode tudo.
+const MIN = 60 * 1000;
+function conferirRegrasPricer(user, p, op, d) {
+  if (nivelPricer(user) >= 4) return;
+  const seg = p.split("/"); const atual = banco.get(p); const antes = (atual.data || {});
+  const depois = op === "delete" ? null : op === "update" ? Object.assign({}, antes, d) : d;
+  if (seg[0] === "historico") {
+    if (!depois) throw erro(403, "O histórico não pode ser apagado.");
+    const novos = new Set((Array.isArray(depois.itens) ? depois.itens : []).map((x) => JSON.stringify(x)));
+    const velhos = Array.isArray(antes.itens) ? antes.itens : [];
+    if (velhos.some((x) => !novos.has(JSON.stringify(x)))) throw erro(403, "O histórico só recebe registros novos: o que já foi gravado não muda.");
+    const jaTinha = new Set(velhos.map((x) => JSON.stringify(x)));
+    for (const it of depois.itens || []) if (!jaTinha.has(JSON.stringify(it)) && it && it.by != null && it.by !== user.id) throw erro(403, "Registro do histórico em nome de outra pessoa.");
+  }
+  if (seg[0] === "aprovacoes" && seg.length === 2) {
+    if (!depois) { if (atual.exists) throw erro(403, "Pedido de aprovação não pode ser apagado."); return; }
+    const a = antes.decisoes || {}, b = (depois.decisoes && typeof depois.decisoes === "object") ? depois.decisoes : {};
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (JSON.stringify(a[k]) === JSON.stringify(b[k]) || b[k] == null) continue; // igual, ou decisão retirada (pedir de novo)
+      const x = b[k]; const t = Date.parse(x.at);
+      if (x.by !== user.id) throw erro(403, "A decisão só pode ser gravada pela própria pessoa que decide.");
+      // a hora vem do computador de quem decide: aceita relógio um pouco errado, não uma data inventada (ex.: anterior à REV22)
+      if (!Number.isFinite(t) || Math.abs(Date.now() - t) > 12 * 60 * MIN) throw erro(403, "Decisão com data fora da hora atual. Confira o relógio do computador.");
+    }
+  }
+}
 for (const op of ["set", "update", "delete"]) {
   app.post("/api/db/" + op, exigePricer(2), json, trata(async (req, res) => {
     const p = caminho(req); if (!podeGravarPricer(req.user, p)) throw erro(403, "Seu nível de acesso não grava aqui (" + p.split("/")[0] + ").");
     const d = (req.body || {}).data;
     if (op !== "delete" && (!d || typeof d !== "object" || Array.isArray(d))) throw erro(400, "Documento inválido.");
+    conferirRegrasPricer(req.user, p, op, d);
     res.json(op === "delete" ? banco.delete(p) : banco[op](p, d, req.user.id));
   }));
 }
@@ -199,8 +256,15 @@ app.delete("/api/assets/:id", exigePricer(3), (req, res) => { const id = req.par
 app.get("/_blob/:id", exigePricer(1), (req, res) => {
   const id = req.params.id; if (!/^[a-f0-9]{32}$/.test(id)) return res.status(404).end();
   const m = lerJson(path.join(ASSET_DIR, id + ".json"), null); if (!m) return res.status(404).end();
-  res.setHeader("Content-Type", m.tipo === "image/svg+xml" ? "image/svg+xml" : m.tipo); res.setHeader("Cache-Control", "private, max-age=3600");
-  if (m.tipo === "image/svg+xml") res.setHeader("Content-Security-Policy", "script-src 'none'");
+  res.setHeader("Content-Type", m.tipo); res.setHeader("Cache-Control", "private, max-age=3600");
+  // Anexo nunca roda script no endereço do servidor: imagens comuns e PDF abrem no navegador; o resto (SVG, XML, texto,
+  // planilhas…) vai como download e, se mesmo assim for aberto, numa caixa isolada (sandbox) sem script.
+  if (/^image\/(png|jpe?g|gif|webp)$/.test(m.tipo)) res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
+  else if (m.tipo !== "application/pdf") { // PDF abre no leitor do navegador, que não roda script na página do servidor
+    res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox");
+    const nome = String(m.nome || id).replace(/[^\w.\- ]+/g, "_").slice(0, 120) || id;
+    res.setHeader("Content-Disposition", `attachment; filename="${nome}"`);
+  }
   res.sendFile(path.join(ASSET_DIR, id));
 });
 
@@ -213,6 +277,8 @@ app.post("/api/allocate-number", exigeServico, json, trata(async (req, res) => {
   res.json({ numero: proximoNumero(tipo) });
 }));
 
+const AUD_ARQ = path.join(DATA_DIR, "auditoria-arquivo.jsonl");
+function arquivarAuditoria(recs) { try { fs.appendFileSync(AUD_ARQ, recs.map((r) => JSON.stringify(r)).join("\n") + "\n", { mode: 0o600 }); } catch (e) { console.error("  [auditoria] não arquivou:", e.message); } }
 function dadosPara(u) {
   const data = {};
   for (const k of CHAVES_SERVICO) {
@@ -224,19 +290,25 @@ function dadosPara(u) {
 }
 app.post("/api/sync", exigeServico, json, trata(async (req, res) => {
   const { changes, lastSync } = req.body || {};
-  const agora = new Date().toISOString(); let ignorados = 0;
+  const agora = new Date().toISOString(); let ignorados = 0, conflitos = 0;
   if (Array.isArray(changes) && perfilServico(req.user) !== "cliente") {
     for (const ch of changes) {
       if (!ch || !CHAVES_SERVICO.includes(ch.key) || ch.action === "delete") continue; // apagar uma chave inteira não é aceito
       let recebidos; try { recebidos = JSON.parse(ch.value); } catch { continue; }
       const meta = (store._meta[ch.key] = store._meta[ch.key] || {});
       const r = juntar(ch.key, lista(ch.key), recebidos, req.user, meta, { ultimaSinc: typeof lastSync === "string" ? lastSync : null, agora });
-      ignorados += r.ignorados;
-      if (r.mudou) { const arr = ch.key === "auditoria" ? r.lista.slice(-3000) : ch.key === "notificacoes" ? r.lista.slice(-1000) : r.lista; guardaLista(ch.key, arr, agora); }
+      ignorados += r.ignorados; conflitos += r.conflitos || 0;
+      if (r.mudou) {
+        let arr = r.lista;
+        // auditoria: os mais antigos saem da lista ativa mas vão para um arquivo (nada se perde)
+        if (ch.key === "auditoria" && arr.length > 3000) { arquivarAuditoria(arr.slice(0, arr.length - 3000)); arr = arr.slice(-3000); }
+        if (ch.key === "notificacoes") arr = arr.slice(-1000);
+        guardaLista(ch.key, arr, agora);
+      }
     }
     realinharContadores();
   }
-  res.json({ data: dadosPara(req.user), serverTime: agora, ignorados });
+  res.json({ data: dadosPara(req.user), serverTime: agora, ignorados, conflitos });
 }));
 
 // ligação com o Pricer: contrato a partir de uma proposta ganha (SPV de inspeção/contrato)
@@ -307,7 +379,11 @@ app.post("/api/admin/importar-pricer", exigeAdmin, express.json({ limit: "120mb"
 }));
 
 // ---------------- administração do servidor ----------------
-const tokenAdminOk = (req) => !!ADMIN_TOKEN && (req.query.token === ADMIN_TOKEN || req.headers["x-admin-token"] === ADMIN_TOKEN);
+const tokenAdminOk = (req) => {
+  const t = req.headers["x-admin-token"]; if (!ADMIN_TOKEN || typeof t !== "string") return false;
+  const a = crypto.createHash("sha256").update(t).digest(), b = crypto.createHash("sha256").update(ADMIN_TOKEN).digest();
+  return crypto.timingSafeEqual(a, b);
+};
 const adminOuToken = (req, res, next) => (tokenAdminOk(req) || (req.user && req.user.pricer === "admin") ? next() : res.status(req.user ? 403 : 401).json({ error: "Só o administrador." }));
 app.get("/api/export", adminOuToken, (_req, res) => {
   const servico = {}; for (const k of CHAVES_SERVICO) servico[k] = lista(k);
@@ -348,16 +424,33 @@ app.use("/servico", express.static(path.join(PUBLIC_DIR, "servico"), { index: "i
 app.get("/servico/*", (req, res, next) => { const f = path.join(PUBLIC_DIR, "servico", "index.html"); fs.existsSync(f) ? res.sendFile(f) : next(); });
 app.use(express.static(PUBLIC_DIR, { index: false, maxAge: "1h" }));
 app.use("/api", (_req, res) => res.status(404).json({ error: "Endereço não encontrado." }));
+// erro não tratado (JSON malformado, corpo grande demais…): resposta curta, sem caminhos nem pilha de chamadas
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  const st = err.status || err.statusCode || 500;
+  if (st >= 500) console.error(err);
+  const msg = err.type === "entity.parse.failed" ? "JSON inválido." : err.type === "entity.too.large" ? "Conteúdo grande demais." : st < 500 ? (err.expose ? err.message : "Requisição inválida.") : "Erro no servidor.";
+  if (res.headersSent) return;
+  res.status(st).json({ error: msg });
+});
 
 export { app };
 if (process.env.LSF_SEM_LISTEN !== "1") {
   const adm = usuarios.garantirAdmin();
-  app.listen(PORT, () => {
-    console.log(`\n  LS Fire (Pricer + Serviço) em http://localhost:${PORT}`);
+  const srv = app.listen(PORT, HOST, () => {
+    console.log(`\n  LS Fire (Pricer + Serviço) em http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}${HOST === "127.0.0.1" ? " (só esta máquina; o proxy HTTPS repassa)" : ""}`);
+    if (TOKEN_FRACO) console.log("  ATENÇÃO: ADMIN_TOKEN é o valor de exemplo ou tem menos de 32 caracteres. A exportação por token ficou DESLIGADA.");
     console.log(`  Dados: ${DATA_DIR}`);
     if (adm) console.log(`\n  PRIMEIRO ACESSO → login: ${adm.login}   senha: ${adm.senha}\n  (também gravada em data/SENHA-INICIAL.txt; troque no primeiro acesso e apague o arquivo)\n`);
     console.log(`  Backup: ${BACKUP_INTERVAL_HORAS > 0 ? "a cada " + BACKUP_INTERVAL_HORAS + "h, guarda " + BACKUP_MANTER : "DESLIGADO"} · limite ${RATE_LIMIT_MAX} req/min por IP`);
     console.log(`  Pricer: ${fs.existsSync(PRICER_HTML) ? "ok" : "FALTA app/pricer.html"} · Serviço: ${fs.existsSync(path.join(PUBLIC_DIR, "servico", "index.html")) ? "ok" : "FALTA public/servico (rode npm run build em servico-web)"}\n`);
+  });
+  // desligamento (systemctl restart/stop, Ctrl+C): grava o que ainda está na fila antes de sair
+  let saindo = false;
+  for (const sinal of ["SIGTERM", "SIGINT"]) process.on(sinal, () => {
+    if (saindo) return; saindo = true;
+    try { gravarPendentes(); } catch (e) { console.error("  [saída] falha ao gravar:", e.message); }
+    srv.close(() => process.exit(0)); setTimeout(() => process.exit(0), 3000).unref();
   });
 }
 export { usuarios, banco };

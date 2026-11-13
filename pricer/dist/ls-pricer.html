@@ -159,6 +159,14 @@ body.side-mini .nav [data-view]:hover::after,body.side-mini .nav [data-view]:foc
 .btn.pri:hover{background:var(--or-fill-h);border-color:var(--or-fill-h)}
 .btn.ghost{background:transparent;border-color:rgba(255,255,255,.18);color:var(--bar-ink)}
 .btn.ghost:hover{border-color:var(--or)}
+/* o botão "fantasma" foi feito para a barra escura do topo; dentro da página e das janelas ele precisa da cor do texto */
+main .btn.ghost,.modal .btn.ghost,#temaBar .btn.ghost{color:var(--ink2);border-color:var(--line2)}
+/* Serviço de campo aberto: os botões e o nome da proposta do Pricer saem do topo (não valem para o módulo) */
+body.em-servico #docName,body.em-servico #saveSt,body.em-servico #bMode,body.em-servico #bNew,body.em-servico #bOpen,body.em-servico #bCancel,body.em-servico #bSave{display:none!important}
+/* faixa de abas que não cabe: as bordas esmaecem para mostrar que dá para rolar */
+.rola-dir{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent)}
+.rola-esq{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px);mask-image:linear-gradient(to right,transparent,#000 44px)}
+.rola-esq.rola-dir{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
 .hbtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}.hbtns .btn{margin:0;white-space:nowrap}
 .btn.perd{color:var(--bad);background:transparent;border-color:transparent}.btn.perd:hover{border-color:var(--bad)}
 @media (max-width:860px){.hbtns{justify-content:flex-start}}
@@ -192,6 +200,8 @@ body.side-mini .nav [data-view]:hover::after,body.side-mini .nav [data-view]:foc
 .ctx-kpis .k em{font-style:normal;font-size:11.5px;line-height:1.2;min-height:1.2em;color:var(--ink3);white-space:nowrap}
 .ctx-more{display:none;align-self:center;margin:0 8px}
 .ctxh .btn.ghost{color:var(--ink2);border-color:var(--line2)}
+/* tablet e notebook pequeno: os números da proposta vão para a linha de baixo do título, sem cobrir o nome */
+@media (min-width:861px) and (max-width:1360px){.ctxh{grid-template-columns:minmax(0,1fr)}.ctxh .ctx-kpis{justify-self:start;max-width:100%;overflow-x:auto;flex-wrap:nowrap}.ctxh .ctx-kpis .k{padding:10px 16px}}
 .ptabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line2);margin:0 0 14px;scrollbar-width:thin}
 .ptab{display:inline-flex;align-items:center;gap:7px;padding:9px 12px 10px;border:0;border-bottom:2px solid transparent;background:none;color:var(--ink2);font-family:var(--f-cond);font-weight:600;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;white-space:nowrap;border-radius:8px 8px 0 0;transition:color .15s ease,background .15s ease,border-color .15s ease}
 .ptab:hover{color:var(--ink);background:var(--or-soft)}
@@ -1011,8 +1021,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" class="navgh" data-navgt="gestao" data-ico="chart-no-axes-combined" aria-expanded="false" aria-controls="navs_gestao"><span class="nl">Gestão</span></button>
       <div class="navsub" id="navs_gestao" role="group" aria-label="Gestão" hidden>
       <button data-view="pendencias" data-ico="clipboard-list" title="Pendências"><span class="nl">Pendências</span></button>
-      <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens e indicadores comerciais"><span class="nl">Margens</span></button>
-      <button type="button" data-go="margens" data-gk="mgTab" data-gv="painel" data-ico="trending-up"><span class="nl">Indicadores</span></button>
+      <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens e indicadores comerciais"><span class="nl">Margens e indicadores</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass"><span class="nl">Em andamento</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="relatorios" data-ico="chart-no-axes-combined"><span class="nl">Relatórios gerenciais</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check"><span class="nl">Auditoria de cadastros</span></button>
@@ -1035,7 +1044,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" class="navgh" data-navgt="ajuda" data-ico="circle-help" aria-expanded="false" aria-controls="navs_ajuda"><span class="nl">Ajuda</span></button>
       <div class="navsub" id="navs_ajuda" role="group" aria-label="Ajuda" hidden>
       <button data-view="guia" data-ico="circle-help" title="Ajuda"><span class="nl cl">Central de ajuda</span><span class="nlr">Ajuda</span></button>
-      <button type="button" data-go="guia" data-gk="ajuda" data-gv="guia" data-ico="book-open"><span class="nl">Guia de uso</span></button>
       <button type="button" data-go="guia" data-gk="ajuda" data-gv="atalhos" data-ico="keyboard"><span class="nl">Atalhos de teclado</span></button>
       <button type="button" data-go="guia" data-gk="ajuda" data-gv="versao" data-ico="info"><span class="nl">Informações da versão</span></button>
       </div>
@@ -3573,7 +3581,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
             ${fld('Local do serviço', inp('local', s.local, 'text', { ph: 'cidade / obra' }), 'span2')}${fld('UF', sel('uf', s.uf || '', [['', '—']].concat(UFS.map((u) => [u, u])).concat(s.uf && !UFS.includes(s.uf) ? [[s.uf, s.uf]] : []), 'UF'))}${fld('Vendedor', (() => { const vs = ctx.vendedores ? ctx.vendedores() : []; return vs.length ? sel('vendedor', s.vendedor || '', [['', '—']].concat(vs.map((n) => [n, n])).concat(s.vendedor && !vs.includes(s.vendedor) ? [[s.vendedor, s.vendedor]] : []), 'Vendedor') : inp('vendedor', s.vendedor, 'text'); })())}
             ${fld('Tipo', sel('tipo', s.tipo, spvTipos().map((t) => [t.abrev, t.abrev + ' — ' + t.nome])), 'span2')}${fld('Pagamento', inp('pagamento', s.pagamento, 'text', { list: 'dl_sppag' }) + `<datalist id="dl_sppag">${(ctx.pagamentos ? ctx.pagamentos() : []).map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`)}${fld('Validade (dias)', inp('validade', s.validade, 'num'))}
             ${fld('Escopo do serviço (vai na proposta)', `<textarea data-sp="descricao" data-k="text" rows="${Math.min(10, Math.max(3, String(s.descricao || '').split('\n').length + 1))}" placeholder="Ex.: pré-montagem e manutenção de 2 bombas verticais turbina com motor diesel…">${esc(s.descricao)}</textarea>`, 'spanall')}
-            ${fld('Não incluso', `<textarea data-sp="exclusoes" data-k="text" rows="2">${esc(s.exclusoes)}</textarea>`, 'spanall')}${fld('Prazo de execução', inp('prazo_exec', s.prazo_exec, 'text', { ph: 'ex.: 2 dias em campo' }), 'span2')}${fld('Código do serviço (ERP)', inp('codServico', s.codServico, 'text', { ph: 'ex.: SRV00027' }))}</div>
+            ${fld('Não incluso', `<textarea data-sp="exclusoes" data-k="text" rows="2" aria-label="Não incluso">${esc(s.exclusoes)}</textarea>`, 'spanall')}${fld('Prazo de execução', inp('prazo_exec', s.prazo_exec, 'text', { ph: 'ex.: 2 dias em campo' }), 'span2')}${fld('Código do serviço (ERP)', inp('codServico', s.codServico, 'text', { ph: 'ex.: SRV00027' }))}</div>
           <div class="docbar" style="margin-top:10px"><span class="sub">Blocos:</span>${blk('equipe', 'Equipe e deslocamento')}${blk('pecas', 'Peças e materiais')}${blk('contrato', 'Contrato recorrente')}</div></section>
         ${s.blocos.equipe ? `<section class="card"><h2>Equipe e deslocamento <span class="sub">mão de obra ${brl(r.mo)} · deslocamento ${brl(r.logTot)}</span></h2>
           <div class="tw"><table class="t reg"><thead><tr><th>Técnico</th><th>Diária (R$)</th><th>Dias</th><th>Total</th><th></th></tr></thead><tbody>${eqRows}</tbody></table></div>
@@ -14228,7 +14236,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>12/11/2026 23:59 · commit b44727b</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>13/11/2026 00:39 · commit adc1745</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14569,6 +14577,7 @@ window.PRICER_ESCOPO_PADRAO = {
     }
     const at = bar.querySelector('[aria-current="page"], [aria-selected="true"]'); if (at && at.scrollIntoView) { const r = at.getBoundingClientRect(), rb = bar.getBoundingClientRect(); if (r.right > rb.right || r.left < rb.left) bar.scrollLeft += r.left - rb.left - 24; }
     document.documentElement.style.setProperty('--tbh', bar.offsetHeight + 'px');
+    bordaRolagem();
   }
   function temaAtual() {
     let onde = null, ondeAba = null;
@@ -14591,8 +14600,16 @@ window.PRICER_ESCOPO_PADRAO = {
     const aba = ui.svcTab || 'dashboard';
     if (on && !host.querySelector('iframe')) { host.innerHTML = `<iframe src="${LSF() ? '/servico/' : 'servico-claude/index.html'}#${encodeURIComponent(aba)}" title="Serviço de campo" allow="camera; geolocation"></iframe>`; svcAbaEnviada = aba; }
     else if (on && aba !== svcAbaEnviada) { const fr = host.querySelector('iframe'); try { fr.contentWindow.postMessage({ tipo: 'lsf-aba', aba }, '*'); } catch (e) { /* segue */ } svcAbaEnviada = aba; }
-    host.hidden = !on; ap.hidden = !!on;
+    host.hidden = !on; ap.hidden = !!on; document.body.classList.toggle('em-servico', !!on);
   }
+  // faixas de abas roláveis (topo e proposta): marca as bordas quando há mais abas escondidas
+  function bordaRolagem() {
+    for (const el of document.querySelectorAll('#temaBar, #app .ptabs')) {
+      const upd = () => { const resta = el.scrollWidth - el.clientWidth - el.scrollLeft; el.classList.toggle('rola-dir', resta > 4); el.classList.toggle('rola-esq', el.scrollLeft > 4); };
+      upd(); if (!el.dataset.rb) { el.dataset.rb = '1'; el.addEventListener('scroll', upd, { passive: true }); }
+    }
+  }
+  window.addEventListener('resize', () => bordaRolagem());
   // telas do Serviço de campo que cada perfil abre (mesma regra do módulo; quem garante o acesso é o servidor/banco)
   function perfilServicoAtual() {
     if (LSF()) return lsfMe ? (lsfMe.pricer === 'admin' ? 'admin' : (lsfMe.servico && lsfMe.servico !== 'nenhum' ? lsfMe.servico : null)) : null;

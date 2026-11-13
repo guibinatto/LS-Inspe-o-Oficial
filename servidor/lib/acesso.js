@@ -83,13 +83,21 @@ export function visivel(chave, rec, u) {
   if (p === "cliente") {
     const cid = u.clienteId;
     if (chave === "contratos") return rec.id === cid;
-    if (chave === "relatorios" || chave === "visitas") return rec.contratoId === cid;
+    // o cliente só vê relatório aprovado (pendente ou devolvido ainda pode mudar)
+    if (chave === "relatorios") return rec.contratoId === cid && stAprov(rec.aprovacao) === "aprovado";
+    if (chave === "visitas") return rec.contratoId === cid;
     return false;
   }
   if (chave === "auditoria") return PERFIS_SERVICO[p].verAuditoria;
   return true;
 }
-export function paraEnvio(chave, rec, u) { return podeServico(u, "verValores") ? rec : chave === "contratos" ? contratoSemValores(rec) : semValores(rec); }
+export function paraEnvio(chave, rec, u) {
+  if (podeServico(u, "verValores")) return rec;
+  if (chave === "contratos") return contratoSemValores(rec);
+  // cópia do relatório dentro da visita: para o cliente, só depois de aprovada
+  if (chave === "visitas" && perfilServico(u) === "cliente" && rec && rec.relatorio && stAprov(rec.relatorio.aprovacao) !== "aprovado") { const { relatorio, ...resto } = rec; return semValores(resto); }
+  return semValores(rec);
+}
 
 // quem pode criar/alterar/excluir registros de cada chave
 export function regraGravacao(chave, u) {
@@ -107,6 +115,9 @@ export function regraGravacao(chave, u) {
 }
 
 const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// registros novos de auditoria e avisos que um aparelho pode criar por sincronização (quem não administra): impede que
+// um aparelho empurre milhares de registros falsos para tirar os verdadeiros da lista
+export const MAX_NOVOS_POR_SINC = { auditoria: 300, notificacoes: 100 };
 const stAprov = (a) => String((a && a.status) || "").trim().toLowerCase();
 // relatório criado por quem não aprova: entra sempre pendente, sem nada de aprovação vindo do aparelho
 const aprovacaoPendente = (agora) => ({ status: "pendente", solicitadoEm: agora, supervisor: "", assinatura: "", observacao: "", aprovadoEm: null });
@@ -121,7 +132,9 @@ const aprovacaoPendente = (agora) => ({ status: "pendente", solicitadoEm: agora,
 function visitaSemAprovacao(novo, atual, agora) {
   const antes = (atual && atual.relatorio && atual.relatorio.aprovacao) || null;
   const o = Object.assign({}, novo);
-  if (o.relatorio && typeof o.relatorio === "object") {
+  // relatório já aprovado: a cópia dentro da visita não muda mais (é ela que o app mostra e imprime)
+  if (stAprov(antes) === "aprovado") o.relatorio = atual.relatorio;
+  else if (o.relatorio && typeof o.relatorio === "object") {
     const pede = stAprov(o.relatorio.aprovacao);
     const ap = antes && !(pede === "pendente" && stAprov(antes) === "devolvido") ? antes : Object.assign({}, antes || aprovacaoPendente(agora), { status: "pendente" });
     o.relatorio = Object.assign({}, o.relatorio, { aprovacao: ap });
@@ -141,7 +154,8 @@ export function juntar(chave, guardados, recebidos, u, meta, { ultimaSinc, agora
   const regra = regraGravacao(chave, u); const aprova = podeServico(u, "aprovarRelatorios"); const verVal = podeServico(u, "verValores");
   const porId = new Map(guardados.filter((r) => r && r.id != null).map((r) => [String(r.id), r]));
   const recebidosIds = new Set();
-  let mudou = false, ignorados = 0;
+  let mudou = false, ignorados = 0, novos = 0, conflitos = 0;
+  const limiteNovos = perfilServico(u) === "admin" ? Infinity : (MAX_NOVOS_POR_SINC[chave] ?? Infinity);
   const saida = guardados.slice();
   const idx = new Map(saida.map((r, i) => [String(r && r.id), i]));
   for (let rec of recebidos) {
@@ -150,6 +164,7 @@ export function juntar(chave, guardados, recebidos, u, meta, { ultimaSinc, agora
     const atual = porId.get(id);
     if (!atual) {
       if (!regra.criar) { ignorados++; continue; }
+      if (++novos > limiteNovos) { ignorados++; continue; }
       if (u && perfilServico(u) !== "admin" && !verVal) rec = semValores(rec);
       if (chave === "relatorios" && !aprova) rec = Object.assign({}, rec, { aprovacao: aprovacaoPendente(agora) });
       if (chave === "visitas" && !aprova) rec = visitaSemAprovacao(rec, null, agora);
@@ -160,6 +175,12 @@ export function juntar(chave, guardados, recebidos, u, meta, { ultimaSinc, agora
     let novo = verVal ? rec : repoeValores(atual, rec);
     if (igual(novo, atual)) continue;
     if (!regra.alterar) { ignorados++; continue; }
+    // cópia velha: alguém alterou este registro depois da última sincronização deste aparelho. Aceitar a cópia dele
+    // desfaria a alteração do outro sem ninguém ver; vale a do servidor e o aparelho recebe a versão nova na resposta.
+    const m0 = meta[id];
+    if (ultimaSinc && m0 && m0.upd && m0.upd > ultimaSinc) { ignorados++; conflitos++; continue; }
+    // técnico só altera visita e relatório que são dele (ou ainda sem técnico)
+    if (perfilServico(u) === "tecnico" && (chave === "visitas" || chave === "relatorios") && atual.tecnicoId != null && String(atual.tecnicoId) !== String(u.tecnicoId)) { ignorados++; continue; }
     if (chave === "auditoria") { ignorados++; continue; }
     if (chave === "relatorios" && !aprova) {
       // quem não aprova nunca escreve a aprovação: ela fica como o servidor tem. A única mudança aceita é o
@@ -194,5 +215,5 @@ export function juntar(chave, guardados, recebidos, u, meta, { ultimaSinc, agora
       saida.splice(i, 1); delete meta[id]; mudou = true;
     }
   }
-  return { lista: saida, mudou, ignorados };
+  return { lista: saida, mudou, ignorados, conflitos };
 }

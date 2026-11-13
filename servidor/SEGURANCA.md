@@ -16,13 +16,19 @@ Esconder botão na tela não é segurança. **Toda regra de acesso abaixo é con
   - 25 erros somando todos os endereços travam o login para todos por 15 minutos (ataque espalhado);
   - o login também tem limite de 20 tentativas por minuto por IP.
 - **Endereço de quem chama (`TRUST_PROXY`):** o limite por IP só funciona se o endereço for o verdadeiro. Por padrão, o servidor só aceita o cabeçalho `X-Forwarded-For` quando quem repassa é o proxy da mesma máquina (o Caddy do `INSTALACAO-TI.md`). Exposto direto, o cabeçalho é ignorado e não serve para burlar o limite. Proxy em outra máquina: `TRUST_PROXY=<ip do proxy>`.
-- **Sessão:** um token aleatório de 32 bytes num cookie `HttpOnly` e `SameSite=Lax`, com `Secure` em HTTPS. No disco fica só o SHA-256 do token. O padrão é 30 dias sem uso (`SESSAO_DIAS`).
-- **Desativar ou trocar a senha** de um usuário encerra as sessões dele na hora.
+- **Sessão:** um token aleatório de 32 bytes num cookie `HttpOnly` e `SameSite=Lax`, com `Secure` em HTTPS. No disco fica só o SHA-256 do token. O padrão é 30 dias sem uso (`SESSAO_DIAS`) e no máximo 90 dias no total (`SESSAO_MAX_DIAS`). Sessões vencidas são limpas a cada 6 horas.
+- **Desativar o usuário ou redefinir a senha** (administrador) encerra todas as sessões dele na hora. **Trocar a própria senha** encerra as outras sessões e mantém só a atual. Senha atual errada 5 vezes seguidas na troca trava a troca por 15 minutos.
+- **Senha inicial:** o arquivo `data/SENHA-INICIAL.txt` é apagado sozinho quando o administrador troca a senha.
 - **CSRF:** toda gravação na API exige o cabeçalho `X-LSF: 1`, que outro site não consegue mandar.
 - **Cabeçalhos:**
   - `X-Frame-Options: SAMEORIGIN`: só o próprio Pricer põe o serviço numa moldura;
   - `X-Content-Type-Options: nosniff`;
-  - `Referrer-Policy: same-origin`.
+  - `Referrer-Policy: same-origin`;
+  - `Permissions-Policy` (sem microfone nem pagamento) e `Strict-Transport-Security` em HTTPS.
+- **Anexos (`/_blob`):** imagens comuns e PDF abrem no navegador. Todo o resto (SVG, XML, texto, planilhas) vai como download e, se aberto, numa caixa isolada sem script (`Content-Security-Policy: sandbox`). Assim um anexo nunca roda código no endereço do servidor.
+- **Erros:** a resposta é curta (`{"error": …}`), sem pilha de chamadas nem caminhos do servidor. O detalhe fica só no log.
+- **Rede:** por padrão o servidor só atende `127.0.0.1` (o Caddy repassa). Para aceitar conexões de outras máquinas (proxy em outro servidor) é preciso `HOST=0.0.0.0` explícito.
+- **Token de exportação:** só no cabeçalho `X-Admin-Token` (não na URL, que fica em logs), comparado em tempo constante. O valor de exemplo e tokens com menos de 32 caracteres ficam desligados.
 
 ## Quem pode o quê
 
@@ -86,7 +92,20 @@ As áreas responsáveis (Custos, Engenharia, Fiscal…) e os aprovadores de desc
 - **Conflito entre aparelhos:** se dois aparelhos alteram o **mesmo** registro offline, vale o que sincronizar por último. Registros diferentes não se atrapalham.
 - **Banco em arquivo:** é adequado para a equipe atual (dezenas de usuários). Para centenas de usuários simultâneos, vale migrar para um banco de dados.
 - **Backup:** fica na mesma máquina até o TI copiar para fora (ver `INSTALACAO-TI.md`).
-- **Revisão de segurança:** em novembro de 2026 foi feita uma revisão do código do servidor com testes de ataque (valores com outros nomes, aprovação forjada, burla do limite por IP, avisos e auditoria, poluição de protótipo). Os cinco problemas encontrados foram corrigidos e viraram testes em `npm test`. Isso não substitui uma auditoria externa. Antes de abrir o acesso a clientes externos (perfil Cliente), vale uma revisão de segurança feita por especialista.
+- **Revisão de segurança:** em novembro de 2026 foram feitas duas revisões do código do servidor com testes de ataque. A primeira (valores com outros nomes, aprovação forjada, burla do limite por IP, avisos e auditoria, poluição de protótipo) virou testes em `npm test`. A segunda corrigiu, entre outros: anexo XML que rodava script e permitia criar administrador, token de exemplo aceito, arquivo corrompido substituído por um vazio, gravação perdida ao reiniciar, decisões de aprovação em nome de outra pessoa ou com data antiga, histórico apagável, relatório aprovado alterável pela cópia da visita, auditoria empurrada para fora, numeração envenenada e dependências vulneráveis (Express 4.22.3, 0 alertas no `npm audit`). Cada ataque virou um teste em `test/seguranca_test.mjs`. Isso não substitui uma auditoria externa. Antes de abrir o acesso a clientes externos (perfil Cliente), vale uma revisão de segurança feita por especialista.
+
+## Regras do banco do Pricer conferidas no servidor
+
+- **Histórico:** só recebe registros novos, em nome de quem está gravando. O que já foi gravado não muda nem é apagado (só o administrador).
+- **Aprovações de desconto:** cada decisão (Diretoria, Financeiro) só pode ser escrita pela própria pessoa que decide, com a hora atual (tolerância de 12 horas para relógio errado). O pedido de aprovação não pode ser apagado. O app continua conferindo a assinatura e a lista de aprovadores.
+- **Atenção:** com a lista de aprovadores vazia, qualquer pessoa com nível Comercial consegue aprovar em nome próprio. Defina os aprovadores em Configurações → Usuários e permissões logo depois da instalação.
+
+## Serviço de campo
+
+- **Relatório aprovado:** nem o relatório avulso nem a cópia dentro da visita mudam mais pelo técnico.
+- **Cliente:** só vê relatórios aprovados (pendente e devolvido ainda podem mudar).
+- **Auditoria e avisos:** cada sincronização de quem não é administrador cria no máximo 300 registros de auditoria e 100 avisos. Os registros de auditoria mais antigos saem da lista ativa (3.000) e vão para `data/auditoria-arquivo.jsonl`, sem se perder.
+- **Numeração:** o maior número já usado só conta se for um inteiro dentro da faixa daquela numeração.
 
 ## Testes de segurança incluídos
 

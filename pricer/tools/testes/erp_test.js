@@ -24,7 +24,7 @@ const path = require('path');
   confere('pesquisa no menu acha "Máscaras e numeração"', vis.length === 1 && /numeração/i.test(vis[0]), vis.join(','));
   await p.press('#navQ', 'Escape'); confere('Esc limpa a pesquisa', (await p.$$eval('#nav [data-view]', (x) => x.filter((e) => !e.hidden).length)) === 7);
   await p.click('#bSideCol'); await p.waitForTimeout(200); await p.hover('#nav [data-view="margens"]'); await p.waitForTimeout(150);
-  confere('recolhido: dica com o nome', (await p.$eval('#nav [data-view="margens"]', (x) => getComputedStyle(x, '::after').content)) === '"Margens"');
+  confere('recolhido: dica com o nome', (await p.$eval('#nav [data-view="margens"]', (x) => getComputedStyle(x, '::after').content)) === '"Margens e indicadores"');
   confere('recolhido: submenus escondidos', await p.$$eval('#nav .navgh', (x) => x.every((e) => e.offsetParent === null))); await p.click('#bSideCol');
   await p.focus('#nav [data-view="inicio"]'); await p.keyboard.press('ArrowDown'); confere('setas percorrem o menu', await p.evaluate(() => document.activeElement && document.activeElement.dataset.navgt === 'comercial'));
   // 2) Ajuda

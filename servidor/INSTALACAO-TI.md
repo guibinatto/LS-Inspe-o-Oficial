@@ -77,9 +77,11 @@ O Pricer (~9 MB) vai comprimido (~2,5 MB) e o navegador guarda a cópia: nas vis
 | Variável | Padrão | Para quê |
 |---|---|---|
 | `PORT` | 8080 | porta interna (atrás do Caddy) |
+| `HOST` | 127.0.0.1 | endereço em que o servidor escuta. O padrão só atende a própria máquina (o Caddy repassa). Proxy em outra máquina: `0.0.0.0`, com a porta fechada no firewall para o resto da rede |
 | `ADMIN_SENHA_INICIAL` | sorteada | senha do primeiro `admin` |
 | `SESSAO_DIAS` | 30 | dias que o login vale sem uso. O técnico fica offline por dias |
-| `ADMIN_TOKEN` | vazio | exportar e fazer backup por script (`/api/export?token=…`). O administrador logado não precisa |
+| `SESSAO_MAX_DIAS` | 90 | prazo máximo de uma sessão, mesmo usada todo dia |
+| `ADMIN_TOKEN` | vazio (desligado) | exportar e fazer backup por script, no cabeçalho `X-Admin-Token` (ex.: `curl -H "X-Admin-Token: $TOKEN" https://…/api/export`). Precisa ter 32 caracteres ou mais (`openssl rand -hex 32`); o valor de exemplo e tokens curtos ficam desligados. O administrador logado não precisa |
 | `BACKUP_INTERVAL_HORAS` / `BACKUP_MANTER` | 6 / 30 | backup automático em `data/backups/` |
 | `RATE_LIMIT_MAX` | 600 | requisições por minuto por IP na API. O login tem limite próprio |
 | `COOKIE_SECURE` | segue o protocolo | `1` = cookie só por HTTPS (produção) |
@@ -100,11 +102,12 @@ O Pricer (~9 MB) vai comprimido (~2,5 MB) e o navegador guarda a cópia: nas vis
 
 ## 8. Backup
 
-- **Automático:** a cada 6 horas, em `data/backups/backup-<data>/`, com o banco do Pricer, os dados do serviço, os usuários e os contadores. Mantém os 30 mais recentes. Também roda antes e depois de cada importação.
+- **Automático:** a cada 6 horas, em `data/backups/backup-<data>/`, com o banco do Pricer, os dados do serviço, os usuários, os contadores, a auditoria arquivada e os anexos (`assets/`, com links físicos para não duplicar espaço). Mantém os 30 mais recentes e, além deles, o último de cada um dos 14 dias anteriores. A cópia nova é conferida antes de apagar as antigas. Também roda antes e depois de cada importação.
 - **Manual:** `POST /api/backup`, como administrador ou com o `ADMIN_TOKEN`.
 - **Exportação:** `GET /api/export`, um JSON com o serviço, o Pricer e os usuários. Os usuários vão sem as senhas.
 - **Importante:** o backup fica na mesma máquina. Copie a pasta `data/` (ou `data/backups/`) para fora dela, num NAS ou na nuvem, todos os dias.
-- **Os anexos do Pricer** ficam em `data/assets/` e entram na cópia da pasta `data/`.
+- **Os anexos do Pricer** ficam em `data/assets/` e entram no backup automático e na cópia da pasta `data/`.
+- **Arquivo de dados corrompido:** se um JSON de `data/` estiver cortado (ex.: queda de energia), o servidor não sobe e diz qual arquivo é, em vez de começar vazio e gravar por cima. Restaure aquele arquivo do backup mais recente e inicie de novo.
 
 **Para restaurar:** pare o serviço, copie os arquivos de um `backup-<data>/` para `data/` e inicie de novo.
 
@@ -120,7 +123,8 @@ Os celulares pegam a versão nova do Serviço de campo sozinhos, na próxima abe
 
 ```bash
 cd servidor
-npm test                      # 61 verificações de login, permissões e sincronização (sobe um servidor temporário)
+npm test                      # 70 + 35 verificações: login, permissões, sincronização e os ataques da auditoria (sobe servidores temporários)
+node test/seguranca_test.mjs  # 35 verificações: os ataques da auditoria de nov/2026 (anexo com script, token de exemplo, aprovação forjada, histórico apagado, arquivo corrompido…)
 node test/e2e_test.mjs        # navegador: Pricer + Serviço de campo, gestor e técnico (precisa do Playwright)
 node test/migracao_test.mjs   # navegador: backup do Pricer → servidor, mesmo total no exemplo Cocamar
 ```

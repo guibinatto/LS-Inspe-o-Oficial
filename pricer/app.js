@@ -5821,6 +5821,7 @@
     }
     const at = bar.querySelector('[aria-current="page"], [aria-selected="true"]'); if (at && at.scrollIntoView) { const r = at.getBoundingClientRect(), rb = bar.getBoundingClientRect(); if (r.right > rb.right || r.left < rb.left) bar.scrollLeft += r.left - rb.left - 24; }
     document.documentElement.style.setProperty('--tbh', bar.offsetHeight + 'px');
+    bordaRolagem();
   }
   function temaAtual() {
     let onde = null, ondeAba = null;
@@ -5843,8 +5844,16 @@
     const aba = ui.svcTab || 'dashboard';
     if (on && !host.querySelector('iframe')) { host.innerHTML = `<iframe src="${LSF() ? '/servico/' : 'servico-claude/index.html'}#${encodeURIComponent(aba)}" title="Serviço de campo" allow="camera; geolocation"></iframe>`; svcAbaEnviada = aba; }
     else if (on && aba !== svcAbaEnviada) { const fr = host.querySelector('iframe'); try { fr.contentWindow.postMessage({ tipo: 'lsf-aba', aba }, '*'); } catch (e) { /* segue */ } svcAbaEnviada = aba; }
-    host.hidden = !on; ap.hidden = !!on;
+    host.hidden = !on; ap.hidden = !!on; document.body.classList.toggle('em-servico', !!on);
   }
+  // faixas de abas roláveis (topo e proposta): marca as bordas quando há mais abas escondidas
+  function bordaRolagem() {
+    for (const el of document.querySelectorAll('#temaBar, #app .ptabs')) {
+      const upd = () => { const resta = el.scrollWidth - el.clientWidth - el.scrollLeft; el.classList.toggle('rola-dir', resta > 4); el.classList.toggle('rola-esq', el.scrollLeft > 4); };
+      upd(); if (!el.dataset.rb) { el.dataset.rb = '1'; el.addEventListener('scroll', upd, { passive: true }); }
+    }
+  }
+  window.addEventListener('resize', () => bordaRolagem());
   // telas do Serviço de campo que cada perfil abre (mesma regra do módulo; quem garante o acesso é o servidor/banco)
   function perfilServicoAtual() {
     if (LSF()) return lsfMe ? (lsfMe.pricer === 'admin' ? 'admin' : (lsfMe.servico && lsfMe.servico !== 'nenhum' ? lsfMe.servico : null)) : null;

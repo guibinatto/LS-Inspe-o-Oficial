@@ -6,10 +6,12 @@
   "description": "Servidor único da LS Fire: LS Pricer + módulo de Serviço de campo (PWA offline), com login e permissões no servidor.",
   "scripts": {
     "start": "node server.js",
-    "test": "node test/api_test.mjs"
+    "test": "node test/api_test.mjs && node test/seguranca_test.mjs"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "express": "4.19.2"
+    "express": "4.22.3"
   }
 }
