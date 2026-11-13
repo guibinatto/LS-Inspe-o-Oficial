@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, createContext, useContext, Fragment } from "react";
+import { useState, useMemo, useEffect, useRef, useId, createContext, useContext, Fragment } from "react";
 import {
   Home, FileText, Calendar, Users, ClipboardList, ClipboardCheck,
   Plus, X, ChevronRight, ChevronDown, ChevronLeft, MoreVertical,
@@ -9,7 +9,7 @@ import {
   ArrowLeft, Building2, User, Camera,
   Printer, Trash2, Eye, MapPin, Phone, Clock, DollarSign,
   CalendarDays, Pencil, Save, FilePlus2, History,
-  Lock, LogOut, Shield, ShieldCheck, KeyRound, EyeOff, UserCog, ScrollText,
+  LogOut, Shield, ShieldCheck, UserCog, ScrollText,
   Wifi, WifiOff, RefreshCw, Menu, Bell
 } from "lucide-react";
 
@@ -25,17 +25,28 @@ const SYNCABLE_KEYS = new Set(["contratos", "tecnicos", "visitas", "relatorios",
 // confere o que cada perfil pode gravar. Os cabeçalhos abaixo vão em toda chamada à API.
 const API_HEADERS = { "Content-Type": "application/json", "X-LSF": "1" };
 const ME_CACHE_KEY = "lsfire:me";
+// último usuário que usou este aparelho: se outro entrar, os dados locais do anterior são apagados antes de carregar
+const ULTIMO_USUARIO_KEY = "lsfire:ultimo_usuario";
+// evento avisado a cada mudança que entra na fila de envio (o app sincroniza logo depois, com espera de ~2 s)
+const EVENTO_FILA = "lsf-fila";
 function irParaLogin() { if (typeof window !== "undefined" && window.__LSF_CLAUDE) return; try { window.top.location.replace("/login?volta=" + encodeURIComponent("/servico/")); } catch { window.location.replace("/login?volta=/servico/"); } }
 
-// Token de app compartilhado entre servidor e todos os dispositivos instalados,
-// definido em tempo de build (import.meta.env.VITE_SYNC_TOKEN). Impede que
-// qualquer pessoa que descubra a URL do servidor grave dados em /api/sync sem
-// ter uma cópia instalada do app. Ver server.js (variável SYNC_TOKEN) e o guia
-// de instalação para como gerar/rotacionar este valor.
-// Lido via variável global substituída em tempo de build pelo Vite (ver web/vite.config.js,
-// bloco "define"). Usar `typeof` numa variável não declarada nunca lança erro em JS — por
-// isso este arquivo continua funcionando normalmente fora de um build Vite (ex.: pré-visualização).
-const SYNC_TOKEN = (typeof __VITE_SYNC_TOKEN__ !== "undefined" && __VITE_SYNC_TOKEN__) || "";
+// Texto que vai dentro de HTML montado à mão (impressão do relatório): nada do usuário vira marcação.
+function escHtml(v) {
+  return String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+// Datas "do dia" no fuso do aparelho (toISOString() é UTC: depois das 21h no Brasil já virava o dia seguinte).
+const pad2 = (n) => String(n).padStart(2, "0");
+function isoLocal(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function hojeLocal() { return isoLocal(new Date()); }
+// Soma meses mantendo o dia, limitado ao último dia do mês (31/01 + 1 mês = 28/02, não 03/03).
+function addMesesLocal(data, meses) {
+  const y = data.getFullYear(), m = data.getMonth() + meses;
+  const ultimoDia = new Date(y, m + 1, 0).getDate();
+  return new Date(y, m, Math.min(data.getDate(), ultimoDia));
+}
+
 
 // Pede ao SERVIDOR o próximo número da série (atendimento/700000 ou
 // contrato/200000). O servidor garante que o número nunca se repete mesmo com
@@ -169,18 +180,25 @@ if (typeof window !== "undefined" && !window.storage) {
     try { window.localStorage.setItem(localKey("syncQueue"), JSON.stringify(queue)); } catch {}
   };
 
+  // Os dados ficam no IndexedDB. O localStorage só guarda uma cópia quando o IndexedDB não funciona neste
+  // navegador (assim o modo offline continua valendo); cópias antigas são apagadas quando o IndexedDB responde.
+  const tiraCopiaLocal = (key) => { try { window.localStorage.removeItem(localKey(key)); } catch {} };
+
   const readKv = async (key) => {
     try {
       const stored = await idbGet(KV_STORE, key);
-      if (stored) return stored;
+      if (stored) { tiraCopiaLocal(key); return stored; }
     } catch {}
 
-    const legacy = window.localStorage.getItem(localKey(key));
+    let legacy = null;
+    try { legacy = window.localStorage.getItem(localKey(key)); } catch {}
     if (legacy == null) return null;
 
-    try { await idbPut(KV_STORE, { key, value: legacy, updatedAt: new Date().toISOString() }); } catch {}
+    try { await idbPut(KV_STORE, { key, value: legacy, updatedAt: new Date().toISOString() }); tiraCopiaLocal(key); } catch {}
     return { key, value: legacy };
   };
+
+  const avisaFila = () => { try { window.dispatchEvent(new CustomEvent(EVENTO_FILA)); } catch {} };
 
   const enqueueSync = async (key, value, action = "set") => {
     if (!SYNCABLE_KEYS.has(key)) return;
@@ -192,14 +210,54 @@ if (typeof window !== "undefined" && !window.storage) {
       queue[key] = record;
       setLocalQueue(queue);
     }
+    avisaFila();
   };
 
-  const clearSyncItem = async (key) => {
-    try { await idbDelete(SYNC_STORE, key); }
-    catch {
+  const mesmoItem = (a, b) => !!a && !!b && a.updatedAt === b.updatedAt && a.value === b.value && (a.action || "set") === (b.action || "set");
+
+  // Tira da fila só o que foi enviado: se a chave ganhou uma edição nova durante o envio, ela fica para a próxima rodada.
+  const clearSyncItemSeIgual = async (enviado) => {
+    try {
+      const db = await openOfflineDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(SYNC_STORE, "readwrite");
+        const store = tx.objectStore(SYNC_STORE);
+        const req = store.get(enviado.key);
+        req.onsuccess = () => { if (mesmoItem(req.result, enviado)) store.delete(enviado.key); };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } catch {
       const queue = getLocalQueue();
-      delete queue[key];
-      setLocalQueue(queue);
+      if (mesmoItem(queue[enviado.key], enviado)) { delete queue[enviado.key]; setLocalQueue(queue); }
+    }
+  };
+
+  // Grava a versão do servidor só se a chave não ganhou edição nova durante o envio (na mesma transação que confere a fila).
+  // Devolve false quando deixou a cópia local como estava.
+  const gravaDoServidor = async (key, value, enviado) => {
+    try {
+      const db = await openOfflineDb();
+      return await new Promise((resolve, reject) => {
+        let gravou = false;
+        const tx = db.transaction([KV_STORE, SYNC_STORE], "readwrite");
+        const req = tx.objectStore(SYNC_STORE).get(key);
+        req.onsuccess = () => {
+          const atual = req.result;
+          if (atual && !mesmoItem(atual, enviado)) return; // pendência nova: não sobrescreve
+          tx.objectStore(KV_STORE).put({ key, value, updatedAt: new Date().toISOString() });
+          gravou = true;
+        };
+        tx.oncomplete = () => { if (gravou) tiraCopiaLocal(key); resolve(gravou); };
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } catch {
+      const atual = getLocalQueue()[key];
+      if (atual && !mesmoItem(atual, enviado)) return false;
+      try { window.localStorage.setItem(localKey(key), value); } catch {}
+      return true;
     }
   };
 
@@ -213,8 +271,8 @@ if (typeof window !== "undefined" && !window.storage) {
     const current = await readKv(key);
     const changed = current?.value !== value;
 
-    try { await idbPut(KV_STORE, { key, value, updatedAt: new Date().toISOString() }); } catch {}
-    try { window.localStorage.setItem(localKey(key), value); } catch {}
+    try { await idbPut(KV_STORE, { key, value, updatedAt: new Date().toISOString() }); tiraCopiaLocal(key); }
+    catch { try { window.localStorage.setItem(localKey(key), value); } catch {} } // sem IndexedDB: guarda aqui para o modo offline
 
     if (enqueue && changed) await enqueueSync(key, value);
     return { ok: true };
@@ -239,7 +297,7 @@ if (typeof window !== "undefined" && !window.storage) {
     try { return JSON.parse(raw.value); } catch { return {}; }
   };
 
-  const syncNow = async () => {
+  const syncUmaVez = async () => {
     const pending = await getQueue();
     if (!navigator.onLine) return { ok: false, offline: true, pending: pending.length };
     const meta = await getSyncMeta();
@@ -283,21 +341,57 @@ if (typeof window !== "undefined" && !window.storage) {
     if (!response.ok) throw new Error(`Falha na sincronizacao (${response.status})`);
 
     const payload = await response.json();
+    const enviados = new Map(pending.map((item) => [item.key, item]));
+    const adiadas = [];
     if (payload?.data) {
       for (const [key, item] of Object.entries(payload.data)) {
-        if (SYNCABLE_KEYS.has(key)) await setKv(key, item.value, { enqueue: false });
+        if (!SYNCABLE_KEYS.has(key)) continue;
+        const gravou = await gravaDoServidor(key, item.value, enviados.get(key));
+        if (!gravou) adiadas.push(key);
       }
     }
 
-    await Promise.all(pending.map((item) => clearSyncItem(item.key)));
+    await Promise.all(pending.map((item) => clearSyncItemSeIgual(item)));
     const lastSync = payload?.serverTime || new Date().toISOString();
     await setKv(SYNC_META_KEY, JSON.stringify({ lastSync }), { enqueue: false });
-    return { ok: true, pending: 0, lastSync };
+    if (adiadas.length) avisaFila(); // edições feitas durante o envio: vão na próxima rodada
+    return { ok: true, pending: (await getQueue()).length, lastSync, adiadas };
+  };
+
+  // um envio por vez: quem pedir enquanto um está em andamento recebe o mesmo resultado
+  let syncEmCurso = null;
+  const syncNow = () => {
+    if (!syncEmCurso) syncEmCurso = syncUmaVez().finally(() => { syncEmCurso = null; });
+    return syncEmCurso;
+  };
+
+  // Apaga tudo o que o serviço guardou neste aparelho (dados, fila de envio e metadados), menos a identificação do
+  // aparelho e a numeração provisória. Usado ao sair e quando outro usuário entra no mesmo aparelho.
+  const limparDados = async () => {
+    try {
+      const db = await openOfflineDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction([KV_STORE, SYNC_STORE], "readwrite");
+        tx.objectStore(KV_STORE).clear();
+        tx.objectStore(SYNC_STORE).clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } catch {}
+    try {
+      const manter = new Set([localKey(DEVICE_ID_KEY), ATENDIMENTO_SEQ_KEY, CONTRATO_SEQ_KEY, ULTIMO_USUARIO_KEY]);
+      for (let i = window.localStorage.length - 1; i >= 0; i--) {
+        const k = window.localStorage.key(i);
+        if (k && k.startsWith(STORAGE_PREFIX) && !manter.has(k)) window.localStorage.removeItem(k);
+      }
+    } catch {}
   };
 
   window.offlineSync = {
     syncNow,
     getQueue,
+    limparDados,
     async getStatus() {
       const queue = await getQueue();
       const meta = await getSyncMeta();
@@ -319,7 +413,7 @@ if (typeof window !== "undefined" && !window.storage) {
     },
     async delete(key) {
       try { await idbDelete(KV_STORE, key); } catch {}
-      try { window.localStorage.removeItem(localKey(key)); } catch {}
+      tiraCopiaLocal(key);
       if (SYNCABLE_KEYS.has(key)) await enqueueSync(key, "", "delete");
       return { ok: true };
     },
@@ -811,10 +905,10 @@ function gerarCronogramaContrato(contrato) {
   const ini = new Date(contrato.dataInicio + "T00:00:00");
   const out = [];
   for (let m = 1; m <= duracao; m++) {
-    const d = new Date(ini.getFullYear(), ini.getMonth() + (m - 1), ini.getDate());
+    const d = addMesesLocal(ini, m - 1); // dia 29–31 vira o último dia dos meses mais curtos
     out.push({
       mes: m,
-      data: d.toISOString().slice(0, 10),
+      data: isoLocal(d),
       freqs: getFreqsPrevistasPorMes(m),
     });
   }
@@ -838,11 +932,11 @@ function calcularUltimaPorFreq(relatorios) {
 }
 
 const FREQ_COLOR = {
-  Semanal:    { bg: C.okLight,     fg: "#15803D" },
-  Mensal:     { bg: C.blueLight,   fg: "#1E40AF" },
-  Trimestral: { bg: C.purpleLight, fg: "#6B21A8" },
+  Semanal:    { bg: C.okLight,     fg: C.ok },
+  Mensal:     { bg: C.blueLight,   fg: C.blue },
+  Trimestral: { bg: C.purpleLight, fg: C.purple },
   Semestral:  { bg: "#FCE7F3",     fg: "#9D174D" },
-  Anual:      { bg: C.amberLight,  fg: "#92400E" },
+  Anual:      { bg: C.amberLight,  fg: C.amber },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1272,178 +1366,6 @@ const DESPACHO_GRUPOS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DADOS INICIAIS — Técnicos, Contratos, Visitas
-// ═══════════════════════════════════════════════════════════════════════════
-const TECNICOS_INIT = [
-  { id: 1, nome: "Carlos Mendes",  cargo: "Técnico Sênior", telefone: "(11) 98765-4321", email: "carlos@lsfire.com.br", cor: "#FF6600", iniciais: "CM", licenca: "CREA-SP 5060987" },
-  { id: 2, nome: "Rafael Souza",   cargo: "Técnico Pleno",  telefone: "(11) 97777-1234", email: "rafael@lsfire.com.br",  cor: "#2563EB", iniciais: "RS", licenca: "CREA-SP 5072345" },
-  { id: 3, nome: "Marcos Lima",    cargo: "Técnico Júnior", telefone: "(11) 96666-5678", email: "marcos@lsfire.com.br",  cor: "#16A34A", iniciais: "ML", licenca: "CREA-SP 5081234" },
-  { id: 4, nome: "Fernanda Costa", cargo: "Técnica Sênior", telefone: "(11) 95555-9012", email: "fernanda@lsfire.com.br",cor: "#9333EA", iniciais: "FC", licenca: "CREA-SP 5099876" },
-];
-
-const CONTRATOS_INIT = [
-  { id: 1, codigo: "200001", cliente: "Prologis Caxias II",     endereco: "Rua Arterial PD-04, 3777 — Duque de Caxias/RJ", contato: "Lucília Kênia",  telefone: "(21) 3456-7890", email: "lucilia@prologis.com",  tecnicoId: 1, duracaoMeses: 12, valorMensal: 6800, dataInicio: "2026-01-15", validade: "2027-01-14", proximaVisita: "2026-05-28", equipamentos: [ { id: 11, nome: "Bomba Diesel 01", tipo: "diesel" }, { id: 12, nome: "Bomba Elétrica 01", tipo: "eletrica" }, { id: 13, nome: "Bomba Jockey 01", tipo: "jockey" } ] },
-  { id: 2, codigo: "200002", cliente: "Shopping Metrópole",     endereco: "Rua das Flores, 1200 — Campinas/SP",            contato: "João Gerente",   telefone: "(19) 3232-1010", email: "joao@metropole.com",    tecnicoId: 2, duracaoMeses: 12, valorMensal: 4200, dataInicio: "2025-08-01", validade: "2026-07-31", proximaVisita: "2026-06-05", equipamentos: [ { id: 21, nome: "Bomba Elétrica 01", tipo: "eletrica" }, { id: 22, nome: "Bomba Jockey 01", tipo: "jockey" } ] },
-  { id: 3, codigo: "200003", cliente: "Hospital São Lucas",     endereco: "Av. Paulista, 1500 — São Paulo/SP",             contato: "Dra. Marina",    telefone: "(11) 3411-2222", email: "marina@saolucas.com.br",tecnicoId: 4, duracaoMeses: 12, valorMensal: 9500, dataInicio: "2026-03-01", validade: "2027-02-28", proximaVisita: "2026-06-02", equipamentos: [ { id: 31, nome: "Bomba Diesel 01", tipo: "diesel" }, { id: 32, nome: "Bomba Elétrica 01", tipo: "eletrica" } ] },
-  { id: 4, codigo: "200004", cliente: "Centro Logístico Norte", endereco: "Rod. Anhanguera, km 30 — Cajamar/SP",           contato: "Ricardo Santos", telefone: "(11) 4488-3333", email: "ricardo@cln.com",       tecnicoId: 3, duracaoMeses:  6, valorMensal: 3600, dataInicio: "2025-11-10", validade: "2026-05-09", proximaVisita: "2026-06-10", equipamentos: [ { id: 41, nome: "Bomba Elétrica 01", tipo: "eletrica" } ] },
-];
-
-const VISITAS_INIT = [
-  // Prologis (início 15/01/26, 12m) — visita em 28/05 = mês 5 → Semanal + Mensal
-  { id: 1, referencia: "700001", codigoAtendimento: "700001", contratoId: 1, data: "2026-05-28", tipo: "itm", freqs: ["Semanal","Mensal"], tecnicoId: 1, status: "agendada", despacho: null, relatorio: null },
-  // Shopping (início 01/08/25, 12m) — visita 05/06/26 = mês 11 → Semanal + Mensal
-  { id: 2, referencia: "700002", codigoAtendimento: "700002", contratoId: 2, data: "2026-06-05", tipo: "itm", freqs: ["Semanal","Mensal"], tecnicoId: 2, status: "agendada", despacho: null, relatorio: null },
-  // Hospital (início 01/03/26, 12m) — visita 02/06/26 = mês 4 → Semanal + Mensal
-  { id: 3, referencia: "700003", codigoAtendimento: "700003", contratoId: 3, data: "2026-06-02", tipo: "itm", freqs: ["Semanal","Mensal"], tecnicoId: 4, status: "agendada", despacho: null, relatorio: null },
-  // CLN — preventiva avulsa
-  { id: 4, referencia: "700004", codigoAtendimento: "700004", contratoId: 4, data: "2026-06-10", tipo: "preventiva", freqs: null, tecnicoId: 3, status: "agendada", despacho: null, relatorio: null },
-];
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RELATÓRIO MODELO — Prologis Caxias II (OS 6751)
-// Gerado a partir dos templates Padrao com status realistas (97% conformidade)
-// ═══════════════════════════════════════════════════════════════════════════
-function buildItemsComStatus(textos, padraoNok = {}, padraoNa = {}) {
-  // padraoNok/padraoNa = { indice: "observação" }  (indices 1-based)
-  return textos.map((texto, i) => {
-    const idx = i + 1;
-    if (padraoNok[idx] !== undefined) return { id: idx, texto, status: "nok", obs: padraoNok[idx], fotos: [] };
-    if (padraoNa[idx]  !== undefined) return { id: idx, texto, status: "na",  obs: padraoNa[idx],  fotos: [] };
-    return { id: idx, texto, status: "ok", obs: "", fotos: [] };
-  });
-}
-
-function buildEquipamento(tipo, padroes = {}) {
-  // padroes = { sectionId: { noks: {idx:obs}, nas: {idx:obs} } }
-  const tpl = TIPOS_EQUIPAMENTO[tipo];
-  return {
-    id: Date.now() + Math.random(),
-    tipo,
-    nome: tpl.nome,
-    sections: tpl.sections.map(s => {
-      const p = padroes[s.id] || {};
-      return { ...s, items: buildItemsComStatus(s.items, p.noks || {}, p.nas || {}) };
-    }),
-  };
-}
-
-function buildRelatorioPrologis() {
-  return {
-    id: 999001,
-    contratoId: 1,
-    visitaId: null,
-    cliente: "Prologis Caxias II",
-    os: "6751",
-    codigo: "RMP-6751",
-    revisao: "00",
-    dataEmissao: "2026-03-03",
-    tecnicoId: 1,
-    tipo: "preventiva",
-    freq: null,
-    modo: "padrao",
-    identificacao: {
-      cliente: "Prologis Caxias II",
-      empreendimento: "Condomínio Logístico CL Duque",
-      local: "Rua Arterial PD-04, 3777 — Duque de Caxias/RJ",
-      telefone: "(21) 3456-7890",
-      contratoNum: "CT-001",
-      os: "6751",
-      inspetor: "Carlos Mendes",
-      licenca: "CREA-SP 5060987",
-      contratado: "LS Fire",
-      enderecoContratado: "lsfire.com.br",
-      periodoIni: "2026-02-23",
-      periodoFim: "2026-03-03",
-      responsavel: "Carlos Mendes",
-      codigo: "RMP-6751",
-      revisao: "00",
-      dataEmissao: "2026-03-03",
-    },
-    nfpaGroups: null,
-    casas: [
-      {
-        id: 1, nome: "G-100",
-        instalacao: buildItemsComStatus(INSTALACAO_SKID,
-          { 14: "Dreno do trocador de calor parcialmente obstruído por sedimentos. Realizada limpeza." },
-          { 17: "Tanque externo, não há retorno de combustível ao skid." }
-        ),
-        equipamentos: [
-          buildEquipamento("diesel", {
-            bomba:    { noks: { 3: "Gaxeta com folga excessiva — realizado embuchamento e ajuste." } },
-            testes:   { noks: { 25: "Sensor de baixo nível apresentou falha intermitente. Recomendada substituição do flutuador." } },
-            inspecao: {},
-            motor:    { noks: { 18: "Óleo lubrificante substituído (Mobil Delvac 15W40, 20L). Volume conforme manual." },
-                        nas: { 26: "Bateria com menos de 1 ano de uso — substituição não aplicável neste ciclo." } },
-          }),
-          buildEquipamento("eletrica", {
-            bomba: {},
-            testes: { noks: { 22: "Indicação de defeito da soft-start ao testar — realizado reset, equipamento normalizou. Monitorar." } },
-            inspecao: {},
-          }),
-          buildEquipamento("jockey", {
-            inspecao: {},
-            testes: {},
-            manut: { noks: { 4: "Pequeno gotejamento na vedação dianteira — apertada gaxeta, vedação restabelecida." } },
-          }),
-          buildEquipamento("flowmeter"),
-          buildEquipamento("valvula"),
-        ],
-      },
-      {
-        id: 2, nome: "G-300",
-        instalacao: buildItemsComStatus(INSTALACAO_SKID,
-          {},
-          { 17: "Tanque externo, sem retorno." }
-        ),
-        equipamentos: [
-          buildEquipamento("diesel", {
-            bomba: {},
-            testes: { nas: { 6: "Não foi possível realizar partida completa devido à manutenção do reservatório principal — testes elétricos validados." } },
-            inspecao: {},
-            motor: { noks: { 19: "Filtro de óleo substituído (Mann W 940/25). Filtros antigos com saturação dentro do esperado." } },
-          }),
-          buildEquipamento("eletrica"),
-          buildEquipamento("jockey"),
-          buildEquipamento("flowmeter"),
-          buildEquipamento("valvula", {
-            inspecao: { noks: { 2: "Waste Cone instalado mas com fixação solta. Reapertados parafusos de base." } },
-          }),
-        ],
-      },
-    ],
-    corretiva: null,
-    maoObra: [
-      { id: 1, dataIni: "2026-02-23T07:30", dataFim: "2026-02-23T18:00" },
-      { id: 2, dataIni: "2026-02-24T07:00", dataFim: "2026-02-24T17:30" },
-      { id: 3, dataIni: "2026-02-25T07:00", dataFim: "2026-02-25T18:00" },
-      { id: 4, dataIni: "2026-02-26T07:00", dataFim: "2026-02-26T17:30" },
-      { id: 5, dataIni: "2026-02-27T07:00", dataFim: "2026-02-27T18:00" },
-      { id: 6, dataIni: "2026-03-02T07:00", dataFim: "2026-03-02T18:00" },
-      { id: 7, dataIni: "2026-03-03T07:00", dataFim: "2026-03-03T14:30" },
-    ],
-    deslocs: [
-      { id: 1, dataIni: "2026-02-23T05:00", kmIni: "48230", dataFim: "2026-02-23T07:15", kmFim: "48312" },
-      { id: 2, dataIni: "2026-03-03T15:00", kmIni: "48312", dataFim: "2026-03-03T17:20", kmFim: "48394" },
-    ],
-    trein: {
-      houve: true,
-      participantes: [
-        { id: 1, nome: "Lucília Kênia",  empresa: "Prologis",         rg: "11.345.678-9" },
-        { id: 2, nome: "Pedro Almeida",  empresa: "Prologis (manut.)",rg: "23.456.789-0" },
-        { id: 3, nome: "Marcos Ribeiro", empresa: "Prologis (manut.)",rg: "34.567.890-1" },
-      ],
-    },
-    obs: "Após submeter inspeção dos equipamentos e acessórios, realizando as manutenções preventivas conforme escopo contratado, verificamos que os equipamentos e seus acessórios encontram-se com funcionamento adequado, exceto os itens marcados como NÃO OK neste relatório.\n\nDestaques desta visita:\n• Substituição programada do óleo lubrificante dos motores diesel (G-100 e G-300) e respectivos filtros.\n• Ajuste de gaxeta na bomba centrífuga G-100 e na bomba jockey G-100.\n• Sensor de baixo nível de combustível G-100 apresentou falha — recomendada substituição na próxima visita.\n• Soft-start G-100 apresentou defeito intermitente — normalizado após reset. Monitoramento recomendado.\n• Reaperto de fixação do Waste Cone na válvula de alívio G-300.\n\nRecomendações para o cliente:\n• Programar a substituição do flutuador do sensor de nível de combustível G-100 em até 30 dias.\n• Manter o monitoramento do soft-start G-100 até a próxima visita.\n• Considerar limpeza completa do reservatório principal na janela de manutenção semestral.",
-    assins: { cliente: "Lucília Kênia", tecnico: "Carlos Mendes" },
-    stats: { ok: 252, nok: 8, na: 4, total: 264, done: 264, progress: 100 },
-    conformidade: 97,
-    criadoEm: "2026-03-03T18:00:00.000Z",
-  };
-}
-
-const RELATORIO_PROLOGIS = buildRelatorioPrologis();
-
-// ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
 function fmtDate(d) { if (!d) return "—"; try { return new Date(d + "T00:00:00").toLocaleDateString("pt-BR"); } catch { return d; } }
@@ -1505,9 +1427,12 @@ const NFPA20_UNIT_KEY = {
 function toNum(value) {
   if (value === null || value === undefined || value === "") return null;
   const raw = String(value).trim();
+  // Com vírgula: a vírgula é o decimal e os pontos são milhar ("1.250,5" = 1250,5).
+  // Sem vírgula: UM ponto é decimal ("1.250" = 1,25, como digita quem usa ponto); mais de um ponto é milhar ("1.250.000").
+  const pontos = (raw.match(/\./g) || []).length;
   const normalized = raw.includes(",")
     ? raw.replace(/\./g, "").replace(",", ".")
-    : /^\d{1,3}(\.\d{3})+(\.\d+)?$/.test(raw)
+    : pontos > 1
       ? raw.replace(/\./g, "")
     : raw;
   const n = Number(normalized.replace(/[^\d.-]/g, ""));
@@ -1521,7 +1446,8 @@ function fmtMeasure(value, digits = 0) {
 function fmtInputNumber(value, kind = "default") {
   if (value === null || value === undefined || !Number.isFinite(value)) return "";
   const digits = { flow: 1, pressure: 1, pitot: 2, diameter: 2, temperature: 1, power: 1, default: 2 }[kind] ?? 2;
-  return value.toLocaleString("pt-BR", { maximumFractionDigits: digits });
+  // sem separador de milhar: "1.250" seria lido de volta como 1,25 (ver toNum)
+  return value.toLocaleString("pt-BR", { maximumFractionDigits: digits, useGrouping: false });
 }
 function roundUp(value, step) {
   if (!Number.isFinite(value) || value <= 0) return step;
@@ -2048,15 +1974,47 @@ function Avatar({ tec, size = 32 }) {
   );
 }
 
+// Janelas sobrepostas (modal): Esc fecha só a de cima; ao abrir, o foco vai para dentro dela e, ao fechar, volta
+// para onde estava.
+const pilhaDialogos = [];
+function useDialogo(aberto, onClose) {
+  const ref = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    if (!aberto) return;
+    const marca = {};
+    pilhaDialogos.push(marca);
+    const anterior = typeof document !== "undefined" ? document.activeElement : null;
+    const el = ref.current;
+    if (el && !el.contains(document.activeElement)) { try { el.focus({ preventScroll: true }); } catch { el.focus?.(); } }
+    const onKey = (e) => {
+      if (e.key !== "Escape" || pilhaDialogos[pilhaDialogos.length - 1] !== marca) return;
+      e.stopPropagation();
+      onCloseRef.current?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      const i = pilhaDialogos.indexOf(marca); if (i >= 0) pilhaDialogos.splice(i, 1);
+      try { if (anterior && anterior.isConnected && typeof anterior.focus === "function") anterior.focus({ preventScroll: true }); } catch {}
+    };
+  }, [aberto]);
+  return ref;
+}
+
 function Modal({ open, onClose, title, children, wide, full }) {
+  const ref = useDialogo(!!open, onClose);
+  const tituloId = useId();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden" style={{ background: "rgba(0,0,0,0.4)" }}>
-      <div className="bg-white rounded-xl shadow-2xl flex flex-col"
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1}
+           className="bg-white rounded-xl shadow-2xl flex flex-col outline-none"
            style={{ maxWidth: full ? "calc(100vw - 32px)" : wide ? 1100 : 640, width: "100%", maxHeight: "92vh" }}>
         <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-b" style={{ borderColor: C.border }}>
-          <h3 className="text-base sm:text-lg font-bold break-words" style={{ color: C.gray }}>{title}</h3>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 shrink-0"><X size={20} /></button>
+          <h3 id={tituloId} className="text-base sm:text-lg font-bold break-words" style={{ color: C.gray }}>{title}</h3>
+          <button onClick={onClose} aria-label="Fechar" title="Fechar" className="p-1 rounded hover:bg-gray-100 shrink-0"><X size={20} /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
       </div>
@@ -2182,21 +2140,57 @@ function formatBytes(bytes = 0) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function readAttachmentFile(file, categoria) {
+function lerComoDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = ev => resolve({
-      id: Date.now() + Math.random(),
-      nome: file.name,
-      tipo: file.type || "application/octet-stream",
-      tamanho: file.size,
-      categoria,
-      anexadoEm: new Date().toISOString(),
-      data: ev.target.result,
-    });
-    reader.onerror = reject;
+    reader.onload = ev => resolve(ev.target.result);
+    reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+// Foto de celular tem 4–12 MB: antes de guardar (e de ir na sincronização), reduz para no máximo 1600 px no
+// maior lado, em JPEG qualidade 0,8. PDF e outros arquivos ficam como estão; GIF/SVG também (animação/vetor).
+const FOTO_MAX_LADO = 1600;
+const FOTO_QUALIDADE = 0.8;
+const tamanhoDataUrl = (d) => { const b64 = String(d).split(",")[1] || ""; return Math.floor(b64.length * 3 / 4) - (b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0); };
+async function prepararArquivo(file) {
+  const original = await lerComoDataUrl(file);
+  const tipo = file.type || "application/octet-stream";
+  const base = { data: original, tipo, tamanho: file.size, nome: file.name };
+  if (!/^image\//.test(tipo) || /^image\/(gif|svg)/.test(tipo) || typeof document === "undefined") return base;
+  try {
+    const img = await new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = () => reject(new Error("imagem")); im.src = original; });
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    if (!w || !h) return base;
+    const escala = Math.min(1, FOTO_MAX_LADO / Math.max(w, h));
+    const cw = Math.max(1, Math.round(w * escala)), ch = Math.max(1, Math.round(h * escala));
+    const canvas = document.createElement("canvas");
+    canvas.width = cw; canvas.height = ch;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, cw, ch); // PNG transparente não fica preto no JPEG
+    ctx.drawImage(img, 0, 0, cw, ch);
+    const jpeg = canvas.toDataURL("image/jpeg", FOTO_QUALIDADE);
+    if (!/^data:image\/jpeg/.test(jpeg)) return base;
+    // já pequena e menor que a versão reduzida: fica a original
+    if (escala === 1 && jpeg.length >= original.length) return base;
+    return { data: jpeg, tipo: "image/jpeg", tamanho: tamanhoDataUrl(jpeg), nome: String(file.name || "foto").replace(/\.[a-z0-9]+$/i, "") + ".jpg" };
+  } catch {
+    return base; // formato que o navegador não abre (ex.: HEIC): guarda como veio
+  }
+}
+
+async function readAttachmentFile(file, categoria) {
+  const p = await prepararArquivo(file);
+  return {
+    id: Date.now() + Math.random(),
+    nome: p.nome,
+    tipo: p.tipo,
+    tamanho: p.tamanho,
+    categoria,
+    anexadoEm: new Date().toISOString(),
+    data: p.data,
+  };
 }
 
 function hasStartupClientChecklist(anexos = []) {
@@ -2237,7 +2231,7 @@ function AttachmentList({ anexos = [], onRemove, empty = "Nenhum anexo" }) {
             </a>
           )}
           {onRemove && (
-            <button onClick={() => onRemove(a.id)} className="p-1 rounded hover:bg-red-50" style={{ color: C.nok }}>
+            <button onClick={() => onRemove(a.id)} aria-label={`Remover o anexo ${a.nome || ""}`.trim()} title="Remover" className="p-1 rounded hover:bg-red-50" style={{ color: C.nok }}>
               <Trash2 size={13} />
             </button>
           )}
@@ -2387,6 +2381,7 @@ function GlobalFonts() {
       .lsfire-app-shell .hover\\:bg-gray-50:hover, .lsfire-app-shell .hover\\:bg-gray-100:hover { background-color: var(--row-h); }
       .lsfire-app-shell .hover\\:bg-gray-200:hover { background-color: var(--line); }
       .lsfire-app-shell .hover\\:bg-red-50:hover { background-color: var(--bad-bg); }
+      .lsfire-app-shell .hover\\:bg-orange-50:hover, .lsfire-app-shell .hover\\:bg-orange-200:hover, .lsfire-app-shell .hover\\:bg-white\\/50:hover { background-color: var(--or-soft); }
       .lsfire-app-shell *, .lsfire-app-shell ::before, .lsfire-app-shell ::after { border-color: var(--line); }
       /* cartões como os do Pricer */
       .lsfire-app-shell .rounded-xl.border, .lsfire-app-shell .rounded-2xl.border { background-color: var(--card); border-color: var(--line); box-shadow: var(--shadow); transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; }
@@ -2407,12 +2402,27 @@ function GlobalFonts() {
       .lsf-slogan { color: var(--or); }
       .lsf-nav-grupo { padding: 14px 12px 4px; font-family: var(--f-cond); font-weight: 600; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--bar-dim); }
       .lsf-tab-sep { flex: none; width: 1px; height: 20px; margin: 0 6px; background: var(--line); }
-      /* dentro do Pricer: abas no lugar do menu (o menu é o do Pricer) */
-      .lsf-tabs { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 2px; padding: 0 12px; background: var(--bg); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: thin; }
-      .lsf-tab { display: inline-flex; align-items: center; gap: 7px; padding: 11px 12px 10px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--ink2); white-space: nowrap; cursor: pointer;
-        font-family: var(--f-cond); font-weight: 600; font-size: 14.5px; letter-spacing: .05em; text-transform: uppercase; }
-      .lsf-tab:hover { color: var(--ink); }
+      /* dentro do Pricer: abas no lugar do menu (o menu é o do Pricer). A lista de abas rola sozinha; os botões
+         de sincronizar e de avisos ficam fora dela (não são abas) */
+      .lsf-tabs { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 2px; padding: 0 8px 0 12px; background: var(--bg); border-bottom: 1px solid var(--line); }
+      .lsf-tablist { position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: thin; }
+      .lsf-tab, .lsf-tab-acao { display: inline-flex; align-items: center; gap: 7px; padding: 11px 12px 10px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--ink2); white-space: nowrap; cursor: pointer;
+        font-weight: 600; font-size: 14.5px; letter-spacing: .05em; text-transform: uppercase; }
+      .lsf-tab-acao { flex: none; padding: 11px 10px 10px; }
+      /* mais específico que ".lsfire-app-shell button { font-family: inherit }": abas e menu em Barlow Condensed, como no Pricer */
+      .lsfire-app-shell .lsf-tab, .lsfire-app-shell .lsf-tab-acao, .lsfire-app-shell .lsf-nav-btn { font-family: var(--f-cond); }
+      .lsf-tab:hover, .lsf-tab-acao:hover { color: var(--ink); }
       .lsf-tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--or); }
+      /* título de seção (como no Pricer): pequeno, em negrito, maiúsculo, laranja escuro */
+      .lsf-sec { font-size: 12px; line-height: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--or-ink); }
+      /* cartões do painel: sem cartão sozinho numa linha */
+      .lsf-kpis { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lsf-kpis > :last-child:nth-child(odd) { grid-column: span 2; }
+      @media (min-width: 768px) { .lsf-kpis { grid-template-columns: repeat(var(--kpi-md, 4), minmax(0, 1fr)); } .lsf-kpis > :last-child:nth-child(odd) { grid-column: auto; } }
+      @media (min-width: 1280px) { .lsf-kpis { grid-template-columns: repeat(var(--kpi-n, 6), minmax(0, 1fr)); } }
+      /* excluir foto: sempre visível em tela de toque; no mouse aparece ao passar por cima (ou com o teclado) */
+      .lsf-foto-del { opacity: 1; }
+      @media (hover: hover) and (pointer: fine) { .lsf-foto-del { opacity: 0; } .group:hover .lsf-foto-del, .lsf-foto-del:focus-visible { opacity: 1; } }
       .lsfire-app-shell ::-webkit-scrollbar { width: 10px; height: 10px; }
       .lsfire-app-shell ::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
       .lsfire-app-shell ::-webkit-scrollbar-thumb:hover { background: var(--or); background-clip: padding-box; }
@@ -2451,7 +2461,7 @@ function PrintStyles() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEGURANÇA — Perfis, permissões, hash de senha, contexto de autenticação
+// SEGURANÇA — Perfis, permissões e contexto de autenticação (o login é do servidor: /api/me)
 // ═══════════════════════════════════════════════════════════════════════════
 const PERFIS = {
   admin:       { id: "admin",       nome: "Administrador",       cor: "#DC2626", Icon: ShieldCheck },
@@ -2476,125 +2486,9 @@ function can(perfil, acao) {
   return PERMISSOES[perfil]?.[acao] === true;
 }
 
-// SHA-256 puro em JS — determinístico e síncrono, funciona em qualquer contexto
-// (online, offline, iframe sandbox, app nativo). Não depende de crypto.subtle.
-function sha256Hex(ascii) {
-  function rr(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
-  const maxWord = Math.pow(2, 32);
-  let result = "";
-  const words = [];
-  const asciiBitLength = ascii.length * 8;
-  let hash = sha256Hex.h = sha256Hex.h || [];
-  const k = sha256Hex.k = sha256Hex.k || [];
-  let primeCounter = k.length;
-  const isComposite = {};
-  for (let candidate = 2; primeCounter < 64; candidate++) {
-    if (!isComposite[candidate]) {
-      for (let i = 0; i < 313; i += candidate) { isComposite[i] = candidate; }
-      hash[primeCounter] = (Math.pow(candidate, .5) * maxWord) | 0;
-      k[primeCounter++] = (Math.pow(candidate, 1 / 3) * maxWord) | 0;
-    }
-  }
-  ascii += "\x80";
-  while (ascii.length % 64 - 56) ascii += "\x00";
-  for (let i = 0; i < ascii.length; i++) {
-    const j = ascii.charCodeAt(i);
-    if (j >> 8) return "";
-    words[i >> 2] |= j << ((3 - i) % 4) * 8;
-  }
-  words[words.length] = ((asciiBitLength / maxWord) | 0);
-  words[words.length] = (asciiBitLength);
-  for (let j = 0; j < words.length;) {
-    const w = words.slice(j, j += 16);
-    const oldHash = hash;
-    hash = hash.slice(0, 8);
-    for (let i = 0; i < 64; i++) {
-      const w15 = w[i - 15], w2 = w[i - 2];
-      const a = hash[0], e = hash[4];
-      const temp1 = hash[7]
-        + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25))
-        + ((e & hash[5]) ^ ((~e) & hash[6]))
-        + k[i]
-        + (w[i] = (i < 16) ? w[i] : (
-            w[i - 16]
-            + (rr(w15, 7) ^ rr(w15, 18) ^ (w15 >>> 3))
-            + w[i - 7]
-            + (rr(w2, 17) ^ rr(w2, 19) ^ (w2 >>> 10))
-          ) | 0);
-      const temp2 = (rr(a, 2) ^ rr(a, 13) ^ rr(a, 22))
-        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-      hash = [(temp1 + temp2) | 0].concat(hash);
-      hash[4] = (hash[4] + temp1) | 0;
-    }
-    for (let i = 0; i < 8; i++) { hash[i] = (hash[i] + oldHash[i]) | 0; }
-  }
-  for (let i = 0; i < 8; i++) {
-    for (let j = 3; j + 1; j--) {
-      const b = (hash[i] >> (j * 8)) & 255;
-      result += ((b < 16) ? 0 : "") + b.toString(16);
-    }
-  }
-  return result;
-}
-
-// Hash de senha (síncrono). Converte UTF-8 → bytes antes para suportar acentos.
-// NOTA: client-side tem limites — não substitui bcrypt/PBKDF2 num backend, mas
-// evita senha em texto plano no dispositivo e é consistente em qualquer ambiente.
-function hashSenha(senha, salt = "lsfire-2026") {
-  const utf8 = unescape(encodeURIComponent(salt + "::" + senha));
-  return sha256Hex(utf8);
-}
-
-// ── Esquema reforçado (v2): salt aleatório POR USUÁRIO + várias iterações ──
-// Isso evita que um único "rainbow table" sirva para todas as contas (cada
-// usuário tem seu próprio salt) e torna a força bruta bem mais lenta que um
-// único SHA-256. Contas antigas (criadas antes desta atualização) continuam
-// funcionando e são migradas automaticamente para o esquema v2 no próximo login.
-const HASH_V2_ROUNDS = 3000;
-
-function gerarSalt(tamanhoBytes = 16) {
-  try {
-    const arr = new Uint8Array(tamanhoBytes);
-    (window.crypto || window.msCrypto).getRandomValues(arr);
-    return Array.from(arr, b => b.toString(16).padStart(2, "0")).join("");
-  } catch {
-    // fallback para ambientes sem crypto.getRandomValues — ainda assim único por criação
-    return Array.from({ length: tamanhoBytes }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join("");
-  }
-}
-
-function hashSenhaV2(senha, salt, rounds = HASH_V2_ROUNDS) {
-  let h = sha256Hex(unescape(encodeURIComponent(salt + "::" + senha)));
-  for (let i = 1; i < rounds; i++) h = sha256Hex(unescape(encodeURIComponent(h + "::" + salt)));
-  return h;
-}
-
-// Gera as credenciais para um usuário novo ou redefinição de senha (sempre no esquema v2)
-function criarCredenciais(senha) {
-  const senhaSalt = gerarSalt();
-  return { senhaHash: hashSenhaV2(senha, senhaSalt), senhaSalt, senhaAlgo: "v2" };
-}
-
-// Verifica a senha digitada contra o registro do usuário, suportando contas
-// antigas (esquema legado, salt fixo) e novas (esquema v2, salt próprio)
-function verificarSenha(u, senhaDigitada) {
-  if (u?.senhaAlgo === "v2" && u.senhaSalt) return hashSenhaV2(senhaDigitada, u.senhaSalt) === u.senhaHash;
-  return hashSenha(senhaDigitada) === u?.senhaHash;
-}
-
-// Usuário administrador inicial (senha padrão: lsfire123 — trocar no primeiro acesso)
-const SENHA_PADRAO_ADMIN = "lsfire123";
-function usuariosIniciais(credenciais) {
-  return [
-    { id: 1, nome: "Administrador", login: "admin", perfil: "admin", ...credenciais, ativo: true, clienteId: null, criadoEm: new Date().toISOString() },
-  ];
-}
-
 // Contexto de autenticação — disponibiliza sessão, checagem de permissão e log de auditoria
 const AuthContext = createContext(null);
 function useAuth() { return useContext(AuthContext) || { sessao: null, can: () => false, logAudit: () => {} }; }
-
-const TIMEOUT_INATIVIDADE_MS = 15 * 60 * 1000; // 15 minutos
 
 // ═══════════════════════════════════════════════════════════════════════════
 // APP RAIZ
@@ -2626,6 +2520,8 @@ export default function App() {
     if (window.top !== window) try { window.parent.postMessage({ tipo: "lsf-aba-atual", aba: tab }, "*"); } catch { /* segue */ }
   }, [tab]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // barra de abas (dentro do Pricer): no celular ela rola até a aba aberta
+  const tablistRef = useRef(null);
   const [contratos, setContratos] = useState([]);
   const [tecnicos, setTecnicos] = useState([]);
   const [visitas, setVisitas] = useState([]);
@@ -2641,14 +2537,15 @@ export default function App() {
   const [previewRel, setPreviewRel] = useState(null);
   const [previewAutoPrint, setPreviewAutoPrint] = useState(false);
   const [documentoInternoFor, setDocumentoInternoFor] = useState(null);
+  // atendimentos cujo técnico já foi avisado de que outra pessoa começou o rascunho (o rascunho agora é salvo sozinho)
+  const rascunhoAvisadoRef = useRef(new Set());
 
   // ─── Segurança ───────────────────────────────────────────────────────────
-  const [usuarios, setUsuarios] = useState(() => usuariosIniciais(criarCredenciais(SENHA_PADRAO_ADMIN)));
-  const [sessao, setSessao] = useState(null);       // { userId, perfil, nome, login, clienteId, loginEm }
-  const [bloqueado, setBloqueado] = useState(false); // tela travada por inatividade
+  // o login, os usuários e as permissões são do servidor (/api/me) ou, no claude.ai, do Pricer
+  const [sessao, setSessao] = useState(null);       // { userId, perfil, nome, login, clienteId, tecnicoId, loginEm }
   const [auditoria, setAuditoria] = useState([]);
   const [bootReady, setBootReady] = useState(false);
-  const [usuarioEdit, setUsuarioEdit] = useState(null);
+  const bootReadyRef = useRef(false);
   const [syncStatus, setSyncStatus] = useState({
     online: typeof navigator !== "undefined" ? navigator.onLine : true,
     pending: 0,
@@ -2656,7 +2553,15 @@ export default function App() {
     lastSync: null,
     error: "",
   });
-  const inactivityTimer = useRef(null);
+
+  useEffect(() => {
+    const lista = tablistRef.current;
+    if (!lista) return;
+    const ativa = lista.querySelector('[aria-current="page"]');
+    if (!ativa) return;
+    const alvo = Math.max(0, ativa.offsetLeft - (lista.clientWidth - ativa.offsetWidth) / 2);
+    try { lista.scrollTo({ left: alvo, behavior: "smooth" }); } catch { lista.scrollLeft = alvo; }
+  }, [tab, bootReady, sessao?.perfil]);
 
   const logAudit = (acao, detalhe) => {
     setAuditoria(a => [{
@@ -2679,9 +2584,18 @@ export default function App() {
         const m = await r.json();
         if (m.trocarSenha) { irParaLogin(); return null; }
         window.__LSF_ME = m;
+        // outro usuário neste aparelho: apaga os dados locais do anterior (cache, fila e metadados) antes de carregar
+        let anterior = null;
+        try { anterior = localStorage.getItem(ULTIMO_USUARIO_KEY) ?? (JSON.parse(localStorage.getItem(ME_CACHE_KEY) || "null") || {}).userId ?? null; } catch {}
+        let trocouUsuario = false;
+        if (m.id != null && anterior != null && String(anterior) !== String(m.id)) {
+          try { await window.offlineSync?.limparDados?.(); } catch {}
+          trocouUsuario = true;
+        }
+        if (m.id != null) try { localStorage.setItem(ULTIMO_USUARIO_KEY, String(m.id)); } catch {}
         const s = { userId: m.id, perfil: m.servico, nome: m.nome, login: m.login, clienteId: m.clienteId ?? null, tecnicoId: m.tecnicoId ?? null, nivelPricer: m.nivelPricer || 0, loginEm: Date.now(), ultimaAtividade: Date.now() };
         try { localStorage.setItem(ME_CACHE_KEY, JSON.stringify(s)); } catch {}
-        return s.perfil && s.perfil !== "nenhum" ? s : null;
+        return s.perfil && s.perfil !== "nenhum" ? { ...s, trocouUsuario } : null;
       }
     } catch {}
     try { const c = JSON.parse(localStorage.getItem(ME_CACHE_KEY) || "null"); if (c) { window.__LSF_ME = { id: c.userId, nivelPricer: c.nivelPricer || 0 }; return c; } } catch {}
@@ -2697,6 +2611,11 @@ export default function App() {
   };
 
   const hydrateStore = async () => {
+    // primeiro quem está usando (se mudou o usuário, os dados locais do anterior são apagados antes da leitura)
+    const me = await carregarMe();
+    if (me?.trocouUsuario && bootReadyRef.current) { window.location.reload(); return { contratos: [], visitas: [], relatorios: [] }; }
+    if (me) setSessao(me);
+
     const c = await loadStore("contratos");  if (c) setContratos(c);
     const t = await loadStore("tecnicos");   if (t) setTecnicos(t);
     const v = await loadStore("visitas");    if (v) setVisitas(v);
@@ -2706,9 +2625,6 @@ export default function App() {
     }
     const au = await loadStore("auditoria"); if (au) setAuditoria(au);
     const nt = await loadStore("notificacoes"); if (nt) setNotificacoes(nt);
-
-    const me = await carregarMe();
-    if (me) setSessao(me);
 
     // Devolve os dados recém-lidos (não o state do React, que só atualiza no
     // próximo render) — necessário para a reconciliação de números provisórios.
@@ -2759,7 +2675,13 @@ export default function App() {
     }
   };
 
+  // Um envio por vez: o pedido feito enquanto outro está em andamento roda logo depois dele.
+  const syncCtl = useRef({ rodando: false, denovo: false });
+  const sincronizarRef = useRef(null);
   const sincronizarAgora = async () => {
+    const ctl = syncCtl.current;
+    if (ctl.rodando) { ctl.denovo = true; return; }
+    ctl.rodando = true;
     setSyncStatus(s => ({ ...s, syncing: true, error: "" }));
     try {
       await window.offlineSync?.syncNow?.();
@@ -2768,21 +2690,28 @@ export default function App() {
       await refreshSyncStatus({ syncing: false, error: "" });
     } catch (error) {
       await refreshSyncStatus({ syncing: false, error: error?.message || "Nao foi possivel sincronizar agora." });
+    } finally {
+      ctl.rodando = false;
     }
+    if (ctl.denovo) { ctl.denovo = false; setTimeout(() => sincronizarRef.current?.(), 0); }
   };
+  sincronizarRef.current = sincronizarAgora;
 
   useEffect(() => {
     let active = true;
     (async () => {
       await hydrateStore();
       if (typeof navigator !== "undefined" && navigator.onLine) {
+        const ctl = syncCtl.current;
+        ctl.rodando = true;
         try {
           await window.offlineSync?.syncNow?.();
           const fresh = await hydrateStore();
           await reconciliarNumerosProvisorios(fresh);
-        } catch {}
+        } catch {} finally { ctl.rodando = false; }
       }
       if (active) {
+        bootReadyRef.current = true;
         setBootReady(true);
         refreshSyncStatus();
       }
@@ -2796,7 +2725,7 @@ export default function App() {
       navigator.serviceWorker.register("/servico/sw.js", { scope: "/servico/" }).catch(() => {});
     }
 
-    const handleOnline = () => sincronizarAgora();
+    const handleOnline = () => sincronizarRef.current?.();
     const handleOffline = () => refreshSyncStatus({ online: false });
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -2814,9 +2743,33 @@ export default function App() {
     if (!bootReady) return;
     const timer = window.setTimeout(() => {
       refreshSyncStatus();
-      if (navigator.onLine) sincronizarAgora();
+      if (navigator.onLine) sincronizarRef.current?.();
     }, 800);
     return () => window.clearTimeout(timer);
+  }, [bootReady]);
+
+  // Sincronização automática: ~2 s depois de cada mudança que entra na fila (várias mudanças seguidas viram um envio só)
+  // e a cada 60 s com internet e a aba visível, para trazer o que os outros gravaram. No claude.ai os dados já são
+  // gravados direto no banco do Pricer (não há fila).
+  useEffect(() => {
+    if (!bootReady || typeof window === "undefined" || window.__LSF_CLAUDE) return;
+    let espera = null;
+    const pedir = () => {
+      if (espera) window.clearTimeout(espera);
+      espera = window.setTimeout(() => { espera = null; if (navigator.onLine) sincronizarRef.current?.(); }, 2000);
+    };
+    const periodico = window.setInterval(() => {
+      if (navigator.onLine && document.visibilityState === "visible") sincronizarRef.current?.();
+    }, 60000);
+    const aoMostrar = () => { if (document.visibilityState === "visible" && navigator.onLine) pedir(); };
+    window.addEventListener(EVENTO_FILA, pedir);
+    document.addEventListener("visibilitychange", aoMostrar);
+    return () => {
+      if (espera) window.clearTimeout(espera);
+      window.clearInterval(periodico);
+      window.removeEventListener(EVENTO_FILA, pedir);
+      document.removeEventListener("visibilitychange", aoMostrar);
+    };
   }, [bootReady]);
 
   useEffect(() => { if (bootReady) (async () => { try { await window.storage?.set?.("contratos", JSON.stringify(contratos)); } catch {} })(); }, [contratos, bootReady]);
@@ -2826,95 +2779,19 @@ export default function App() {
   useEffect(() => { if (bootReady) (async () => { try { await window.storage?.set?.("notificacoes",JSON.stringify(notificacoes));} catch {} })(); }, [notificacoes, bootReady]);
   useEffect(() => { if (bootReady) (async () => { try { await window.storage?.set?.("auditoria", JSON.stringify(auditoria));} catch {} })(); }, [auditoria, bootReady]);
 
-  // Timeout de inatividade — bloqueia a tela após 15 min sem interação
-  useEffect(() => {
-    if (!sessao || bloqueado || true) return;
-    const reset = () => {
-      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-      // Atualiza a "última atividade" na sessão persistida
-      (async () => { try { await window.storage?.set?.("sessao", JSON.stringify({ ...sessao, ultimaAtividade: Date.now() })); } catch {} })();
-      inactivityTimer.current = setTimeout(() => {
-        setBloqueado(true);
-        logAudit("bloqueio", "Sessão bloqueada por inatividade");
-      }, TIMEOUT_INATIVIDADE_MS);
-    };
-    const eventos = ["mousemove", "keydown", "click", "touchstart", "scroll"];
-    eventos.forEach(e => window.addEventListener(e, reset, { passive: true }));
-    reset();
-    return () => { if (inactivityTimer.current) clearTimeout(inactivityTimer.current); eventos.forEach(e => window.removeEventListener(e, reset)); };
-  }, [sessao, bloqueado]);
-
-  // Handlers de autenticação
-  const fazerLogin = async (login, senha) => {
-    const u = usuarios.find(x => x.login.toLowerCase() === login.toLowerCase().trim() && x.ativo);
-    if (!u) return { erro: "Usuário não encontrado ou inativo." };
-    if (!verificarSenha(u, senha)) return { erro: "Senha incorreta." };
-    // Migração transparente: contas antigas (salt fixo) passam para o esquema
-    // reforçado (salt próprio + iterações) automaticamente neste login.
-    if (u.senhaAlgo !== "v2") {
-      const cred = criarCredenciais(senha);
-      setUsuarios(us => us.map(x => x.id === u.id ? { ...x, ...cred } : x));
-    }
-    const novaSessao = { userId: u.id, perfil: u.perfil, nome: u.nome, login: u.login, clienteId: u.clienteId || null, tecnicoId: u.tecnicoId || null, loginEm: Date.now(), ultimaAtividade: Date.now() };
-    setSessao(novaSessao);
-    setBloqueado(false);
-    setTab("dashboard");
-    try { await window.storage?.set?.("sessao", JSON.stringify(novaSessao)); } catch {}
-    setAuditoria(a => [{ id: Date.now() + Math.random(), timestamp: new Date().toISOString(), usuario: u.nome, login: u.login, perfil: u.perfil, acao: "login", detalhe: `${u.nome} entrou no sistema` }, ...a].slice(0, 500));
-    return { ok: true };
-  };
-
+  // Sair: envia o que falta, apaga os dados do serviço guardados neste aparelho e encerra a sessão no servidor.
   const fazerLogout = async () => {
-    logAudit("logout", `${sessao?.nome} saiu do sistema`);
-    try { await window.offlineSync?.syncNow?.(); } catch {}
+    const entrada = { id: Date.now() + Math.random(), timestamp: new Date().toISOString(), usuario: sessao?.nome || "sistema", login: sessao?.login || "—", perfil: sessao?.perfil || "—", acao: "logout", detalhe: `${sessao?.nome} saiu do sistema` };
+    try { await window.storage?.set?.("auditoria", JSON.stringify([entrada, ...auditoria].slice(0, 500))); } catch {}
+    // duas vezes: se já havia um envio em andamento, o segundo leva o que entrou na fila depois dele
+    try { await window.offlineSync?.syncNow?.(); await window.offlineSync?.syncNow?.(); } catch {}
+    let pendentes = 0;
+    try { pendentes = (await window.offlineSync?.getQueue?.())?.length || 0; } catch {}
+    if (pendentes > 0 && !window.confirm(`Há ${pendentes} alteração(ões) que ainda não chegaram ao servidor (sem internet?). Ao sair, os dados guardados neste aparelho são apagados e essas alterações se perdem. Sair mesmo assim?`)) return;
+    try { await window.offlineSync?.limparDados?.(); } catch {}
     try { localStorage.removeItem(ME_CACHE_KEY); } catch {}
     try { await fetch("/api/logout", { method: "POST", credentials: "same-origin", headers: API_HEADERS }); } catch {}
     try { window.top.location.replace("/login"); } catch { window.location.replace("/login"); }
-  };
-
-  // Rede de segurança: recria o usuário admin padrão (caso de senha perdida/storage corrompido)
-  const restaurarAcessoPadrao = () => {
-    const cred = criarCredenciais(SENHA_PADRAO_ADMIN);
-    setUsuarios(us => {
-      const semAdmin = us.filter(u => u.login !== "admin");
-      return [{ id: 1, nome: "Administrador", login: "admin", perfil: "admin", ...cred, ativo: true, clienteId: null, criadoEm: new Date().toISOString() }, ...semAdmin];
-    });
-    return { ok: true };
-  };
-
-  const desbloquear = async (senha) => {
-    const u = usuarios.find(x => x.id === sessao.userId);
-    if (!u) { fazerLogout(); return { erro: "Sessão inválida." }; }
-    if (!verificarSenha(u, senha)) return { erro: "Senha incorreta." };
-    setBloqueado(false);
-    logAudit("desbloqueio", "Sessão desbloqueada");
-    return { ok: true };
-  };
-
-  const saveUsuario = async (data, novaSenha) => {
-    // Impede dois usuários com o mesmo login — sem essa checagem, o segundo
-    // usuário cadastrado nunca conseguiria entrar (a busca no login sempre
-    // retorna o primeiro que encontrar).
-    const loginNormalizado = (data.login || "").trim().toLowerCase();
-    const duplicado = usuarios.some(u => u.id !== data.id && u.login.toLowerCase() === loginNormalizado);
-    if (duplicado) return { erro: `Já existe um usuário com o login "${data.login}". Escolha outro login.` };
-    const cred = novaSenha ? criarCredenciais(novaSenha) : {};
-    setUsuarios(us => {
-      if (data.id) {
-        logAudit("usuario_editado", `Usuário ${data.nome} (${data.login}) atualizado`);
-        return us.map(u => u.id === data.id ? { ...u, ...data, ...cred } : u);
-      }
-      logAudit("usuario_criado", `Usuário ${data.nome} (${data.login}) criado — perfil ${data.perfil}`);
-      return [...us, { ...data, ...cred, id: Date.now(), criadoEm: new Date().toISOString() }];
-    });
-    return { ok: true };
-  };
-
-  const deleteUsuario = (id) => {
-    const u = usuarios.find(x => x.id === id);
-    if (u?.login === "admin") { alert("O usuário administrador principal não pode ser excluído."); return; }
-    logAudit("usuario_excluido", `Usuário ${u?.nome} (${u?.login}) excluído`);
-    setUsuarios(us => us.filter(x => x.id !== id));
   };
 
   const updateVisita = (id, patch) => setVisitas(vs => vs.map(v => v.id === id ? { ...v, ...patch } : v));
@@ -2942,7 +2819,9 @@ export default function App() {
       criadoEm: new Date().toISOString(),
       lidaPor: [],
     };
-    setNotificacoes(ns => [n, ...ns].slice(0, 300));
+    // a lista vem do servidor do mais antigo para o mais novo: o aviso novo entra no fim. Sem cortar aqui — o
+    // servidor já guarda só os 1000 mais recentes, e para o administrador o que some da lista conta como exclusão.
+    setNotificacoes(ns => [...ns, n]);
   };
 
   const saveRelatorio = (rel) => {
@@ -3055,15 +2934,19 @@ export default function App() {
   // para qualquer aprovador; "aprovado"/"devolvido" são endereçadas ao técnico
   // vinculado (usuário.tecnicoId) — se o login não tiver vínculo, recebe os
   // avisos gerais de técnico (degradação graciosa, sem perder o aviso).
+  // técnico do cadastro que corresponde a quem está logado (pelo vínculo do login ou, no claude.ai, pelo nome)
+  const meuTecId = useMemo(() => meuTecnico(sessao, tecnicos)?.id ?? null, [sessao, tecnicos]);
+  const mesmoId = (a, b) => a != null && b != null && String(a) === String(b);
+
   const minhasNotificacoes = useMemo(() => {
     if (!sessao) return [];
     return notificacoes.filter(n => {
       if (n.tipo === "novo_pendente") return APROVADOR_PERFIS.includes(sessao.perfil);
       if (sessao.perfil !== "tecnico") return false;
       if (!n.tecnicoId) return true; // relatório sem técnico definido — aviso vale para qualquer técnico
-      return n.tecnicoId === sessao.tecnicoId;
+      return mesmoId(n.tecnicoId, meuTecId);
     });
-  }, [notificacoes, sessao]);
+  }, [notificacoes, sessao, meuTecId]);
 
   const notificacoesNaoLidas = useMemo(
     () => minhasNotificacoes.filter(n => !n.lidaPor?.includes(sessao?.userId)),
@@ -3080,8 +2963,11 @@ export default function App() {
     setNotificacoes(ns => ns.map(n => relevantes.has(n.id) ? { ...n, lidaPor: [...new Set([...(n.lidaPor || []), sessao.userId])] } : n));
   };
 
+  // na tela, as mais novas primeiro (a lista guardada fica na ordem do servidor)
   const notificacoesParaExibir = useMemo(
-    () => minhasNotificacoes.map(n => ({ ...n, lida: !!n.lidaPor?.includes(sessao?.userId) })),
+    () => minhasNotificacoes
+      .map(n => ({ ...n, lida: !!n.lidaPor?.includes(sessao?.userId) }))
+      .sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || ""))),
     [minhasNotificacoes, sessao]
   );
 
@@ -3166,7 +3052,6 @@ export default function App() {
     sessao,
     can: (acao) => can(sessao?.perfil, acao),
     logAudit,
-    usuarios,
   };
 
   // Boot ainda carregando
@@ -3194,11 +3079,6 @@ export default function App() {
     );
   }
 
-  // Autenticado mas bloqueado por inatividade → tela de bloqueio
-  if (bloqueado) {
-    return <LockScreen sessao={sessao} onUnlock={desbloquear} onLogout={fazerLogout} />;
-  }
-
   // Cliente só enxerga relatórios dos seus contratos
   const perfilAtual = sessao.perfil;
   const contratosVisiveis = can(perfilAtual, "verTodosContratos")
@@ -3218,13 +3098,13 @@ export default function App() {
             { id: "aprovacoes", label: "Aprovações", Icon: ShieldCheck, show: can(perfilAtual, "aprovarRelatorios") },
             { id: "contratos",  label: "Contratos",  Icon: Building2, show: true },
             { id: "tecnicos",   label: "Técnicos",   Icon: Users,     show: can(perfilAtual, "verTecnicos") },
-            { id: "usuarios",   label: "Usuários",   Icon: UserCog,   show: false }, // no servidor: Pricer → Configurações → Usuários e acessos
             { id: "auditoria",  label: "Auditoria",  Icon: ScrollText,show: can(perfilAtual, "verAuditoria") },
   ].filter(x => x.show);
   // tela que o perfil não abre (pedida no endereço ou pelo Pricer) volta ao painel
   if (tab !== "dashboard" && !navItens.some(x => x.id === tab)) setTab("dashboard");
   const comGrupo = navItens.map((x, i) => ({ ...x, grupo: GRUPO_ABA[x.id] || "", novoGrupo: i > 0 && (GRUPO_ABA[x.id] || "") !== (GRUPO_ABA[navItens[i - 1].id] || "") }));
   const embutido = typeof window !== "undefined" && window.top !== window;
+  const temFab = can(perfilAtual, "agendar") || can(perfilAtual, "gerenciarContratos") || can(perfilAtual, "gerenciarTecnicos") || can(perfilAtual, "inspecionar");
 
   return (
     <AuthContext.Provider value={authValue}>
@@ -3244,7 +3124,7 @@ export default function App() {
           <LogoLSFire size={30} escuro />
           <div className="flex items-center gap-1">
             <NotificationBell notificacoes={notificacoesParaExibir} naoLidas={notificacoesNaoLidas.length} onOpenNotificacao={abrirNotificacao} onMarkAllRead={marcarTodasNotificacoesLidas} />
-            <button onClick={() => setMobileNavOpen(false)} className="p-1 rounded hover:bg-gray-100 sm:hidden"><X size={20} /></button>
+            <button onClick={() => setMobileNavOpen(false)} aria-label="Fechar o menu" className="p-1 rounded hover:bg-gray-100 sm:hidden"><X size={20} /></button>
           </div>
         </div>
         <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto">
@@ -3290,70 +3170,70 @@ export default function App() {
       </aside>
 
       {/* MAIN */}
-      <main className="flex-1 overflow-auto min-w-0">
-        {/* Barra superior — só no mobile (some no desktop e na impressão) */}
+      <main className={`flex-1 overflow-auto min-w-0${temFab ? " pb-24" : ""}`}>
+        {/* Dentro do Pricer: abas no lugar do menu (some na impressão). Sincronizar e avisos ficam fora da lista de abas. */}
         {embutido && (
-          <div className="lsf-tabs print:hidden" role="tablist" aria-label="Serviço de campo">
-            {comGrupo.map(({ id, label, Icon, novoGrupo }) => (
-              <Fragment key={id}>
-                {novoGrupo && <span className="lsf-tab-sep" aria-hidden="true" />}
-                <button role="tab" className="lsf-tab" aria-current={tab === id ? "page" : undefined} aria-selected={tab === id} onClick={() => setTab(id)}><Icon size={16} />{label}</button>
-              </Fragment>
-            ))}
-            <div className="flex-1" />
-            <button className="lsf-tab" title="Atualizar com o que os outros gravaram" onClick={sincronizarAgora}><RefreshCw size={15} className={syncStatus.syncing ? "animate-spin" : ""} /></button>
-            <NotificationBell notificacoes={notificacoesParaExibir} naoLidas={notificacoesNaoLidas.length} onOpenNotificacao={abrirNotificacao} onMarkAllRead={marcarTodasNotificacoesLidas} />
+          <div className="lsf-tabs print:hidden">
+            <div className="lsf-tablist" role="tablist" aria-label="Serviço de campo" ref={tablistRef}>
+              {comGrupo.map(({ id, label, Icon, novoGrupo }) => (
+                <Fragment key={id}>
+                  {novoGrupo && <span className="lsf-tab-sep" aria-hidden="true" />}
+                  <button role="tab" className="lsf-tab" aria-current={tab === id ? "page" : undefined} aria-selected={tab === id} onClick={() => setTab(id)}><Icon size={16} aria-hidden="true" />{label}</button>
+                </Fragment>
+              ))}
+            </div>
+            <button className="lsf-tab-acao" title="Atualizar com o que os outros gravaram" aria-label="Sincronizar: atualizar com o que os outros gravaram" onClick={sincronizarAgora}><RefreshCw size={15} className={syncStatus.syncing ? "animate-spin" : ""} /></button>
+            <NotificationBell notificacoes={notificacoesParaExibir} naoLidas={notificacoesNaoLidas.length} onOpenNotificacao={abrirNotificacao} onMarkAllRead={marcarTodasNotificacoesLidas} alinharDireita />
           </div>
         )}
         <div className="lsf-side sticky top-0 z-30 flex items-center gap-3 px-4 py-3 sm:hidden print:hidden" style={{ display: embutido ? "none" : undefined }}>
           <button onClick={() => setMobileNavOpen(true)} className="p-1.5 rounded" style={{ color: "var(--bar-ink)" }} aria-label="Abrir o menu"><Menu size={22} /></button>
           <LogoLSFire size={26} escuro />
           <div className="flex-1" />
-          <NotificationBell notificacoes={notificacoesParaExibir} naoLidas={notificacoesNaoLidas.length} onOpenNotificacao={abrirNotificacao} onMarkAllRead={marcarTodasNotificacoesLidas} />
+          <NotificationBell notificacoes={notificacoesParaExibir} naoLidas={notificacoesNaoLidas.length} onOpenNotificacao={abrirNotificacao} onMarkAllRead={marcarTodasNotificacoesLidas} alinharDireita />
         </div>
-        {tab === "dashboard"  && <Dashboard visitas={visitas} contratos={contratosVisiveis} relatorios={relatoriosVisiveis} tecnicos={tecnicos} kpiActions={kpiActions} podeAprovar={can(perfilAtual, "aprovarRelatorios")} tecnicoId={perfilAtual === "tecnico" ? sessao?.tecnicoId : null} onOpenContrato={setContratoModal} onOpenVisita={(v) => v.despacho ? setItmFor(v) : setDespachoFor(v)} />}
-        {tab === "meus-atendimentos" && (perfilAtual === "tecnico" || can(perfilAtual, "aprovarRelatorios")) && <MeusAtendimentosView visitas={visitas} contratos={contratosVisiveis} tecnicos={tecnicos} tecnicoId={sessao?.tecnicoId} souGestor={perfilAtual !== "tecnico"} onDespacho={setDespachoFor} onItm={setItmFor} onDocumento={setDocumentoInternoFor} />}
+        {tab === "dashboard"  && <Dashboard visitas={visitas} contratos={contratosVisiveis} relatorios={relatoriosVisiveis} tecnicos={tecnicos} kpiActions={kpiActions} podeAprovar={can(perfilAtual, "aprovarRelatorios")} tecnicoId={perfilAtual === "tecnico" ? meuTecId : null} onOpenContrato={setContratoModal} onOpenVisita={(v) => v.despacho ? setItmFor(v) : setDespachoFor(v)} />}
+        {tab === "meus-atendimentos" && (perfilAtual === "tecnico" || can(perfilAtual, "aprovarRelatorios")) && <MeusAtendimentosView visitas={visitas} contratos={contratosVisiveis} tecnicos={tecnicos} tecnicoId={meuTecId} souGestor={perfilAtual !== "tecnico"} onDespacho={setDespachoFor} onItm={setItmFor} onDocumento={setDocumentoInternoFor} />}
         {tab === "contratos"  && <Contratos contratos={contratosVisiveis} visitas={visitas} relatorios={relatoriosVisiveis} tecnicos={tecnicos} onOpen={setContratoModal} onNew={() => setContratoEdit({})} />}
         {tab === "agenda"     && <Agenda visitas={visitas} contratos={contratosVisiveis} tecnicos={tecnicos} onDespacho={setDespachoFor} onItm={setItmFor} onDocumento={setDocumentoInternoFor} />}
         {tab === "visitas"    && <VisitasTecnicas visitas={visitas} relatorios={relatoriosVisiveis} contratos={contratosVisiveis} tecnicos={tecnicos} onDespacho={setDespachoFor} onItm={setItmFor} onDocumento={setDocumentoInternoFor} onViewRel={setPreviewRel} onDeleteVisita={deleteVisita} />}
         {tab === "tecnicos"   && can(perfilAtual, "verTecnicos") && <TecnicosView tecnicos={tecnicos} visitas={visitas} onNew={() => setTecnicoEdit({})} onEdit={setTecnicoEdit} onDelete={deleteTecnico} />}
         {tab === "relatorios" && <Relatorios relatorios={relatoriosVisiveis} contratos={contratosVisiveis} onView={setPreviewRel} onDelete={deleteRelatorio} />}
         {tab === "aprovacoes" && can(perfilAtual, "aprovarRelatorios") && <AprovacoesView relatorios={relatoriosVisiveis} onView={setPreviewRel} />}
-        {tab === "usuarios"   && can(perfilAtual, "gerenciarUsuarios") && <UsuariosView usuarios={usuarios} contratos={contratos} onNew={() => setUsuarioEdit({})} onEdit={setUsuarioEdit} onDelete={deleteUsuario} />}
         {tab === "auditoria"  && can(perfilAtual, "verAuditoria") && <AuditoriaView auditoria={auditoria} />}
       </main>
 
-      {/* FAB */}
+      {/* FAB (o conteúdo tem espaço embaixo — pb-24 no main — para o botão não tampar o último item) */}
       <div className="fixed bottom-6 right-6 z-40 print:hidden">
         {fabOpen && (
           <div className="absolute bottom-16 right-0 bg-white rounded-xl shadow-xl border p-2 w-64 mb-2" style={{ borderColor: C.border }}>
             {can(perfilAtual, "agendar") && (
               <button onClick={() => { setNewVisitOpen({}); setFabOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded text-sm font-semibold flex items-center gap-2 hover:bg-orange-50">
-                <Calendar size={16} style={{ color: C.orangeDark }} /> Nova Visita
+                <Calendar size={16} style={{ color: C.orangeDark }} /> Nova visita
               </button>
             )}
             {can(perfilAtual, "gerenciarContratos") && (
               <button onClick={() => { setContratoEdit({}); setFabOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded text-sm font-semibold flex items-center gap-2 hover:bg-orange-50">
-                <Building2 size={16} style={{ color: C.orangeDark }} /> Novo Contrato
+                <Building2 size={16} style={{ color: C.orangeDark }} /> Novo contrato
               </button>
             )}
             {can(perfilAtual, "gerenciarTecnicos") && (
               <button onClick={() => { setTecnicoEdit({}); setFabOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded text-sm font-semibold flex items-center gap-2 hover:bg-orange-50">
-                <User size={16} style={{ color: C.orangeDark }} /> Novo Técnico
+                <User size={16} style={{ color: C.orangeDark }} /> Novo técnico
               </button>
             )}
             {can(perfilAtual, "inspecionar") && (
               <button onClick={() => { setNewVisitOpen({ avulsa: true }); setFabOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded text-sm font-semibold flex items-center gap-2 hover:bg-orange-50">
-                <FilePlus2 size={16} style={{ color: C.orangeDark }} /> Relatório Avulso
+                <FilePlus2 size={16} style={{ color: C.orangeDark }} /> Relatório avulso
               </button>
             )}
           </div>
         )}
-        {(can(perfilAtual, "agendar") || can(perfilAtual, "gerenciarContratos") || can(perfilAtual, "gerenciarTecnicos") || can(perfilAtual, "inspecionar")) && (
+        {temFab && (
           <button onClick={() => setFabOpen(f => !f)} aria-label={fabOpen ? "Fechar o menu de ações" : "Nova ação"} aria-expanded={fabOpen}
                   className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition"
                   style={{ background: C.orangeFill, color: "#fff" }}>
@@ -3381,10 +3261,12 @@ export default function App() {
       )}
 
       {newVisitOpen && (
-        <Modal open onClose={() => setNewVisitOpen(null)} title={newVisitOpen?.avulsa ? "Relatório Avulso" : "Nova Visita"}>
+        <Modal open onClose={() => setNewVisitOpen(null)} title={newVisitOpen?.avulsa ? "Relatório avulso" : "Nova visita"}>
           <NewVisitForm contratos={contratosVisiveis} tecnicos={tecnicos} initial={newVisitOpen}
             onCreate={(visita, action) => {
-              const visitaCriada = ensureAtendimentoRef({ ...visita, id: Date.now(), avulsa: !!newVisitOpen?.avulsa, status: "agendada", despacho: null, relatorio: null });
+              const avulsa = !!newVisitOpen?.avulsa;
+              // avulsa não pertence a contrato nenhum (senão aparece para o cliente do contrato escolhido por acaso)
+              const visitaCriada = ensureAtendimentoRef({ ...visita, ...(avulsa ? { contratoId: null } : {}), id: Date.now(), avulsa, status: "agendada", despacho: null, relatorio: null });
               if (newVisitOpen?.avulsa) {
                 setItmFor(visitaCriada);
                 logAudit("relatorio_avulso", `Relatório avulso ${TIPO_REL[visita.tipo]?.nome} iniciado em ${fmtDate(visita.data)}`);
@@ -3400,30 +3282,19 @@ export default function App() {
       )}
 
       {contratoEdit !== null && (
-        <Modal open onClose={() => setContratoEdit(null)} title={contratoEdit?.id ? "Editar Contrato" : "Novo Contrato"} wide>
+        <Modal open onClose={() => setContratoEdit(null)} title={contratoEdit?.id ? "Editar contrato" : "Novo contrato"} wide>
           <ContratoForm initial={contratoEdit} tecnicos={tecnicos} onSave={saveContrato} />
         </Modal>
       )}
 
       {tecnicoEdit !== null && (
-        <Modal open onClose={() => setTecnicoEdit(null)} title={tecnicoEdit?.id ? "Editar Técnico" : "Novo Técnico"}>
+        <Modal open onClose={() => setTecnicoEdit(null)} title={tecnicoEdit?.id ? "Editar técnico" : "Novo técnico"}>
           <TecnicoForm initial={tecnicoEdit} onSave={saveTecnico} />
         </Modal>
       )}
 
-      {usuarioEdit !== null && (
-        <Modal open onClose={() => setUsuarioEdit(null)} title={usuarioEdit?.id ? "Editar Usuário" : "Novo Usuário"}>
-          <UsuarioForm initial={usuarioEdit} contratos={contratos} usuarios={usuarios} tecnicos={tecnicos}
-            onSave={async (data, novaSenha) => {
-              const r = await saveUsuario(data, novaSenha);
-              if (r?.erro) { alert(r.erro); return; }
-              setUsuarioEdit(null);
-            }} />
-        </Modal>
-      )}
-
       {despachoFor && (
-        <Modal open onClose={() => setDespachoFor(null)} title={`Checklist de Despacho — ${despachoFor.referencia ? despachoFor.referencia + " | " : ""}${contratos.find(c => c.id === despachoFor.contratoId)?.cliente || "Visita avulsa"}`} wide>
+        <Modal open onClose={() => setDespachoFor(null)} title={`Checklist de despacho — ${despachoFor.referencia ? despachoFor.referencia + " | " : ""}${contratos.find(c => c.id === despachoFor.contratoId)?.cliente || "Visita avulsa"}`} wide>
           <DespachoForm
             visita={despachoFor}
             contrato={contratos.find(c => c.id === despachoFor.contratoId)}
@@ -3446,13 +3317,14 @@ export default function App() {
         <ITMFlow visita={itmFor} contratos={contratos} tecnicos={tecnicos}
           initialDraft={itmFor.status === "devolvida" ? (itmFor.relatorio || null) : (itmFor.rascunhoItm || null)}
           onClose={() => setItmFor(null)}
-          onSaveDraft={(snap) => {
+          onSaveDraft={(snap, opcoes) => {
             setVisitas(vs => {
               const existe = vs.some(v => v.id === itmFor.id);
               if (existe) return vs.map(v => v.id === itmFor.id ? { ...v, rascunhoItm: snap } : v);
               return [...vs, { ...itmFor, rascunhoItm: snap, status: "rascunho" }];
             });
-            logAudit("rascunho_salvo", `Rascunho do atendimento ${itmFor.referencia || itmFor.codigoAtendimento || itmFor.id} salvo`);
+            // o salvamento automático (durante o preenchimento) não enche a auditoria: registra só ao fechar
+            if (!opcoes?.auto) logAudit("rascunho_salvo", `Rascunho do atendimento ${itmFor.referencia || itmFor.codigoAtendimento || itmFor.id} salvo`);
             // Alguém diferente do técnico responsável começou a preencher este
             // atendimento (de qualquer tipo — ITM, avulso, contrato, start-up
             // etc.) e parou num rascunho: avisa o técnico na primeira gravação.
@@ -3461,7 +3333,8 @@ export default function App() {
             // já existem desde o agendamento (diferente de avulso). Sem essa
             // distinção, o aviso nunca disparava para atendimentos de contrato.
             const jaTinhaRascunho = !!itmFor.rascunhoItm;
-            if (!jaTinhaRascunho && itmFor.status !== "devolvida" && itmFor.tecnicoId && itmFor.tecnicoId !== sessao?.tecnicoId) {
+            if (!jaTinhaRascunho && !rascunhoAvisadoRef.current.has(itmFor.id) && itmFor.status !== "devolvida" && itmFor.tecnicoId && !mesmoId(itmFor.tecnicoId, meuTecId)) {
+              rascunhoAvisadoRef.current.add(itmFor.id);
               criarNotificacao({ tipo: "atendimento_atribuido", visita: { ...itmFor, rascunhoItm: snap } });
             }
           }}
@@ -3484,7 +3357,7 @@ export default function App() {
       )}
 
       {documentoInternoFor && (
-        <Modal open onClose={() => setDocumentoInternoFor(null)} title="Documento Interno do Atendimento" full>
+        <Modal open onClose={() => setDocumentoInternoFor(null)} title="Documento interno do atendimento" full>
           <DocumentoInternoAtendimento visita={documentoInternoFor} contrato={contratos.find(c => c.id === documentoInternoFor.contratoId)} tecnico={tecnicos.find(t => t.id === documentoInternoFor.tecnicoId)} />
         </Modal>
       )}
@@ -3505,7 +3378,7 @@ function DashCard({ title, children, hint }) {
   return (
     <div className="border rounded-xl p-5" style={{ borderColor: C.border, background: C.white }}>
       <div className="flex items-baseline justify-between mb-3">
-        <div className="text-xs font-bold uppercase tracking-wider" style={{ color: C.grayMid }}>{title}</div>
+        <h3 className="lsf-sec">{title}</h3>
         {hint && <div className="text-[10px]" style={{ color: C.grayMid }}>{hint}</div>}
       </div>
       {children}
@@ -3516,7 +3389,7 @@ function DashCard({ title, children, hint }) {
 function DashStat({ label, value, sub, accent = C.orange, Icon }) {
   return (
     <div className="border rounded-xl p-4 flex items-center gap-3" style={{ borderColor: C.border, background: C.white }}>
-      {Icon && <div className="rounded-lg p-2.5" style={{ background: accent + "1A" }}><Icon size={20} style={{ color: accent }} /></div>}
+      {Icon && <div className="rounded-lg p-2.5" style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)` }}><Icon size={20} style={{ color: accent }} /></div>}
       <div className="min-w-0">
         <div className="text-2xl font-black leading-none font-display" style={{ color: C.gray }}>{value}</div>
         <div className="text-[11px] font-semibold uppercase tracking-wide mt-1" style={{ color: C.grayMid }}>{label}</div>
@@ -3565,7 +3438,7 @@ function DashBarsV({ data, color = C.orange, empty = "Sem dados" }) {
 }
 
 function Dashboard({ visitas, contratos, relatorios, tecnicos, kpiActions, podeAprovar, tecnicoId, onOpenContrato, onOpenVisita }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hojeLocal();
   const kpis = useMemo(() => ({
     contratos: contratos.length,
     tecnicos: tecnicos.length,
@@ -3574,10 +3447,11 @@ function Dashboard({ visitas, contratos, relatorios, tecnicos, kpiActions, podeA
     atrasadas: visitas.filter(v => v.status === "agendada" && v.data < today).length,
     relatorios: relatorios.length,
     aguardandoAprovacao: relatorios.filter(r => getRelApprovalStatus(r) === "pendente").length,
-    meusAtendimentos: tecnicoId ? visitas.filter(v => v.tecnicoId === tecnicoId && v.status !== "concluida").length : 0,
+    meusAtendimentos: tecnicoId != null ? visitas.filter(v => v.tecnicoId != null && String(v.tecnicoId) === String(tecnicoId) && v.status !== "concluida").length : 0,
   }), [visitas, contratos, relatorios, tecnicos, today, tecnicoId]);
 
   const proximas = visitas.filter(v => v.status === "agendada").sort((a, b) => a.data.localeCompare(b.data)).slice(0, 5);
+  const nKpis = 6 + (podeAprovar ? 1 : 0) + (tecnicoId != null ? 1 : 0);
 
   // ─── Indicadores para gráficos ───────────────────────────────────────────
   const ind = useMemo(() => {
@@ -3641,20 +3515,21 @@ function Dashboard({ visitas, contratos, relatorios, tecnicos, kpiActions, podeA
         <p className="text-sm" style={{ color: C.grayMid }}>Visão geral do sistema LS Fire</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+      {/* 6 a 8 cartões conforme o perfil: a grade acompanha a quantidade (nenhum fica sozinho numa linha) */}
+      <div className="lsf-kpis mb-8" style={{ "--kpi-n": nKpis, "--kpi-md": nKpis <= 6 ? 3 : 4 }}>
         <KPI label="Contratos"  value={kpis.contratos}  Icon={Building2}     onClick={kpiActions.contratos} />
         <KPI label="Técnicos"   value={kpis.tecnicos}   Icon={Users}         onClick={kpiActions.tecnicos} />
         <KPI label="Agendadas"  value={kpis.agendadas}  Icon={Calendar}      onClick={kpiActions.agendadas} />
         <KPI label="Concluídas" value={kpis.concluidas} Icon={CheckCircle2}  onClick={kpiActions.concluidas} accent={C.ok} />
         <KPI label="Atrasadas"  value={kpis.atrasadas}  Icon={AlertTriangle} onClick={kpiActions.atrasadas} accent={C.nok} />
         <KPI label="Relatórios" value={kpis.relatorios} Icon={FileText}      onClick={kpiActions.relatorios} />
-        {podeAprovar && <KPI label="Aguardando aprovação" value={kpis.aguardandoAprovacao} Icon={ShieldCheck} onClick={kpiActions.aprovacoes} accent={kpis.aguardandoAprovacao > 0 ? "#92400E" : C.grayMid} />}
-        {tecnicoId && <KPI label="Meus atendimentos" value={kpis.meusAtendimentos} Icon={ClipboardCheck} onClick={kpiActions.meusAtendimentos} accent={kpis.meusAtendimentos > 0 ? C.orange : C.grayMid} />}
+        {podeAprovar && <KPI label="Aguardando aprovação" value={kpis.aguardandoAprovacao} Icon={ShieldCheck} onClick={kpiActions.aprovacoes} accent={kpis.aguardandoAprovacao > 0 ? C.amber : C.grayMid} />}
+        {tecnicoId != null && <KPI label="Meus atendimentos" value={kpis.meusAtendimentos} Icon={ClipboardCheck} onClick={kpiActions.meusAtendimentos} accent={kpis.meusAtendimentos > 0 ? C.orange : C.grayMid} />}
       </div>
 
       {/* ─── Indicadores ─────────────────────────────────────────────── */}
       <div className="mb-8">
-        <h2 className="text-lg font-black mb-4" style={{ color: C.gray }}>Indicadores</h2>
+        <h2 className="lsf-sec mb-3">Indicadores</h2>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <DashStat label="Dias médios de atendimento" value={ind.diasMedios} sub="Agendamento → conclusão" accent={C.orange} Icon={Clock} />
@@ -3684,7 +3559,7 @@ function Dashboard({ visitas, contratos, relatorios, tecnicos, kpiActions, podeA
 
       <section className="border rounded-xl p-5" style={{ borderColor: C.border }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-lg" style={{ color: C.gray }}>Próximas Visitas</h2>
+          <h2 className="lsf-sec">Próximas visitas</h2>
           <button onClick={kpiActions.agendadas} className="text-sm font-semibold flex items-center gap-1" style={{ color: C.orangeDark }}>
             Ver agenda <ChevronRight size={14} />
           </button>
@@ -3703,7 +3578,7 @@ function Dashboard({ visitas, contratos, relatorios, tecnicos, kpiActions, podeA
                 <div className="font-bold text-sm">
                   {v.referencia && (
                     <span style={{ color: C.orangeDark }}>
-                      {v.referencia}{v.referenciaProvisoria && <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold align-middle" style={{ background: C.amberLight, color: "#92400E" }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>} |{" "}
+                      {v.referencia}{v.referenciaProvisoria && <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold align-middle" style={{ background: C.amberLight, color: C.amber }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>} |{" "}
                     </span>
                   )}
                   {c?.cliente || "—"}
@@ -3749,7 +3624,7 @@ function Contratos({ contratos, visitas, relatorios, tecnicos, onOpen, onNew }) 
         <h1 className="text-2xl sm:text-3xl font-black" style={{ color: C.gray }}>Contratos</h1>
         {can("gerenciarContratos") && (
           <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orangeFill }}>
-            <Plus size={16} /> Novo Contrato
+            <Plus size={16} /> Novo contrato
           </button>
         )}
       </div>
@@ -3767,7 +3642,7 @@ function Contratos({ contratos, visitas, relatorios, tecnicos, onOpen, onNew }) 
                   {c.codigo && (
                     <div className="text-xs font-black mb-0.5 flex items-center gap-1.5" style={{ color: C.blue }}>
                       {c.codigo}
-                      {c.codigoProvisorio && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: C.amberLight, color: "#92400E" }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>}
+                      {c.codigoProvisorio && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: C.amberLight, color: C.amber }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>}
                     </div>
                   )}
                   <div className="font-bold text-base" style={{ color: C.gray }}>{c.cliente}</div>
@@ -3809,7 +3684,7 @@ function Contratos({ contratos, visitas, relatorios, tecnicos, onOpen, onNew }) 
         <div className="border-2 border-dashed rounded-xl p-16 text-center" style={{ borderColor: C.border }}>
           <Building2 size={48} className="mx-auto mb-3" style={{ color: C.grayMid }} />
           <div className="text-base font-bold mb-1" style={{ color: C.gray }}>Nenhum contrato cadastrado</div>
-          <div className="text-sm" style={{ color: C.grayMid }}>Clique em "Novo Contrato" para começar.</div>
+          <div className="text-sm" style={{ color: C.grayMid }}>Clique em "Novo contrato" para começar.</div>
         </div>
       )}
     </div>
@@ -3827,8 +3702,10 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
   const podeExcluir = isAdminProfile(sessao?.perfil);
   const podeAgendar = can("agendar");
   const [tab, setTab] = useState("info"); // info | historico | agendar
+  const dialogoRef = useDialogo(true, onClose);
+  const tituloId = useId();
   const tec = tecnicos.find(t => t.id === contrato.tecnicoId);
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeLocal();
   const visitasOrdenadas = [...visitas].sort((a, b) => b.data.localeCompare(a.data));
 
   // Última visita por frequência
@@ -3836,15 +3713,16 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden" style={{ background: "rgba(0,0,0,0.5)" }}>
-      <div className="bg-white rounded-xl shadow-2xl flex flex-col" style={{ maxWidth: 1000, width: "100%", maxHeight: "92vh" }}>
+      <div ref={dialogoRef} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1}
+           className="bg-white rounded-xl shadow-2xl flex flex-col outline-none" style={{ maxWidth: 1000, width: "100%", maxHeight: "92vh" }}>
         {/* Header */}
         <div className="p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4" style={{ borderColor: C.border, background: C.orangeLight }}>
           <div className="flex-1 min-w-0">
             <div className="text-xs uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5" style={{ color: C.orangeDark }}>
               Contrato {contrato.codigo ? `· ${contrato.codigo}` : ""}
-              {contrato.codigoProvisorio && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold normal-case tracking-normal" style={{ background: C.amberLight, color: "#92400E" }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>}
+              {contrato.codigoProvisorio && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold normal-case tracking-normal" style={{ background: C.amberLight, color: C.amber }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>}
             </div>
-            <h2 className="text-xl sm:text-2xl font-black mb-1 break-words" style={{ color: C.gray }}>{contrato.cliente}</h2>
+            <h2 id={tituloId} className="text-xl sm:text-2xl font-black mb-1 break-words" style={{ color: C.gray }}>{contrato.cliente}</h2>
             <div className="flex items-center gap-2 text-xs" style={{ color: C.grayMid }}>
               <MapPin size={12} /> {contrato.endereco}
             </div>
@@ -3852,9 +3730,9 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
           <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-4">
             <Avatar tec={tec} size={44} />
             <div className="flex gap-2">
-              {podeGerenciar && <button onClick={onEdit} className="p-2 rounded hover:bg-white/50" title="Editar"><Pencil size={16} /></button>}
-              {podeExcluir && <button onClick={() => { if (confirm("Excluir este contrato?")) onDelete(); }} className="p-2 rounded hover:bg-white/50" title="Excluir"><Trash2 size={16} style={{ color: C.nok }} /></button>}
-              <button onClick={onClose} className="p-2 rounded hover:bg-white/50"><X size={20} /></button>
+              {podeGerenciar && <button onClick={onEdit} className="p-2 rounded hover:bg-white/50" title="Editar" aria-label="Editar contrato"><Pencil size={16} /></button>}
+              {podeExcluir && <button onClick={() => { if (confirm("Excluir este contrato?")) onDelete(); }} className="p-2 rounded hover:bg-white/50" title="Excluir" aria-label="Excluir contrato"><Trash2 size={16} style={{ color: C.nok }} /></button>}
+              <button onClick={onClose} className="p-2 rounded hover:bg-white/50" title="Fechar" aria-label="Fechar"><X size={20} /></button>
             </div>
           </div>
         </div>
@@ -3892,7 +3770,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
               )}
               {verValores && (
               <section>
-                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Dados Contratuais</h3>
+                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Dados contratuais</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <DataRow label="Valor mensal" value={fmtCurrency(contrato.valorMensal)} />
                   <DataRow label="Valor total do contrato" value={fmtCurrency((contrato.valorMensal || 0) * getDuracaoMeses(contrato))} />
@@ -3904,7 +3782,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
 
               {!verValores && (
                 <section>
-                  <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Dados do Contrato</h3>
+                  <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Dados do contrato</h3>
                   <div className="grid md:grid-cols-2 gap-3">
                     <DataRow label="Data de início" value={fmtDate(contrato.dataInicio)} />
                     <DataRow label={`Duração: ${getDuracaoMeses(contrato)} meses`} value={`Validade: ${fmtDate(contrato.validade)}`} accent={contrato.validade && contrato.validade < hoje ? C.nok : null} />
@@ -3927,7 +3805,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                     const realizada = relStatus === "aprovado" ? relMes : null;
                     const visitaMes = visitas.find(v => v.tipo === "itm" && v.status !== "concluida" && !v.avulsa && v.contratoId === contrato.id && mesDoContrato(contrato.dataInicio, v.data) === c.mes);
                     return (
-                      <div key={c.mes} className="border rounded-lg p-2.5 flex items-center gap-3 flex-wrap" style={{ borderColor: realizada ? C.ok : relStatus === "devolvido" ? C.nok : C.border, background: realizada ? "#F0FDF4" : relStatus === "devolvido" ? "#FFF3F3" : "transparent" }}>
+                      <div key={c.mes} className="border rounded-lg p-2.5 flex items-center gap-3 flex-wrap" style={{ borderColor: realizada ? C.ok : relStatus === "devolvido" ? C.nok : C.border, background: realizada ? C.okLight : relStatus === "devolvido" ? C.nokLight : "transparent" }}>
                         <div className="text-center" style={{ width: 50 }}>
                           <div className="text-[9px] font-bold uppercase" style={{ color: C.orangeDark }}>MÊS</div>
                           <div className="text-lg font-black" style={{ color: C.gray }}>{c.mes}</div>
@@ -3963,7 +3841,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                           </div>
                         ) : relStatus === "pendente" ? (
                           <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: "#92400E" }}>
+                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: C.amber }}>
                               <Clock size={12} /> Aguardando aprovação
                             </span>
                             <button onClick={() => onViewRel(relMes)} className="px-2.5 py-1 rounded text-[11px] font-bold border flex items-center gap-1" style={{ borderColor: C.border, color: C.gray }}>
@@ -3976,7 +3854,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                               <ClipboardCheck size={12} /> {visitaMes.rascunhoItm ? "Continuar atendimento" : "Iniciar atendimento"}
                             </button>
                           ) : (
-                            <button onClick={() => (onWorkVisita || onOpenVisita)(visitaMes)} className="px-2.5 py-1 rounded text-[11px] font-bold border flex items-center gap-1" style={{ borderColor: "#B45309", color: "#B45309" }}>
+                            <button onClick={() => (onWorkVisita || onOpenVisita)(visitaMes)} className="px-2.5 py-1 rounded text-[11px] font-bold border flex items-center gap-1" style={{ borderColor: C.amber, color: C.amber }}>
                               <ClipboardList size={12} /> Fazer despacho
                             </button>
                           )
@@ -4012,7 +3890,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
               </section>
 
               <section>
-                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Contato e Responsável</h3>
+                <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Contato e responsável</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <DataRow label="Contato" value={contrato.contato} />
                   <DataRow label="Telefone" value={contrato.telefone || "—"} />
@@ -4025,7 +3903,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
 
           {tab === "historico" && (
             <div>
-              <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Histórico de Visitas e Relatórios</h3>
+              <h3 className="font-bold text-sm uppercase tracking-wide mb-3" style={{ color: C.orangeDark }}>Histórico de visitas e relatórios</h3>
               {visitasOrdenadas.length === 0 && (
                 <div className="text-center py-12 text-sm" style={{ color: C.grayMid }}>
                   Nenhuma visita registrada para este contrato
@@ -4077,7 +3955,7 @@ function ContratoDetail({ contrato, tecnicos, visitas, relatorios, onClose, onEd
                 Agende uma nova visita para este contrato escolhendo o tipo (ITM, Inspeção, Preventiva ou Corretiva).
               </p>
               <button onClick={onSchedule} className="px-5 py-2.5 rounded-lg text-sm font-bold text-white inline-flex items-center gap-2" style={{ background: C.orangeFill }}>
-                <Plus size={16} /> Agendar Nova Visita
+                <Plus size={16} /> Agendar nova visita
               </button>
             </div>
           )}
@@ -4111,7 +3989,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
   const [data, setData] = useState({
     cliente: "", endereco: "", contato: "", telefone: "", email: "",
     tecnicoId: tecnicos[0]?.id || "",
-    duracaoMeses: 12, valorMensal: 0, dataInicio: new Date().toISOString().slice(0, 10),
+    duracaoMeses: 12, valorMensal: 0, dataInicio: hojeLocal(),
     equipamentos: [],
     ...initial
   });
@@ -4126,8 +4004,9 @@ function ContratoForm({ initial, tecnicos, onSave }) {
   const validade = useMemo(() => {
     if (!data.dataInicio || !data.duracaoMeses) return "";
     const ini = new Date(data.dataInicio + "T00:00:00");
-    const fim = new Date(ini.getFullYear(), ini.getMonth() + data.duracaoMeses, ini.getDate() - 1);
-    return fim.toISOString().slice(0, 10);
+    const fim = addMesesLocal(ini, data.duracaoMeses); // mesmo limite de fim de mês do cronograma
+    fim.setDate(fim.getDate() - 1);
+    return isoLocal(fim);
   }, [data.dataInicio, data.duracaoMeses]);
 
   // Cronograma de visitas previstas
@@ -4142,7 +4021,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
     <div className="space-y-4">
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Cliente"><input value={data.cliente} onChange={e => upd("cliente", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Técnico Responsável">
+        <Field label="Técnico responsável">
           <select value={data.tecnicoId} onChange={e => upd("tecnicoId", parseInt(e.target.value))} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }}>
             {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
           </select>
@@ -4181,7 +4060,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
                           className="flex-1 sm:flex-none border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border, minWidth: 150 }}>
                     {TIPOS_EQUIP_CONTRATO.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
                   </select>
-                  <button type="button" onClick={() => rmEquip(e.id)} className="p-2 rounded hover:bg-gray-100 shrink-0" title="Remover"><Trash2 size={16} style={{ color: C.nok }} /></button>
+                  <button type="button" onClick={() => rmEquip(e.id)} className="p-2 rounded hover:bg-gray-100 shrink-0" title="Remover" aria-label="Remover equipamento"><Trash2 size={16} style={{ color: C.nok }} /></button>
                 </div>
               </div>
             ))}
@@ -4190,9 +4069,9 @@ function ContratoForm({ initial, tecnicos, onSave }) {
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
-        <Field label="Valor Mensal (R$)"><input type="number" step="0.01" value={data.valorMensal} onChange={e => upd("valorMensal", parseFloat(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Data de Início"><input type="date" value={data.dataInicio} onChange={e => upd("dataInicio", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Duração do Contrato">
+        <Field label="Valor mensal (R$)"><input type="number" step="0.01" value={data.valorMensal} onChange={e => upd("valorMensal", parseFloat(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Data de início"><input type="date" value={data.dataInicio} onChange={e => upd("dataInicio", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Duração do contrato">
           <div className="flex gap-2">
             {DURACOES_CONTRATO.map(d => (
               <button key={d} type="button" onClick={() => upd("duracaoMeses", d)}
@@ -4245,7 +4124,7 @@ function ContratoForm({ initial, tecnicos, onSave }) {
         <button onClick={handleSave} disabled={!data.cliente || !data.endereco || !data.dataInicio || salvando}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2"
                 style={{ background: C.orangeFill }}>
-          {salvando ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />} {salvando ? "Gerando número…" : "Salvar Contrato"}
+          {salvando ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />} {salvando ? "Gerando número…" : "Salvar contrato"}
         </button>
       </div>
     </div>
@@ -4259,7 +4138,7 @@ function Agenda({ visitas, contratos, tecnicos, onDespacho, onItm, onDocumento }
   const [view, setView] = useState("lista");
   const [filterTec, setFilterTec] = useState("todos");
   const [filterTipo, setFilterTipo] = useState("todos");
-  const [calMonth, setCalMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [calMonth, setCalMonth] = useState(() => hojeLocal().slice(0, 7));
 
   const filtered = useMemo(() => visitas.filter(v =>
     (filterTec === "todos" || v.tecnicoId === parseInt(filterTec)) &&
@@ -4300,7 +4179,7 @@ function Agenda({ visitas, contratos, tecnicos, onDespacho, onItm, onDocumento }
           {filtered.sort((a, b) => a.data.localeCompare(b.data)).map(v => {
             const c = contratos.find(x => x.id === v.contratoId);
             const tec = tecnicos.find(t => t.id === v.tecnicoId);
-            const today = new Date().toISOString().slice(0, 10);
+            const today = hojeLocal();
             const atrasada = v.status === "agendada" && v.data < today;
             return (
               <div key={v.id} className="p-4 flex items-center gap-4 flex-wrap">
@@ -4312,7 +4191,7 @@ function Agenda({ visitas, contratos, tecnicos, onDespacho, onItm, onDocumento }
                   <div className="font-bold text-sm">
                     {v.referencia && (
                     <span style={{ color: C.orangeDark }}>
-                      {v.referencia}{v.referenciaProvisoria && <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold align-middle" style={{ background: C.amberLight, color: "#92400E" }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>} |{" "}
+                      {v.referencia}{v.referenciaProvisoria && <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold align-middle" style={{ background: C.amberLight, color: C.amber }} title="Gerado offline — será confirmado ao sincronizar">provisório</span>} |{" "}
                     </span>
                   )}
                     {c?.cliente || "Visita avulsa"}
@@ -4324,9 +4203,9 @@ function Agenda({ visitas, contratos, tecnicos, onDespacho, onItm, onDocumento }
                     <VisitaFreqsPills visita={v} />
                     {atrasada && <Pill bg={C.nokLight} fg={C.nok}>Atrasada</Pill>}
                     {v.status === "concluida" && <Pill bg={C.okLight} fg={C.ok}>Concluída</Pill>}
-                    {v.status === "pendente_aprovacao" && <Pill bg={C.amberLight} fg="#92400E">Aguardando aprovação</Pill>}
+                    {v.status === "pendente_aprovacao" && <Pill bg={C.amberLight} fg={C.amber}>Aguardando aprovação</Pill>}
                     {v.status === "devolvida" && <Pill bg={C.nokLight} fg={C.nok}>Devolvida p/ correção</Pill>}
-                    {v.despacho && !v.relatorio && <Pill bg={C.amberLight} fg="#92400E">Despachada</Pill>}
+                    {v.despacho && !v.relatorio && <Pill bg={C.amberLight} fg={C.amber}>Despachada</Pill>}
                     {!v.despacho && v.status === "agendada" && <Pill bg={C.naLight} fg={C.na}>Aguardando despacho</Pill>}
                   </div>
                 </div>
@@ -4365,9 +4244,26 @@ function getRelApprovalStatus(rel) {
   return rel?.aprovacao?.status || "aprovado";
 }
 
+// "#700100 — Cliente": o que falta não aparece e o código não se repete quando é igual ao número do atendimento
+function tituloRelatorio(r) {
+  const num = r?.referencia || r?.codigoAtendimento || r?.codigo || "";
+  const partes = [];
+  if (num) partes.push("#" + num);
+  if (r?.codigo && String(r.codigo) !== String(num)) partes.push(r.codigo);
+  if (r?.cliente) partes.push(r.cliente);
+  return partes.join(" — ") || "Relatório";
+}
+// conformidade só quando é número (relatório antigo/importado pode não ter)
+function conformidadeNum(r) {
+  const v = r?.conformidade;
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 // Sino de notificações in-app: contador + lista ao clicar. Sem push/e-mail —
 // funciona só enquanto o app está aberto, lendo o estado sincronizado.
-function NotificationBell({ notificacoes, naoLidas, onOpenNotificacao, onMarkAllRead }) {
+function NotificationBell({ notificacoes, naoLidas, onOpenNotificacao, onMarkAllRead, alinharDireita = false }) {
   const [open, setOpen] = useState(false);
   const ICONS = { novo_pendente: ClipboardCheck, aprovado: CheckCircle2, devolvido: AlertTriangle, visita_agendada: Calendar, atendimento_atribuido: FilePlus2 };
   const CORES = { novo_pendente: C.blue, aprovado: C.ok, devolvido: C.nok, visita_agendada: C.orange, atendimento_atribuido: C.orange };
@@ -4381,8 +4277,9 @@ function NotificationBell({ notificacoes, naoLidas, onOpenNotificacao, onMarkAll
   };
   return (
     <div className="relative">
-      <button onClick={() => setOpen(o => !o)} className="relative p-2 rounded-lg hover:bg-gray-100" title="Notificações">
-        <Bell size={18} style={{ color: C.gray }} />
+      <button onClick={() => setOpen(o => !o)} className="relative p-2 rounded-lg hover:bg-gray-100" title="Notificações"
+              aria-label={naoLidas > 0 ? `Notificações: ${naoLidas} não lida${naoLidas > 1 ? "s" : ""}` : "Notificações"} aria-expanded={open}>
+        <Bell size={18} style={{ color: C.gray }} aria-hidden="true" />
         {naoLidas > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: C.nok }}>
             {naoLidas > 9 ? "9+" : naoLidas}
@@ -4392,7 +4289,7 @@ function NotificationBell({ notificacoes, naoLidas, onOpenNotificacao, onMarkAll
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-white border rounded-xl shadow-xl z-50" style={{ borderColor: C.border }}>
+          <div className={`absolute ${alinharDireita ? "right-0" : "left-0 sm:left-auto sm:right-0"} mt-2 w-80 max-w-[calc(100vw-24px)] max-h-96 overflow-y-auto bg-white border rounded-xl shadow-xl z-50`} style={{ borderColor: C.border }}>
             <div className="p-3 border-b flex items-center justify-between sticky top-0 bg-white" style={{ borderColor: C.border }}>
               <span className="text-xs font-bold uppercase tracking-wide" style={{ color: C.gray }}>Notificações</span>
               {naoLidas > 0 && <button onClick={onMarkAllRead} className="text-[11px] font-bold" style={{ color: C.orangeDark }}>Marcar todas como lidas</button>}
@@ -4422,11 +4319,16 @@ function NotificationBell({ notificacoes, naoLidas, onOpenNotificacao, onMarkAll
   );
 }
 
+// situação da aprovação do relatório: o mesmo texto na tela (ApprovalBadge) e na exportação para o Excel
+const APROVACAO_STATUS = {
+  pendente:  { label: "Pendente aprovação",    bg: C.amberLight, fg: C.amber },
+  devolvido: { label: "Devolvido p/ correção", bg: C.nokLight,   fg: C.nok },
+  aprovado:  { label: "Aprovado",              bg: C.okLight,    fg: C.ok },
+};
+function aprovacaoInfo(rel) { const st = getRelApprovalStatus(rel); return APROVACAO_STATUS[st] || { label: String(st || "—"), bg: C.grayLight, fg: C.gray }; }
 function ApprovalBadge({ rel }) {
-  const status = getRelApprovalStatus(rel);
-  if (status === "pendente") return <Pill bg={C.amberLight} fg="#92400E">Pendente aprovação</Pill>;
-  if (status === "devolvido") return <Pill bg={C.nokLight} fg={C.nok}>Devolvido p/ correção</Pill>;
-  return <Pill bg={C.okLight} fg={C.ok}>Aprovado</Pill>;
+  const info = aprovacaoInfo(rel);
+  return <Pill bg={info.bg} fg={info.fg}>{info.label}</Pill>;
 }
 
 // Tela do técnico: só os atendimentos que são dele, separados em "precisa
@@ -4438,7 +4340,7 @@ function ApprovalBadge({ rel }) {
 // Gestor, Coordenador, Supervisor), mostra um seletor para escolher de qual
 // técnico ver — ou "Todos", numa lista combinada com o nome de cada um.
 function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGestor, onDespacho, onItm, onDocumento }) {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeLocal();
   const [filtroTecnico, setFiltroTecnico] = useState(() => souGestor ? "todos" : String(tecnicoId || ""));
 
   const tecnicoIdEfetivo = souGestor
@@ -4449,7 +4351,7 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
   const minhas = useMemo(() => {
     if (!modoTodos && !tecnicoIdEfetivo) return [];
     return visitas
-      .filter(v => modoTodos ? !!v.tecnicoId : v.tecnicoId === tecnicoIdEfetivo)
+      .filter(v => modoTodos ? !!v.tecnicoId : (v.tecnicoId != null && String(v.tecnicoId) === String(tecnicoIdEfetivo)))
       .map(v => {
         const c = contratos.find(x => x.id === v.contratoId);
         const tec = tecnicos.find(t => t.id === v.tecnicoId);
@@ -4484,10 +4386,10 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
   if (!souGestor && !tecnicoId) {
     return (
       <div className="p-4 sm:p-8">
-        <h1 className="text-3xl font-black mb-1" style={{ color: C.gray }}>Meus Atendimentos</h1>
+        <h1 className="text-3xl font-black mb-1" style={{ color: C.gray }}>Meus atendimentos</h1>
         <p className="text-sm mb-6" style={{ color: C.grayMid }}>Seus atendimentos pendentes e futuros.</p>
         <div className="p-6 border rounded-xl text-sm" style={{ borderColor: C.border, color: C.grayMid }}>
-          Seu usuário ainda não está vinculado a um cadastro de técnico. Peça ao administrador para vincular, na aba <b>Usuários</b> — assim esta tela (e os avisos do sino) passam a mostrar exatamente os seus atendimentos.
+          Seu usuário ainda não está vinculado a um cadastro de técnico. Peça ao administrador para vincular, no LS Pricer em <b>Configurações → Usuários e acessos</b> — assim esta tela (e os avisos do sino) passam a mostrar exatamente os seus atendimentos.
         </div>
       </div>
     );
@@ -4522,7 +4424,7 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
 
   return (
     <div className="p-4 sm:p-8">
-      <h1 className="text-3xl font-black mb-1" style={{ color: C.gray }}>{souGestor ? "Atendimentos por Técnico" : "Meus Atendimentos"}</h1>
+      <h1 className="text-3xl font-black mb-1" style={{ color: C.gray }}>{souGestor ? "Atendimentos por técnico" : "Meus atendimentos"}</h1>
       <p className="text-sm mb-6" style={{ color: C.grayMid }}>{souGestor ? "Acompanhe o que está pendente e agendado, por técnico." : "Seus atendimentos pendentes e futuros."}</p>
       {Seletor}
 
@@ -4555,12 +4457,12 @@ function MeusAtendimentosView({ visitas, contratos, tecnicos, tecnicoId, souGest
 
       {aguardandoAprovacao.length > 0 && (
         <>
-          <div className="mb-3 text-xs uppercase font-bold tracking-wide" style={{ color: "#92400E" }}>Aguardando aprovação ({aguardandoAprovacao.length})</div>
+          <div className="mb-3 text-xs uppercase font-bold tracking-wide" style={{ color: C.amber }}>Aguardando aprovação ({aguardandoAprovacao.length})</div>
           <div className="border rounded-xl divide-y" style={{ borderColor: C.border }}>
             {aguardandoAprovacao.map(v => (
               <div key={v.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
                 <div className="font-bold text-sm" style={{ color: C.gray }}>{v.referencia && <span style={{ color: C.orangeDark }}>{v.referencia} | </span>}{v._cliente}</div>
-                <Pill bg={C.amberLight} fg="#92400E">Aguardando aprovação</Pill>
+                <Pill bg={C.amberLight} fg={C.amber}>Aguardando aprovação</Pill>
               </div>
             ))}
           </div>
@@ -4645,7 +4547,7 @@ function VisitasTecnicas({ visitas, relatorios, contratos, tecnicos, onDespacho,
     <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-black" style={{ color: C.gray }}>Visitas Técnicas</h1>
+          <h1 className="text-3xl font-black" style={{ color: C.gray }}>Visitas técnicas</h1>
           <p className="text-sm mt-1" style={{ color: C.grayMid }}>Atendimentos de contrato e avulsos, com filtros por tipo, origem e status.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -4684,7 +4586,7 @@ function VisitasTecnicas({ visitas, relatorios, contratos, tecnicos, onDespacho,
                   {item.origem === "avulsa" ? "Avulsa" : "Contrato"}
                 </Pill>
                 <Pill bg={item.status === "concluida" ? C.okLight : item.status === "pendente_aprovacao" ? C.amberLight : item.status === "devolvida" ? C.nokLight : C.grayLight}
-                      fg={item.status === "concluida" ? C.ok : item.status === "pendente_aprovacao" ? "#92400E" : item.status === "devolvida" ? C.nok : C.gray}>
+                      fg={item.status === "concluida" ? C.ok : item.status === "pendente_aprovacao" ? C.amber : item.status === "devolvida" ? C.nok : C.gray}>
                   {statusLabel[item.status] || item.status}
                 </Pill>
                 <span><User size={11} className="inline mr-1" />{item.tecnico}</span>
@@ -4704,7 +4606,7 @@ function VisitasTecnicas({ visitas, relatorios, contratos, tecnicos, onDespacho,
                   </button>
                   {(!item.relatorio || item.status === "devolvida") && (
                     <button onClick={() => onItm(item.visita)} disabled={!item.visita.despacho && !item.visita.avulsa}
-                            className="px-3 py-1.5 text-xs font-bold rounded-lg text-white disabled:opacity-40" style={{ background: item.status === "devolvida" ? C.nok : item.visita.rascunhoItm ? "#B45309" : C.orange }}>
+                            className="px-3 py-1.5 text-xs font-bold rounded-lg text-white disabled:opacity-40" style={{ background: item.status === "devolvida" ? C.nok : item.visita.rascunhoItm ? "#B45309" : C.orangeFill }}>
                       {item.status === "devolvida" ? "Corrigir" : item.visita.rascunhoItm ? "Continuar" : "Iniciar"}
                     </button>
                   )}
@@ -4751,14 +4653,14 @@ function DocumentoInternoAtendimento({ visita, contrato, tecnico }) {
     <div>
       <div className="flex justify-end mb-4 print:hidden">
         <button onClick={handlePrint} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orangeFill }}>
-          <Printer size={14} /> Imprimir Documento Interno
+          <Printer size={14} /> Imprimir documento interno
         </button>
       </div>
       <div className="bg-white mx-auto border p-8 documento-interno-print" data-documento-interno style={{ borderColor: C.border, maxWidth: 900, color: C.gray, fontFamily: "var(--font-body)" }}>
         <div className="flex items-start justify-between border-b pb-4 mb-5" style={{ borderColor: C.border }}>
           <div>
             <LogoLSFire size={42} />
-            <h1 className="text-2xl font-black mt-4" style={{ color: C.gray }}>Documento Interno de Atendimento</h1>
+            <h1 className="text-2xl font-black mt-4" style={{ color: C.gray }}>Documento interno de atendimento</h1>
             <div className="text-sm" style={{ color: C.grayMid }}>Orientações e anexos para execução em campo</div>
           </div>
           <TipoBadge tipo={visita?.tipo} size="lg" />
@@ -4774,7 +4676,7 @@ function DocumentoInternoAtendimento({ visita, contrato, tecnico }) {
         <ReportSubTitle>Demanda</ReportSubTitle>
         <p style={{ fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", border: "1px solid #BFBFBF", padding: 10 }}>{demanda || "—"}</p>
 
-        <ReportSubTitle>Orientações Internas</ReportSubTitle>
+        <ReportSubTitle>Orientações internas</ReportSubTitle>
         <p style={{ fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", border: "1px solid #BFBFBF", padding: 10 }}>{orientacoes || "—"}</p>
 
         {visita?.tipo === "startup" && (
@@ -4793,7 +4695,7 @@ function DocumentoInternoAtendimento({ visita, contrato, tecnico }) {
 
         {checklistRows.length > 0 && (
           <>
-            <ReportSubTitle>Checklist de Despacho</ReportSubTitle>
+            <ReportSubTitle>Checklist de despacho</ReportSubTitle>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
               <tbody>
                 {checklistRows.map(([item, v]) => (
@@ -4844,11 +4746,11 @@ function CalendarView({ visitas, contratos, month, onMonthChange, onItm }) {
   return (
     <div className="border rounded-xl p-5" style={{ borderColor: C.border }}>
       <div className="flex items-center justify-between mb-4">
-        <button onClick={prev} className="p-2 rounded hover:bg-gray-100"><ChevronLeft size={18} /></button>
+        <button onClick={prev} className="p-2 rounded hover:bg-gray-100" aria-label="Mês anterior" title="Mês anterior"><ChevronLeft size={18} /></button>
         <div className="font-bold text-lg capitalize" style={{ color: C.gray }}>
           {new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
         </div>
-        <button onClick={next} className="p-2 rounded hover:bg-gray-100"><ChevronRight size={18} /></button>
+        <button onClick={next} className="p-2 rounded hover:bg-gray-100" aria-label="Próximo mês" title="Próximo mês"><ChevronRight size={18} /></button>
       </div>
       <div className="grid grid-cols-7 gap-1 mb-1">
         {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(d => (
@@ -4893,7 +4795,7 @@ function TecnicosView({ tecnicos, visitas, onNew, onEdit, onDelete }) {
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <h1 className="text-2xl sm:text-3xl font-black" style={{ color: C.gray }}>Técnicos</h1>
         <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orangeFill }}>
-          <Plus size={16} /> Novo Técnico
+          <Plus size={16} /> Novo técnico
         </button>
       </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -4957,7 +4859,7 @@ function TecnicoForm({ initial, onSave }) {
       <Field label="Nome completo"><input value={data.nome} onChange={e => upd("nome", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Cargo"><input value={data.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Técnico Sênior / Pleno / Júnior" className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Licença / Registro"><input value={data.licenca} onChange={e => upd("licenca", e.target.value)} placeholder="CREA-XX 0000000" className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Licença / registro"><input value={data.licenca} onChange={e => upd("licenca", e.target.value)} placeholder="CREA-XX 0000000" className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Telefone"><input value={data.telefone} onChange={e => upd("telefone", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="E-mail"><input type="email" value={data.email} onChange={e => upd("email", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Cidade base" hint="Onde o técnico fica alocado: é de lá que sai o deslocamento até o cliente.">
@@ -4972,7 +4874,7 @@ function TecnicoForm({ initial, onSave }) {
         <button onClick={() => onSave(data)} disabled={!data.nome}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2"
                 style={{ background: C.orangeFill }}>
-          <Save size={14} /> Salvar Técnico
+          <Save size={14} /> Salvar técnico
         </button>
       </div>
     </div>
@@ -5002,7 +4904,7 @@ function AprovacoesView({ relatorios, onView }) {
           {pendentes.map(r => (
             <div key={r.id} className="p-4 flex items-center gap-4 flex-wrap">
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm" style={{ color: C.gray }}>#{r.referencia || r.codigoAtendimento || r.codigo} — {r.codigo} — {r.cliente}</div>
+                <div className="font-bold text-sm" style={{ color: C.gray }}>{tituloRelatorio(r)}</div>
                 <div className="text-xs flex gap-3 mt-1 flex-wrap items-center" style={{ color: C.grayMid }}>
                   <TipoBadge tipo={r.tipo} />
                   <span><Calendar size={11} className="inline mr-1" />{fmtDate(r.dataEmissao)}</span>
@@ -5023,7 +4925,7 @@ function AprovacoesView({ relatorios, onView }) {
             {devolvidos.map(r => (
               <div key={r.id} className="p-4 flex items-center gap-4 flex-wrap">
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm" style={{ color: C.gray }}>#{r.referencia || r.codigoAtendimento || r.codigo} — {r.codigo} — {r.cliente}</div>
+                  <div className="font-bold text-sm" style={{ color: C.gray }}>{tituloRelatorio(r)}</div>
                   <div className="text-xs mt-1" style={{ color: C.grayMid }}>Motivo: {r.aprovacao?.motivo || "—"}</div>
                 </div>
                 <button onClick={() => onView(r)} className="px-3 py-1.5 text-xs font-bold rounded-lg border flex items-center gap-1" style={{ borderColor: C.border, color: C.gray }}>
@@ -5057,8 +4959,8 @@ function Relatorios({ relatorios, contratos, onView, onDelete }) {
       r.codigo || "",
       r.cliente || "",
       TIPO_REL[r.tipo]?.nome || r.tipo || "",
-      getRelApprovalStatus(r) === "pendente" ? "Pendente" : "Aprovado",
-      r.conformidade ?? "",
+      aprovacaoInfo(r).label,
+      conformidadeNum(r) ?? "",
       fmtDate(r.dataEmissao) || "",
       r.os || "",
       r.identificacao?.revisao || r.revisao || "",
@@ -5081,7 +4983,7 @@ function Relatorios({ relatorios, contratos, onView, onDelete }) {
       const a = document.createElement("a");
       const nomeFiltro = filterTipo === "todos" ? "todos" : (TIPO_REL[filterTipo]?.nome || filterTipo).replace(/[^\w]+/g, "-");
       a.href = url;
-      a.download = `relatorios-lsfire-${nomeFiltro}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `relatorios-lsfire-${nomeFiltro}-${hojeLocal()}.csv`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) { alert("Não foi possível gerar o arquivo neste ambiente."); }
@@ -5092,8 +4994,8 @@ function Relatorios({ relatorios, contratos, onView, onDelete }) {
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <h1 className="text-3xl font-black" style={{ color: C.gray }}>Relatórios</h1>
         <button onClick={exportarExcel} disabled={filtered.length === 0}
-                className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-white disabled:opacity-40"
-                style={{ background: "#1D6F42" }}
+                className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border disabled:opacity-40"
+                style={{ borderColor: C.orange, color: C.orangeDark, background: C.white }}
                 title="Exporta os relatórios do filtro atual para um arquivo que abre no Excel">
           <FileText size={15} /> Exportar Excel ({filtered.length})
         </button>
@@ -5119,7 +5021,7 @@ function Relatorios({ relatorios, contratos, onView, onDelete }) {
           {filtered.map(r => (
             <div key={r.id} className="p-4 flex items-center gap-4 flex-wrap">
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm" style={{ color: C.gray }}>#{r.referencia || r.codigoAtendimento || r.codigo} — {r.codigo} — {r.cliente}</div>
+                <div className="font-bold text-sm" style={{ color: C.gray }}>{tituloRelatorio(r)}</div>
                 <div className="text-xs flex gap-3 mt-1 flex-wrap items-center" style={{ color: C.grayMid }}>
                   <TipoBadge tipo={r.tipo} />
                   <ApprovalBadge rel={r} />
@@ -5128,10 +5030,12 @@ function Relatorios({ relatorios, contratos, onView, onDelete }) {
                   {r.os && <span>OS Nº {r.os}</span>}
                 </div>
               </div>
-              <Pill bg={r.conformidade >= 90 ? C.okLight : r.conformidade >= 60 ? C.amberLight : C.nokLight}
-                    fg={r.conformidade >= 90 ? C.ok : r.conformidade >= 60 ? "#92400E" : C.nok}>
-                {r.conformidade}% conforme
+              {conformidadeNum(r) != null && (() => { const cf = conformidadeNum(r); return (
+              <Pill bg={cf >= 90 ? C.okLight : cf >= 60 ? C.amberLight : C.nokLight}
+                    fg={cf >= 90 ? C.ok : cf >= 60 ? C.amber : C.nok}>
+                {cf}% conforme
               </Pill>
+              ); })()}
               {podeExcluir && (
                 <button onClick={() => { if (confirm(`Excluir relatório ${r.codigo || r.referencia}?`)) onDelete?.(r.id); }} className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1 border" style={{ borderColor: C.border, color: C.nok }}>
                   <Trash2 size={12} /> Apagar
@@ -5172,16 +5076,18 @@ function TabPill({ label, Icon, active, onClick, color, bg }) {
 // ═══════════════════════════════════════════════════════════════════════════
 function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
   const contratoFixo = initial?.contratoIdFixo;
-  const [contratoId, setContratoId] = useState(contratoFixo || contratos[0]?.id || "");
+  const avulsa = !!initial?.avulsa;
+  // atendimento avulso não tem contrato: nada de herdar o primeiro da lista
+  const [contratoId, setContratoId] = useState(avulsa ? null : (contratoFixo || contratos[0]?.id || ""));
   const [tipo, setTipo] = useState("itm");
-  const [data, setData] = useState(initial?.data || new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState(initial?.data || hojeLocal());
   const [demanda, setDemanda] = useState("");
   const [anexos, setAnexos] = useState([]);
   // técnico da visita: quem agenda sendo técnico fica como executante; senão o técnico do contrato
   const { sessao } = useAuth();
   const meu = meuTecnico(sessao, tecnicos);
   const tecPadrao = (c) => (sessao?.perfil === "tecnico" && meu ? meu.id : (c?.tecnicoId || meu?.id || tecnicos[0]?.id || ""));
-  const [tecnicoId, setTecnicoId] = useState(() => tecPadrao(contratos.find(x => x.id === (contratoFixo || contratos[0]?.id))));
+  const [tecnicoId, setTecnicoId] = useState(() => tecPadrao(avulsa ? null : contratos.find(x => x.id === (contratoFixo || contratos[0]?.id))));
 
   useEffect(() => {
     const c = contratos.find(x => x.id === contratoId);
@@ -5190,7 +5096,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
 
   const ehItm = tipo === "itm";
   const isStartup = tipo === "startup";
-  const contratoSel = contratos.find(c => c.id === contratoId);
+  const contratoSel = avulsa ? null : contratos.find(c => c.id === contratoId);
   const checklistClienteOk = !isStartup || hasStartupClientChecklist(anexos);
 
   // Frequências previstas calculadas automaticamente pelo mês do contrato
@@ -5216,7 +5122,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
     const { numero, provisorio } = await gerarReferenciaAtendimento();
     return ({
     referencia: numero, codigoAtendimento: numero, referenciaProvisoria: provisorio,
-    contratoId, tipo, data, demanda, anexos,
+    contratoId: avulsa ? null : contratoId, tipo, data, demanda, anexos,
     documentoInternoCriadoEm: new Date().toISOString(),
     freq:  ehItm ? freqsPrevistas[0] : null,
     freqs: ehItm ? freqsPrevistas : null,
@@ -5276,7 +5182,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
       <div className="border rounded-lg p-4 space-y-3" style={{ borderColor: isStartup && !checklistClienteOk ? C.nok : C.border }}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <div className="text-sm font-bold" style={{ color: C.gray }}>Anexos do Atendimento</div>
+            <div className="text-sm font-bold" style={{ color: C.gray }}>Anexos do atendimento</div>
             <div className="text-[11px]" style={{ color: C.grayMid }}>E-mails, documentos, curvas, folhas de dados e orientações que devem ir junto com o técnico.</div>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -5296,7 +5202,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
       </div>
 
       {ehItm && contratoSel && !initial?.avulsa && (
-        <div className="border rounded-lg p-3" style={{ borderColor: foraPeriodo ? C.nok : C.border, background: foraPeriodo ? "#FFFBFB" : C.orangeLight }}>
+        <div className="border rounded-lg p-3" style={{ borderColor: foraPeriodo ? C.nok : C.border, background: foraPeriodo ? C.nokLight : C.orangeLight }}>
           {foraPeriodo ? (
             <div className="text-xs flex items-center gap-2" style={{ color: C.nok }}>
               <AlertTriangle size={14} />
@@ -5326,7 +5232,7 @@ function NewVisitForm({ contratos, tecnicos, initial, onCreate }) {
         {initial?.avulsa ? (
           <button onClick={() => criar("iniciar")} disabled={!podeSalvar || gerandoNumero}
                   className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2" style={{ background: C.orangeFill }}>
-            {gerandoNumero && <RefreshCw size={14} className="animate-spin" />} {gerandoNumero ? "Gerando número…" : "Iniciar Relatório"}
+            {gerandoNumero && <RefreshCw size={14} className="animate-spin" />} {gerandoNumero ? "Gerando número…" : "Iniciar relatório"}
           </button>
         ) : (
           <>
@@ -5537,7 +5443,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
 
       <div className="mb-5 pb-5 border-b space-y-4" style={{ borderColor: C.border }}>
         <div className="grid md:grid-cols-2 gap-4">
-          <Field label="Demanda do Atendimento">
+          <Field label="Demanda do atendimento">
             <textarea value={demandaDespacho} onChange={e => setDemandaDespacho(e.target.value)} rows={5}
                       placeholder="Demanda recebida, histórico informado pelo cliente e objetivo da visita."
                       className="w-full border rounded-lg px-3 py-2 text-sm resize-y" style={{ borderColor: C.border }} />
@@ -5614,7 +5520,7 @@ function DespachoForm({ visita, contrato, relatoriosContrato = [], initial, onSa
                     <input value={v.obs} onChange={e => setItem(it, { obs: e.target.value })}
                            placeholder={v.status === "nok" ? "Descreva o problema…" : "Justifique a N/A…"}
                            className="w-full mt-1.5 px-2 py-1 text-xs border rounded"
-                           style={{ borderColor: v.status === "nok" ? C.nok : C.border, background: v.status === "nok" ? "#FFFBFB" : "#fff" }} />
+                           style={{ borderColor: v.status === "nok" ? C.nok : C.border, background: v.status === "nok" ? C.nokLight : C.white, color: C.gray }} />
                   )}
                 </div>
               );
@@ -5679,12 +5585,12 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
     licenca: tecnico?.licenca || "",
     contratado: "LS Fire",
     enderecoContratado: "lsfire.com.br",
-    periodoIni: visita.data || new Date().toISOString().slice(0, 10),
-    periodoFim: visita.data || new Date().toISOString().slice(0, 10),
+    periodoIni: visita.data || hojeLocal(),
+    periodoFim: visita.data || hojeLocal(),
     responsavel: tecnico?.nome || "",
     codigo: visita.referencia || visita.codigoAtendimento || `${codigoPrefix}-${Date.now().toString().slice(-4)}`,
     revisao: "00",
-    dataEmissao: new Date().toISOString().slice(0, 10),
+    dataEmissao: hojeLocal(),
   }));
 
   // Estado para fluxo NFPA — carrega checklists das frequências escolhidas no despacho
@@ -5777,14 +5683,14 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
       { id: "stc", label: "Checklist RQ 48", Icon: ClipboardCheck },
       { id: "stt", label: "Testes", Icon: ShieldCheck }
     );
-    else base.push({ id: "cas", label: "Casas de Bombas", Icon: Flame });
+    else base.push({ id: "cas", label: "Casas de bombas", Icon: Flame });
     if (!isStartup && fazerPerformance) base.push(
-      { id: "perfeq", label: "Equip. Performance", Icon: Building2 },
-      { id: "perf", label: "Teste de Performance", Icon: ShieldCheck }
+      { id: "perfeq", label: "Equip. performance", Icon: Building2 },
+      { id: "perf", label: "Teste de performance", Icon: ShieldCheck }
     );
-    if (visita.tipo === "corretiva") base.push({ id: "cor", label: "Ação Corretiva", Icon: Wrench });
+    if (visita.tipo === "corretiva") base.push({ id: "cor", label: "Ação corretiva", Icon: Wrench });
     if (!isStartup) base.push(
-      { id: "mao", label: "Mão de Obra", Icon: Clock },
+      { id: "mao", label: "Mão de obra", Icon: Clock },
       { id: "des", label: "Deslocamento", Icon: Truck }
     );
     base.push(
@@ -5803,6 +5709,19 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
     _savedAt: new Date().toISOString(),
   });
   const handleClose = () => { try { onSaveDraft?.(snapshot()); } catch {} onClose(); };
+
+  // Rascunho salvo sozinho durante o preenchimento (~1,5 s depois da última mudança), no mesmo lugar do rascunho
+  // salvo ao fechar (visita.rascunhoItm): se o app fechar, a bateria acabar ou a aba for descartada, nada se perde.
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
+  const onSaveDraftRef = useRef(onSaveDraft);
+  onSaveDraftRef.current = onSaveDraft;
+  const primeiraRenderRef = useRef(true);
+  useEffect(() => {
+    if (primeiraRenderRef.current) { primeiraRenderRef.current = false; return; } // abrir não é mudança
+    const t = setTimeout(() => { try { onSaveDraftRef.current?.(snapshotRef.current(), { auto: true }); } catch {} }, 1500);
+    return () => clearTimeout(t);
+  }, [step, identificacao, nfpaGroups, equipNFPA, casas, startup, corretiva, fazerPerformance, perfData, maoObra, deslocs, trein, obs, assins]);
 
   const finalizar = () => {
     onFinish({
@@ -5842,7 +5761,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
     <div className="fixed inset-0 z-50 bg-white flex flex-col print:hidden lsfire-app-shell">
       {/* Topo */}
       <div className="flex items-center gap-3 p-4 border-b" style={{ borderColor: C.border, background: tipoCfg.bg }}>
-        <button onClick={handleClose} className="p-2 rounded hover:bg-white/50"><ArrowLeft size={20} /></button>
+        <button onClick={handleClose} className="p-2 rounded hover:bg-white/50" aria-label="Voltar (o rascunho fica salvo)" title="Voltar"><ArrowLeft size={20} /></button>
         <div className="flex-1 min-w-0">
           <div className="text-xs uppercase font-bold tracking-wider flex items-center gap-2 flex-wrap" style={{ color: tipoCfg.color }}>
             <tipoCfg.Icon size={14} /> {tipoCfg.nomeLong}
@@ -5852,7 +5771,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
               </span>
             ))}
           </div>
-          <div className="font-bold text-sm truncate">{identificacao.cliente || "Novo Relatório Avulso"}</div>
+          <div className="font-bold text-sm truncate">{identificacao.cliente || "Novo relatório avulso"}</div>
         </div>
         <div className="flex items-center gap-4 text-xs flex-shrink-0">
           <span className="hidden sm:flex items-center gap-1" style={{ color: C.ok }}><CheckCircle2 size={14} /> {stats.ok}</span>
@@ -5891,7 +5810,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
         {currentStep.id === "id"    && <StepIdentificacao state={identificacao} setState={setIdentificacao} isNFPA={isNFPA} isStartup={isStartup} tecnicos={tecnicos} meuId={meu?.id ?? null} />}
         {currentStep.id === "id" && !isStartup && (
           <div className="max-w-3xl mx-auto mt-5">
-            <div className="border rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap" style={{ borderColor: C.border, background: fazerPerformance ? C.orangeLight : "#fff" }}>
+            <div className="border rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap" style={{ borderColor: C.border, background: fazerPerformance ? C.orangeLight : C.white }}>
               <div>
                 <div className="font-bold text-sm flex items-center gap-2" style={{ color: C.gray }}>
                   <ShieldCheck size={16} style={{ color: TIPO_REL.startup.color }} /> Fazer teste de performance?
@@ -5948,7 +5867,7 @@ function ITMFlow({ visita, contratos, tecnicos, onClose, onFinish, initialDraft,
           <button onClick={finalizar}
                   className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2"
                   style={{ background: C.orangeFill }}>
-            <FileText size={14} /> Finalizar e Gerar Relatório
+            <FileText size={14} /> Finalizar e gerar relatório
           </button>
         )}
       </div>
@@ -5996,7 +5915,7 @@ function StepIdentificacao({ state, setState, isNFPA, isStartup, tecnicos = [], 
       <h2 className="text-xl font-black mb-4" style={{ color: C.gray }}>Identificação</h2>
 
       {isNFPA && (
-        <div className="p-3 rounded-lg flex items-start gap-2 text-xs" style={{ background: C.blueLight, color: "#1E40AF" }}>
+        <div className="p-3 rounded-lg flex items-start gap-2 text-xs" style={{ background: C.blueLight, color: C.blue }}>
           <ClipboardCheck size={14} className="mt-0.5 flex-shrink-0" />
           <span>Os campos abaixo seguem o formulário NFPA 25 / NFPA 20. Eles aparecem no cabeçalho do relatório oficial.</span>
         </div>
@@ -6008,31 +5927,31 @@ function StepIdentificacao({ state, setState, isNFPA, isStartup, tecnicos = [], 
         </div>
       )}
 
-      <h3 className="text-sm font-bold mt-2" style={{ color: C.orangeDark }}>Propriedade Inspecionada</h3>
+      <h3 className="text-sm font-bold mt-2" style={{ color: C.orangeDark }}>Propriedade inspecionada</h3>
       <div className="grid md:grid-cols-2 gap-4">
-        <Field label="Nome da Propriedade"><input value={state.cliente} onChange={e => upd("cliente", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Nome da propriedade"><input value={state.cliente} onChange={e => upd("cliente", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         {!isNFPA && <Field label="Empreendimento"><input value={state.empreendimento} onChange={e => upd("empreendimento", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>}
-        <Field label="Endereço da Propriedade"><input value={state.local} onChange={e => upd("local", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm md:col-span-2" style={{ borderColor: C.border }} /></Field>
-        <Field label="Telefone da Propriedade"><input value={state.telefone} onChange={e => upd("telefone", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Nº do Contrato"><input value={state.contratoNum} onChange={e => upd("contratoNum", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Endereço da propriedade"><input value={state.local} onChange={e => upd("local", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm md:col-span-2" style={{ borderColor: C.border }} /></Field>
+        <Field label="Telefone da propriedade"><input value={state.telefone} onChange={e => upd("telefone", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Nº do contrato"><input value={state.contratoNum} onChange={e => upd("contratoNum", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="OS Nº"><input value={state.os} onChange={e => upd("os", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Código do Documento"><input value={state.codigo} onChange={e => upd("codigo", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Código do documento"><input value={state.codigo} onChange={e => upd("codigo", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
       </div>
 
       <h3 className="text-sm font-bold mt-4" style={{ color: C.orangeDark }}>Período / Técnico (inspetor)</h3>
       <div className="grid md:grid-cols-4 gap-4">
-        <Field label="Início da Execução"><input type="date" value={state.periodoIni} onChange={e => upd("periodoIni", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Fim da Execução"><input type="date" value={state.periodoFim} onChange={e => upd("periodoFim", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Início da execução"><input type="date" value={state.periodoIni} onChange={e => upd("periodoIni", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Fim da execução"><input type="date" value={state.periodoFim} onChange={e => upd("periodoFim", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Técnico / Inspetor"><CampoTecnico tecnicos={tecnicos} meuId={meuId} rotulo="técnico (inspetor)" value={state.inspetor}
           onPick={(nome, t) => setState(s => ({ ...s, inspetor: nome, tecnicoId: t ? t.id : null, ...(t ? { responsavel: t.nome, licenca: t.licenca || s.licenca } : {}) }))} /></Field>
-        <Field label="Data de Emissão"><input type="date" value={state.dataEmissao} onChange={e => upd("dataEmissao", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Data de emissão"><input type="date" value={state.dataEmissao} onChange={e => upd("dataEmissao", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
       </div>
 
       <h3 className="text-sm font-bold mt-4" style={{ color: C.orangeDark }}>Contratado</h3>
       <div className="grid md:grid-cols-3 gap-4">
-        <Field label="Nome do Contratado"><input value={state.contratado} onChange={e => upd("contratado", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Endereço do Contratado"><input value={state.enderecoContratado} onChange={e => upd("enderecoContratado", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-        <Field label="Licença / Certificação Nº"><input value={state.licenca} onChange={e => upd("licenca", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Nome do contratado"><input value={state.contratado} onChange={e => upd("contratado", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Endereço do contratado"><input value={state.enderecoContratado} onChange={e => upd("enderecoContratado", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Licença / certificação Nº"><input value={state.licenca} onChange={e => upd("licenca", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
       </div>
     </div>
   );
@@ -6057,7 +5976,7 @@ function categoriaGrupoNFPA(nome) {
 const EQUIP_NFPA_LABEL = { diesel: "Bomba Diesel", eletrica: "Bomba Elétrica", vapor: "Bomba a Vapor" };
 
 function StepNFPA({ groups, setGroups, freqs, equip, setEquip }) {
-  const updGroup = (gid, items) => setGroups(gs => gs.map(g => g.id === gid ? { ...g, items } : g));
+  const updGroup = (gid, items) => setGroups(gs => gs.map(g => g.id === gid ? { ...g, items: aplicarAtualizacao(items, g.items) } : g));
   const eq = equip || { diesel: true, eletrica: true, vapor: true };
 
   // categorias de equipamento que realmente existem neste checklist
@@ -6183,9 +6102,9 @@ function StepStartupDados({ startup, setStartup, soEquipamentos = false, tecnico
         <h3 className="text-sm font-bold mb-3" style={{ color: TIPO_REL.startup.color }}>Identificação RQ 48</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Equipamento"><input value={startup.info.equipamento} onChange={e => updInfo("equipamento", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-          <Field label="Técnico Responsável"><CampoTecnico tecnicos={tecnicos} meuId={meuId} rotulo="técnico responsável" value={startup.info.tecnicoResponsavel} onPick={(nome) => updInfo("tecnicoResponsavel", nome)} /></Field>
-          <Field label="Local de Instalação"><input value={startup.info.localInstalacao} onChange={e => updInfo("localInstalacao", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
-          <Field label="Nº de Série"><input value={startup.info.numeroSerie} onChange={e => updInfo("numeroSerie", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+          <Field label="Técnico responsável"><CampoTecnico tecnicos={tecnicos} meuId={meuId} rotulo="técnico responsável" value={startup.info.tecnicoResponsavel} onPick={(nome) => updInfo("tecnicoResponsavel", nome)} /></Field>
+          <Field label="Local de instalação"><input value={startup.info.localInstalacao} onChange={e => updInfo("localInstalacao", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+          <Field label="Nº de série"><input value={startup.info.numeroSerie} onChange={e => updInfo("numeroSerie", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
           <Field label="Norma"><input value={startup.info.norma} onChange={e => updInfo("norma", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
           <Field label="Entrega"><input value={startup.info.entrega} onChange={e => updInfo("entrega", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         </div>
@@ -6194,7 +6113,7 @@ function StepStartupDados({ startup, setStartup, soEquipamentos = false, tecnico
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h3 className="text-sm font-bold" style={{ color: TIPO_REL.startup.color }}>Equipamentos Instalados</h3>
+          <h3 className="text-sm font-bold" style={{ color: TIPO_REL.startup.color }}>Equipamentos instalados</h3>
           <div className="flex gap-2 flex-wrap items-center">
             <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: C.grayMid }}>{equipamentos.length} conjuntos</span>
             <button type="button" onClick={() => addEquip("diesel")} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1" style={{ background: C.gray, color: C.white }}><Plus size={13} /> Diesel</button>
@@ -6255,7 +6174,7 @@ function StepStartupChecklist({ startup, setStartup }) {
   if (!startup) return null;
   const updGroup = (gid, items) => setStartup(s => ({
     ...s,
-    checklistGroups: s.checklistGroups.map(g => g.id === gid ? { ...g, items } : g),
+    checklistGroups: s.checklistGroups.map(g => g.id === gid ? { ...g, items: aplicarAtualizacao(items, g.items) } : g),
   }));
 
   return (
@@ -6272,11 +6191,11 @@ function StepStartupChecklist({ startup, setStartup }) {
 }
 
 function StepStartupTestes({ startup, setStartup }) {
-  if (!startup) return null;
-  const equipamentosPerformance = (startup.equipamentos || []).filter(eq => ["diesel", "eletrica"].includes(eq.tipo));
+  // os hooks vêm antes de qualquer "return" (regras dos hooks): sem dados de start-up, a tela fica vazia mais abaixo
+  const equipamentosPerformance = (startup?.equipamentos || []).filter(eq => ["diesel", "eletrica"].includes(eq.tipo));
   const testes = equipamentosPerformance.map((eq, idx) => {
     const tipoTeste = eq.tipo;
-    const existente = (startup.testes || []).find(t => t.equipamentoId === eq.id || t.id === eq.id);
+    const existente = (startup?.testes || []).find(t => t.equipamentoId === eq.id || t.id === eq.id);
     return {
       ...createStartupTeste(tipoTeste, idx + 1),
       ...(existente || {}),
@@ -6289,7 +6208,9 @@ function StepStartupTestes({ startup, setStartup }) {
   });
 
   useEffect(() => {
+    if (!startup) return;
     setStartup(s => {
+      if (!s) return s;
       const equipamentos = (s.equipamentos || []).filter(eq => ["diesel", "eletrica"].includes(eq.tipo));
       const atuais = s.testes || [];
       const sincronizados = equipamentos.map((eq, idx) => {
@@ -6308,7 +6229,8 @@ function StepStartupTestes({ startup, setStartup }) {
       const changed = JSON.stringify(atuais.map(t => ({ id: t.id, equipamentoId: t.equipamentoId, nome: t.nome, tag: t.tag, tipo: t.tipo }))) !== JSON.stringify(sincronizados.map(t => ({ id: t.id, equipamentoId: t.equipamentoId, nome: t.nome, tag: t.tag, tipo: t.tipo })));
       return changed ? { ...s, testes: sincronizados } : s;
     });
-  }, [startup.equipamentos, setStartup]);
+  }, [startup?.equipamentos, setStartup]);
+  if (!startup) return null;
   const updLinha = (testeId, linhaId, key, value) => setStartup(s => ({
     ...s,
     testes: (s.testes || []).map(t => t.id === testeId ? {
@@ -6497,12 +6419,10 @@ function StepStartupTestes({ startup, setStartup }) {
 }
 
 function StepCasas({ casas, setCasas, tipo }) {
-  const addCasa = () => {
-    const n = casas.length + 1;
-    setCasas([...casas, { id: Date.now(), nome: `G-${n}00`, instalacao: INSTALACAO_SKID.map((t, i) => ({ id: i + 1, texto: t, status: "", obs: "", fotos: [] })), equipamentos: [] }]);
-  };
-  const delCasa = (id) => setCasas(casas.filter(c => c.id !== id));
-  const updCasa = (id, patch) => setCasas(casas.map(c => c.id === id ? { ...c, ...patch } : c));
+  // atualizações funcionais (a foto que termina de carregar não pode gravar sobre uma lista antiga)
+  const addCasa = () => setCasas(cs => [...cs, { id: Date.now(), nome: `G-${cs.length + 1}00`, instalacao: INSTALACAO_SKID.map((t, i) => ({ id: i + 1, texto: t, status: "", obs: "", fotos: [] })), equipamentos: [] }]);
+  const delCasa = (id) => setCasas(cs => cs.filter(c => c.id !== id));
+  const updCasa = (id, patch) => setCasas(cs => cs.map(c => c.id === id ? { ...c, ...aplicarAtualizacao(patch, c) } : c));
 
   const aviso = tipo === "preventiva" ? "Foco em atividades preventivas: marque OK no que está em conformidade após a intervenção."
               : tipo === "corretiva"  ? "Identifique os itens NÃO OK que motivaram esta visita corretiva. A ação aplicada será descrita no próximo passo."
@@ -6511,9 +6431,9 @@ function StepCasas({ casas, setCasas, tipo }) {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <h2 className="text-xl font-black" style={{ color: C.gray }}>Casas de Bombas</h2>
+        <h2 className="text-xl font-black" style={{ color: C.gray }}>Casas de bombas</h2>
         <button onClick={addCasa} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
-          <Plus size={14} /> Nova Casa
+          <Plus size={14} /> Nova casa
         </button>
       </div>
       {aviso && <div className="mb-4 p-3 rounded-lg text-xs" style={{ background: TIPO_REL[tipo]?.bg, color: TIPO_REL[tipo]?.color }}>{aviso}</div>}
@@ -6530,28 +6450,28 @@ function CasaCard({ casa, onUpdate, onDelete }) {
   const [open, setOpen] = useState(true);
   const addEquip = (tipo) => {
     const tpl = TIPOS_EQUIPAMENTO[tipo];
-    onUpdate({
-      equipamentos: [...casa.equipamentos, {
+    onUpdate(c => ({
+      equipamentos: [...c.equipamentos, {
         id: Date.now(), tipo, nome: tpl.nome,
         sections: tpl.sections.map(s => ({ ...s, items: s.items.map((t, i) => ({ id: i + 1, texto: t, status: "", obs: "", fotos: [] })) })),
       }]
-    });
+    }));
   };
-  const updEquip = (id, patch) => onUpdate({ equipamentos: casa.equipamentos.map(e => e.id === id ? { ...e, ...patch } : e) });
-  const delEquip = (id) => onUpdate({ equipamentos: casa.equipamentos.filter(e => e.id !== id) });
+  const updEquip = (id, patch) => onUpdate(c => ({ equipamentos: c.equipamentos.map(e => e.id === id ? { ...e, ...aplicarAtualizacao(patch, e) } : e) }));
+  const delEquip = (id) => onUpdate(c => ({ equipamentos: c.equipamentos.filter(e => e.id !== id) }));
 
   return (
     <div className="border-2 rounded-xl" style={{ borderColor: C.border }}>
       <div className="flex items-center gap-3 p-4 border-b" style={{ borderColor: C.border, background: C.orangeLight }}>
-        <button onClick={() => setOpen(o => !o)} className="p-1">{open ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</button>
+        <button onClick={() => setOpen(o => !o)} className="p-1" aria-expanded={open} aria-label={open ? "Recolher a casa de bombas" : "Abrir a casa de bombas"}>{open ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</button>
         <input value={casa.nome} onChange={e => onUpdate({ nome: e.target.value })}
                className="font-bold text-lg bg-transparent border-b" style={{ color: C.gray, borderColor: C.orange, outline: "none" }} />
         <div className="flex-1" />
-        <button onClick={onDelete} className="p-1 rounded hover:bg-orange-200" style={{ color: C.nok }}><Trash2 size={16} /></button>
+        <button onClick={onDelete} className="p-1 rounded hover:bg-orange-200" style={{ color: C.nok }} aria-label="Excluir a casa de bombas" title="Excluir"><Trash2 size={16} /></button>
       </div>
       {open && (
         <div className="p-4 space-y-4">
-          <ChecklistSection title="Instalação do Skid / Container" items={casa.instalacao} onChange={items => onUpdate({ instalacao: items })} />
+          <ChecklistSection title="Instalação do Skid / Container" items={casa.instalacao} onChange={items => onUpdate(c => ({ instalacao: aplicarAtualizacao(items, c.instalacao) }))} />
           {casa.equipamentos.map(eq => (
             <EquipamentoSection key={eq.id} eq={eq} onUpdate={p => updEquip(eq.id, p)} onDelete={() => delEquip(eq.id)} />
           ))}
@@ -6578,14 +6498,14 @@ function CasaCard({ casa, onUpdate, onDelete }) {
 
 function EquipamentoSection({ eq, onUpdate, onDelete }) {
   const [open, setOpen] = useState(true);
-  const updSection = (sid, items) => onUpdate({ sections: eq.sections.map(s => s.id === sid ? { ...s, items } : s) });
+  const updSection = (sid, items) => onUpdate(e => ({ sections: e.sections.map(s => s.id === sid ? { ...s, items: aplicarAtualizacao(items, s.items) } : s) }));
   return (
     <div className="border rounded-lg" style={{ borderColor: C.border }}>
       <div className="flex items-center gap-3 p-3 border-b" style={{ borderColor: C.border, background: C.grayLight }}>
-        <button onClick={() => setOpen(o => !o)} className="p-1">{open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
+        <button onClick={() => setOpen(o => !o)} className="p-1" aria-expanded={open} aria-label={open ? "Recolher o equipamento" : "Abrir o equipamento"}>{open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
         <input value={eq.nome} onChange={e => onUpdate({ nome: e.target.value })}
                className="font-bold text-sm bg-transparent flex-1" style={{ color: C.gray, outline: "none" }} />
-        <button onClick={onDelete} className="p-1 rounded hover:bg-gray-200" style={{ color: C.nok }}><Trash2 size={14} /></button>
+        <button onClick={onDelete} className="p-1 rounded hover:bg-gray-200" style={{ color: C.nok }} aria-label="Excluir o equipamento" title="Excluir"><Trash2 size={14} /></button>
       </div>
       {open && (
         <div className="p-3 space-y-3">
@@ -6598,21 +6518,24 @@ function EquipamentoSection({ eq, onUpdate, onDelete }) {
   );
 }
 
-// CHECKLIST SECTION — sempre permite comentário e foto em todos os itens
+// CHECKLIST SECTION — sempre permite comentário e foto em todos os itens.
+// onChange recebe uma FUNÇÃO (itens atuais → itens novos), como o setState do React: a foto termina de carregar
+// depois de alguns segundos e precisa ser aplicada sobre a lista daquele momento (não sobre a lista de quando foi
+// escolhida), senão apagaria status e observações marcados enquanto ela carregava.
+const aplicarAtualizacao = (valor, atual) => (typeof valor === "function" ? valor(atual) : valor);
 function ChecklistSection({ title, items, onChange }) {
-  const setItem = (id, patch) => onChange(items.map(i => i.id === id ? { ...i, ...patch } : i));
-  const addFoto = (id, file) => {
+  const mudaItens = (fn) => onChange(atuais => fn(atuais || []));
+  const setItem = (id, patch) => mudaItens(lista => lista.map(i => i.id === id ? { ...i, ...patch } : i));
+  const addFoto = async (id, file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      onChange(items.map(i => i.id === id
-        ? { ...i, fotos: [...(i.fotos || []), { id: Date.now() + Math.random(), data: ev.target.result, legenda: "" }] }
-        : i));
-    };
-    reader.readAsDataURL(file);
+    let p;
+    try { p = await prepararArquivo(file); } catch { return; }
+    mudaItens(lista => lista.map(i => i.id === id
+      ? { ...i, fotos: [...(i.fotos || []), { id: Date.now() + Math.random(), data: p.data, legenda: "" }] }
+      : i));
   };
-  const updFoto = (id, fotoId, patch) => onChange(items.map(i => i.id === id ? { ...i, fotos: (i.fotos || []).map(f => f.id === fotoId ? { ...f, ...patch } : f) } : i));
-  const delFoto = (id, fotoId) => onChange(items.map(i => i.id === id ? { ...i, fotos: (i.fotos || []).filter(f => f.id !== fotoId) } : i));
+  const updFoto = (id, fotoId, patch) => mudaItens(lista => lista.map(i => i.id === id ? { ...i, fotos: (i.fotos || []).map(f => f.id === fotoId ? { ...f, ...patch } : f) } : i));
+  const delFoto = (id, fotoId) => mudaItens(lista => lista.map(i => i.id === id ? { ...i, fotos: (i.fotos || []).filter(f => f.id !== fotoId) } : i));
 
   return (
     <div className="border rounded-lg overflow-hidden" style={{ borderColor: C.border }}>
@@ -6634,7 +6557,8 @@ function ChecklistSection({ title, items, onChange }) {
                 placeholder={it.status === "nok" ? "Descreva a não conformidade…" : it.status === "na" ? "Justificativa para N/A…" : "Comentário ou observação (opcional)…"}
                 rows={it.obs ? Math.max(2, Math.min(5, it.obs.split("\n").length)) : 1}
                 className="w-full mt-2 px-2 py-1.5 text-xs border rounded resize-y"
-                style={{ borderColor: it.status === "nok" ? C.nok : C.border, background: it.status === "nok" ? "#FFFBFB" : "#fff" }} />
+                aria-label={`Observação: ${it.texto}`}
+                style={{ borderColor: it.status === "nok" ? C.nok : C.border, background: it.status === "nok" ? C.nokLight : C.white, color: C.gray }} />
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <label className="cursor-pointer px-2 py-1 rounded text-[10px] font-bold border flex items-center gap-1" style={{ borderColor: C.orange, color: C.orangeDark }}>
                   <Camera size={12} /> Adicionar foto
@@ -6647,12 +6571,12 @@ function ChecklistSection({ title, items, onChange }) {
                 <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {fotos.map(f => (
                     <div key={f.id} className="border rounded overflow-hidden relative group" style={{ borderColor: C.border }}>
-                      <img src={f.data} alt="" className="w-full h-24 object-cover" />
-                      <button onClick={() => delFoto(it.id, f.id)}
-                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition" style={{ color: C.nok }}>
-                        <X size={12} />
+                      <img src={f.data} alt={f.legenda || "Foto do item"} className="w-full h-24 object-cover" />
+                      <button onClick={() => delFoto(it.id, f.id)} aria-label="Excluir foto" title="Excluir foto"
+                              className="lsf-foto-del absolute top-1 right-1 w-7 h-7 rounded-full bg-white shadow flex items-center justify-center transition" style={{ color: C.nok }}>
+                        <X size={14} />
                       </button>
-                      <input value={f.legenda} onChange={e => updFoto(it.id, f.id, { legenda: e.target.value })}
+                      <input value={f.legenda} onChange={e => updFoto(it.id, f.id, { legenda: e.target.value })} aria-label="Legenda da foto"
                              placeholder="Legenda…" className="w-full px-1.5 py-1 text-[10px] border-t" style={{ borderColor: C.border, outline: "none" }} />
                     </div>
                   ))}
@@ -6671,7 +6595,7 @@ function StatusBtn({ label, color, active, onClick }) {
   return (
     <button onClick={onClick}
             className="px-2 py-1 rounded text-[10px] font-bold border transition"
-            style={{ background: active ? fundo : "transparent", color: active ? texto : color, borderColor: color }}>
+            aria-pressed={!!active} style={{ background: active ? fundo : "transparent", color: active ? texto : color, borderColor: color }}>
       {label}
     </button>
   );
@@ -6681,18 +6605,18 @@ function StepCorretiva({ state, setState }) {
   const upd = (k, v) => setState(s => ({ ...s, [k]: v }));
   return (
     <div className="max-w-3xl mx-auto space-y-4">
-      <h2 className="text-xl font-black mb-2" style={{ color: C.gray }}>Ação Corretiva</h2>
+      <h2 className="text-xl font-black mb-2" style={{ color: C.gray }}>Ação corretiva</h2>
       <p className="text-xs mb-4" style={{ color: C.grayMid }}>Detalhe o problema diagnosticado, a ação aplicada e o resultado obtido.</p>
-      <Field label="Diagnóstico / Problema Identificado">
+      <Field label="Diagnóstico / problema identificado">
         <textarea rows={5} value={state.diagnostico} onChange={e => upd("diagnostico", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} />
       </Field>
-      <Field label="Ação Corretiva Aplicada">
+      <Field label="Ação corretiva aplicada">
         <textarea rows={5} value={state.acao} onChange={e => upd("acao", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} />
       </Field>
-      <Field label="Resultado / Estado Final">
+      <Field label="Resultado / estado final">
         <textarea rows={4} value={state.resultado} onChange={e => upd("resultado", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} />
       </Field>
-      <Field label="Peças / Materiais Utilizados">
+      <Field label="Peças / materiais utilizados">
         <textarea rows={3} value={state.pecasUtilizadas} onChange={e => upd("pecasUtilizadas", e.target.value)} placeholder="Ex: 02 unid. Bateria 12V 150Ah; 01 unid. Relé 24V" className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} />
       </Field>
     </div>
@@ -6706,7 +6630,7 @@ function StepMaoObra({ maoObra, setMaoObra }) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <h2 className="text-xl font-black" style={{ color: C.gray }}>Mão de Obra</h2>
+        <h2 className="text-xl font-black" style={{ color: C.gray }}>Mão de obra</h2>
         <button onClick={add} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: C.orangeFill }}>
           <Plus size={14} /> Apontamento
         </button>
@@ -6810,7 +6734,7 @@ function StepObservacoes({ obs, setObs, tipo }) {
   };
   return (
     <div className="max-w-3xl mx-auto">
-      <h2 className="text-xl font-black mb-4" style={{ color: C.gray }}>Observações e Recomendações</h2>
+      <h2 className="text-xl font-black mb-4" style={{ color: C.gray }}>Observações e recomendações</h2>
       <textarea value={obs} onChange={e => setObs(e.target.value)} rows={14}
                 placeholder={placeholders[tipo] || placeholders.inspecao}
                 className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} />
@@ -6823,7 +6747,7 @@ function StepAssinaturas({ assins, setAssins, tecnicos = [], meuId = null }) {
     <div className="max-w-3xl mx-auto">
       <h2 className="text-xl font-black mb-4" style={{ color: C.gray }}>Assinaturas</h2>
       <div className="grid md:grid-cols-2 gap-4">
-        <Field label="Responsável do Cliente"><input value={assins.cliente} onChange={e => setAssins({ ...assins, cliente: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
+        <Field label="Responsável do cliente"><input value={assins.cliente} onChange={e => setAssins({ ...assins, cliente: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} /></Field>
         <Field label="Técnico LS Fire"><CampoTecnico tecnicos={tecnicos} meuId={meuId} rotulo="técnico que assina" value={assins.tecnico} onPick={(nome) => setAssins({ ...assins, tecnico: nome })} /></Field>
       </div>
       <div className="grid md:grid-cols-2 gap-4 mt-4">
@@ -6888,18 +6812,23 @@ function RelatorioPreview({ rel, onClose, onApprove, onReturn, autoPrint, onAuto
     // Coleta todos os estilos do documento principal, incluindo as fontes
     // (o relatório impresso agora segue o mesmo padrão tipográfico do app:
     // Montserrat em títulos/subtítulos, Roboto Mono no corpo do texto).
+    // (inclui o CSS do Tailwind já compilado no app: não precisa de script de fora na janela de impressão)
     let styles = "";
     for (const sheet of document.styleSheets) {
       try {
         for (const rule of sheet.cssRules) styles += rule.cssText + "\n";
       } catch {}
     }
+    // nada do CSS pode fechar a tag <style>
+    styles = styles.replace(/<\/style/gi, "<\\/style");
+    // Tudo o que vem dos dados entra escapado: esta janela é da mesma origem do app (document.write) e um nome de
+    // cliente como "</title><script>…" rodaria script com a sessão do usuário. O corpo vem do DOM já renderizado
+    // pelo React (innerHTML serializa o texto escapado).
     return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>${rel.codigo} - ${rel.cliente}</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>${escHtml(rel.codigo)} - ${escHtml(rel.cliente)}</title>
 <style>
 ${styles}
 @page { size: A4; margin: 0; }
@@ -6937,7 +6866,7 @@ ${root.innerHTML}
     w.document.open();
     w.document.write(html);
     w.document.close();
-    // Aguarda o tailwind/imagens carregarem antes de imprimir
+    // Aguarda as imagens e fontes carregarem antes de imprimir
     setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 1500);
   };
 
@@ -6974,6 +6903,8 @@ ${root.innerHTML}
     onApprove?.({ relatorioId: rel.id, assinatura: assinaturaSupervisor.trim(), observacao: obsAprovacao });
   };
 
+  const dialogoRef = useDialogo(true, onClose);
+
   const handleDevolver = () => {
     if (!motivoDevolucao.trim()) {
       alert("Descreva o motivo da devolução, para o técnico saber o que corrigir.");
@@ -6985,9 +6916,10 @@ ${root.innerHTML}
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-200 overflow-y-auto overflow-x-hidden">
+    <div ref={dialogoRef} role="dialog" aria-modal="true" aria-label={`Relatório ${rel.codigo || ""}`.trim()} tabIndex={-1}
+         className="fixed inset-0 z-50 bg-gray-200 overflow-y-auto overflow-x-hidden outline-none">
       <div className="sticky top-0 bg-white border-b px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 z-10 print:hidden flex-wrap" style={{ borderColor: C.border }}>
-        <button onClick={onClose} className="p-2 rounded hover:bg-gray-100 shrink-0"><ArrowLeft size={18} /></button>
+        <button onClick={onClose} className="p-2 rounded hover:bg-gray-100 shrink-0" aria-label="Voltar" title="Voltar"><ArrowLeft size={18} /></button>
         <div className="flex-1 min-w-0">
           <div className="text-xs uppercase font-bold flex items-center gap-2 flex-wrap" style={{ color: C.orangeDark }}>
             <tipoCfg.Icon size={12} /> <span className="truncate">Preview — {tipoCfg.nomeLong}</span>
@@ -6998,16 +6930,16 @@ ${root.innerHTML}
         </div>
         <button onClick={handleDownload} disabled={isPendingApproval} className="px-2.5 sm:px-3 py-2 rounded-lg text-sm font-bold border flex items-center gap-2 disabled:opacity-40 shrink-0"
                 style={{ borderColor: C.border, color: C.gray }} title={isPendingApproval ? "Aguardando aprovação do supervisor/coordenador" : "Baixar arquivo HTML para abrir no navegador"}>
-          ⬇ <span className="hidden sm:inline">Baixar HTML</span>
+          <span aria-hidden="true">⬇</span> <span className="hidden sm:inline">Baixar HTML</span><span className="sr-only sm:hidden">Baixar HTML</span>
         </button>
         {(window.__LSF_ME?.nivelPricer || 0) >= 2 && (
           <button onClick={() => abrirOrcamentoPricer(rel)} className="px-2.5 sm:px-3 py-2 rounded-lg text-sm font-bold border flex items-center gap-2 shrink-0"
                   style={{ borderColor: C.orange, color: C.orangeDark }} title="Montar no LS Pricer a proposta de serviço com o que não está conforme neste relatório">
-            <DollarSign size={14} /> <span className="hidden sm:inline">Orçar no Pricer</span>
+            <DollarSign size={14} /> <span className="hidden sm:inline">Orçar no Pricer</span><span className="sr-only sm:hidden">Orçar no Pricer</span>
           </button>
         )}
         <button onClick={handlePrint} disabled={isPendingApproval} className="px-3 sm:px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2 disabled:opacity-40 shrink-0" style={{ background: C.orangeFill }}>
-          <Printer size={14} /> <span className="hidden sm:inline">Imprimir / Salvar PDF</span>
+          <Printer size={14} /> <span className="hidden sm:inline">Imprimir / Salvar PDF</span><span className="sr-only sm:hidden">Imprimir / Salvar PDF</span>
         </button>
       </div>
 
@@ -7018,10 +6950,10 @@ ${root.innerHTML}
             <div className="flex-1">
               <div className="font-bold text-sm" style={{ color: C.nok }}>Devolvido para correção por {rel.aprovacao?.devolvidoPor || "supervisor/coordenador"}</div>
               <div className="text-xs mt-1" style={{ color: C.grayMid }}>{fmtDateTime(rel.aprovacao?.devolvidoEm)}</div>
-              <div className="text-sm mt-3 p-3 rounded-lg" style={{ background: C.nokLight, color: "#7F1D1D" }}>
+              <div className="text-sm mt-3 p-3 rounded-lg" style={{ background: C.nokLight, color: C.nok }}>
                 <span className="font-bold">Motivo: </span>{rel.aprovacao?.motivo || "—"}
               </div>
-              <div className="text-xs mt-3" style={{ color: C.grayMid }}>O técnico responsável precisa reabrir o atendimento (aba Visitas Técnicas ou Cronograma do contrato), corrigir e reenviar para nova aprovação.</div>
+              <div className="text-xs mt-3" style={{ color: C.grayMid }}>O técnico responsável precisa reabrir o atendimento (aba Visitas técnicas ou cronograma do contrato), corrigir e reenviar para nova aprovação.</div>
             </div>
           </div>
         </div>
@@ -7037,7 +6969,7 @@ ${root.innerHTML}
               {canApproveReport ? (
                 <>
                   <div className="grid md:grid-cols-3 gap-3 mt-3 items-end">
-                    <Field label="Assinatura / Supervisor ou Coordenador">
+                    <Field label="Assinatura / supervisor ou coordenador">
                       <input value={assinaturaSupervisor} onChange={e => setAssinaturaSupervisor(e.target.value)}
                              className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} />
                     </Field>
@@ -7049,7 +6981,7 @@ ${root.innerHTML}
                       <button onClick={handleApprove} className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2" style={{ background: C.ok }}>
                         <ShieldCheck size={14} /> Aprovar
                       </button>
-                      <button onClick={() => setShowDevolverForm(s => !s)} className="px-3 py-2 rounded-lg text-sm font-bold border flex items-center justify-center gap-2" style={{ borderColor: C.nok, color: C.nok }} title="Devolver para o técnico corrigir">
+                      <button onClick={() => setShowDevolverForm(s => !s)} className="px-3 py-2 rounded-lg text-sm font-bold border flex items-center justify-center gap-2" style={{ borderColor: C.nok, color: C.nok }} title="Devolver para o técnico corrigir" aria-label="Devolver para o técnico corrigir" aria-expanded={showDevolverForm}>
                         <RefreshCw size={14} />
                       </button>
                     </div>
@@ -8011,264 +7943,8 @@ function SignatureBox({ label, name, sub, img }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEGURANÇA — Telas de Login, Bloqueio, Usuários e Auditoria
+// SEGURANÇA — Trilha de auditoria (login, usuários e permissões ficam no servidor)
 // ═══════════════════════════════════════════════════════════════════════════
-function LoginScreen({ onLogin, usuarios, onRestaurar }) {
-  const [login, setLogin] = useState("");
-  const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [restaurado, setRestaurado] = useState(false);
-  const soAdminPadrao = usuarios.length === 1 && usuarios[0]?.login === "admin";
-
-  const submit = async () => {
-    setErro(""); setLoading(true);
-    const r = await onLogin(login, senha);
-    setLoading(false);
-    if (r?.erro) setErro(r.erro);
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 lsfire-app-shell" style={{ background: C.grayLight }}>
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl border overflow-hidden" style={{ borderColor: C.border }}>
-          <div className="p-8 pb-6 text-center border-b" style={{ borderColor: C.border, background: C.orangeLight }}>
-            <div className="flex justify-center mb-4"><LogoLSFire size={64} /></div>
-            <h1 className="text-xl font-black" style={{ color: C.gray }}>Sistema de Gestão</h1>
-            <p className="text-xs mt-1" style={{ color: C.grayMid }}>Sistemas de Bombeamento para Combate a Incêndio</p>
-          </div>
-          <div className="p-8 space-y-4">
-            <Field label="Usuário">
-              <input value={login} onChange={e => setLogin(e.target.value)} autoFocus
-                     onKeyDown={e => e.key === "Enter" && submit()}
-                     placeholder="seu.usuario" autoCapitalize="none"
-                     className="w-full border rounded-lg px-3 py-2.5 text-sm" style={{ borderColor: C.border }} />
-            </Field>
-            <Field label="Senha">
-              <div className="relative">
-                <input type={showPwd ? "text" : "password"} value={senha} onChange={e => setSenha(e.target.value)}
-                       onKeyDown={e => e.key === "Enter" && submit()}
-                       placeholder="••••••••"
-                       className="w-full border rounded-lg px-3 py-2.5 text-sm pr-10" style={{ borderColor: C.border }} />
-                <button onClick={() => setShowPwd(s => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1" style={{ color: C.grayMid }}>
-                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </Field>
-            {erro && (
-              <div className="text-xs flex items-center gap-1.5 p-2 rounded" style={{ background: C.nokLight, color: C.nok }}>
-                <AlertTriangle size={14} /> {erro}
-              </div>
-            )}
-            <button onClick={submit} disabled={loading || !login || !senha}
-                    className="w-full py-2.5 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center justify-center gap-2"
-                    style={{ background: C.orangeFill }}>
-              {loading ? "Entrando…" : <><KeyRound size={16} /> Entrar</>}
-            </button>
-            {soAdminPadrao && (
-              <div className="text-[11px] p-3 rounded-lg" style={{ background: C.amberLight, color: "#92400E" }}>
-                <strong>Primeiro acesso:</strong> usuário <code className="font-bold">admin</code> · senha <code className="font-bold">{SENHA_PADRAO_ADMIN}</code>. Altere a senha e cadastre os demais usuários em <strong>Usuários</strong> após entrar.
-              </div>
-            )}
-            {onRestaurar && (
-              <div className="text-center pt-1">
-                {restaurado ? (
-                  <span className="text-[11px] font-semibold" style={{ color: C.ok }}>
-                    ✓ Acesso restaurado — entre com admin / {SENHA_PADRAO_ADMIN}
-                  </span>
-                ) : (
-                  <button onClick={() => { onRestaurar(); setRestaurado(true); setErro(""); setLogin("admin"); }}
-                          className="text-[11px] underline" style={{ color: C.grayMid }}>
-                    Problemas para entrar? Restaurar acesso padrão
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="text-center mt-4 text-[11px] font-bold tracking-wider font-display" style={{ color: C.orangeDark }}>
-          A FORÇA DA ÁGUA É A NOSSA FORÇA
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LockScreen({ sessao, onUnlock, onLogout }) {
-  const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const submit = async () => {
-    setErro(""); setLoading(true);
-    const r = await onUnlock(senha);
-    setLoading(false);
-    if (r?.erro) setErro(r.erro); else setSenha("");
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 lsfire-app-shell" style={{ background: "rgba(31,56,100,0.97)" }}>
-      <div className="w-full max-w-sm text-center">
-        <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4" style={{ background: "rgba(255,255,255,0.1)" }}>
-          <Lock size={28} color="#fff" />
-        </div>
-        <h1 className="text-lg font-bold text-white mb-1">Tela bloqueada</h1>
-        <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.7)" }}>
-          Sessão de <strong className="text-white">{sessao.nome}</strong> bloqueada por inatividade.
-        </p>
-        <div className="bg-white rounded-xl p-5 space-y-3">
-          <input type="password" value={senha} onChange={e => setSenha(e.target.value)} autoFocus
-                 onKeyDown={e => e.key === "Enter" && submit()}
-                 placeholder="Digite sua senha para continuar"
-                 className="w-full border rounded-lg px-3 py-2.5 text-sm text-center" style={{ borderColor: C.border }} />
-          {erro && <div className="text-xs flex items-center justify-center gap-1.5" style={{ color: C.nok }}><AlertTriangle size={14} /> {erro}</div>}
-          <button onClick={submit} disabled={loading || !senha}
-                  className="w-full py-2.5 rounded-lg text-sm font-bold text-white disabled:opacity-40"
-                  style={{ background: C.orangeFill }}>
-            {loading ? "Verificando…" : "Desbloquear"}
-          </button>
-          <button onClick={onLogout} className="w-full py-1.5 text-xs font-semibold" style={{ color: C.grayMid }}>
-            Sair e entrar com outro usuário
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UsuariosView({ usuarios, contratos, onNew, onEdit, onDelete }) {
-  const { sessao } = useAuth();
-  const podeExcluir = isAdminProfile(sessao?.perfil);
-  return (
-    <div className="p-4 sm:p-8">
-      <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-        <h1 className="text-2xl sm:text-3xl font-black" style={{ color: C.gray }}>Usuários</h1>
-        <button onClick={onNew} className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2" style={{ background: C.orangeFill }}>
-          <Plus size={16} /> Novo Usuário
-        </button>
-      </div>
-      <p className="text-sm mb-6" style={{ color: C.grayMid }}>Controle de acesso ao sistema. Cada usuário entra com login e senha próprios.</p>
-
-      <div className="border rounded-xl divide-y" style={{ borderColor: C.border }}>
-        {usuarios.map(u => {
-          const perfil = PERFIS[u.perfil];
-          const PIcon = perfil?.Icon || User;
-          const contratoCli = u.clienteId ? contratos.find(c => c.id === u.clienteId) : null;
-          return (
-            <div key={u.id} className="p-4 flex items-center gap-4 flex-wrap">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: (perfil?.cor || C.gray) + "22" }}>
-                <PIcon size={20} style={{ color: perfil?.cor }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm flex items-center gap-2" style={{ color: C.gray }}>
-                  {u.nome}
-                  {!u.ativo && <Pill bg={C.naLight} fg={C.na}>Inativo</Pill>}
-                </div>
-                <div className="text-xs" style={{ color: C.grayMid }}>
-                  @{u.login} · <span style={{ color: perfil?.cor, fontWeight: 600 }}>{perfil?.nome}</span>
-                  {contratoCli && ` · ${contratoCli.cliente}`}
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => onEdit(u)} className="p-2 rounded hover:bg-gray-100"><Pencil size={15} /></button>
-                {podeExcluir && u.login !== "admin" && (
-                  <button onClick={() => { if (confirm(`Excluir o usuário "${u.nome}"?`)) onDelete(u.id); }} className="p-2 rounded hover:bg-gray-100"><Trash2 size={15} style={{ color: C.nok }} /></button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-4 p-3 rounded-lg text-[11px] flex items-start gap-2" style={{ background: C.grayLight, color: C.grayMid }}>
-        <Shield size={14} className="mt-0.5 flex-shrink-0" />
-        <span>As senhas são armazenadas com hash (SHA-256) no dispositivo. Como este app roda no navegador, para segurança corporativa completa (dados criptografados em servidor, conformidade LGPD) recomenda-se evoluir para uma versão com backend.</span>
-      </div>
-    </div>
-  );
-}
-
-function UsuarioForm({ initial, contratos, usuarios = [], tecnicos = [], onSave }) {
-  const [data, setData] = useState({ nome: "", login: "", perfil: "tecnico", ativo: true, clienteId: null, tecnicoId: null, senhaHash: "", ...initial });
-  const [novaSenha, setNovaSenha] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
-  const upd = (k, v) => setData(d => ({ ...d, [k]: v }));
-  const ehNovo = !data.id;
-  const ehCliente = data.perfil === "cliente";
-  const ehTecnico = data.perfil === "tecnico";
-  const loginDuplicado = !!data.login && usuarios.some(u => u.id !== data.id && u.login.toLowerCase() === data.login.trim().toLowerCase());
-  const podeSalvar = data.nome && data.login && !loginDuplicado && (!ehNovo || novaSenha) && (!ehCliente || data.clienteId);
-
-  return (
-    <div className="space-y-4">
-      <Field label="Nome completo">
-        <input value={data.nome} onChange={e => upd("nome", e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }} />
-      </Field>
-      <div className="grid md:grid-cols-2 gap-4">
-        <Field label="Login (usuário)">
-          <input value={data.login} onChange={e => upd("login", e.target.value.toLowerCase().replace(/\s/g, ""))}
-                 disabled={data.login === "admin"} autoCapitalize="none"
-                 className="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-50" style={{ borderColor: loginDuplicado ? C.nok : C.border }} />
-          {loginDuplicado && <div className="text-[11px] mt-1 font-semibold" style={{ color: C.nok }}>Já existe um usuário com este login.</div>}
-        </Field>
-        <Field label="Perfil de acesso">
-          <select value={data.perfil} onChange={e => upd("perfil", e.target.value)} disabled={data.login === "admin"}
-                  className="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-50" style={{ borderColor: C.border }}>
-            {Object.values(PERFIS).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
-        </Field>
-      </div>
-
-      {ehCliente && (
-        <Field label="Contrato vinculado" hint="O cliente só verá relatórios e dados deste contrato.">
-          <select value={data.clienteId || ""} onChange={e => upd("clienteId", parseInt(e.target.value) || null)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }}>
-            <option value="">Selecione um contrato…</option>
-            {contratos.map(c => <option key={c.id} value={c.id}>{c.cliente}</option>)}
-          </select>
-        </Field>
-      )}
-
-      {ehTecnico && (
-        <Field label="Técnico de campo vinculado (opcional)" hint="Liga este login ao cadastro de técnico, para que os avisos de aprovação/devolução cheguem certos para esta pessoa.">
-          <select value={data.tecnicoId || ""} onChange={e => upd("tecnicoId", parseInt(e.target.value) || null)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" style={{ borderColor: C.border }}>
-            <option value="">Não vinculado (recebe avisos gerais de técnico)</option>
-            {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-          </select>
-        </Field>
-      )}
-
-      <Field label={ehNovo ? "Senha" : "Nova senha (deixe em branco para manter)"}>
-        <div className="relative">
-          <input type={showPwd ? "text" : "password"} value={novaSenha} onChange={e => setNovaSenha(e.target.value)}
-                 placeholder={ehNovo ? "Defina uma senha" : "••••••••"}
-                 className="w-full border rounded-lg px-3 py-2 text-sm pr-10" style={{ borderColor: C.border }} />
-          <button onClick={() => setShowPwd(s => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1" style={{ color: C.grayMid }}>
-            {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
-      </Field>
-
-      {data.login !== "admin" && (
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={data.ativo} onChange={e => upd("ativo", e.target.checked)} style={{ accentColor: C.orange }} />
-          <span className="text-sm font-semibold">Usuário ativo (pode fazer login)</span>
-        </label>
-      )}
-
-      <div className="flex justify-end pt-4 border-t" style={{ borderColor: C.border }}>
-        <button onClick={() => onSave(data, novaSenha)} disabled={!podeSalvar}
-                className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 flex items-center gap-2"
-                style={{ background: C.orangeFill }}>
-          <Save size={14} /> Salvar Usuário
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function AuditoriaView({ auditoria }) {
   const [filtro, setFiltro] = useState("");
   const filtrada = useMemo(() => {
@@ -8292,7 +7968,7 @@ function AuditoriaView({ auditoria }) {
   return (
     <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between mb-2 gap-4 flex-wrap">
-        <h1 className="text-3xl font-black" style={{ color: C.gray }}>Trilha de Auditoria</h1>
+        <h1 className="text-3xl font-black" style={{ color: C.gray }}>Trilha de auditoria</h1>
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.grayMid }} />
           <input value={filtro} onChange={e => setFiltro(e.target.value)} placeholder="Buscar por usuário, ação…"
@@ -8328,7 +8004,7 @@ function AuditoriaView({ auditoria }) {
                     <div className="text-[10px]" style={{ color: PERFIS[a.perfil]?.cor || C.grayMid }}>{PERFIS[a.perfil]?.nome || a.perfil}</div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <Pill bg={(ACAO_COR[a.acao] || C.gray) + "22"} fg={ACAO_COR[a.acao] || C.gray}>{a.acao}</Pill>
+                    <Pill bg={`color-mix(in srgb, ${ACAO_COR[a.acao] || C.gray} 14%, transparent)`} fg={ACAO_COR[a.acao] || C.gray}>{a.acao}</Pill>
                   </td>
                   <td className="px-4 py-2.5 text-xs" style={{ color: C.gray }}>{a.detalhe}</td>
                 </tr>
