@@ -3155,7 +3155,7 @@
     ['precificacao', 'Precificação', 'Margens, fatores, descontos, comissões e condições de pagamento', [['preco', 'Margens e política']]],
     ['servicos', 'Serviços', 'Técnicos, diárias, deslocamento e modelos de serviço e contrato', [['servicos', 'Equipe, custos e modelos']]],
     ['geral', 'Cadastro geral', 'Dados da empresa, unidades, famílias por divisão, e o padrão de descrição dos insumos', [['geral', 'Empresa e famílias'], ['padrao', 'Padronização de descrições'], ['campos', 'Campos por família'], ['sinonimos', 'Sinônimos e abreviações']]],
-    ['sistema', 'Sistema', 'Histórico, modelo da proposta, responsáveis e e-mails, backup e restauração e planilha (avançado)', [['historico', 'Histórico'], ['propmodelo', 'Modelo da proposta'], ['acessos', 'Responsáveis, e-mails e logo'], ['numeracao', 'Numeração e máscaras'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
+    ['sistema', 'Sistema', 'Histórico, modelo da proposta, usuários e permissões (responsáveis, e-mails e logo), backup e restauração e planilha (avançado)', [['historico', 'Histórico'], ['propmodelo', 'Modelo da proposta'], ['acessos', 'Usuários e permissões'], ['numeracao', 'Numeração e máscaras'], ['backup', 'Backup e restauração'], ['tabelas', 'Planilha (avançado)']]],
   ];
   const CAD_TABS = AREAS.flatMap((a) => a[3]);
   const OLD_TABS = { parametros: 'fiscal', politica: 'preco', fci: 'fiscal', spv: 'servicos' };
@@ -5955,7 +5955,7 @@
     const adm = lsfMe.pricer === 'admin';
     return `<section class="card" id="lsfUsers"><h2>Usuários e acessos <span class="sub">servidor LS Fire · as permissões valem no servidor</span></h2>
       <p class="sub" style="margin:0 0 8px">Cada pessoa tem um nível no <b>LS Pricer</b> e um perfil no <b>Serviço de campo</b>, separados. Quem é só de Service ou Assistência Técnica fica com o Pricer em <b>Sem acesso</b>: não recebe o Pricer, nem propostas, preços, custos ou margens. Técnico e Cliente não recebem valores de contrato.</p>
-      ${adm ? '<div class="docbar" style="margin:0 0 8px"><button class="btn sm pri" data-lsfnovo data-ico="plus">Novo usuário</button></div><div id="lsfUsersBody" class="sub">Carregando…</div>' : `<p class="sub" style="margin:0">Seu acesso: Pricer <b>${esc(NOME_NIVEL[lsfMe.pricer])}</b> · Serviço de campo <b>${esc(NOME_SVC[lsfMe.servico])}</b>. Só o administrador altera usuários.</p>`}</section>`;
+      ${adm ? '<div class="docbar" style="margin:0 0 8px"><button class="btn sm pri" data-lsfnovo data-ico="plus">Novo usuário</button></div><div id="lsfUsersBody" class="sub" style="max-width:none;overflow-x:auto">Carregando…</div>' : `<p class="sub" style="margin:0">Seu acesso: Pricer <b>${esc(NOME_NIVEL[lsfMe.pricer])}</b> · Serviço de campo <b>${esc(NOME_SVC[lsfMe.servico])}</b>. Só o administrador altera usuários.</p>`}</section>`;
   }
   let lsfVinc = null;
   async function carregaUsuarios() {

@@ -70,5 +70,6 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
     - **Tipo da proposta:** passou para o subtítulo, ao lado do cliente (ex.: "Ipiranga · Peças e sobressalentes"; na FACTS, "Teste automático de bombas · N conjunto(s)").
     - **Indicadores na SPV:** mostram o "Lucro líquido" com o mesmo número e o mesmo mínimo de antes. No contrato recorrente, aparecem o preço do contrato e o valor mensal.
     - **Indicadores na FACTS:** "Margem líquida", e o valor total passa a dizer "sem IPI", junto com o valor por conjunto. Antes dizia "com IPI" por engano: o número mostrado sempre foi sem IPI.
+    - **Aba de usuários com o nome certo:** em Configurações, a aba que era "Responsáveis, e-mails e logo" passou a se chamar "Usuários e permissões", o mesmo nome do menu. No servidor, a lista de usuários usa a largura toda e o botão Editar não fica mais cortado.
     - **Fórmulas:** nenhuma mudou.
 17. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).
