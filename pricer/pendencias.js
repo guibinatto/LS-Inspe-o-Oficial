@@ -82,12 +82,12 @@
     // ---------- telas ----------
     const pill = (L, k) => `<span class="pill ${cls(L, k)}">${esc(lb(L, k))}</span>`;
     const resp = (p) => (p.respId ? `<span data-uid="${esc(p.respId)}">…</span>` : p.respNome ? esc(p.respNome) : '<span class="sub">sem responsável</span>');
-    const prazoTxt = (p) => (p.prazo ? `<span class="${vencida(p) ? 'bad-t' : ''}">${esc(new Date(p.prazo + 'T12:00').toLocaleDateString('pt-BR'))}${vencida(p) ? ' · vencida' : ''}</span>` : '<span class="sub">—</span>');
+    const prazoTxt = (p) => (p.prazo ? `<span class="${vencida(p) ? 'bad-t' : ''}">${esc(window.dataBR(p.prazo + 'T12:00'))}${vencida(p) ? ' · vencida' : ''}</span>` : '<span class="sub">—</span>');
     function linhas(L, comProposta) {
       return L.map((p) => `<tr class="${p.criticidade === 'impeditiva' && aberta(p) ? 'cf-erro' : vencida(p) ? 'cf-aviso' : ''}">
         <td><b>${esc(codigoDe(p))}</b><br><small class="sub">${p.origem === 'auto' ? 'automática' : 'manual'}</small></td>
         <td>${esc(p.titulo)}${comProposta && p.propNome ? `<br><small class="sub">${esc(p.propNome)}</small>` : ''}</td>
-        <td>${esc(p.departamento)}<br><small>${resp(p)}</small></td><td>${prazoTxt(p)}<br><small class="sub">prioridade ${esc(lb(PRIOR, p.prioridade).toLowerCase())}</small></td>
+        <td>${esc(p.departamento)}<br><small>${resp(p)}</small></td><td>${prazoTxt(p)}<br><small class="sub">prioridade ${esc(String(lb(PRIOR, p.prioridade) || 'não definida').toLowerCase())}</small></td>
         <td>${pill(CRIT, p.criticidade)}<br>${pill(STATUS, p.status)}</td>
         <td><button class="btn sm" data-pnabre="${esc(p.id)}">Abrir</button>${comProposta && p.propId ? ` <button class="restore" data-pnprop="${esc(p.propId)}">proposta</button>` : ''}</td></tr>`).join('');
     }

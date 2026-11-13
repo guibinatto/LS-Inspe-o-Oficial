@@ -52,5 +52,15 @@
       } catch (e) { area.innerHTML = '<p class="sub">Não consegui mostrar o arquivo aqui: use Baixar.</p>'; }
     });
   }
-  window.PricerDlg = { confirmar, pedir, ver, confirmaApp, perguntaApp };
+  // escolha entre várias saídas (ex.: Salvar e abrir / Descartar e abrir / Continuar nesta). Esc ou clique fora = a última.
+  function escolha(msg, opcoes) {
+    return new Promise((res) => quadro(`<p class="dlgmsg">${esc(msg)}</p><div class="dlgbt">${opcoes.map(([k, lb, cl]) => `<button type="button" class="btn${cl ? ' ' + cl : ''}" data-dlg="${esc(k)}">${esc(lb)}</button>`).join('')}</div>`, (w, fechar) => {
+      const ultima = opcoes[opcoes.length - 1][0]; const fim = (v) => { fechar(); res(v); };
+      w.addEventListener('click', (e) => { const b = e.target.closest('[data-dlg]'); if (b) fim(b.dataset.dlg); else if (e.target === w) fim(ultima); });
+      w.addEventListener('dlgesc', () => fim(ultima)); setTimeout(() => { const b = w.querySelector('.btn.pri') || w.querySelector('[data-dlg]'); if (b) b.focus(); }, 0);
+    }));
+  }
+  window.PricerDlg = { confirmar, pedir, ver, confirmaApp, perguntaApp, escolha };
+  // data para mostrar (dd/mm/aaaa): "2026-11-13" (sem hora) é meio-dia local, para não voltar um dia no fuso do Brasil
+  window.dataBR = (v) => { if (v == null || v === '') return ''; const d = new Date(typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v + 'T12:00' : v); return isNaN(d) ? String(v) : d.toLocaleDateString('pt-BR'); };
 })();

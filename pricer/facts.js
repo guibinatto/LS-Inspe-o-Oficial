@@ -92,7 +92,7 @@
       if (num(f.preco) > 0) { Veq = Math.max(0, num(f.preco) - Vsv); }
       const V = Veq + Vsv; const imp = Veq * (tP - com) + Vsv * (tS - com); const comV = V * com; const custo = custoEq + custoSv;
       const margem = V - imp - comV - custo; const ipi = Veq * num(c.ipi);
-      return { k, desc, icms, pis, cof, ir, com, tP, tS, alvo, minimo, conj, nSets, serv, custoEq, custoSv, Veq, Vsv, V, imp, comV, custo, margem, margemPct: V ? margem / V : 0, ipi, VcomIpi: V + ipi };
+      return { semFator: (fatorP <= 0 && custoEq > 0 && !(num(f.preco) > 0)) || (fatorS <= 0 && custoSv > 0), k, desc, icms, pis, cof, ir, com, tP, tS, alvo, minimo, conj, nSets, serv, custoEq, custoSv, Veq, Vsv, V, imp, comV, custo, margem, margemPct: V ? margem / V : 0, ipi, VcomIpi: V + ipi };
     }
     function snapshot(f) {
       const r = calc(f); const itens = [];
@@ -145,6 +145,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const tecOpts = [['', 'Escolha…']].concat(spv.tecnicos.map((t) => [t.nome, `${t.nome} — ${t.funcao} (${brl(t.diaria)})`]));
       const eq = (f.equipe || []).map((e, i) => `<tr><td class="in">${sel(`equipe.${i}.tec`, e.tec, tecOpts, 'Técnico')}</td><td class="in">${inp(`equipe.${i}.diaria`, e.diaria)}</td><td class="in">${inp(`equipe.${i}.dias`, e.dias)}</td><td class="n">${brl(num(e.diaria) * num(e.dias))}</td><td><button class="restore" data-fxeqrm="${i}">remover</button></td></tr>`).join('');
       return `<div class="stack">
+        ${r.semFator ? `<div class="banner bad">A margem alvo (${pct(r.alvo, 1)}) somada aos impostos e comissões passa de 100%: não há preço que chegue a essa margem, e o valor ficou zerado. Baixe a margem alvo ou informe o preço à mão.</div>` : ''}
         ${ctx.confCard ? ctx.confCard() : ''}
         <section class="card"><h2>Cliente</h2><div class="fields">${fld('Cliente', inp('cliente', f.cliente, 'text'), 'span2')}${fld('Nº da proposta', inp('numero', f.numero, 'text') + (window.LSNumGerar ? window.LSNumGerar('seq', 'input[data-fx="numero"]', f.numero) : ''))}${fld('Contato', inp('contato', f.contato, 'text'))}${fld('Local', inp('local', f.local, 'text'), 'span2')}${fld('UF', inp('uf', f.uf, 'text'))}${fld('Vendedor', inp('vendedor', f.vendedor, 'text'))}</div></section>
         ${conj}

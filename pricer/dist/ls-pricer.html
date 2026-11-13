@@ -1138,7 +1138,17 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       } catch (e) { area.innerHTML = '<p class="sub">Não consegui mostrar o arquivo aqui: use Baixar.</p>'; }
     });
   }
-  window.PricerDlg = { confirmar, pedir, ver, confirmaApp, perguntaApp };
+  // escolha entre várias saídas (ex.: Salvar e abrir / Descartar e abrir / Continuar nesta). Esc ou clique fora = a última.
+  function escolha(msg, opcoes) {
+    return new Promise((res) => quadro(`<p class="dlgmsg">${esc(msg)}</p><div class="dlgbt">${opcoes.map(([k, lb, cl]) => `<button type="button" class="btn${cl ? ' ' + cl : ''}" data-dlg="${esc(k)}">${esc(lb)}</button>`).join('')}</div>`, (w, fechar) => {
+      const ultima = opcoes[opcoes.length - 1][0]; const fim = (v) => { fechar(); res(v); };
+      w.addEventListener('click', (e) => { const b = e.target.closest('[data-dlg]'); if (b) fim(b.dataset.dlg); else if (e.target === w) fim(ultima); });
+      w.addEventListener('dlgesc', () => fim(ultima)); setTimeout(() => { const b = w.querySelector('.btn.pri') || w.querySelector('[data-dlg]'); if (b) b.focus(); }, 0);
+    }));
+  }
+  window.PricerDlg = { confirmar, pedir, ver, confirmaApp, perguntaApp, escolha };
+  // data para mostrar (dd/mm/aaaa): "2026-11-13" (sem hora) é meio-dia local, para não voltar um dia no fuso do Brasil
+  window.dataBR = (v) => { if (v == null || v === '') return ''; const d = new Date(typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v + 'T12:00' : v); return isNaN(d) ? String(v) : d.toLocaleDateString('pt-BR'); };
 })();
 
 </script>
@@ -3502,7 +3512,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
         <td><b>${esc(p.numero || '—')}</b>${(() => { const rv = p.spv ? p.spv.revisao : p.facts ? p.facts.revisao : ((p.doc || {}).PROPOSTA || {}).C6; const n = parseInt(String(rv ?? '0').replace(/\D/g, ''), 10) || 0; return n ? ` <small class="pill mute">rev. ${n}</small>` : ''; })()}<br><small class="sub">${esc(p.cliente || p.name || '')}</small></td>
         ${cv('total', `<td class="n">${typeof p.total === 'number' ? brl(p.total) : '—'}</td>`)}
         ${cv('sit', `<td><span class="pill ${sit(p)[1]}">${esc(sit(p)[0])}</span></td>`)}
-        ${cv('data', `<td class="sub">${esc(new Date(p.at).toLocaleDateString('pt-BR'))}</td>`)}
+        ${cv('data', `<td class="sub">${esc(window.dataBR(p.at))}</td>`)}
         <td class="hacts"><div class="hbtns">${(() => { const nx = ctx.proximo && ctx.proximo(p); return nx ? `<button class="btn sm pri" data-hnext="${esc(p.id)}|${nx.act}">${esc(nx.lb)}</button>` : ''; })()}${['aberto', 'aprovacao', 'enviada'].includes(faseDe(p)) ? `<button class="btn sm" data-hrev="${esc(p.id)}" data-ico="history" title="Criar uma nova revisão (a atual fica guardada)">Revisar</button>` : ''}<button class="btn sm" data-hopen="${esc(p.id)}" data-ico="external-link">Abrir</button><button class="btn sm" data-hdup="${esc(p.id)}">Duplicar</button>${['ganha', 'encerrada'].includes(faseDe(p)) && (!ctx.podeReabrir || ctx.podeReabrir()) ? `<button class="btn sm" data-hreabrir="${esc(p.id)}" data-ico="rotate-ccw" title="Desfazer a baixa e voltar para Enviada ao cliente">Reabrir</button>` : ''}${['perdida', 'ganha', 'encerrada'].includes(faseDe(p)) ? '' : `<button class="btn sm perd" data-hperdida="${esc(p.id)}" data-ico="circle-x" title="Marcar como perdida, com o motivo">Perdida</button>`}</div></td></tr>${ctx.etapasHtml ? `<tr class="etrow"><td colspan="6">${ctx.etapasHtml(p)}</td></tr>` : ''}`).join('');
       const chips = [['todas', 'Todas'], ['SEQ', 'SEQ'], ['SPV', 'SPV'], ['aberto', 'Em aberto'], ['aprovacao', 'Em aprovação'], ['enviada', 'Enviadas ao cliente'], ['ganha', 'Ganhas'], ['perdida', 'Perdidas'], ['pend_fin', 'Falta avisar financeiro'], ['pend_eng', 'Falta avisar engenharia'], ['pend_real', 'Falta custo real']].map(([k, lb]) => `<button class="hchip${f === k ? ' on' : ''}" data-hdiv="${k}">${lb}</button>`).join('');
       const tipos = spvTipos().map((t) => `<button class="tchip" data-spvnew="${t.abrev}" title="${esc(t.desc)}"><b>${esc((TIPO_INI[t.abrev] || {}).titulo || t.nome)}</b><small>${esc(t.abrev)}</small></button>`).join('');
@@ -3558,7 +3568,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       const mods = modelosDe(s.tipo);
       const pRows = r.pecas.map((p, i) => { const hist = pb.get(norm(p.desc)); const last = hist && hist.find((h) => Math.abs(h.unit - num(p.unit)) > 1e-9);
         return `<tr${p.incluso === false ? ' class="ro"' : ''}><td class="in"><input type="checkbox" data-sp="pecas.${i}.incluso" data-k="bool"${p.incluso === false ? '' : ' checked'} aria-label="Incluso"></td>
-        <td class="in wide">${inp(`pecas.${i}.desc`, p.desc, 'text', { lb: 'Descrição', list: 'dl_pb' })}${p.cod || p.forn ? `<small class="sub">${esc([p.cod, p.forn].filter(Boolean).join(' · '))}${p.docId ? ' · 📎' : ''}</small>` : ''}${last ? `<small class="hist">outra cotação: ${esc(last.moeda !== 'BRL' ? last.moeda + ' ' + fmt(last.unit) : brl(last.unit))} · ${esc(last.forn || '')} · ${esc(last.data ? new Date(last.data).toLocaleDateString('pt-BR') : '')}</small>` : ''}</td>
+        <td class="in wide">${inp(`pecas.${i}.desc`, p.desc, 'text', { lb: 'Descrição', list: 'dl_pb' })}${p.cod || p.forn ? `<small class="sub">${esc([p.cod, p.forn].filter(Boolean).join(' · '))}${p.docId ? ' · 📎' : ''}</small>` : ''}${last ? `<small class="hist">outra cotação: ${esc(last.moeda !== 'BRL' ? last.moeda + ' ' + fmt(last.unit) : brl(last.unit))} · ${esc(last.forn || '')} · ${esc(last.data ? window.dataBR(last.data) : '')}</small>` : ''}</td>
         <td class="in">${inp(`pecas.${i}.qtd`, p.qtd, 'num', { lb: 'Qtd' })}</td><td class="in">${sel(`pecas.${i}.moeda`, p.moeda || 'BRL', ['BRL', 'USD', 'EUR'], 'Moeda')}</td>
         <td class="in">${inp(`pecas.${i}.unit`, p.unit, 'num', { lb: 'Valor unitário' })}${!num(p.unit) && p.desc ? `<button class="restore" data-pedir="${esc(JSON.stringify({ produto: String(p.desc).toUpperCase(), fab: p.forn || '', origem: p.moeda && p.moeda !== 'BRL' ? 'IMP' : 'NAC', linha: { rotulo: 'peça da SPV' } }))}">pedir cadastro</button>` : ''}</td><td class="in">${inp(`pecas.${i}.ipi`, p.ipi || 0, 'pct', { lb: 'IPI' })}</td>
         <td class="n">${brl(p.unitBRL)}${p.moeda && p.moeda !== 'BRL' ? `<small class="sub">câmbio ${fmt(p.cambio ?? r.mk['cambio_' + p.moeda.toLowerCase()])} × imp. ${fmt(p.fimp ?? r.mk.fimp)}</small>` : ''}</td>
@@ -3634,7 +3644,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
     const DOC_ETAPAS = ['Identificação', 'Configuração', 'Custos', 'Formação', 'Conferência e aprovação', 'Emissão', 'Pedido do cliente', 'Execução', 'Pós-venda'];
     function docList(list) {
       return `<div class="tw"><table class="t"><thead><tr><th>Documento</th><th>Tipo</th><th>Fornecedor</th><th>Valor</th><th>Ligado a</th><th></th></tr></thead><tbody>${list.map((d) => `<tr>
-        <td><b>${esc(d.nome || '—')}</b>${d.numero ? `<br><small class="sub">nº ${esc(d.numero)}${d.data ? ' · ' + esc(new Date(d.data).toLocaleDateString('pt-BR')) : ''}</small>` : ''}${(d.itens || []).length ? ` <span class="pill mute">${d.itens.length} itens</span>` : ''}</td>
+        <td><b>${esc(d.nome || '—')}</b>${d.numero ? `<br><small class="sub">nº ${esc(d.numero)}${d.data ? ' · ' + esc(window.dataBR(d.data)) : ''}</small>` : ''}${(d.itens || []).length ? ` <span class="pill mute">${d.itens.length} itens</span>` : ''}</td>
         <td>${esc((DOC_TIPOS.find((t) => t[0] === d.tipo) || [0, d.tipo || '—'])[1])}</td><td>${esc(d.fornecedor || '—')}</td><td class="n">${typeof d.total === 'number' ? (d.moeda && d.moeda !== 'BRL' ? d.moeda + ' ' + fmt(d.total) : brl(d.total)) : '—'}</td>
         <td>${esc(d.propNome || '—')}${d.propNome && (d.rev != null || d.item || d.etapa) ? `<br><small class="sub">${esc([d.rev != null && !isNaN(d.rev) ? 'rev. ' + d.rev : '', d.item, d.etapa].filter(Boolean).join(' · '))}</small>` : ''}${(d.insumos || []).length ? `<br><small class="sub">${d.insumos.length} item(ns) do cadastro: ${esc(d.insumos.slice(0, 3).join(', '))}${d.insumos.length > 3 ? '…' : ''}</small>` : ''}</td>
         <td style="white-space:nowrap">${d.assetId || d.local ? `<button class="btn sm" data-dopen="${esc(d.id)}">Abrir</button> <button class="btn sm" data-ddown="${esc(d.id)}">Baixar</button>` : ''} <button class="btn sm" data-dedit="${esc(d.id)}">Detalhes</button></td></tr>`).join('')}</tbody></table></div>`;
@@ -3738,7 +3748,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       let y = 34; doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...INK);
       doc.text(safe(kind === 'cliente' ? 'Proposta de serviço' + (s.numero ? ' nº ' + s.numero : '') : 'Formação de custo — SPV' + (s.numero ? ' ' + s.numero : '')), 12, y); y += 6;
       doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTE); doc.text(safe(ti.abrev + ' · ' + ti.nome), 12, y); y += 8;
-      const kv = [['Cliente', s.cliente], ['Contato', s.contato], ['Local do serviço', s.local + (s.uf ? ' / ' + s.uf : '')], ['Data', new Date(s.data || Date.now()).toLocaleDateString('pt-BR')], ['Validade', (s.validade || 15) + ' dias'], ['Vendedor', s.vendedor]];
+      const kv = [['Cliente', s.cliente], ['Contato', s.contato], ['Local do serviço', s.local + (s.uf ? ' / ' + s.uf : '')], ['Data', window.dataBR(s.data || Date.now())], ['Validade', (s.validade || 15) + ' dias'], ['Vendedor', s.vendedor]];
       doc.setFontSize(8.5); kv.forEach(([k, v], i) => { const x = 12 + (i % 3) * 62; const yy = y + Math.floor(i / 3) * 10; doc.setTextColor(...MUTE); doc.setFont('helvetica', 'normal'); doc.text(safe(k).toUpperCase(), x, yy); doc.setTextColor(...INK); doc.setFont('helvetica', 'bold'); doc.text(safe(v || '—'), x, yy + 4.2); });
       y += 24;
       const head = { styles: { font: 'helvetica', fontSize: 8.2, cellPadding: 1.8, textColor: INK }, headStyles: { fillColor: [30, 31, 33], textColor: [255, 255, 255] }, alternateRowStyles: { fillColor: [248, 246, 243] }, margin: { left: 12, right: 12, top: 30, bottom: 16 } };
@@ -3822,7 +3832,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
           const vis = parseInput(g('#moVis').value, 'num'); const meses = parseInput(g('#moMeses').value, 'num');
           const equipe = g('#moEq').value.split('\n').map((l) => l.split(';')).filter((x) => x[0].trim()).map(([t, d]) => ({ tec: t.trim(), dias: parseInput((d || '1').trim(), 'num') || 1 }));
           const antes = new Map((m.pecas || []).map((x) => [norm(x.desc), x]));
-          const pecas = g('#moPc').value.split('\n').map((l) => l.split(';')).filter((x) => x[0].trim()).map(([d, q, u]) => { const desc = d.trim(); const old = antes.get(norm(desc)) || {}; const unit = parseInput((u || '').trim(), 'num'); return Object.assign({}, old, { desc, qtd: parseInput((q || '1').trim(), 'num') || 1, unit: typeof unit === 'number' ? unit : 0 }); });
+          const pecas = g('#moPc').value.split('\n').map((l) => l.split(';')).filter((x) => x[0].trim()).map(([d, q, u]) => { const desc = d.trim(); const old = antes.get(norm(desc)) || {}; const unit = parseInput((u || '').trim(), 'num'); return Object.assign({}, old, { desc, qtd: ((v) => (v == null || isNaN(v) ? 1 : v))(parseInput((q || '1').trim(), 'num')), unit: typeof unit === 'number' ? unit : 0 }); });
           const rec = { id: m.id, tipo: g('#moTipo').value, nome, equipe, pecas, escopo: g('#moEsc').value.trim(), exclusoes: g('#moExc').value.trim(), prazo: g('#moPrazo').value.trim() };
           if (typeof vis === 'number' && vis > 0) { rec.visitas = vis; rec.meses = typeof meses === 'number' && meses > 0 ? meses : 12; }
           close();
@@ -4012,7 +4022,7 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       if (num(f.preco) > 0) { Veq = Math.max(0, num(f.preco) - Vsv); }
       const V = Veq + Vsv; const imp = Veq * (tP - com) + Vsv * (tS - com); const comV = V * com; const custo = custoEq + custoSv;
       const margem = V - imp - comV - custo; const ipi = Veq * num(c.ipi);
-      return { k, desc, icms, pis, cof, ir, com, tP, tS, alvo, minimo, conj, nSets, serv, custoEq, custoSv, Veq, Vsv, V, imp, comV, custo, margem, margemPct: V ? margem / V : 0, ipi, VcomIpi: V + ipi };
+      return { semFator: (fatorP <= 0 && custoEq > 0 && !(num(f.preco) > 0)) || (fatorS <= 0 && custoSv > 0), k, desc, icms, pis, cof, ir, com, tP, tS, alvo, minimo, conj, nSets, serv, custoEq, custoSv, Veq, Vsv, V, imp, comV, custo, margem, margemPct: V ? margem / V : 0, ipi, VcomIpi: V + ipi };
     }
     function snapshot(f) {
       const r = calc(f); const itens = [];
@@ -4065,6 +4075,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const tecOpts = [['', 'Escolha…']].concat(spv.tecnicos.map((t) => [t.nome, `${t.nome} — ${t.funcao} (${brl(t.diaria)})`]));
       const eq = (f.equipe || []).map((e, i) => `<tr><td class="in">${sel(`equipe.${i}.tec`, e.tec, tecOpts, 'Técnico')}</td><td class="in">${inp(`equipe.${i}.diaria`, e.diaria)}</td><td class="in">${inp(`equipe.${i}.dias`, e.dias)}</td><td class="n">${brl(num(e.diaria) * num(e.dias))}</td><td><button class="restore" data-fxeqrm="${i}">remover</button></td></tr>`).join('');
       return `<div class="stack">
+        ${r.semFator ? `<div class="banner bad">A margem alvo (${pct(r.alvo, 1)}) somada aos impostos e comissões passa de 100%: não há preço que chegue a essa margem, e o valor ficou zerado. Baixe a margem alvo ou informe o preço à mão.</div>` : ''}
         ${ctx.confCard ? ctx.confCard() : ''}
         <section class="card"><h2>Cliente</h2><div class="fields">${fld('Cliente', inp('cliente', f.cliente, 'text'), 'span2')}${fld('Nº da proposta', inp('numero', f.numero, 'text') + (window.LSNumGerar ? window.LSNumGerar('seq', 'input[data-fx="numero"]', f.numero) : ''))}${fld('Contato', inp('contato', f.contato, 'text'))}${fld('Local', inp('local', f.local, 'text'), 'span2')}${fld('UF', inp('uf', f.uf, 'text'))}${fld('Vendedor', inp('vendedor', f.vendedor, 'text'))}</div></section>
         ${conj}
@@ -4248,7 +4259,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
       const ed = REG.areaOk('custos'); if (!ed) { toast('Só a área de Custos cadastra o preço.'); return; }
       const exist = x.insumoId && REG.insumos.find((i) => i.id === x.insumoId);
       modal(`<h2>Cadastrar: ${esc(x.produto)}</h2>
-        <p class="sub" style="margin:0">Pedido de <span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'alguém da equipe'}</span> em ${esc(new Date(x.at).toLocaleDateString('pt-BR'))}${x.propNome ? ' · ' + esc(x.propNome) : ''}${x.obs ? ' · ' + esc(x.obs) : ''}</p>
+        <p class="sub" style="margin:0">Pedido de <span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'alguém da equipe'}</span> em ${esc(window.dataBR(x.at))}${x.propNome ? ' · ' + esc(x.propNome) : ''}${x.obs ? ' · ' + esc(x.obs) : ''}</p>
         <div class="fields"><div class="f span2"><label>Família</label><input value="${esc(window.LSFamNome ? window.LSFamNome(x.fam) : x.fam)}" disabled></div>
           <div class="f spanall"><label for="atDesc">Descrição (padrão da família)</label><input id="atDesc" value="${esc(exist ? exist.produto : x.produto)}"${exist ? ' disabled' : ''}><small class="sub" id="atChk"></small></div>
           <div class="f"><label for="atFab">Fabricante</label><input id="atFab" value="${esc((exist && exist.fab) || x.fab || '')}"></div>
@@ -4296,7 +4307,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     function vLista() {
       ensure(); const ed = REG.areaOk('custos'); const f = ui.pdSt || 'aberto';
       const pill = { aberto: 'warn', atendido: 'ok', recusado: 'bad', 'aguardando preço': 'warn', 'aguardando validação': 'warn' };
-      const rows = lista.filter((x) => f === 'todos' || x.status === f || (f === 'andamento' && /^aguardando/.test(x.status))).map((x) => `<tr><td>${esc(new Date(x.at).toLocaleDateString('pt-BR'))}<br><small class="sub"><span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'neste navegador'}</span></small></td>
+      const rows = lista.filter((x) => f === 'todos' || x.status === f || (f === 'andamento' && /^aguardando/.test(x.status))).map((x) => `<tr><td>${esc(window.dataBR(x.at))}<br><small class="sub"><span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'neste navegador'}</span></small></td>
         <td><b>${esc(x.produtoFinal || x.produto)}</b><br><small class="sub">${esc(window.LSFamNome ? window.LSFamNome(x.fam) : x.fam)}${x.fab ? ' · ' + esc(x.fab) : ''} · ${esc(x.origem || '')}${x.propNome ? ' · ' + esc(x.propNome) : ''}</small>${x.padrao && x.padrao !== 'ok' ? `<br><small class="bad-t">${esc(x.padrao)}</small>` : ''}${x.obs ? `<br><small class="sub">${esc(x.obs)}</small>` : ''}</td>
         <td><span class="pill ${pill[x.status] || 'mute'}">${esc(x.status)}</span>${/urgente/.test(x.urgencia || '') ? ' <span class="pill bad">urgente</span>' : ''}${x.status === 'atendido' ? `<br><small class="sub">${brl(x.valor)} · ${esc(x.insumoId || '')}</small>` : x.status === 'recusado' ? `<br><small class="sub">${esc(x.motivo || '')}</small>` : ''}</td>
         <td>${x.status === 'aberto' && ed ? `<button class="btn sm pri" data-pdat="${esc(x.id)}">Cadastrar</button>` : ''}</td></tr>`).join('');
@@ -4559,7 +4570,7 @@ Funções: teste semanal automático (pré-aviso de 10 s, operação de 10 a 30 
     // quadro na Revisão
     function card(p, F) {
       const c = p && p.conferencia; const valida = c && ctx.conferidaOk(p);
-      const st = !c ? '<span class="pill mute">não conferida</span>' : valida ? `<span class="pill ok">conferida ✓ ${esc(new Date(c.at).toLocaleDateString('pt-BR'))}${c.ressalva ? ' · com ressalva' : ''}</span>` : '<span class="pill warn">conferência desatualizada: a proposta mudou depois</span>';
+      const st = !c ? '<span class="pill mute">não conferida</span>' : valida ? `<span class="pill ok">conferida ✓ ${esc(window.dataBR(c.at))}${c.ressalva ? ' · com ressalva' : ''}</span>` : '<span class="pill warn">conferência desatualizada: a proposta mudou depois</span>';
       const res = ultimo && p && ultimo.propId === p.id && ultimo.rev === F.rev ? vResultado(ultimo.res, ultimo.salvo) : '';
       const aceitar = ultimo && p && ultimo.propId === p.id && ultimo.res.erros && !ultimo.salvo;
       return `<section class="card" id="confCard"><h2>Conferência do PDF da proposta <span class="sub">o app confere o PDF com a formação: valores, especificações e escopo</span></h2>
@@ -7117,12 +7128,12 @@ window.PRICER_ESCOPO_PADRAO = {
     // ---------- telas ----------
     const pill = (L, k) => `<span class="pill ${cls(L, k)}">${esc(lb(L, k))}</span>`;
     const resp = (p) => (p.respId ? `<span data-uid="${esc(p.respId)}">…</span>` : p.respNome ? esc(p.respNome) : '<span class="sub">sem responsável</span>');
-    const prazoTxt = (p) => (p.prazo ? `<span class="${vencida(p) ? 'bad-t' : ''}">${esc(new Date(p.prazo + 'T12:00').toLocaleDateString('pt-BR'))}${vencida(p) ? ' · vencida' : ''}</span>` : '<span class="sub">—</span>');
+    const prazoTxt = (p) => (p.prazo ? `<span class="${vencida(p) ? 'bad-t' : ''}">${esc(window.dataBR(p.prazo + 'T12:00'))}${vencida(p) ? ' · vencida' : ''}</span>` : '<span class="sub">—</span>');
     function linhas(L, comProposta) {
       return L.map((p) => `<tr class="${p.criticidade === 'impeditiva' && aberta(p) ? 'cf-erro' : vencida(p) ? 'cf-aviso' : ''}">
         <td><b>${esc(codigoDe(p))}</b><br><small class="sub">${p.origem === 'auto' ? 'automática' : 'manual'}</small></td>
         <td>${esc(p.titulo)}${comProposta && p.propNome ? `<br><small class="sub">${esc(p.propNome)}</small>` : ''}</td>
-        <td>${esc(p.departamento)}<br><small>${resp(p)}</small></td><td>${prazoTxt(p)}<br><small class="sub">prioridade ${esc(lb(PRIOR, p.prioridade).toLowerCase())}</small></td>
+        <td>${esc(p.departamento)}<br><small>${resp(p)}</small></td><td>${prazoTxt(p)}<br><small class="sub">prioridade ${esc(String(lb(PRIOR, p.prioridade) || 'não definida').toLowerCase())}</small></td>
         <td>${pill(CRIT, p.criticidade)}<br>${pill(STATUS, p.status)}</td>
         <td><button class="btn sm" data-pnabre="${esc(p.id)}">Abrir</button>${comProposta && p.propId ? ` <button class="restore" data-pnprop="${esc(p.propId)}">proposta</button>` : ''}</td></tr>`).join('');
     }
@@ -7329,7 +7340,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const shared = () => REG.mode === 'shared' && !!REG.db;
     // custo real: Engenharia (e Custos) preenchem
     const canReal = () => REG.areaOk('engenharia') || REG.areaOk('custos');
-    const fmtD = (d) => { try { return new Date(d).toLocaleDateString('pt-BR'); } catch (e) { return d || ''; } };
+    const fmtD = (d) => { try { if (!d) return ''; return window.dataBR(d); } catch (e) { return d || ''; } }; // data sem hora: meio-dia local (não volta um dia no fuso do Brasil)
     const mi = (v) => (Math.abs(v) >= 1e6 ? 'R$ ' + NF[1].format(v / 1e6) + ' mi' : Math.abs(v) >= 1e3 ? 'R$ ' + NF[0].format(v / 1e3) + ' mil' : brl(v));
 
     // ---------- fechamentos: banco da equipe ou navegador ----------
@@ -7358,7 +7369,7 @@ window.PRICER_ESCOPO_PADRAO = {
       if (!podeReabrir()) { toast('Só quem tem acesso de Editor desfaz uma baixa'); return; }
       const R = realizado(F); const temReal = R && R.apontadas;
       modal(`<h2>Reabrir a proposta</h2>
-        <p class="sub" style="margin:0">${esc(p.numero || p.name || '')} · ${esc(p.cliente || '')}. A baixa de ${esc(new Date(F.fechadoEm).toLocaleDateString('pt-BR'))} (${brl(F.valorFechado || R.venda || 0)}) é desfeita e a proposta volta para <b>Enviada ao cliente</b>. Uma cópia da baixa (com o custo real, se houver) fica guardada na proposta; o histórico registra quem reabriu e o motivo.</p>
+        <p class="sub" style="margin:0">${esc(p.numero || p.name || '')} · ${esc(p.cliente || '')}. A baixa de ${esc(window.dataBR(F.fechadoEm))} (${brl(F.valorFechado || R.venda || 0)}) é desfeita e a proposta volta para <b>Enviada ao cliente</b>. Uma cópia da baixa (com o custo real, se houver) fica guardada na proposta; o histórico registra quem reabriu e o motivo.</p>
         ${temReal ? `<div class="banner warn" style="margin:0">Esta baixa tem custo real lançado (${pct(R.cobertura, 0)} conferido). Ele sai das telas de Margens e fica só na cópia guardada.</div>` : ''}
         <div class="f"><label for="rbMot">Motivo</label><input id="rbMot" placeholder="ex.: cliente pediu nova revisão antes do pedido; baixa feita por engano"></div>
         <div style="display:flex;gap:8px"><button class="btn pri" id="rbOk">Reabrir</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
@@ -8212,7 +8223,8 @@ window.PRICER_ESCOPO_PADRAO = {
       if (REG.mode !== 'shared') return { ok: true };
       const lista = (REG.acessos || {})['ap_' + k] || [];
       if (lista.length && !lista.includes(x.by) && !(REG.donoId && x.by === REG.donoId)) return { ok: false, motivo: 'quem decidiu não está entre os aprovadores' };
-      if (String(x.at) < CORTE_ASSIN) return { ok: true, legado: true };
+      // legado (sem assinatura) só vale para pedido de aprovação também anterior à REV22: decisão com data antiga num pedido novo é forjada
+      if (String(x.at) < CORTE_ASSIN && String(a.at || '') < CORTE_ASSIN) return { ok: true, legado: true };
       ouvirAssin(x.by); const m = assin[x.by];
       if (!m) return { ok: false, motivo: 'conferindo a assinatura…', carregando: true };
       const sg = m[a.id + '__' + k]; if (!sg || sg.decisao !== x.decisao || sg.at !== x.at) return { ok: false, motivo: 'decisão sem assinatura válida no banco' };
@@ -8794,7 +8806,7 @@ window.PRICER_ESCOPO_PADRAO = {
     }
   }
   const $ = (s, el = document) => el.querySelector(s);
-  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ITEMS = Array.from({ length: 10 }, (_, i) => 'ITEM ' + String(i + 1).padStart(2, '0'));
   const PROPOSAL_SHEETS = new Set(['PROPOSTA', ...ITEMS]);
   const TABLE_SHEETS = ['PARÂMETROS', 'POLÍTICA', 'MONTADOR', 'CODIFICAÇÃO', 'KIT HIDRÁULICA', 'KIT VÁLVULA ALÍVIO', 'FCI', 'FCI EXTRAÇÃO', 'CADASTRO', 'KIT MOTORES DIESEL', 'KIT BOMBA'];
@@ -8882,9 +8894,9 @@ window.PRICER_ESCOPO_PADRAO = {
   function precosCard() {
     if (isSpv() || isFacts()) return '';
     const fixo = !!state.precosFix; const pr = state.precosFix || state.precosSalvos; if (!pr) return '';
-    const D = difPrecos(pr); if (!D.length) return fixo ? `<div class="banner info" style="margin:0">Esta proposta usa os preços do cadastro de ${esc(new Date(pr.at).toLocaleDateString('pt-BR'))} (preços da época), que continuam iguais aos de hoje.</div>` : '';
-    return fixo ? `<div class="banner warn" style="margin:0"><b>Preços da época:</b> esta proposta calcula com os preços de ${esc(new Date(pr.at).toLocaleDateString('pt-BR'))}. ${D.length} preço(s) mudaram no cadastro desde então; nada muda aqui sem a sua escolha. <button class="btn sm" data-precocmp>Comparar e atualizar</button></div>`
-      : `<div class="banner info" style="margin:0">${D.length} preço(s) do cadastro mudaram desde a última gravação (${esc(new Date(pr.at).toLocaleDateString('pt-BR'))}). Este rascunho já calcula com os preços de hoje. <button class="restore" data-precocmp>ver quais</button></div>`;
+    const D = difPrecos(pr); if (!D.length) return fixo ? `<div class="banner info" style="margin:0">Esta proposta usa os preços do cadastro de ${esc(window.dataBR(pr.at))} (preços da época), que continuam iguais aos de hoje.</div>` : '';
+    return fixo ? `<div class="banner warn" style="margin:0"><b>Preços da época:</b> esta proposta calcula com os preços de ${esc(window.dataBR(pr.at))}. ${D.length} preço(s) mudaram no cadastro desde então; nada muda aqui sem a sua escolha. <button class="btn sm" data-precocmp>Comparar e atualizar</button></div>`
+      : `<div class="banner info" style="margin:0">${D.length} preço(s) do cadastro mudaram desde a última gravação (${esc(window.dataBR(pr.at))}). Este rascunho já calcula com os preços de hoje. <button class="restore" data-precocmp>ver quais</button></div>`;
   }
   function precosModal() {
     const fixo = !!state.precosFix; const pr = state.precosFix || state.precosSalvos; const D = difPrecos(pr); if (!D.length) { toast('Nenhum preço mudou'); return; }
@@ -9236,7 +9248,8 @@ window.PRICER_ESCOPO_PADRAO = {
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
     const full = !outro && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
     const views = spv ? { proposta: SPV.vSpv } : fx ? { proposta: FX.vFacts } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : ui.cfgClassico ? vItemS : vConfig } : { proposta: vProposta, item: vItem };
-    const html = (viewDaProposta(ui.view) ? propHeader() : '') + Object.assign({ inicio: SPV.vHome, pendencias: MG.vPendencias, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: () => vCadastro('cadastro'), config: () => vCadastro('config'), guia: vGuia, phist: vPropHist }, views)[ui.view]();
+    // uma tela que falha (ex.: registro malformado vindo do banco) mostra o erro em vez de deixar a página em branco
+    let html; try { html = (viewDaProposta(ui.view) ? propHeader() : '') + Object.assign({ inicio: SPV.vHome, pendencias: MG.vPendencias, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: () => vCadastro('cadastro'), config: () => vCadastro('config'), guia: vGuia, phist: vPropHist }, views)[ui.view](); } catch (err) { console.error(err); html = `<section class="card"><h2>Não foi possível mostrar esta tela</h2><p class="sub">Um dado desta tela está num formato inesperado: ${esc(err && err.message || String(err))}. As outras telas continuam funcionando; avise o administrador.</p><button class="btn" data-view="inicio">Voltar ao início</button></section>`; }
     MG.ensure(); SPV.ensureDocs(); PD.ensure();
     // contadores do menu: só o selo muda; o ícone e o nome ficam
     const selo = (v, n, t) => { const b = document.querySelector('#nav [data-view="' + v + '"]'); if (!b) return; let x = b.querySelector('.nbadge'); if (!n) { if (x) x.remove(); return; } if (!x) { x = document.createElement('span'); x.className = 'nbadge'; b.appendChild(x); } x.textContent = n; x.title = t; b.setAttribute('aria-label', b.textContent.replace(/\d+$/, '').trim() + ' — ' + t); };
@@ -9245,7 +9258,7 @@ window.PRICER_ESCOPO_PADRAO = {
     { const n = MG.pendentesAprov(); selo('margens', n, n + ' aprovação(ões) de desconto esperando você'); }
     temaAtual();
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
-    const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
+    const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(window.dataBR(fe.fechadoEm))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
     const salvaB = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
     const avInteg = !['proposta', 'item', 'memorial'].includes(ui.view) ? '' : (armazFalhou ? `<div class="banner bad" style="margin:0 0 12px"><b>O navegador não está gravando</b> (${esc(armazFalhou.msg)}). O que você fizer agora pode se perder ao fechar. Baixe um backup em Configurações → Backup e restauração e libere espaço.</div>` : '')
@@ -9695,7 +9708,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const a = x.aprov; if (!a || !a.estado) return '';
     const d = Object.values(a.decisoes).filter((y) => y.comentario).map((y) => y.comentario).join(' · ');
     const alvo = a.alvoIpi ? ` o valor target de ${brl(a.alvoIpi)} (desconto de ${pct(a.desc, 1)}, margem ${pct(a.margemAlvo, 1)})` : '';
-    const t = a.estado === 'pendente' ? `Aprovação${alvo ? ' d' + alvo.trim().replace(/^o /, 'o ') : ''} pedida em ${new Date(a.at).toLocaleDateString('pt-BR')}: está \u0001.`
+    const t = a.estado === 'pendente' ? `Aprovação${alvo ? ' d' + alvo.trim().replace(/^o /, 'o ') : ''} pedida em ${window.dataBR(a.at)}: está \u0001.`
       : a.estado === 'aprovada' ? (alvo ? `Diretoria e Financeiro aprovaram${alvo}.` : `Aprovado pela Diretoria e pelo Financeiro com margem de ${pct(a.margem)}.`) + (d ? ' ' + d : '')
       : a.estado === 'vencida' && a.motivo ? `A aprovação perdeu a validade: ${a.motivo} depois do pedido. Peça de novo.`
       : a.estado === 'vencida' ? (alvo ? `Aprovado${alvo}, mas a proposta está em ${brl(a.atualIpi)}, abaixo do aprovado. Peça de novo.` : `A aprovação foi para margem de ${pct(a.margem)}; a margem caiu depois disso. Peça de novo.`)
@@ -9705,7 +9718,7 @@ window.PRICER_ESCOPO_PADRAO = {
   // cada alerta: corrigir agora (quando dá) ou seguir assim, com a justificativa no histórico
   const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => {
     const okAp = x.aprov && x.aprov.estado === 'aprovada';
-    return `<li class="${x.ack || okAp ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${aprovLinha(x)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(new Date(x.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span>
+    return `<li class="${x.ack || okAp ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${aprovLinha(x)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(window.dataBR(x.ack.at))}</small>` : ''}</span>
       <span class="alact">${alAcoes(x)}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
   // ações de um alerta (as mesmas na tela clássica, na conferência e no configurador)
   function alAcoes(x) { const key = esc(JSON.stringify([x.S, x.msg])); const ap = x.aprov && x.aprov.estado; const okAp = ap === 'aprovada'; const pedeAp = x.aprov && !x.ack && (!ap || ap === 'reprovada' || ap === 'vencida');
@@ -10695,7 +10708,7 @@ window.PRICER_ESCOPO_PADRAO = {
         if (!manual && ins && !precoRef(ins)) al.push(['info', 'preço da planilha original, sem data de atualização']);
         if (ins && foraDeUso(ins)) al.push(['aviso', 'insumo ' + situ(ins) + (ins.substituto ? ' — substituto: ' + ins.substituto : '')]);
         else if (ins && ['provisorio', 'validacao', 'preco'].includes(situ(ins))) al.push(['aviso', 'cadastro ' + (SITUACOES.find((x) => x[0] === situ(ins)) || [0, ''])[1].toLowerCase()]);
-        const vp = ins && variacaoPreco(ins); if (vp && Math.abs(vp.pct) >= C.variacaoPct) al.push(['aviso', 'preço mudou ' + (vp.pct > 0 ? '+' : '') + pct(vp.pct, 0) + ' em ' + new Date(vp.at).toLocaleDateString('pt-BR')]);
+        const vp = ins && variacaoPreco(ins); if (vp && Math.abs(vp.pct) >= C.variacaoPct) al.push(['aviso', 'preço mudou ' + (vp.pct > 0 ? '+' : '') + pct(vp.pct, 0) + ' em ' + window.dataBR(vp.at)]);
         if (l.desc && !ins && !manual) al.push(['info', 'fora do cadastro (nome não encontrado)']);
         const key = S + '|' + l.k; const marcado = na[key];
         out.push({ S, key, item: it.nome, l, ins, q, manual, upd, idade, al: marcado ? [] : al, na: marcado || null, total: l.custo * q });
@@ -10713,7 +10726,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const C = custosCfg(); const m = new Map(); for (const x of L) if (!x.manual && x.ins && !x.na && precoVencido(x.ins)) m.set(x.ins.id, x.ins);
     if (!m.size) return '';
     const lista = [...m.values()].sort((a, b) => (precoRef(a) || 0) - (precoRef(b) || 0));
-    const nomes = lista.slice(0, 4).map((i) => `${esc(i.produto)} <small class="sub">(${new Date(precoRef(i)).toLocaleDateString('pt-BR')})</small>`).join('; ');
+    const nomes = lista.slice(0, 4).map((i) => `${esc(i.produto)} <small class="sub">(${window.dataBR(precoRef(i))})</small>`).join('; ');
     return `<div class="banner warn" style="margin:0 0 12px"><b>${m.size} insumo(s) desta proposta com preço vencido</b> — mais de ${C.validadeDias} dias sem atualizar no cadastro: ${nomes}${lista.length > 4 ? '; …' : ''}.
       <button class="btn sm pri" data-irvenc="${esc(lista.map((i) => i.id).join(','))}">Atualizar no cadastro</button></div>`;
   }
@@ -10730,7 +10743,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <td>${esc(x.l.desc || x.l.rot || '')}<br><small class="sub">${esc([x.l.fam, x.l.grupo !== 'ESCOPO' ? x.l.grupo : 'escopo', x.ins && x.ins.fab].filter(Boolean).join(' · '))}</small></td>
         <td class="n">${NF[2].format(x.l.qtd * x.q)}</td><td class="n">${brl(x.l.unit)}</td><td class="n"><b>${brl(x.total)}</b></td>
         <td>${x.manual ? 'digitado na proposta' : x.ins ? (x.l.ori || x.ins.origem || 'NAC') + ' · cadastro' : 'sem cadastro'}</td>
-        <td>${x.manual ? '—' : x.upd ? new Date(x.upd).toLocaleDateString('pt-BR') + `<br><small class="sub">vale até ${new Date(x.upd + C.validadeDias * 864e5).toLocaleDateString('pt-BR')}</small>` : '<span class="sub">sem data</span>'}</td>
+        <td>${x.manual ? '—' : x.upd ? window.dataBR(x.upd) + `<br><small class="sub">vale até ${window.dataBR(x.upd + C.validadeDias * 864e5)}</small>` : '<span class="sub">sem data</span>'}</td>
         <td>${x.na ? `<span class="pill mute">não se aplica</span><br><small class="sub">${esc(x.na.motivo)}</small> <button class="restore" data-naundo="${esc(x.key)}">desfazer</button>` : x.al.map(([s, t]) => `<div>${ic[s]} ${esc(t)}</div>`).join('') || '<span class="ok-t">✓</span>'}</td>
         <td>${!x.na && x.al.length ? `<button class="restore" data-namark="${esc(x.key)}" title="marcar como intencional: não é pendência">não se aplica</button>` : ''}</td></tr>`).join(''); }).join('');
     return `<section class="card"><h2>Composição de custos <span class="sub">de onde vem cada custo, a data da cotação e o que pede atenção</span></h2>
@@ -10896,7 +10909,7 @@ window.PRICER_ESCOPO_PADRAO = {
       <div id="bbL" class="tw" style="max-height:55vh;overflow:auto"></div>
       <p class="sub" style="margin:0">Usar copia a configuração do item para uma posição livre desta proposta, registra de onde veio e recalcula com o cadastro e as regras de hoje.</p><div><button class="btn" data-close>Fechar</button></div>`, (o) => {
       const draw = () => { const g = FAMS_F.termos($('#bbQ', o).value, sin); const L = all.filter((x) => !g.length || FAMS_F.casa(x.hay, g)).slice(0, 60);
-        $('#bbL', o).innerHTML = L.length ? `<table class="t"><thead><tr><th>Proposta</th><th>Item</th><th>Família · modelo</th><th>Potência · vazão · pressão</th><th></th></tr></thead><tbody>${L.map((x, i) => `<tr><td><b>${esc(x.q.numero || x.q.name || '')}</b><br><small class="sub">${esc(x.q.cliente || '')} · ${esc(new Date(x.q.at).toLocaleDateString('pt-BR'))}</small></td><td>${esc(x.S)}<br><small class="sub">${esc(x.nome.slice(0, 70))}</small></td><td>${esc(famNome(x.fam))}${x.modelo ? '<br><small>' + esc(x.modelo) + '</small>' : x.bomba ? '<br><small>' + esc(x.bomba) + '</small>' : ''}</td><td><small>${[x.hp ? x.hp + ' HP' : '', x.cv ? x.cv + ' CV' : '', x.vazao ? x.vazao + ' USgpm' : '', x.pressao ? x.pressao + ' mca' : ''].filter(Boolean).join(' · ') || '—'}</small></td><td><button class="btn sm pri" data-bbuse="${all.indexOf(x)}">Usar</button></td></tr>`).join('')}</tbody></table>` : '<p class="sub">Nada encontrado.</p>';
+        $('#bbL', o).innerHTML = L.length ? `<table class="t"><thead><tr><th>Proposta</th><th>Item</th><th>Família · modelo</th><th>Potência · vazão · pressão</th><th></th></tr></thead><tbody>${L.map((x, i) => `<tr><td><b>${esc(x.q.numero || x.q.name || '')}</b><br><small class="sub">${esc(x.q.cliente || '')} · ${esc(window.dataBR(x.q.at))}</small></td><td>${esc(x.S)}<br><small class="sub">${esc(x.nome.slice(0, 70))}</small></td><td>${esc(famNome(x.fam))}${x.modelo ? '<br><small>' + esc(x.modelo) + '</small>' : x.bomba ? '<br><small>' + esc(x.bomba) + '</small>' : ''}</td><td><small>${[x.hp ? x.hp + ' HP' : '', x.cv ? x.cv + ' CV' : '', x.vazao ? x.vazao + ' USgpm' : '', x.pressao ? x.pressao + ' mca' : ''].filter(Boolean).join(' · ') || '—'}</small></td><td><button class="btn sm pri" data-bbuse="${all.indexOf(x)}">Usar</button></td></tr>`).join('')}</tbody></table>` : '<p class="sub">Nada encontrado.</p>';
         o.querySelectorAll('[data-bbuse]').forEach((b) => { b.onclick = () => { const x = all[+b.dataset.bbuse]; const j = firstFree(); if (j < 0) { toast('As 10 posições de item já estão em uso'); return; } const S = ITEMS[j];
           state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.c)); state.origemItens = Object.assign({}, state.origemItens || {}, { [S]: { propId: x.q.id, numero: x.q.numero || '', item: x.S, at: new Date().toISOString() } });
           build(); persist(); dirty = true; listCache = new Map(); $('#overlay').innerHTML = ''; logEv({ tipo: 'Configuração reaproveitada', ref: docTitle(), desc: S + ' ← ' + (x.q.numero || '') + ' ' + x.S, mudancas: [] }); render(); toast(S + ' criado a partir de ' + (x.q.numero || 'outra proposta') + ' ' + x.S + ', com os preços de hoje'); }; }); };
@@ -11611,7 +11624,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const grp = ACIONS.concat([['ESC', 'Adicionados nesta proposta']]).map(([k, lb]) => { const L = M.comps.filter((x) => x.acion === k && x.tipo !== 'opc' && x.tipo !== 'kit'); if (!L.length) return ''; const gt = L.reduce((t, x) => t + num0(x.tot), 0);
       return `<details class="cfgcusto"><summary><span>${esc(k === 'TODOS' && ['SKID', 'CONTAINER'].includes(M.est) ? 'Equipamentos e acessórios gerais' : lb)}</span><b>${brl(gt)}</b></summary><div class="tw"><table class="t"><tbody>${L.map((x) => `<tr><td>${esc(x.rot)}<br><small class="sub">${esc(x.desc || '—')}</small></td><td class="n">${fmtNum(x.qtd)}</td><td class="n">${brl(x.tot)}</td></tr>`).join('')}</tbody></table></div></details>`; }).join('');
     const nv = { imped: ['Impeditivo', 'bad'], aviso: ['Atenção', 'warn'], info: ['Informativo', 'info'] };
-    const alertas = V.length ? `<ul class="alerts cfgalerts">${V.map((a, i) => `<li class="${a.al && a.al.ack ? 'ack' : nv[a.lvl][1]}"><span><b>${nv[a.lvl][0]}${a.lvl === 'imped' && !a.bloq ? ' (vai para aprovação)' : ''}:</b> ${esc(a.msg)}${a.al ? aprovLinha(a.al) : ''}${a.al && a.al.ack ? `<br><small class="sub">Seguindo assim: ${esc(a.al.ack.motivo)} · ${esc(new Date(a.al.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span><span class="alact" style="display:flex;gap:6px;flex-wrap:wrap">${a.al ? alAcoes(a.al) : ''}${a.snap && cf.snap && ['enviada', 'aprovada', 'ganha'].includes(String(state.status || '')) ? '<button class="btn sm" data-cfgfixar>Manter a composição registrada</button>' : ''}<button class="btn sm" data-cfgalert="${i}">Ir para o ${a.go.et === 1 ? 'campo' : a.go.et === 2 ? 'componente' : 'item'}</button></span></li>`).join('')}</ul>` : '<div class="banner ok" style="margin:0">Nenhuma pendência: a configuração está consistente.</div>';
+    const alertas = V.length ? `<ul class="alerts cfgalerts">${V.map((a, i) => `<li class="${a.al && a.al.ack ? 'ack' : nv[a.lvl][1]}"><span><b>${nv[a.lvl][0]}${a.lvl === 'imped' && !a.bloq ? ' (vai para aprovação)' : ''}:</b> ${esc(a.msg)}${a.al ? aprovLinha(a.al) : ''}${a.al && a.al.ack ? `<br><small class="sub">Seguindo assim: ${esc(a.al.ack.motivo)} · ${esc(window.dataBR(a.al.ack.at))}</small>` : ''}</span><span class="alact" style="display:flex;gap:6px;flex-wrap:wrap">${a.al ? alAcoes(a.al) : ''}${a.snap && cf.snap && ['enviada', 'aprovada', 'ganha'].includes(String(state.status || '')) ? '<button class="btn sm" data-cfgfixar>Manter a composição registrada</button>' : ''}<button class="btn sm" data-cfgalert="${i}">Ir para o ${a.go.et === 1 ? 'campo' : a.go.et === 2 ? 'componente' : 'item'}</button></span></li>`).join('')}</ul>` : '<div class="banner ok" style="margin:0">Nenhuma pendência: a configuração está consistente.</div>';
     const chk = (k, lb) => { const c0 = conf[k]; const ok = c0 && c0.sig === sig; return `<label class="chk"><input type="checkbox" data-cfgconf="${k}"${ok ? ' checked' : ''}> ${esc(lb)}${c0 ? ` <small class="sub">${ok ? '' : '(antes de mudanças: refaça) '}${esc(fmtAt(c0.at))} · ${who(c0.by)}</small>` : ''}</label>`; };
     const nImp = V.filter((x) => x.lvl === 'imped' && x.bloq).length; const incl = cf.incl; const inclOk = incl && incl.sig === sig;
     const alt = M.comps.filter((x) => x.tipo === 'man' || x.trocado || x.qtdAlt); const opc = M.comps.filter((x) => x.cls === 'opc');
@@ -11708,12 +11721,13 @@ window.PRICER_ESCOPO_PADRAO = {
     if (ds.cfgconf) { const k = ds.cfgconf; const sig = cfgSig(S); cfgPut(S, (c) => { c.conf = c.conf || {}; if (t.checked) c.conf[k] = { at: new Date().toISOString(), by: REG.me || null, sig }; else delete c.conf[k]; if (!Object.keys(c.conf).length) delete c.conf; });
       logEv({ tipo: 'Conferência do equipamento', ref: docTitle(), desc: S + ': ' + ({ tec: 'configuração técnica revisada', custos: 'custos conferidos', escopo: 'escopo validado' })[k] + (t.checked ? '' : ' (desmarcada)'), mudancas: [] }); render(); return; }
   });
-  // pesquisa: atualiza ao digitar, sem perder o foco
+  // pesquisa: atualiza ao digitar, sem perder o foco (espera uma pausa curta: não redesenha a tela a cada tecla)
+  let cfgQT = null, cfgAddQT = null;
   document.addEventListener('input', (e) => {
     if (ui.view !== 'item') return; const S = ITEMS[ui.item]; const t = e.target;
     const refoca = (sel) => { const pos = t.selectionStart; render(); const el = document.querySelector(sel); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (er) { /* campo sem seleção */ } } };
-    if (t.matches('[data-cfgq]')) { ui.cfgQ = Object.assign({}, ui.cfgQ, { [S]: t.value }); refoca('[data-cfgq]'); return; }
-    if (t.matches('[data-cfgaddq]')) { ui.cfgAddQ = t.value; refoca('[data-cfgaddq]'); }
+    if (t.matches('[data-cfgq]')) { ui.cfgQ = Object.assign({}, ui.cfgQ, { [S]: t.value }); clearTimeout(cfgQT); cfgQT = setTimeout(() => refoca('[data-cfgq]'), 220); return; }
+    if (t.matches('[data-cfgaddq]')) { ui.cfgAddQ = t.value; clearTimeout(cfgAddQT); cfgAddQT = setTimeout(() => refoca('[data-cfgaddq]'), 220); }
   });
   // ---- novo item: família → estrutura cadastrada → modelo cadastrado (ou os mais próximos) ----
   const famChosen = (S, c) => overridden(S, 'C21') || !!txt(S, 'C17') || filled(S) || overridden(S, 'E17');
@@ -11997,7 +12011,7 @@ window.PRICER_ESCOPO_PADRAO = {
   function dataPrecoHtml(x, C) {
     if (typeof x.valor !== 'number') return '<span class="sub">—</span>';
     const r = precoRef(x); if (!r) return '<span class="pill mute" title="preço da planilha original, sem data de atualização">sem data</span>';
-    const d = (Date.now() - r) / 864e5; const dt = new Date(r).toLocaleDateString('pt-BR');
+    const d = (Date.now() - r) / 864e5; const dt = window.dataBR(r);
     return `${dt}${d > C.validadeDias ? ` <span class="pill warn" title="mais de ${C.validadeDias} dias sem atualizar">vencido · ${Math.round(d)} d</span>` : d > C.validadeDias - C.avisoDias ? ` <span class="pill mute">vence em ${Math.max(0, Math.round(C.validadeDias - d))} d</span>` : ''}`;
   }
   // ---- Modelo A (listas): colunas escolhidas, visualizações salvas e paginação. Preferência de tela, guardada neste navegador ----
@@ -13492,7 +13506,7 @@ window.PRICER_ESCOPO_PADRAO = {
       if (!i.fam) add('imped', 'Sem família', '', i.id + ' ' + i.produto, go);
       if (!i.fab && FAMS_F.PADRAO[H.famCode(i.fam)]) add('aviso', 'Sem fabricante', i.fam, i.id + ' ' + i.produto, go);
       if (typeof i.valor !== 'number') add(emUso ? 'imped' : 'aviso', 'Sem preço', i.fam, i.id + ' ' + i.produto + (emUso ? ' — em uso: ' + usos.join(', ') : ''), go);
-      if (precoVencido(i) && emUso) add('aviso', 'Preço desatualizado', i.fam, i.id + ' ' + i.produto + ' — preço atualizado em ' + new Date(precoRef(i)).toLocaleDateString('pt-BR'), go);
+      if (precoVencido(i) && emUso) add('aviso', 'Preço desatualizado', i.fam, i.id + ' ' + i.produto + ' — preço atualizado em ' + window.dataBR(precoRef(i)), go);
       const m = FAMS_F.checar(i.fam, i.produto, cfg); if (m && !i.excecao) add('aviso', 'Descrição fora do padrão', i.fam, i.id + ' ' + i.produto + ' — ' + m, go);
       const p = FAMS_F.padraoDe(i.fam, cfg); if (p && p.modelo && !m) { const falta = FAMS_F.faltando(p, Object.assign({}, FAMS_F.lerP(p, i.produto), i.caract || {})); if (falta.length) add('info', 'Características obrigatórias ausentes', i.fam, i.id + ' ' + i.produto + ' — falta: ' + falta.join(', '), go); }
       if (foraDeUso(i) && (usos.includes('estrutura') || usos.includes('tabela por porte'))) add('imped', 'Descontinuado ainda utilizado', i.fam, i.id + ' ' + i.produto + ' — ' + usos.join(', ') + (i.substituto ? ' · substituto ' + i.substituto : ' · sem substituto'), go);
@@ -14236,7 +14250,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>13/11/2026 00:39 · commit adc1745</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>13/11/2026 00:48 · commit 79829dd</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14444,7 +14458,21 @@ window.PRICER_ESCOPO_PADRAO = {
     const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return [n, c].filter(Boolean).join(' · ') || 'Proposta sem nome';
   }
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
-  function openProposta(p, dup) {
+  // abrir outra proposta com alterações não salvas: pergunta antes (salvar, descartar ou continuar nesta)
+  function openProposta(p, dup, depois) {
+    const outra = dup || !state.id || p.id !== state.id;
+    if (dirty && outra && assinatura() !== ui.assinaturaAberta && DLG && DLG.escolha) {
+      DLG.escolha(`Há alterações não salvas em "${docTitle() || 'esta proposta'}". O que fazer antes de abrir ${p.numero || p.name || 'a outra proposta'}?`,
+        [['salvar', 'Salvar e abrir', 'pri'], ['descartar', 'Descartar e abrir'], ['cancelar', 'Continuar nesta']]).then(async (r) => {
+        if (r === 'cancelar') return;
+        if (r === 'salvar') { await $('#bSave').onclick(); if (dirty) return; }
+        openPropostaJa(p, dup); if (depois) depois(); render(); window.scrollTo(0, 0);
+      });
+      return false;
+    }
+    openPropostaJa(p, dup); return true;
+  }
+  function openPropostaJa(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
     const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null), origemItens: p.origemItens || {}, propCom: p.propCom ? JSON.parse(JSON.stringify(p.propCom)) : {} };
     if (p.div === 'SPV' && p.spv) {
@@ -14666,7 +14694,7 @@ window.PRICER_ESCOPO_PADRAO = {
     if (dirty && assinatura() !== ui.assinaturaAberta && !await DLG.confirmar('A proposta aberta tem alterações não salvas. Começar o orçamento numa proposta nova mesmo assim? (as alterações se perdem)')) return;
     SPV.novoSpv('SMC');
     const s = state.spv; const nc = r.naoConformidades || [];
-    const dt = r.data ? (() => { try { return new Date(String(r.data).length <= 10 ? r.data + 'T12:00' : r.data).toLocaleDateString('pt-BR'); } catch (e) { return ''; } })() : '';
+    const dt = r.data ? (() => { try { return window.dataBR(String(r.data).length <= 10 ? r.data + 'T12:00' : r.data); } catch (e) { return ''; } })() : '';
     Object.assign(s, { cliente: r.cliente || '', local: r.endereco || '', contato: r.contato || '',
       descricao: 'Correção das não conformidades apontadas no relatório de inspeção nº ' + r.codigo + (r.contratoCodigo ? ' (contrato ' + r.contratoCodigo + ')' : '') + (dt ? ', de ' + dt : '') + ':\n'
         + (nc.length ? nc.map((x) => '- ' + x.item + (x.obs ? ' (' + x.obs + ')' : '')).join('\n') : '- (o relatório não tem item marcado como não conforme: descreva o serviço)'),
@@ -14845,7 +14873,7 @@ window.PRICER_ESCOPO_PADRAO = {
   }
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
-  const PN = window.PricerPendencias({ REG, esc, toast, modal, ui, render, log: logEv, fillNames: (o) => fillNames(o), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); } });
+  const PN = window.PricerPendencias({ REG, esc, toast, modal, ui, render, log: logEv, fillNames: (o) => fillNames(o), abrirProposta: (p, step) => { if (openProposta(p, false, () => { ui.step = step || 1; })) { ui.step = step || 1; render(); window.scrollTo(0, 0); } } });
   const FX = window.PricerFacts({ confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
@@ -14853,7 +14881,7 @@ window.PRICER_ESCOPO_PADRAO = {
   function pendExtra() {
     const S = [];
     // pendências do acompanhamento atribuídas a mim (no app compartilhado; neste navegador não há usuário)
-    if (REG.mode === 'shared' && REG.me) S.push({ k: 'acomp', titulo: 'Pendências atribuídas a você', papel: 'Acompanhamento', itens: PN.todas().filter((p) => PN.aberta(p) && p.respId === REG.me).map((p) => ({ titulo: (p.id) + ' · ' + p.titulo, sub: [p.propNome, p.departamento, p.prazo ? 'prazo ' + new Date(p.prazo + 'T12:00').toLocaleDateString('pt-BR') + (PN.vencida(p) ? ' (vencida)' : '') : ''].filter(Boolean).join(' · '), desde: p.criadaEm, btn: ['Abrir', `data-pnabre="${esc(p.id)}"`] })) });
+    if (REG.mode === 'shared' && REG.me) S.push({ k: 'acomp', titulo: 'Pendências atribuídas a você', papel: 'Acompanhamento', itens: PN.todas().filter((p) => PN.aberta(p) && p.respId === REG.me).map((p) => ({ titulo: (p.id) + ' · ' + p.titulo, sub: [p.propNome, p.departamento, p.prazo ? 'prazo ' + window.dataBR(p.prazo + 'T12:00') + (PN.vencida(p) ? ' (vencida)' : '') : ''].filter(Boolean).join(' · '), desde: p.criadaEm, btn: ['Abrir', `data-pnabre="${esc(p.id)}"`] })) });
     if (REG.areaOk('custos')) S.push({ k: 'pedidos', titulo: 'Pedidos de cadastro', papel: 'Custos', itens: PD.abertos().map((x) => ({ titulo: x.produto || x.desc || 'Pedido de cadastro', sub: [famNome(x.fam), x.propNome].filter(Boolean).join(' · '), desde: x.at, btn: ['Atender', 'data-pendgo="cadastro|pedidos"'] })) });
     if (REG.areaOk('fiscal')) {
       const map = Object.assign({}, REG.FISCAL_FAM_PADRAO, ((REG.tabelas || {}).FISCAL_FAM || {}).map || {});
@@ -14865,7 +14893,7 @@ window.PRICER_ESCOPO_PADRAO = {
     return S;
   }
   document.addEventListener('click', (e) => { const g = e.target.closest('[data-pendgo]'); if (!g) return; const [v, c] = g.dataset.pendgo.split('|'); if (g.dataset.cenpend) ui.cenSel = g.dataset.cenpend; ui.view = v; if (c) ui.cad = c; store.set(SK.view, ui); render(); window.scrollTo(0, 0); });
-  const MG = window.PricerMargens({ acompanhamento: () => PN.vLista(), aoEnviar: (p) => { congelarMarco(p.id, 'enviada'); if (state.id === p.id && p.precos && !state.precosFix) { state.precosFix = JSON.parse(JSON.stringify(p.precos)); build(); persist(); } }, aoAprovar: (id) => congelarMarco(id, 'aprovada'), bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
+  const MG = window.PricerMargens({ acompanhamento: () => PN.vLista(), aoEnviar: (p) => { congelarMarco(p.id, 'enviada'); if (state.id === p.id && p.precos && !state.precosFix) { state.precosFix = JSON.parse(JSON.stringify(p.precos)); build(); persist(); } }, aoAprovar: (id) => congelarMarco(id, 'aprovada'), bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { if (openProposta(p, false, () => { ui.step = step || 1; })) { ui.step = step || 1; render(); window.scrollTo(0, 0); } }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
     // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas
@@ -15124,7 +15152,7 @@ window.PRICER_ESCOPO_PADRAO = {
       $('#mCopy', o).onclick = () => { const t = payload(); $('#mTxt', o).value = t; navigator.clipboard.writeText(t).then(() => toast('Copiado'), () => { $('#mTxt', o).select(); toast('Selecionado — use Ctrl+C'); }); };
       $('#mDown', o).onclick = async () => { const ok = await REG.save((docTitle().replace(/[^\w\-. ]+/g, '_') || 'proposta') + '.json', payload(), 'application/json'); if (!ok) toast('Download cancelado'); };
       $('#mFile', o).onchange = (e) => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $('#mTxt', o).value = rd.result; }; rd.readAsText(f); };
-      $('#mImp', o).onclick = () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc && !j.spv && !j.facts) throw 0; close(); if (j.div === 'SPV' && j.spv) loadDoc({}, j.name, null, { div: 'SPV', spv: j.spv }); else if (j.facts) loadDoc({}, j.name, null, { div: 'SEQ', sol: 'FACTS', facts: j.facts }); else loadDoc(j.doc, j.name); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
+      $('#mImp', o).onclick = async () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc && !j.spv && !j.facts) throw 0; if (dirty && assinatura() !== ui.assinaturaAberta && !await DLG.confirmar('Há alterações não salvas na proposta aberta. Importar mesmo assim? (as alterações se perdem)')) return; close(); if (j.div === 'SPV' && j.spv) loadDoc({}, j.name, null, { div: 'SPV', spv: j.spv }); else if (j.facts) loadDoc({}, j.name, null, { div: 'SEQ', sol: 'FACTS', facts: j.facts }); else loadDoc(j.doc, j.name); dirty = true; persist(); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
     });
   };
 
@@ -15135,7 +15163,7 @@ window.PRICER_ESCOPO_PADRAO = {
       if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar: limpar item'; b.classList.add('pri'); return; }
       const S = ITEMS[ui.item]; if (state.doc) delete state.doc[S];
       const r = 20 + ui.item; if (state.doc && state.doc.PROPOSTA) for (const c of ['C', 'E', 'F', 'G', 'H']) delete state.doc.PROPOSTA[c + r];
-      build(); persist(); render(); toast(S + ' limpo');
+      listCache = new Map(); dirty = true; build(); persist(); render(); toast(S + ' limpo');
     }
   });
 

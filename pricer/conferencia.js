@@ -73,7 +73,7 @@
     // quadro na Revisão
     function card(p, F) {
       const c = p && p.conferencia; const valida = c && ctx.conferidaOk(p);
-      const st = !c ? '<span class="pill mute">não conferida</span>' : valida ? `<span class="pill ok">conferida ✓ ${esc(new Date(c.at).toLocaleDateString('pt-BR'))}${c.ressalva ? ' · com ressalva' : ''}</span>` : '<span class="pill warn">conferência desatualizada: a proposta mudou depois</span>';
+      const st = !c ? '<span class="pill mute">não conferida</span>' : valida ? `<span class="pill ok">conferida ✓ ${esc(window.dataBR(c.at))}${c.ressalva ? ' · com ressalva' : ''}</span>` : '<span class="pill warn">conferência desatualizada: a proposta mudou depois</span>';
       const res = ultimo && p && ultimo.propId === p.id && ultimo.rev === F.rev ? vResultado(ultimo.res, ultimo.salvo) : '';
       const aceitar = ultimo && p && ultimo.propId === p.id && ultimo.res.erros && !ultimo.salvo;
       return `<section class="card" id="confCard"><h2>Conferência do PDF da proposta <span class="sub">o app confere o PDF com a formação: valores, especificações e escopo</span></h2>

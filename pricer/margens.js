@@ -20,7 +20,7 @@
     const shared = () => REG.mode === 'shared' && !!REG.db;
     // custo real: Engenharia (e Custos) preenchem
     const canReal = () => REG.areaOk('engenharia') || REG.areaOk('custos');
-    const fmtD = (d) => { try { return new Date(d).toLocaleDateString('pt-BR'); } catch (e) { return d || ''; } };
+    const fmtD = (d) => { try { if (!d) return ''; return window.dataBR(d); } catch (e) { return d || ''; } }; // data sem hora: meio-dia local (não volta um dia no fuso do Brasil)
     const mi = (v) => (Math.abs(v) >= 1e6 ? 'R$ ' + NF[1].format(v / 1e6) + ' mi' : Math.abs(v) >= 1e3 ? 'R$ ' + NF[0].format(v / 1e3) + ' mil' : brl(v));
 
     // ---------- fechamentos: banco da equipe ou navegador ----------
@@ -49,7 +49,7 @@
       if (!podeReabrir()) { toast('Só quem tem acesso de Editor desfaz uma baixa'); return; }
       const R = realizado(F); const temReal = R && R.apontadas;
       modal(`<h2>Reabrir a proposta</h2>
-        <p class="sub" style="margin:0">${esc(p.numero || p.name || '')} · ${esc(p.cliente || '')}. A baixa de ${esc(new Date(F.fechadoEm).toLocaleDateString('pt-BR'))} (${brl(F.valorFechado || R.venda || 0)}) é desfeita e a proposta volta para <b>Enviada ao cliente</b>. Uma cópia da baixa (com o custo real, se houver) fica guardada na proposta; o histórico registra quem reabriu e o motivo.</p>
+        <p class="sub" style="margin:0">${esc(p.numero || p.name || '')} · ${esc(p.cliente || '')}. A baixa de ${esc(window.dataBR(F.fechadoEm))} (${brl(F.valorFechado || R.venda || 0)}) é desfeita e a proposta volta para <b>Enviada ao cliente</b>. Uma cópia da baixa (com o custo real, se houver) fica guardada na proposta; o histórico registra quem reabriu e o motivo.</p>
         ${temReal ? `<div class="banner warn" style="margin:0">Esta baixa tem custo real lançado (${pct(R.cobertura, 0)} conferido). Ele sai das telas de Margens e fica só na cópia guardada.</div>` : ''}
         <div class="f"><label for="rbMot">Motivo</label><input id="rbMot" placeholder="ex.: cliente pediu nova revisão antes do pedido; baixa feita por engano"></div>
         <div style="display:flex;gap:8px"><button class="btn pri" id="rbOk">Reabrir</button><button class="btn" data-close>Cancelar</button></div>`, (o, close) => {
@@ -903,7 +903,8 @@
       if (REG.mode !== 'shared') return { ok: true };
       const lista = (REG.acessos || {})['ap_' + k] || [];
       if (lista.length && !lista.includes(x.by) && !(REG.donoId && x.by === REG.donoId)) return { ok: false, motivo: 'quem decidiu não está entre os aprovadores' };
-      if (String(x.at) < CORTE_ASSIN) return { ok: true, legado: true };
+      // legado (sem assinatura) só vale para pedido de aprovação também anterior à REV22: decisão com data antiga num pedido novo é forjada
+      if (String(x.at) < CORTE_ASSIN && String(a.at || '') < CORTE_ASSIN) return { ok: true, legado: true };
       ouvirAssin(x.by); const m = assin[x.by];
       if (!m) return { ok: false, motivo: 'conferindo a assinatura…', carregando: true };
       const sg = m[a.id + '__' + k]; if (!sg || sg.decisao !== x.decisao || sg.at !== x.at) return { ok: false, motivo: 'decisão sem assinatura válida no banco' };

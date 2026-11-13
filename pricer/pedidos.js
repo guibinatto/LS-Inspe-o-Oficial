@@ -109,7 +109,7 @@
       const ed = REG.areaOk('custos'); if (!ed) { toast('Só a área de Custos cadastra o preço.'); return; }
       const exist = x.insumoId && REG.insumos.find((i) => i.id === x.insumoId);
       modal(`<h2>Cadastrar: ${esc(x.produto)}</h2>
-        <p class="sub" style="margin:0">Pedido de <span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'alguém da equipe'}</span> em ${esc(new Date(x.at).toLocaleDateString('pt-BR'))}${x.propNome ? ' · ' + esc(x.propNome) : ''}${x.obs ? ' · ' + esc(x.obs) : ''}</p>
+        <p class="sub" style="margin:0">Pedido de <span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'alguém da equipe'}</span> em ${esc(window.dataBR(x.at))}${x.propNome ? ' · ' + esc(x.propNome) : ''}${x.obs ? ' · ' + esc(x.obs) : ''}</p>
         <div class="fields"><div class="f span2"><label>Família</label><input value="${esc(window.LSFamNome ? window.LSFamNome(x.fam) : x.fam)}" disabled></div>
           <div class="f spanall"><label for="atDesc">Descrição (padrão da família)</label><input id="atDesc" value="${esc(exist ? exist.produto : x.produto)}"${exist ? ' disabled' : ''}><small class="sub" id="atChk"></small></div>
           <div class="f"><label for="atFab">Fabricante</label><input id="atFab" value="${esc((exist && exist.fab) || x.fab || '')}"></div>
@@ -157,7 +157,7 @@
     function vLista() {
       ensure(); const ed = REG.areaOk('custos'); const f = ui.pdSt || 'aberto';
       const pill = { aberto: 'warn', atendido: 'ok', recusado: 'bad', 'aguardando preço': 'warn', 'aguardando validação': 'warn' };
-      const rows = lista.filter((x) => f === 'todos' || x.status === f || (f === 'andamento' && /^aguardando/.test(x.status))).map((x) => `<tr><td>${esc(new Date(x.at).toLocaleDateString('pt-BR'))}<br><small class="sub"><span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'neste navegador'}</span></small></td>
+      const rows = lista.filter((x) => f === 'todos' || x.status === f || (f === 'andamento' && /^aguardando/.test(x.status))).map((x) => `<tr><td>${esc(window.dataBR(x.at))}<br><small class="sub"><span data-uid="${esc(x.by || '')}">${x.by ? '…' : 'neste navegador'}</span></small></td>
         <td><b>${esc(x.produtoFinal || x.produto)}</b><br><small class="sub">${esc(window.LSFamNome ? window.LSFamNome(x.fam) : x.fam)}${x.fab ? ' · ' + esc(x.fab) : ''} · ${esc(x.origem || '')}${x.propNome ? ' · ' + esc(x.propNome) : ''}</small>${x.padrao && x.padrao !== 'ok' ? `<br><small class="bad-t">${esc(x.padrao)}</small>` : ''}${x.obs ? `<br><small class="sub">${esc(x.obs)}</small>` : ''}</td>
         <td><span class="pill ${pill[x.status] || 'mute'}">${esc(x.status)}</span>${/urgente/.test(x.urgencia || '') ? ' <span class="pill bad">urgente</span>' : ''}${x.status === 'atendido' ? `<br><small class="sub">${brl(x.valor)} · ${esc(x.insumoId || '')}</small>` : x.status === 'recusado' ? `<br><small class="sub">${esc(x.motivo || '')}</small>` : ''}</td>
         <td>${x.status === 'aberto' && ed ? `<button class="btn sm pri" data-pdat="${esc(x.id)}">Cadastrar</button>` : ''}</td></tr>`).join('');

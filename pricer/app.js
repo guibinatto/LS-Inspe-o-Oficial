@@ -38,7 +38,7 @@
     }
   }
   const $ = (s, el = document) => el.querySelector(s);
-  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ITEMS = Array.from({ length: 10 }, (_, i) => 'ITEM ' + String(i + 1).padStart(2, '0'));
   const PROPOSAL_SHEETS = new Set(['PROPOSTA', ...ITEMS]);
   const TABLE_SHEETS = ['PARÂMETROS', 'POLÍTICA', 'MONTADOR', 'CODIFICAÇÃO', 'KIT HIDRÁULICA', 'KIT VÁLVULA ALÍVIO', 'FCI', 'FCI EXTRAÇÃO', 'CADASTRO', 'KIT MOTORES DIESEL', 'KIT BOMBA'];
@@ -126,9 +126,9 @@
   function precosCard() {
     if (isSpv() || isFacts()) return '';
     const fixo = !!state.precosFix; const pr = state.precosFix || state.precosSalvos; if (!pr) return '';
-    const D = difPrecos(pr); if (!D.length) return fixo ? `<div class="banner info" style="margin:0">Esta proposta usa os preços do cadastro de ${esc(new Date(pr.at).toLocaleDateString('pt-BR'))} (preços da época), que continuam iguais aos de hoje.</div>` : '';
-    return fixo ? `<div class="banner warn" style="margin:0"><b>Preços da época:</b> esta proposta calcula com os preços de ${esc(new Date(pr.at).toLocaleDateString('pt-BR'))}. ${D.length} preço(s) mudaram no cadastro desde então; nada muda aqui sem a sua escolha. <button class="btn sm" data-precocmp>Comparar e atualizar</button></div>`
-      : `<div class="banner info" style="margin:0">${D.length} preço(s) do cadastro mudaram desde a última gravação (${esc(new Date(pr.at).toLocaleDateString('pt-BR'))}). Este rascunho já calcula com os preços de hoje. <button class="restore" data-precocmp>ver quais</button></div>`;
+    const D = difPrecos(pr); if (!D.length) return fixo ? `<div class="banner info" style="margin:0">Esta proposta usa os preços do cadastro de ${esc(window.dataBR(pr.at))} (preços da época), que continuam iguais aos de hoje.</div>` : '';
+    return fixo ? `<div class="banner warn" style="margin:0"><b>Preços da época:</b> esta proposta calcula com os preços de ${esc(window.dataBR(pr.at))}. ${D.length} preço(s) mudaram no cadastro desde então; nada muda aqui sem a sua escolha. <button class="btn sm" data-precocmp>Comparar e atualizar</button></div>`
+      : `<div class="banner info" style="margin:0">${D.length} preço(s) do cadastro mudaram desde a última gravação (${esc(window.dataBR(pr.at))}). Este rascunho já calcula com os preços de hoje. <button class="restore" data-precocmp>ver quais</button></div>`;
   }
   function precosModal() {
     const fixo = !!state.precosFix; const pr = state.precosFix || state.precosSalvos; const D = difPrecos(pr); if (!D.length) { toast('Nenhum preço mudou'); return; }
@@ -480,7 +480,8 @@
     const scroll = window.scrollY; const focusId = document.activeElement && document.activeElement.id;
     const full = !outro && ui.simple && ((ui.view === 'proposta' && ui.propFull) || (ui.view === 'item' && ui.itemFull));
     const views = spv ? { proposta: SPV.vSpv } : fx ? { proposta: FX.vFacts } : ui.simple ? { proposta: ui.propFull ? vProposta : vPropostaS, item: ui.itemFull ? vItem : ui.cfgClassico ? vItemS : vConfig } : { proposta: vProposta, item: vItem };
-    const html = (viewDaProposta(ui.view) ? propHeader() : '') + Object.assign({ inicio: SPV.vHome, pendencias: MG.vPendencias, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: () => vCadastro('cadastro'), config: () => vCadastro('config'), guia: vGuia, phist: vPropHist }, views)[ui.view]();
+    // uma tela que falha (ex.: registro malformado vindo do banco) mostra o erro em vez de deixar a página em branco
+    let html; try { html = (viewDaProposta(ui.view) ? propHeader() : '') + Object.assign({ inicio: SPV.vHome, pendencias: MG.vPendencias, documentos: SPV.vDocs, margens: MG.vMargens, memorial: vMemorial, cadastro: () => vCadastro('cadastro'), config: () => vCadastro('config'), guia: vGuia, phist: vPropHist }, views)[ui.view](); } catch (err) { console.error(err); html = `<section class="card"><h2>Não foi possível mostrar esta tela</h2><p class="sub">Um dado desta tela está num formato inesperado: ${esc(err && err.message || String(err))}. As outras telas continuam funcionando; avise o administrador.</p><button class="btn" data-view="inicio">Voltar ao início</button></section>`; }
     MG.ensure(); SPV.ensureDocs(); PD.ensure();
     // contadores do menu: só o selo muda; o ícone e o nome ficam
     const selo = (v, n, t) => { const b = document.querySelector('#nav [data-view="' + v + '"]'); if (!b) return; let x = b.querySelector('.nbadge'); if (!n) { if (x) x.remove(); return; } if (!x) { x = document.createElement('span'); x.className = 'nbadge'; b.appendChild(x); } x.textContent = n; x.title = t; b.setAttribute('aria-label', b.textContent.replace(/\d+$/, '').trim() + ' — ' + t); };
@@ -489,7 +490,7 @@
     { const n = MG.pendentesAprov(); selo('margens', n, n + ' aprovação(ões) de desconto esperando você'); }
     temaAtual();
     const fe = state.id && ['proposta', 'item'].includes(ui.view) && MG.fechDe(state.id);
-    const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(new Date(fe.fechadoEm).toLocaleDateString('pt-BR'))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
+    const aviso = fe ? `<div class="banner ok" style="margin:0 0 12px">Proposta fechada em ${esc(window.dataBR(fe.fechadoEm))}${fe.pedido ? ' · pedido ' + esc(fe.pedido) : ''}. ${MG.liberaReal(state.id) ? ' O custo real de compras e fabricação é lançado na tela do fechamento. <button class="btn sm pri" data-mgreal="' + esc(state.id) + '">Lançar custo real</button>' : ' A proposta não está como ganha: o custo real não é lançado.'}</div>` : '';
     const avRev = state.verRev && ['proposta', 'item', 'memorial'].includes(ui.view) ? `<div class="banner warn" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Consultando a revisão ${state.verRev.rev}</b> (guardada em ${esc(fmtAt(state.verRev.at))}). Só leitura: nada aqui é salvo.</span><span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm pri" data-revatual>Voltar à revisão atual</button><button class="btn sm" data-revs>Revisões</button></span></div>` : '';
     const salvaB = state.id ? (REG.listPropostas() || []).find((x) => x.id === state.id) : null;
     const avInteg = !['proposta', 'item', 'memorial'].includes(ui.view) ? '' : (armazFalhou ? `<div class="banner bad" style="margin:0 0 12px"><b>O navegador não está gravando</b> (${esc(armazFalhou.msg)}). O que você fizer agora pode se perder ao fechar. Baixe um backup em Configurações → Backup e restauração e libere espaço.</div>` : '')
@@ -939,7 +940,7 @@
     const a = x.aprov; if (!a || !a.estado) return '';
     const d = Object.values(a.decisoes).filter((y) => y.comentario).map((y) => y.comentario).join(' · ');
     const alvo = a.alvoIpi ? ` o valor target de ${brl(a.alvoIpi)} (desconto de ${pct(a.desc, 1)}, margem ${pct(a.margemAlvo, 1)})` : '';
-    const t = a.estado === 'pendente' ? `Aprovação${alvo ? ' d' + alvo.trim().replace(/^o /, 'o ') : ''} pedida em ${new Date(a.at).toLocaleDateString('pt-BR')}: está \u0001.`
+    const t = a.estado === 'pendente' ? `Aprovação${alvo ? ' d' + alvo.trim().replace(/^o /, 'o ') : ''} pedida em ${window.dataBR(a.at)}: está \u0001.`
       : a.estado === 'aprovada' ? (alvo ? `Diretoria e Financeiro aprovaram${alvo}.` : `Aprovado pela Diretoria e pelo Financeiro com margem de ${pct(a.margem)}.`) + (d ? ' ' + d : '')
       : a.estado === 'vencida' && a.motivo ? `A aprovação perdeu a validade: ${a.motivo} depois do pedido. Peça de novo.`
       : a.estado === 'vencida' ? (alvo ? `Aprovado${alvo}, mas a proposta está em ${brl(a.atualIpi)}, abaixo do aprovado. Peça de novo.` : `A aprovação foi para margem de ${pct(a.margem)}; a margem caiu depois disso. Peça de novo.`)
@@ -949,7 +950,7 @@
   // cada alerta: corrigir agora (quando dá) ou seguir assim, com a justificativa no histórico
   const alertList = (list, withItem) => list.length ? `<ul class="alerts">${list.map((x) => {
     const okAp = x.aprov && x.aprov.estado === 'aprovada';
-    return `<li class="${x.ack || okAp ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${aprovLinha(x)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(new Date(x.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span>
+    return `<li class="${x.ack || okAp ? 'ack' : x.lvl}">${withItem ? `<b>Item ${String(x.i + 1).padStart(2, '0')}</b>` : ''}<span>${esc(x.msg)}${aprovLinha(x)}${x.ack ? `<br><small class="sub">Seguindo assim: ${esc(x.ack.motivo)} · <span data-uid="${esc(x.ack.by || '')}">${x.ack.by ? '…' : ''}</span> ${esc(window.dataBR(x.ack.at))}</small>` : ''}</span>
       <span class="alact">${alAcoes(x)}${withItem ? `<button class="restore" data-goitem="${x.i}">abrir</button>` : ''}</span></li>`; }).join('')}</ul>` : '';
   // ações de um alerta (as mesmas na tela clássica, na conferência e no configurador)
   function alAcoes(x) { const key = esc(JSON.stringify([x.S, x.msg])); const ap = x.aprov && x.aprov.estado; const okAp = ap === 'aprovada'; const pedeAp = x.aprov && !x.ack && (!ap || ap === 'reprovada' || ap === 'vencida');
@@ -1939,7 +1940,7 @@
         if (!manual && ins && !precoRef(ins)) al.push(['info', 'preço da planilha original, sem data de atualização']);
         if (ins && foraDeUso(ins)) al.push(['aviso', 'insumo ' + situ(ins) + (ins.substituto ? ' — substituto: ' + ins.substituto : '')]);
         else if (ins && ['provisorio', 'validacao', 'preco'].includes(situ(ins))) al.push(['aviso', 'cadastro ' + (SITUACOES.find((x) => x[0] === situ(ins)) || [0, ''])[1].toLowerCase()]);
-        const vp = ins && variacaoPreco(ins); if (vp && Math.abs(vp.pct) >= C.variacaoPct) al.push(['aviso', 'preço mudou ' + (vp.pct > 0 ? '+' : '') + pct(vp.pct, 0) + ' em ' + new Date(vp.at).toLocaleDateString('pt-BR')]);
+        const vp = ins && variacaoPreco(ins); if (vp && Math.abs(vp.pct) >= C.variacaoPct) al.push(['aviso', 'preço mudou ' + (vp.pct > 0 ? '+' : '') + pct(vp.pct, 0) + ' em ' + window.dataBR(vp.at)]);
         if (l.desc && !ins && !manual) al.push(['info', 'fora do cadastro (nome não encontrado)']);
         const key = S + '|' + l.k; const marcado = na[key];
         out.push({ S, key, item: it.nome, l, ins, q, manual, upd, idade, al: marcado ? [] : al, na: marcado || null, total: l.custo * q });
@@ -1957,7 +1958,7 @@
     const C = custosCfg(); const m = new Map(); for (const x of L) if (!x.manual && x.ins && !x.na && precoVencido(x.ins)) m.set(x.ins.id, x.ins);
     if (!m.size) return '';
     const lista = [...m.values()].sort((a, b) => (precoRef(a) || 0) - (precoRef(b) || 0));
-    const nomes = lista.slice(0, 4).map((i) => `${esc(i.produto)} <small class="sub">(${new Date(precoRef(i)).toLocaleDateString('pt-BR')})</small>`).join('; ');
+    const nomes = lista.slice(0, 4).map((i) => `${esc(i.produto)} <small class="sub">(${window.dataBR(precoRef(i))})</small>`).join('; ');
     return `<div class="banner warn" style="margin:0 0 12px"><b>${m.size} insumo(s) desta proposta com preço vencido</b> — mais de ${C.validadeDias} dias sem atualizar no cadastro: ${nomes}${lista.length > 4 ? '; …' : ''}.
       <button class="btn sm pri" data-irvenc="${esc(lista.map((i) => i.id).join(','))}">Atualizar no cadastro</button></div>`;
   }
@@ -1974,7 +1975,7 @@
         <td>${esc(x.l.desc || x.l.rot || '')}<br><small class="sub">${esc([x.l.fam, x.l.grupo !== 'ESCOPO' ? x.l.grupo : 'escopo', x.ins && x.ins.fab].filter(Boolean).join(' · '))}</small></td>
         <td class="n">${NF[2].format(x.l.qtd * x.q)}</td><td class="n">${brl(x.l.unit)}</td><td class="n"><b>${brl(x.total)}</b></td>
         <td>${x.manual ? 'digitado na proposta' : x.ins ? (x.l.ori || x.ins.origem || 'NAC') + ' · cadastro' : 'sem cadastro'}</td>
-        <td>${x.manual ? '—' : x.upd ? new Date(x.upd).toLocaleDateString('pt-BR') + `<br><small class="sub">vale até ${new Date(x.upd + C.validadeDias * 864e5).toLocaleDateString('pt-BR')}</small>` : '<span class="sub">sem data</span>'}</td>
+        <td>${x.manual ? '—' : x.upd ? window.dataBR(x.upd) + `<br><small class="sub">vale até ${window.dataBR(x.upd + C.validadeDias * 864e5)}</small>` : '<span class="sub">sem data</span>'}</td>
         <td>${x.na ? `<span class="pill mute">não se aplica</span><br><small class="sub">${esc(x.na.motivo)}</small> <button class="restore" data-naundo="${esc(x.key)}">desfazer</button>` : x.al.map(([s, t]) => `<div>${ic[s]} ${esc(t)}</div>`).join('') || '<span class="ok-t">✓</span>'}</td>
         <td>${!x.na && x.al.length ? `<button class="restore" data-namark="${esc(x.key)}" title="marcar como intencional: não é pendência">não se aplica</button>` : ''}</td></tr>`).join(''); }).join('');
     return `<section class="card"><h2>Composição de custos <span class="sub">de onde vem cada custo, a data da cotação e o que pede atenção</span></h2>
@@ -2140,7 +2141,7 @@
       <div id="bbL" class="tw" style="max-height:55vh;overflow:auto"></div>
       <p class="sub" style="margin:0">Usar copia a configuração do item para uma posição livre desta proposta, registra de onde veio e recalcula com o cadastro e as regras de hoje.</p><div><button class="btn" data-close>Fechar</button></div>`, (o) => {
       const draw = () => { const g = FAMS_F.termos($('#bbQ', o).value, sin); const L = all.filter((x) => !g.length || FAMS_F.casa(x.hay, g)).slice(0, 60);
-        $('#bbL', o).innerHTML = L.length ? `<table class="t"><thead><tr><th>Proposta</th><th>Item</th><th>Família · modelo</th><th>Potência · vazão · pressão</th><th></th></tr></thead><tbody>${L.map((x, i) => `<tr><td><b>${esc(x.q.numero || x.q.name || '')}</b><br><small class="sub">${esc(x.q.cliente || '')} · ${esc(new Date(x.q.at).toLocaleDateString('pt-BR'))}</small></td><td>${esc(x.S)}<br><small class="sub">${esc(x.nome.slice(0, 70))}</small></td><td>${esc(famNome(x.fam))}${x.modelo ? '<br><small>' + esc(x.modelo) + '</small>' : x.bomba ? '<br><small>' + esc(x.bomba) + '</small>' : ''}</td><td><small>${[x.hp ? x.hp + ' HP' : '', x.cv ? x.cv + ' CV' : '', x.vazao ? x.vazao + ' USgpm' : '', x.pressao ? x.pressao + ' mca' : ''].filter(Boolean).join(' · ') || '—'}</small></td><td><button class="btn sm pri" data-bbuse="${all.indexOf(x)}">Usar</button></td></tr>`).join('')}</tbody></table>` : '<p class="sub">Nada encontrado.</p>';
+        $('#bbL', o).innerHTML = L.length ? `<table class="t"><thead><tr><th>Proposta</th><th>Item</th><th>Família · modelo</th><th>Potência · vazão · pressão</th><th></th></tr></thead><tbody>${L.map((x, i) => `<tr><td><b>${esc(x.q.numero || x.q.name || '')}</b><br><small class="sub">${esc(x.q.cliente || '')} · ${esc(window.dataBR(x.q.at))}</small></td><td>${esc(x.S)}<br><small class="sub">${esc(x.nome.slice(0, 70))}</small></td><td>${esc(famNome(x.fam))}${x.modelo ? '<br><small>' + esc(x.modelo) + '</small>' : x.bomba ? '<br><small>' + esc(x.bomba) + '</small>' : ''}</td><td><small>${[x.hp ? x.hp + ' HP' : '', x.cv ? x.cv + ' CV' : '', x.vazao ? x.vazao + ' USgpm' : '', x.pressao ? x.pressao + ' mca' : ''].filter(Boolean).join(' · ') || '—'}</small></td><td><button class="btn sm pri" data-bbuse="${all.indexOf(x)}">Usar</button></td></tr>`).join('')}</tbody></table>` : '<p class="sub">Nada encontrado.</p>';
         o.querySelectorAll('[data-bbuse]').forEach((b) => { b.onclick = () => { const x = all[+b.dataset.bbuse]; const j = firstFree(); if (j < 0) { toast('As 10 posições de item já estão em uso'); return; } const S = ITEMS[j];
           state.doc = state.doc || {}; state.doc[S] = JSON.parse(JSON.stringify(x.c)); state.origemItens = Object.assign({}, state.origemItens || {}, { [S]: { propId: x.q.id, numero: x.q.numero || '', item: x.S, at: new Date().toISOString() } });
           build(); persist(); dirty = true; listCache = new Map(); $('#overlay').innerHTML = ''; logEv({ tipo: 'Configuração reaproveitada', ref: docTitle(), desc: S + ' ← ' + (x.q.numero || '') + ' ' + x.S, mudancas: [] }); render(); toast(S + ' criado a partir de ' + (x.q.numero || 'outra proposta') + ' ' + x.S + ', com os preços de hoje'); }; }); };
@@ -2855,7 +2856,7 @@
     const grp = ACIONS.concat([['ESC', 'Adicionados nesta proposta']]).map(([k, lb]) => { const L = M.comps.filter((x) => x.acion === k && x.tipo !== 'opc' && x.tipo !== 'kit'); if (!L.length) return ''; const gt = L.reduce((t, x) => t + num0(x.tot), 0);
       return `<details class="cfgcusto"><summary><span>${esc(k === 'TODOS' && ['SKID', 'CONTAINER'].includes(M.est) ? 'Equipamentos e acessórios gerais' : lb)}</span><b>${brl(gt)}</b></summary><div class="tw"><table class="t"><tbody>${L.map((x) => `<tr><td>${esc(x.rot)}<br><small class="sub">${esc(x.desc || '—')}</small></td><td class="n">${fmtNum(x.qtd)}</td><td class="n">${brl(x.tot)}</td></tr>`).join('')}</tbody></table></div></details>`; }).join('');
     const nv = { imped: ['Impeditivo', 'bad'], aviso: ['Atenção', 'warn'], info: ['Informativo', 'info'] };
-    const alertas = V.length ? `<ul class="alerts cfgalerts">${V.map((a, i) => `<li class="${a.al && a.al.ack ? 'ack' : nv[a.lvl][1]}"><span><b>${nv[a.lvl][0]}${a.lvl === 'imped' && !a.bloq ? ' (vai para aprovação)' : ''}:</b> ${esc(a.msg)}${a.al ? aprovLinha(a.al) : ''}${a.al && a.al.ack ? `<br><small class="sub">Seguindo assim: ${esc(a.al.ack.motivo)} · ${esc(new Date(a.al.ack.at).toLocaleDateString('pt-BR'))}</small>` : ''}</span><span class="alact" style="display:flex;gap:6px;flex-wrap:wrap">${a.al ? alAcoes(a.al) : ''}${a.snap && cf.snap && ['enviada', 'aprovada', 'ganha'].includes(String(state.status || '')) ? '<button class="btn sm" data-cfgfixar>Manter a composição registrada</button>' : ''}<button class="btn sm" data-cfgalert="${i}">Ir para o ${a.go.et === 1 ? 'campo' : a.go.et === 2 ? 'componente' : 'item'}</button></span></li>`).join('')}</ul>` : '<div class="banner ok" style="margin:0">Nenhuma pendência: a configuração está consistente.</div>';
+    const alertas = V.length ? `<ul class="alerts cfgalerts">${V.map((a, i) => `<li class="${a.al && a.al.ack ? 'ack' : nv[a.lvl][1]}"><span><b>${nv[a.lvl][0]}${a.lvl === 'imped' && !a.bloq ? ' (vai para aprovação)' : ''}:</b> ${esc(a.msg)}${a.al ? aprovLinha(a.al) : ''}${a.al && a.al.ack ? `<br><small class="sub">Seguindo assim: ${esc(a.al.ack.motivo)} · ${esc(window.dataBR(a.al.ack.at))}</small>` : ''}</span><span class="alact" style="display:flex;gap:6px;flex-wrap:wrap">${a.al ? alAcoes(a.al) : ''}${a.snap && cf.snap && ['enviada', 'aprovada', 'ganha'].includes(String(state.status || '')) ? '<button class="btn sm" data-cfgfixar>Manter a composição registrada</button>' : ''}<button class="btn sm" data-cfgalert="${i}">Ir para o ${a.go.et === 1 ? 'campo' : a.go.et === 2 ? 'componente' : 'item'}</button></span></li>`).join('')}</ul>` : '<div class="banner ok" style="margin:0">Nenhuma pendência: a configuração está consistente.</div>';
     const chk = (k, lb) => { const c0 = conf[k]; const ok = c0 && c0.sig === sig; return `<label class="chk"><input type="checkbox" data-cfgconf="${k}"${ok ? ' checked' : ''}> ${esc(lb)}${c0 ? ` <small class="sub">${ok ? '' : '(antes de mudanças: refaça) '}${esc(fmtAt(c0.at))} · ${who(c0.by)}</small>` : ''}</label>`; };
     const nImp = V.filter((x) => x.lvl === 'imped' && x.bloq).length; const incl = cf.incl; const inclOk = incl && incl.sig === sig;
     const alt = M.comps.filter((x) => x.tipo === 'man' || x.trocado || x.qtdAlt); const opc = M.comps.filter((x) => x.cls === 'opc');
@@ -2952,12 +2953,13 @@
     if (ds.cfgconf) { const k = ds.cfgconf; const sig = cfgSig(S); cfgPut(S, (c) => { c.conf = c.conf || {}; if (t.checked) c.conf[k] = { at: new Date().toISOString(), by: REG.me || null, sig }; else delete c.conf[k]; if (!Object.keys(c.conf).length) delete c.conf; });
       logEv({ tipo: 'Conferência do equipamento', ref: docTitle(), desc: S + ': ' + ({ tec: 'configuração técnica revisada', custos: 'custos conferidos', escopo: 'escopo validado' })[k] + (t.checked ? '' : ' (desmarcada)'), mudancas: [] }); render(); return; }
   });
-  // pesquisa: atualiza ao digitar, sem perder o foco
+  // pesquisa: atualiza ao digitar, sem perder o foco (espera uma pausa curta: não redesenha a tela a cada tecla)
+  let cfgQT = null, cfgAddQT = null;
   document.addEventListener('input', (e) => {
     if (ui.view !== 'item') return; const S = ITEMS[ui.item]; const t = e.target;
     const refoca = (sel) => { const pos = t.selectionStart; render(); const el = document.querySelector(sel); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (er) { /* campo sem seleção */ } } };
-    if (t.matches('[data-cfgq]')) { ui.cfgQ = Object.assign({}, ui.cfgQ, { [S]: t.value }); refoca('[data-cfgq]'); return; }
-    if (t.matches('[data-cfgaddq]')) { ui.cfgAddQ = t.value; refoca('[data-cfgaddq]'); }
+    if (t.matches('[data-cfgq]')) { ui.cfgQ = Object.assign({}, ui.cfgQ, { [S]: t.value }); clearTimeout(cfgQT); cfgQT = setTimeout(() => refoca('[data-cfgq]'), 220); return; }
+    if (t.matches('[data-cfgaddq]')) { ui.cfgAddQ = t.value; clearTimeout(cfgAddQT); cfgAddQT = setTimeout(() => refoca('[data-cfgaddq]'), 220); }
   });
   // ---- novo item: família → estrutura cadastrada → modelo cadastrado (ou os mais próximos) ----
   const famChosen = (S, c) => overridden(S, 'C21') || !!txt(S, 'C17') || filled(S) || overridden(S, 'E17');
@@ -3241,7 +3243,7 @@
   function dataPrecoHtml(x, C) {
     if (typeof x.valor !== 'number') return '<span class="sub">—</span>';
     const r = precoRef(x); if (!r) return '<span class="pill mute" title="preço da planilha original, sem data de atualização">sem data</span>';
-    const d = (Date.now() - r) / 864e5; const dt = new Date(r).toLocaleDateString('pt-BR');
+    const d = (Date.now() - r) / 864e5; const dt = window.dataBR(r);
     return `${dt}${d > C.validadeDias ? ` <span class="pill warn" title="mais de ${C.validadeDias} dias sem atualizar">vencido · ${Math.round(d)} d</span>` : d > C.validadeDias - C.avisoDias ? ` <span class="pill mute">vence em ${Math.max(0, Math.round(C.validadeDias - d))} d</span>` : ''}`;
   }
   // ---- Modelo A (listas): colunas escolhidas, visualizações salvas e paginação. Preferência de tela, guardada neste navegador ----
@@ -4736,7 +4738,7 @@
       if (!i.fam) add('imped', 'Sem família', '', i.id + ' ' + i.produto, go);
       if (!i.fab && FAMS_F.PADRAO[H.famCode(i.fam)]) add('aviso', 'Sem fabricante', i.fam, i.id + ' ' + i.produto, go);
       if (typeof i.valor !== 'number') add(emUso ? 'imped' : 'aviso', 'Sem preço', i.fam, i.id + ' ' + i.produto + (emUso ? ' — em uso: ' + usos.join(', ') : ''), go);
-      if (precoVencido(i) && emUso) add('aviso', 'Preço desatualizado', i.fam, i.id + ' ' + i.produto + ' — preço atualizado em ' + new Date(precoRef(i)).toLocaleDateString('pt-BR'), go);
+      if (precoVencido(i) && emUso) add('aviso', 'Preço desatualizado', i.fam, i.id + ' ' + i.produto + ' — preço atualizado em ' + window.dataBR(precoRef(i)), go);
       const m = FAMS_F.checar(i.fam, i.produto, cfg); if (m && !i.excecao) add('aviso', 'Descrição fora do padrão', i.fam, i.id + ' ' + i.produto + ' — ' + m, go);
       const p = FAMS_F.padraoDe(i.fam, cfg); if (p && p.modelo && !m) { const falta = FAMS_F.faltando(p, Object.assign({}, FAMS_F.lerP(p, i.produto), i.caract || {})); if (falta.length) add('info', 'Características obrigatórias ausentes', i.fam, i.id + ' ' + i.produto + ' — falta: ' + falta.join(', '), go); }
       if (foraDeUso(i) && (usos.includes('estrutura') || usos.includes('tabela por porte'))) add('imped', 'Descontinuado ainda utilizado', i.fam, i.id + ' ' + i.produto + ' — ' + usos.join(', ') + (i.substituto ? ' · substituto ' + i.substituto : ' · sem substituto'), go);
@@ -5688,7 +5690,21 @@
     const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return [n, c].filter(Boolean).join(' · ') || 'Proposta sem nome';
   }
   // abre (ou duplica) uma proposta salva, SEQ ou SPV
-  function openProposta(p, dup) {
+  // abrir outra proposta com alterações não salvas: pergunta antes (salvar, descartar ou continuar nesta)
+  function openProposta(p, dup, depois) {
+    const outra = dup || !state.id || p.id !== state.id;
+    if (dirty && outra && assinatura() !== ui.assinaturaAberta && DLG && DLG.escolha) {
+      DLG.escolha(`Há alterações não salvas em "${docTitle() || 'esta proposta'}". O que fazer antes de abrir ${p.numero || p.name || 'a outra proposta'}?`,
+        [['salvar', 'Salvar e abrir', 'pri'], ['descartar', 'Descartar e abrir'], ['cancelar', 'Continuar nesta']]).then(async (r) => {
+        if (r === 'cancelar') return;
+        if (r === 'salvar') { await $('#bSave').onclick(); if (dirty) return; }
+        openPropostaJa(p, dup); if (depois) depois(); render(); window.scrollTo(0, 0);
+      });
+      return false;
+    }
+    openPropostaJa(p, dup); return true;
+  }
+  function openPropostaJa(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
     const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null), origemItens: p.origemItens || {}, propCom: p.propCom ? JSON.parse(JSON.stringify(p.propCom)) : {} };
     if (p.div === 'SPV' && p.spv) {
@@ -5910,7 +5926,7 @@
     if (dirty && assinatura() !== ui.assinaturaAberta && !await DLG.confirmar('A proposta aberta tem alterações não salvas. Começar o orçamento numa proposta nova mesmo assim? (as alterações se perdem)')) return;
     SPV.novoSpv('SMC');
     const s = state.spv; const nc = r.naoConformidades || [];
-    const dt = r.data ? (() => { try { return new Date(String(r.data).length <= 10 ? r.data + 'T12:00' : r.data).toLocaleDateString('pt-BR'); } catch (e) { return ''; } })() : '';
+    const dt = r.data ? (() => { try { return window.dataBR(String(r.data).length <= 10 ? r.data + 'T12:00' : r.data); } catch (e) { return ''; } })() : '';
     Object.assign(s, { cliente: r.cliente || '', local: r.endereco || '', contato: r.contato || '',
       descricao: 'Correção das não conformidades apontadas no relatório de inspeção nº ' + r.codigo + (r.contratoCodigo ? ' (contrato ' + r.contratoCodigo + ')' : '') + (dt ? ', de ' + dt : '') + ':\n'
         + (nc.length ? nc.map((x) => '- ' + x.item + (x.obs ? ' (' + x.obs + ')' : '')).join('\n') : '- (o relatório não tem item marcado como não conforme: descreva o serviço)'),
@@ -6089,7 +6105,7 @@
   }
   const logEv = (e) => REG.log(e);
   const PD = window.PricerPedidos({ REG, esc, brl, modal, toast, parseInput, ui, render, getState: () => state, docTitle, famList: () => famList(), fillNames: (o) => fillNames(o), log: logEv });
-  const PN = window.PricerPendencias({ REG, esc, toast, modal, ui, render, log: logEv, fillNames: (o) => fillNames(o), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); } });
+  const PN = window.PricerPendencias({ REG, esc, toast, modal, ui, render, log: logEv, fillNames: (o) => fillNames(o), abrirProposta: (p, step) => { if (openProposta(p, false, () => { ui.step = step || 1; })) { ui.step = step || 1; render(); window.scrollTo(0, 0); } } });
   const FX = window.PricerFacts({ confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), REG, esc, brl, pct, NF, toast, parseInput, val, txt, ui, render, modal, getState: () => state,
     setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }, persist: () => { persist(); dirty = true; }, get SPV() { return SPV; } });
   const TB = window.PricerTributos({ REG, esc, brl, pct, NF, toast, parseInput, ui, render });
@@ -6097,7 +6113,7 @@
   function pendExtra() {
     const S = [];
     // pendências do acompanhamento atribuídas a mim (no app compartilhado; neste navegador não há usuário)
-    if (REG.mode === 'shared' && REG.me) S.push({ k: 'acomp', titulo: 'Pendências atribuídas a você', papel: 'Acompanhamento', itens: PN.todas().filter((p) => PN.aberta(p) && p.respId === REG.me).map((p) => ({ titulo: (p.id) + ' · ' + p.titulo, sub: [p.propNome, p.departamento, p.prazo ? 'prazo ' + new Date(p.prazo + 'T12:00').toLocaleDateString('pt-BR') + (PN.vencida(p) ? ' (vencida)' : '') : ''].filter(Boolean).join(' · '), desde: p.criadaEm, btn: ['Abrir', `data-pnabre="${esc(p.id)}"`] })) });
+    if (REG.mode === 'shared' && REG.me) S.push({ k: 'acomp', titulo: 'Pendências atribuídas a você', papel: 'Acompanhamento', itens: PN.todas().filter((p) => PN.aberta(p) && p.respId === REG.me).map((p) => ({ titulo: (p.id) + ' · ' + p.titulo, sub: [p.propNome, p.departamento, p.prazo ? 'prazo ' + window.dataBR(p.prazo + 'T12:00') + (PN.vencida(p) ? ' (vencida)' : '') : ''].filter(Boolean).join(' · '), desde: p.criadaEm, btn: ['Abrir', `data-pnabre="${esc(p.id)}"`] })) });
     if (REG.areaOk('custos')) S.push({ k: 'pedidos', titulo: 'Pedidos de cadastro', papel: 'Custos', itens: PD.abertos().map((x) => ({ titulo: x.produto || x.desc || 'Pedido de cadastro', sub: [famNome(x.fam), x.propNome].filter(Boolean).join(' · '), desde: x.at, btn: ['Atender', 'data-pendgo="cadastro|pedidos"'] })) });
     if (REG.areaOk('fiscal')) {
       const map = Object.assign({}, REG.FISCAL_FAM_PADRAO, ((REG.tabelas || {}).FISCAL_FAM || {}).map || {});
@@ -6109,7 +6125,7 @@
     return S;
   }
   document.addEventListener('click', (e) => { const g = e.target.closest('[data-pendgo]'); if (!g) return; const [v, c] = g.dataset.pendgo.split('|'); if (g.dataset.cenpend) ui.cenSel = g.dataset.cenpend; ui.view = v; if (c) ui.cad = c; store.set(SK.view, ui); render(); window.scrollTo(0, 0); });
-  const MG = window.PricerMargens({ acompanhamento: () => PN.vLista(), aoEnviar: (p) => { congelarMarco(p.id, 'enviada'); if (state.id === p.id && p.precos && !state.precosFix) { state.precosFix = JSON.parse(JSON.stringify(p.precos)); build(); persist(); } }, aoAprovar: (id) => congelarMarco(id, 'aprovada'), bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { openProposta(p, false); ui.step = step || 1; render(); window.scrollTo(0, 0); }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
+  const MG = window.PricerMargens({ acompanhamento: () => PN.vLista(), aoEnviar: (p) => { congelarMarco(p.id, 'enviada'); if (state.id === p.id && p.precos && !state.precosFix) { state.precosFix = JSON.parse(JSON.stringify(p.precos)); build(); persist(); } }, aoAprovar: (id) => congelarMarco(id, 'aprovada'), bloqueioEnvio: (p) => { const c = custosCfg(); if (!c.bloquearEnvio || p.div === 'SPV' || p.facts) return 0; if (state.id === p.id && !isSpv() && !isFacts()) return resumoConf().imped; return p.checagem ? p.checagem.imped || 0 : 0; }, pendExtra: () => pendExtra(), abrirProposta: (p, step) => { if (openProposta(p, false, () => { ui.step = step || 1; })) { ui.step = step || 1; render(); window.scrollTo(0, 0); } }, REG, esc, brl, pct, NF, modal, toast, parseInput, ui, render, log: logEv, snapshotOf: (p) => snapshotOf(p), resumoOf: (x) => resumoOf(x), get SPV() { return SPV; } });
   // nova proposta SEQ; com a família, já abre o item 01 nela
   function newSeq(fam) { loadDoc({}, ''); ui.propFull = false; ui.reqShow = false; state.cnpjInfo = '';
     // começa pelo cabeçalho; revisão 0 e data de hoje já preenchidas
@@ -6368,7 +6384,7 @@
       $('#mCopy', o).onclick = () => { const t = payload(); $('#mTxt', o).value = t; navigator.clipboard.writeText(t).then(() => toast('Copiado'), () => { $('#mTxt', o).select(); toast('Selecionado — use Ctrl+C'); }); };
       $('#mDown', o).onclick = async () => { const ok = await REG.save((docTitle().replace(/[^\w\-. ]+/g, '_') || 'proposta') + '.json', payload(), 'application/json'); if (!ok) toast('Download cancelado'); };
       $('#mFile', o).onchange = (e) => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { $('#mTxt', o).value = rd.result; }; rd.readAsText(f); };
-      $('#mImp', o).onclick = () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc && !j.spv && !j.facts) throw 0; close(); if (j.div === 'SPV' && j.spv) loadDoc({}, j.name, null, { div: 'SPV', spv: j.spv }); else if (j.facts) loadDoc({}, j.name, null, { div: 'SEQ', sol: 'FACTS', facts: j.facts }); else loadDoc(j.doc, j.name); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
+      $('#mImp', o).onclick = async () => { try { const j = JSON.parse($('#mTxt', o).value); if (!j.doc && !j.spv && !j.facts) throw 0; if (dirty && assinatura() !== ui.assinaturaAberta && !await DLG.confirmar('Há alterações não salvas na proposta aberta. Importar mesmo assim? (as alterações se perdem)')) return; close(); if (j.div === 'SPV' && j.spv) loadDoc({}, j.name, null, { div: 'SPV', spv: j.spv }); else if (j.facts) loadDoc({}, j.name, null, { div: 'SEQ', sol: 'FACTS', facts: j.facts }); else loadDoc(j.doc, j.name); dirty = true; persist(); setView('proposta'); toast('Importado: ' + (j.name || 'proposta') + ' — clique em Salvar para guardar'); } catch (e) { toast('Não reconheci esse conteúdo como uma proposta do LS Pricer'); } };
     });
   };
 
@@ -6379,7 +6395,7 @@
       if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmar: limpar item'; b.classList.add('pri'); return; }
       const S = ITEMS[ui.item]; if (state.doc) delete state.doc[S];
       const r = 20 + ui.item; if (state.doc && state.doc.PROPOSTA) for (const c of ['C', 'E', 'F', 'G', 'H']) delete state.doc.PROPOSTA[c + r];
-      build(); persist(); render(); toast(S + ' limpo');
+      listCache = new Map(); dirty = true; build(); persist(); render(); toast(S + ' limpo');
     }
   });
 
