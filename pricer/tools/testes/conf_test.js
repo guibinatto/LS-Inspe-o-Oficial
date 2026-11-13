@@ -1,7 +1,7 @@
 const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
 const L = __dirname + '/libs/';
 (async () => {
-  const b = await chromium.launch(); const ctxB = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctxB.newPage();
+  const b = await chromium.launch(); const ctxB = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctxB.newPage(); p.on('dialog', (d) => d.accept());
   await p.route('https://cdnjs.cloudflare.com/**', (r) => { const u = r.request().url(); const f = u.endsWith('pdf.min.js') ? 'pdf.min.js' : u.endsWith('pdf.worker.min.js') ? 'pdf.worker.min.js' : null; return f ? r.fulfill({ path: L + 'pdfjs-dist-3.11.174/build/' + f, contentType: 'text/javascript' }) : r.abort(); });
   await p.route('https://fonts.googleapis.com/**', (r) => r.abort());
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));

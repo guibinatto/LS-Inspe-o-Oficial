@@ -12,7 +12,7 @@ const path = require('path');
   // 1) menu
   const grupos = await p.$$eval('#nav [data-navgt]', (x) => x.filter((e) => e.offsetParent).map((e) => e.innerText.trim()).join('|'));
   confere('menu: Comercial, Cadastros, Engenharia de produto, Fiscal, Financeiro, Gestão, Administração, Ajuda', grupos === 'COMERCIAL|CADASTROS|ENGENHARIA DE PRODUTO|FISCAL|FINANCEIRO|GESTÃO|ADMINISTRAÇÃO|AJUDA', grupos);
-  await p.evaluate((k) => { const h = document.querySelector('[data-navgt="' + k + '"]'); if (h.getAttribute('aria-expanded') !== 'true') h.click(); }, 'engenharia'); await p.click('[data-go="cadastro"][data-gv="testador"]'); await p.waitForTimeout(400);
+  await p.evaluate((k) => { const h = document.querySelector('[data-navgt="' + k + '"]'); if (h.getAttribute('aria-expanded') !== 'true') h.click(); }, 'engenharia'); await p.evaluate(() => document.querySelector('[data-go="cadastro"][data-gv="testador"]').click()); await p.waitForTimeout(400);
   confere('Engenharia → Testador de estruturas abre a tela', /testador/i.test(await p.$eval('.subtabs [aria-selected="true"]', (x) => x.innerText).catch(() => '')));
   // 2) proposta: abas e Formação de preço
   await p.click('#bNew'); await p.click('#mExample'); await p.waitForTimeout(900); await p.click('#nav [data-view="proposta"]'); await p.waitForTimeout(300);

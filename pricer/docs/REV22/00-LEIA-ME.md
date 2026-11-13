@@ -77,4 +77,15 @@ Evolução da REV21 com o mesmo motor de cálculo, sem nenhuma diferença nos va
     - **Pricer:** abrir outra proposta com alterações não salvas pergunta antes (Salvar e abrir, Descartar e abrir, Continuar nesta); datas sem horário não voltam um dia; uma tela com dado malformado mostra um aviso em vez de ficar em branco; "Limpar este item" e "Importar" marcam a proposta como alterada; FACTS avisa quando a margem alvo não tem preço possível; quantidade 0 digitada fica 0 (antes virava 1).
     - **Aparência:** botões secundários legíveis dentro dos cartões; números da proposta sem cobrir o título no tablet; Serviço de campo sem os botões da proposta no topo; bordas das abas esmaecem quando há mais abas escondidas; menu sem "Guia de uso" e "Indicadores", que repetiam outras telas ("Margens" passou a "Margens e indicadores").
     - **Fórmulas:** nenhuma mudou. Regressões: motor 0 diferença em 6.216 valores, SPV/FACTS 0 em 24, memorial financeiro 0 em 137.
+33. Rascunhos por aba e por proposta, trava na gravação, menu enxuto e confirmações (recomendações 2 e 4 da auditoria).
+    - **Duas abas do navegador:** cada aba guarda a sua proposta. Recarregar a aba volta à proposta dela, mesmo que outra aba tenha aberto outra.
+    - **Alteração não salva de outra proposta:** fica guardada à parte, por até 30 dias. A tela inicial mostra "Alterações não salvas em outra proposta", com Abrir e descartar.
+    - **Mesma proposta em duas abas:** se ela for alterada nas duas ao mesmo tempo, aparece um aviso.
+    - **Duas pessoas salvando a mesma proposta (banco compartilhado ou servidor):** a gravação fica travada. Uma espera a outra, e a segunda vê "Outra pessoa salvou esta proposta", com a comparação, em vez de apagar a primeira sem aviso. Teste: `servidor/test/trava_test.mjs`.
+    - **Menu enxuto:** cada tema mostra os itens principais (o menu completo do administrador passou de 62 para cerca de 30 itens). Os demais ficam nas abas do topo, na pesquisa do menu e no "+ N mais" do fim de cada tema; a escolha fica guardada. O item da tela aberta aparece sempre.
+    - **Um item marcado por vez:** o atalho específico vale mais que a tela geral (ex.: "Produtos e insumos" em vez de "Todos os cadastros").
+    - **Título igual ao menu:** Cadastros, Engenharia, Fiscal, Financeiro, Configurações, Margens e Ajuda mostram como título o nome do item escolhido, com o tema em cima (ex.: FISCAL › Impostos e NCM).
+    - **Salvar sem cliente:** salvar pela primeira vez uma proposta sem cliente pergunta antes ("Salvar assim mesmo como rascunho?"). As gravações automáticas não perguntam.
+    - **PDF com campos faltando:** gerar o documento sem cliente, CNPJ, aos cuidados de, condição de pagamento ou prazo pergunta antes e lista o que falta.
+    - **Fórmulas:** nenhuma mudou.
 17. Manual de utilização: `pricer/docs/manual/` (DOCX, PDF, guia rápido, capturas e relatório de cobertura).

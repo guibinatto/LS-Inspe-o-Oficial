@@ -448,7 +448,24 @@
       return 'local';
     }
     R.ultimaVersao = {};
-    R.saveProposta = async (id, p, opts = {}) => {
+    // Trava da proposta durante a gravação (banco compartilhado): duas pessoas salvando no mesmo instante passavam as duas
+    // pela conferência de versão e a primeira gravação sumia. Com a trava, uma espera a outra terminar e a segunda vê o
+    // conflito de versão (e pode comparar e escolher), em vez de apagar a primeira sem aviso.
+    async function comTrava(id, fn) {
+      if (!emShared()) return fn();
+      const ref = R.db.doc('propostas/' + id); if (typeof ref.acquire !== 'function') return fn();
+      const holder = (R.me || 'anon') + ':' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      let ok = false; const t0 = Date.now();
+      while (!ok && Date.now() - t0 < 15000) {
+        let r; try { r = await ref.acquire({ holder, ttlMs: 10000 }); } catch (e) { return fn(); } // banco sem trava: segue como antes
+        ok = !!(r && r.acquired);
+        if (!ok) { const ate = r && r.expiresAt ? Date.parse(r.expiresAt) - Date.now() : 600; await new Promise((res) => setTimeout(res, Math.max(150, Math.min(ate, 1500)) + Math.random() * 250)); }
+      }
+      if (!ok) { const e = new Error('Outra pessoa está salvando esta proposta agora. Tente de novo em alguns segundos.'); e.code = 'ocupado'; throw e; }
+      try { return await fn(); } finally { try { await ref.acquire({ holder, ttlMs: 1000 }); } catch (e) { /* a trava vence sozinha */ } }
+    }
+    R.saveProposta = (id, p, opts = {}) => comTrava(id, () => salvarProposta(id, p, opts));
+    async function salvarProposta(id, p, opts) {
       const cur = await R.lerProposta(id);
       if (opts.base !== undefined && opts.base !== null && cur && (cur.verDoc || 0) !== opts.base) { const e = new Error('Outra pessoa salvou esta proposta enquanto você editava.'); e.code = 'conflito'; e.remoto = cur; throw e; }
       const body = JSON.parse(JSON.stringify(p)); delete body.id; delete body.local;
@@ -457,8 +474,8 @@
       const onde = await gravarConferido(id, body); R.ultimaVersao[id] = { ver: body.ver, verDoc: body.verDoc };
       if (R.mode === 'shared' && R.propostas) { const i = R.propostas.findIndex((x) => x.id === id); const rec = Object.assign({ id }, body, { by: R.me || body.by }); if (i >= 0) R.propostas[i] = rec; }
       return onde;
-    };
-    R.patchProposta = async (id, mut) => {
+    }
+    R.patchProposta = (id, mut) => comTrava(id, async () => {
       for (let t = 0; t < 3; t++) {
         const cur = await R.lerProposta(id); if (!cur) throw new Error('Proposta não encontrada.');
         const body = JSON.parse(JSON.stringify(cur)); if (typeof mut === 'function') mut(body); else Object.assign(body, mut);
@@ -466,7 +483,7 @@
         try { await gravarConferido(id, body); R.ultimaVersao[id] = { ver: body.ver, verDoc: body.verDoc }; if (R.mode === 'local') changed('propostas'); return body; }
         catch (e) { if (e.code !== 'nao_confirmado' || t === 2) throw e; }
       }
-    };
+    });
     R.deleteProposta = async (id, isLocal) => {
       if (!R.ehAdmin()) throw new Error('Só o administrador apaga uma proposta de vez.');
       if (!isLocal && R.mode === 'shared') { await R.db.doc('propostas/' + id).delete(); return; }

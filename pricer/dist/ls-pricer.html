@@ -553,6 +553,14 @@ tr.click{cursor:pointer}
 tr.click:hover td{background:var(--or-soft)}
 .t td select{border:1px solid var(--line2);background:var(--card);border-radius:6px;padding:3px 6px;font-size:13px}
 .contcard{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;border:1px dashed var(--or-line);background:var(--or-soft);border-radius:10px;padding:10px 14px}
+/* menu enxuto: itens secundários aparecem com "+ N mais", na pesquisa e quando são a tela aberta */
+#nav:not(.buscando) .navsub:not(.mais-aberto) > button.sec:not([aria-current="true"]):not([aria-current="page"]){display:none}
+#nav.buscando .navmais{display:none}
+.navmais{background:none;border:0;color:var(--bar-dim);font:600 12.5px/1.2 var(--f-body);text-align:left;padding:5px 10px 5px 64px;cursor:pointer;border-radius:6px;width:100%}
+.navmais:hover,.navmais:focus-visible{color:var(--bar-ink);background:rgba(255,255,255,.06)}
+body.side-mini .navmais{display:none}
+.trilha{font:700 12.5px/1.2 var(--f-cond);letter-spacing:.1em;text-transform:uppercase;color:var(--or-ink);margin:0 0 2px}
+.contcard.rasclist{align-items:flex-start}.contcard.rasclist ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}.contcard.rasclist li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 .split2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px 28px}
 @media (max-width:900px){.split2{grid-template-columns:1fr}}
 .kv .in input{width:96px;text-align:right;border:1px solid var(--entry-line);background:var(--entry);border-radius:6px;padding:3px 8px}
@@ -943,14 +951,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" class="navgh" data-navgt="comercial" data-ico="file-text" aria-expanded="false" aria-controls="navs_comercial"><span class="nl">Comercial</span></button>
       <div class="navsub" id="navs_comercial" role="group" aria-label="Comercial" hidden>
       <button data-view="proposta" data-ico="file-text" title="Proposta aberta"><span class="nl">Proposta aberta</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SEQ" data-ico="flame"><span class="nl">Propostas SEQ</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SPV" data-ico="wrench"><span class="nl">Propostas SPV</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SEQ" data-ico="flame" class="sec"><span class="nl">Propostas SEQ</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SPV" data-ico="wrench" class="sec"><span class="nl">Propostas SPV</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="todas" data-ico="list"><span class="nl">Todas as propostas</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aberto" data-ico="file-pen"><span class="nl">Rascunhos (em aberto)</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aberto" data-ico="file-pen" class="sec"><span class="nl">Rascunhos (em aberto)</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aprovacao" data-ico="hourglass"><span class="nl">Aguardando aprovação</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="enviada" data-ico="send"><span class="nl">Enviadas</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="enviada" data-ico="send" class="sec"><span class="nl">Enviadas</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="ganha" data-ico="trophy"><span class="nl">Ganhas</span></button>
-      <button type="button" data-go="phist" data-ico="history"><span class="nl">Histórico da proposta aberta</span></button>
+      <button type="button" data-go="phist" data-ico="history" class="sec"><span class="nl">Histórico da proposta aberta</span></button>
       <button type="button" data-go="documentos" data-ico="paperclip"><span class="nl">Documentos</span></button>
       </div>
     </div>
@@ -962,13 +970,13 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <div class="navsub" id="navs_servico" role="group" aria-label="Serviço de campo" hidden>
       <button data-view="servico" data-ico="wrench" title="Serviço de campo: painel com visitas, atrasos e relatórios pendentes"><span class="nl">Painel do serviço</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="agenda" data-ico="calendar-days"><span class="nl">Agenda</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="visitas" data-ico="clipboard-list"><span class="nl">Visitas técnicas</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="meus-atendimentos" data-ico="clipboard-check"><span class="nl">Atendimentos por técnico</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="visitas" data-ico="clipboard-list" class="sec"><span class="nl">Visitas técnicas</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="meus-atendimentos" data-ico="clipboard-check" class="sec"><span class="nl">Atendimentos por técnico</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="relatorios" data-ico="file-text"><span class="nl">Relatórios</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovação de relatórios</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="aprovacoes" data-ico="badge-check" class="sec"><span class="nl">Aprovação de relatórios</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="contratos" data-ico="building-2"><span class="nl">Contratos de manutenção</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="tecnicos" data-ico="hard-hat"><span class="nl">Técnicos</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="auditoria" data-ico="scroll-text"><span class="nl">Auditoria do serviço</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="tecnicos" data-ico="hard-hat" class="sec"><span class="nl">Técnicos</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="auditoria" data-ico="scroll-text" class="sec"><span class="nl">Auditoria do serviço</span></button>
       </div>
     </div>
     <div class="navg" data-navg="cadastros">
@@ -977,15 +985,15 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button data-view="cadastro" data-ico="database" title="Cadastros: todas as áreas"><span class="nl cl">Todos os cadastros</span><span class="nlr">Cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="insumos" data-ico="package"><span class="nl">Produtos e insumos</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="importar" data-ico="table-properties"><span class="nl">Importar preços</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="custoscfg" data-ico="coins"><span class="nl">Validade e alertas de custos</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="familias" data-ico="folder-tree"><span class="nl">Famílias e modelos prontos</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="fornecedores" data-ico="factory"><span class="nl">Fabricantes e fornecedores</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="valvulas" data-ico="boxes"><span class="nl">Válvulas de alívio</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="cambio" data-ico="globe"><span class="nl">Câmbio e importação</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="facts" data-ico="badge-check"><span class="nl">FACTS (MECON)</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="custoscfg" data-ico="coins" class="sec"><span class="nl">Validade e alertas de custos</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="familias" data-ico="folder-tree" class="sec"><span class="nl">Famílias e modelos prontos</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="fornecedores" data-ico="factory" class="sec"><span class="nl">Fabricantes e fornecedores</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="valvulas" data-ico="boxes" class="sec"><span class="nl">Válvulas de alívio</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="cambio" data-ico="globe" class="sec"><span class="nl">Câmbio e importação</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="facts" data-ico="badge-check" class="sec"><span class="nl">FACTS (MECON)</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="servicos" data-ico="hard-hat"><span class="nl">Serviços e equipe</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="geral" data-ico="building-2"><span class="nl">Empresa, unidades e famílias</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="sinonimos" data-ico="languages"><span class="nl">Sinônimos e abreviações</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="geral" data-ico="building-2" class="sec"><span class="nl">Empresa, unidades e famílias</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="sinonimos" data-ico="languages" class="sec"><span class="nl">Sinônimos e abreviações</span></button>
       </div>
     </div>
     <div class="navg" data-navg="engenharia">
@@ -993,13 +1001,13 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <div class="navsub" id="navs_engenharia" role="group" aria-label="Engenharia de produto" hidden>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="estruturas" data-ico="network"><span class="nl">Estruturas e tabelas por porte</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="motor" data-ico="boxes"><span class="nl">Kits de motor diesel</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="bomba" data-ico="boxes"><span class="nl">Kits de bomba</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="mobase" data-ico="ruler"><span class="nl">Mão de obra e bases por porte</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="bomba" data-ico="boxes" class="sec"><span class="nl">Kits de bomba</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="mobase" data-ico="ruler" class="sec"><span class="nl">Mão de obra e bases por porte</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="regras" data-ico="git-branch"><span class="nl">Regras de configuração</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="testador" data-ico="flask-conical"><span class="nl">Testador de estruturas</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="padrao" data-ico="type"><span class="nl">Padronização de descrições</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="campos" data-ico="list-checks"><span class="nl">Campos por família</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="codificacao" data-ico="hash"><span class="nl">Codificação dos equipamentos</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="testador" data-ico="flask-conical" class="sec"><span class="nl">Testador de estruturas</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="padrao" data-ico="type" class="sec"><span class="nl">Padronização de descrições</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="campos" data-ico="list-checks" class="sec"><span class="nl">Campos por família</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="codificacao" data-ico="hash" class="sec"><span class="nl">Codificação dos equipamentos</span></button>
       </div>
     </div>
     <div class="navg" data-navg="fiscal">
@@ -1022,9 +1030,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <div class="navsub" id="navs_gestao" role="group" aria-label="Gestão" hidden>
       <button data-view="pendencias" data-ico="clipboard-list" title="Pendências"><span class="nl">Pendências</span></button>
       <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens e indicadores comerciais"><span class="nl">Margens e indicadores</span></button>
-      <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass"><span class="nl">Em andamento</span></button>
+      <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass" class="sec"><span class="nl">Em andamento</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="relatorios" data-ico="chart-no-axes-combined"><span class="nl">Relatórios gerenciais</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check"><span class="nl">Auditoria de cadastros</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check" class="sec"><span class="nl">Auditoria de cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
       </div>
     </div>
@@ -1033,19 +1041,19 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <div class="navsub" id="navs_admin" role="group" aria-label="Administração" hidden>
       <button data-view="config" data-ico="settings-2" title="Configurações e administração"><span class="nl">Configurações</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="acessos" data-ico="users"><span class="nl">Usuários e permissões</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="numeracao" data-ico="hash"><span class="nl">Máscaras e numeração</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="historico" data-ico="scroll-text"><span class="nl">Auditoria (histórico)</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="numeracao" data-ico="hash" class="sec"><span class="nl">Máscaras e numeração</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="historico" data-ico="scroll-text" class="sec"><span class="nl">Auditoria (histórico)</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="backup" data-ico="hard-drive-download"><span class="nl">Backup e restauração</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="propmodelo" data-ico="layout-template"><span class="nl">Modelo da proposta</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="tabelas" data-ico="table-2"><span class="nl">Planilha (avançado)</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="propmodelo" data-ico="layout-template" class="sec"><span class="nl">Modelo da proposta</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="tabelas" data-ico="table-2" class="sec"><span class="nl">Planilha (avançado)</span></button>
       </div>
     </div>
     <div class="navg" data-navg="ajuda">
       <button type="button" class="navgh" data-navgt="ajuda" data-ico="circle-help" aria-expanded="false" aria-controls="navs_ajuda"><span class="nl">Ajuda</span></button>
       <div class="navsub" id="navs_ajuda" role="group" aria-label="Ajuda" hidden>
       <button data-view="guia" data-ico="circle-help" title="Ajuda"><span class="nl cl">Central de ajuda</span><span class="nlr">Ajuda</span></button>
-      <button type="button" data-go="guia" data-gk="ajuda" data-gv="atalhos" data-ico="keyboard"><span class="nl">Atalhos de teclado</span></button>
-      <button type="button" data-go="guia" data-gk="ajuda" data-gv="versao" data-ico="info"><span class="nl">Informações da versão</span></button>
+      <button type="button" data-go="guia" data-gk="ajuda" data-gv="atalhos" data-ico="keyboard" class="sec"><span class="nl">Atalhos de teclado</span></button>
+      <button type="button" data-go="guia" data-gk="ajuda" data-gv="versao" data-ico="info" class="sec"><span class="nl">Informações da versão</span></button>
       </div>
     </div>
   </nav>
@@ -2276,7 +2284,24 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       return 'local';
     }
     R.ultimaVersao = {};
-    R.saveProposta = async (id, p, opts = {}) => {
+    // Trava da proposta durante a gravação (banco compartilhado): duas pessoas salvando no mesmo instante passavam as duas
+    // pela conferência de versão e a primeira gravação sumia. Com a trava, uma espera a outra terminar e a segunda vê o
+    // conflito de versão (e pode comparar e escolher), em vez de apagar a primeira sem aviso.
+    async function comTrava(id, fn) {
+      if (!emShared()) return fn();
+      const ref = R.db.doc('propostas/' + id); if (typeof ref.acquire !== 'function') return fn();
+      const holder = (R.me || 'anon') + ':' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      let ok = false; const t0 = Date.now();
+      while (!ok && Date.now() - t0 < 15000) {
+        let r; try { r = await ref.acquire({ holder, ttlMs: 10000 }); } catch (e) { return fn(); } // banco sem trava: segue como antes
+        ok = !!(r && r.acquired);
+        if (!ok) { const ate = r && r.expiresAt ? Date.parse(r.expiresAt) - Date.now() : 600; await new Promise((res) => setTimeout(res, Math.max(150, Math.min(ate, 1500)) + Math.random() * 250)); }
+      }
+      if (!ok) { const e = new Error('Outra pessoa está salvando esta proposta agora. Tente de novo em alguns segundos.'); e.code = 'ocupado'; throw e; }
+      try { return await fn(); } finally { try { await ref.acquire({ holder, ttlMs: 1000 }); } catch (e) { /* a trava vence sozinha */ } }
+    }
+    R.saveProposta = (id, p, opts = {}) => comTrava(id, () => salvarProposta(id, p, opts));
+    async function salvarProposta(id, p, opts) {
       const cur = await R.lerProposta(id);
       if (opts.base !== undefined && opts.base !== null && cur && (cur.verDoc || 0) !== opts.base) { const e = new Error('Outra pessoa salvou esta proposta enquanto você editava.'); e.code = 'conflito'; e.remoto = cur; throw e; }
       const body = JSON.parse(JSON.stringify(p)); delete body.id; delete body.local;
@@ -2285,8 +2310,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       const onde = await gravarConferido(id, body); R.ultimaVersao[id] = { ver: body.ver, verDoc: body.verDoc };
       if (R.mode === 'shared' && R.propostas) { const i = R.propostas.findIndex((x) => x.id === id); const rec = Object.assign({ id }, body, { by: R.me || body.by }); if (i >= 0) R.propostas[i] = rec; }
       return onde;
-    };
-    R.patchProposta = async (id, mut) => {
+    }
+    R.patchProposta = (id, mut) => comTrava(id, async () => {
       for (let t = 0; t < 3; t++) {
         const cur = await R.lerProposta(id); if (!cur) throw new Error('Proposta não encontrada.');
         const body = JSON.parse(JSON.stringify(cur)); if (typeof mut === 'function') mut(body); else Object.assign(body, mut);
@@ -2294,7 +2319,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
         try { await gravarConferido(id, body); R.ultimaVersao[id] = { ver: body.ver, verDoc: body.verDoc }; if (R.mode === 'local') changed('propostas'); return body; }
         catch (e) { if (e.code !== 'nao_confirmado' || t === 2) throw e; }
       }
-    };
+    });
     R.deleteProposta = async (id, isLocal) => {
       if (!R.ehAdmin()) throw new Error('Só o administrador apaga uma proposta de vez.');
       if (!isLocal && R.mode === 'shared') { await R.db.doc('propostas/' + id).delete(); return; }
@@ -3519,6 +3544,8 @@ Números em JSON (ponto decimal, sem separador de milhar). Não invente: deixe n
       return `<div class="stack home">
         <div class="hero"><div><h1>Formação de preço</h1><div class="sub">Busque uma proposta antiga ou comece uma nova.</div></div>
           <div class="hsearch"><input id="homeQ" type="search" placeholder="Buscar por cliente, número, peça, fornecedor…" value="${esc(ui.homeQ || '')}" aria-label="Buscar propostas e documentos" autocomplete="off"><button class="btn sm" data-view="documentos" data-ico="folder-open" title="Orçamentos, notas, contratos e desenhos ligados às propostas">Documentos (${docs.length})</button></div></div>
+        ${(() => { const L = ctx.outrosRascunhos ? ctx.outrosRascunhos() : []; return L.length ? `<div class="contcard rasclist"><div><b>Alterações não salvas em ${L.length === 1 ? 'outra proposta' : L.length + ' outras propostas'}</b><div class="sub">Ficaram guardadas neste navegador (outra aba, ou outra proposta aberta antes de salvar).</div>
+          <ul>${L.slice(0, 6).map((x) => `<li><span class="divb ${x.div.toLowerCase()}">${x.div}</span> <b>${esc(x.label)}</b> <small class="sub">alterada em ${x.em ? new Date(x.em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</small> <button class="btn sm" data-rascabrir="${esc(x.uid)}">Abrir</button> <button class="restore" data-rascdesc="${esc(x.uid)}">descartar</button></li>`).join('')}</ul></div></div>` : ''; })()}
         ${(() => { const c = ctx.current && ctx.current(); return c ? `<div class="contcard"><div><span class="divb ${c.div.toLowerCase()}">${c.div}</span> <b>Continuar: ${esc(c.label)}</b>${typeof c.total === 'number' && c.total ? ` <span class="sub">· ${brl(c.total)}</span>` : ''}</div><button class="btn sm pri" data-view="proposta">Continuar editando →</button></div>` : ''; })()}
         ${ctx.pendencias ? ctx.pendencias() : ''}
         ${ctx.home ? ctx.home() : ''}
@@ -8823,7 +8850,22 @@ window.PRICER_ESCOPO_PADRAO = {
   var armazFalhou = null; // var: pode ser lido antes do resto iniciar
   function falhaArmaz(e) { const pri = !armazFalhou; armazFalhou = { at: new Date().toISOString(), msg: e && e.name === 'QuotaExceededError' ? 'o navegador está sem espaço' : 'o navegador bloqueou a gravação' }; if (pri) setTimeout(() => { try { render(); } catch (er) { /* ainda iniciando */ } }, 0); }
   const newUid = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  let state = store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
+  // Rascunho em edição:
+  // - por aba (sessionStorage): recarregar a aba volta à proposta DELA, mesmo que outra aba tenha aberto outra proposta;
+  // - por proposta (lspricer.rasc.<uid>): alteração não salva de cada proposta fica guardada à parte e pode ser recuperada
+  //   na tela inicial (antes, abrir outra proposta numa segunda aba trocava o único rascunho e a alteração da primeira sumia);
+  // - lspricer.current continua sendo "onde parou" para uma aba nova.
+  const RASC = 'lspricer.rasc.', ABA = 'lspricer.aba';
+  const sess = {
+    get() { try { const v = sessionStorage.getItem(ABA); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set(v) { try { sessionStorage.setItem(ABA, JSON.stringify(v)); } catch (e) { /* aba sem espaço: fica o rascunho geral */ } },
+  };
+  const rasc = {
+    grava(st) { if (st && st.uid) try { localStorage.setItem(RASC + st.uid, JSON.stringify(st)); } catch (e) { /* sem espaço: o rascunho geral continua */ } },
+    tira(uid) { try { localStorage.removeItem(RASC + uid); } catch (e) { /* segue */ } },
+    lista() { const out = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(RASC)) { try { const v = JSON.parse(localStorage.getItem(k)); if (v && v._sujo) out.push(v); } catch (e) { /* ignora */ } } } } catch (e) { /* sem acesso */ } return out; },
+  };
+  let state = sess.get() || store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
   if (!state.uid) state.uid = newUid();
   if (!state.div) state.div = 'SEQ';
   const isSpv = () => state.div === 'SPV' && !!state.spv;
@@ -8852,7 +8894,7 @@ window.PRICER_ESCOPO_PADRAO = {
     return n;
   }
   function build() { if (migrar(state.doc)) store.set(SK.cur, state); wb = new Workbook(MODEL); REG.applyTo(wb); if (state.precosFix) aplicaPrecos(wb, state.precosFix); wb.applyDoc(state.doc || {}); listCache = new Map(); }
-  function persist() { store.set(SK.cur, state); }
+  function persist() { store.set(SK.cur, state); sess.set(state); if (state._sujo) rasc.grava(state); }
   // ---------- preços da época ----------
   // Ao salvar, a proposta SEQ guarda os preços do cadastro que usou (insumos e kits). Enviadas, aprovadas e ganhas
   // continuam calculando com eles (state.precosFix) mesmo que o cadastro mude; o rascunho acompanha o cadastro
@@ -9137,8 +9179,24 @@ window.PRICER_ESCOPO_PADRAO = {
     setTimeout(() => { const alvo = k === 'homeDiv' ? document.querySelector(`[data-hdiv="${CSS.escape(val)}"]`) : k === 'ajuda' ? document.getElementById('ajuda_' + val) : null; if (alvo) alvo.scrollIntoView({ block: 'start' }); }, 30);
   });
   // pesquisa no menu: mostra só o que bate (abre os grupos enquanto pesquisa)
+  // menu enxuto: cada tema mostra os itens principais; os demais (class="sec") ficam nas abas do topo, na pesquisa do
+  // menu e no "+ N mais" do fim do tema. O item da tela aberta aparece sempre.
+  const NAVMAIS_K = 'lspricer.navmais'; let navMais = {}; try { navMais = JSON.parse(localStorage.getItem(NAVMAIS_K) || '{}') || {}; } catch (e) { navMais = {}; }
+  function navMaisBotoes() {
+    for (const sb of document.querySelectorAll('#nav .navsub')) {
+      const k = sb.id.replace(/^navs_/, ''); const secs = [...sb.querySelectorAll(':scope > button.sec')].filter((b) => b.dataset.fora !== '1');
+      let bt = sb.querySelector(':scope > .navmais');
+      if (!secs.length) { if (bt) bt.remove(); continue; }
+      if (!bt) { bt = document.createElement('button'); bt.type = 'button'; bt.className = 'navmais'; bt.dataset.navmais = k; sb.appendChild(bt); }
+      const aberto = !!navMais[k]; sb.classList.toggle('mais-aberto', aberto);
+      bt.textContent = aberto ? 'Menos' : '+ ' + secs.length + ' mais'; bt.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+      bt.title = aberto ? 'Mostrar só os principais deste tema' : secs.map((b) => ((b.querySelector('.nl') || b).textContent || '').trim()).join(' · ');
+    }
+  }
+  $('#nav').addEventListener('click', (e) => { const b = e.target.closest('[data-navmais]'); if (!b) return; e.stopPropagation(); const k = b.dataset.navmais; navMais[k] = !navMais[k]; try { localStorage.setItem(NAVMAIS_K, JSON.stringify(navMais)); } catch (er) { /* só nesta visita */ } navMaisBotoes(); }, true);
+  navMaisBotoes();
   $('#navQ').addEventListener('input', (e) => {
-    const q = String(e.target.value || '').trim(); const nq = normMenu(q);
+    const q = String(e.target.value || '').trim(); const nq = normMenu(q); $('#nav').classList.toggle('buscando', !!nq);
     let n = 0;
     for (const b of document.querySelectorAll('#nav [data-view], #nav [data-go]')) {
       const nl = b.querySelector('.nl'); const t = nl ? (nl.dataset.t || (nl.dataset.t = nl.textContent)) : '';
@@ -9238,6 +9296,11 @@ window.PRICER_ESCOPO_PADRAO = {
     for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
       const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : k === 'svcTab' ? (ui.svcTab || 'dashboard') === gv : false));
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
+    // um item marcado por vez: o atalho específico (ex.: Produtos e insumos) vale mais que a tela geral (Todos os cadastros);
+    // no Início com a lista padrão, fica marcado só o Início
+    { const go = document.querySelector('#nav button[data-go][aria-current="true"]');
+      if (go && ui.view === 'inicio' && go.dataset.gk === 'homeDiv' && (ui.homeDiv || 'todas') === 'todas') go.removeAttribute('aria-current');
+      else if (go) for (const b of document.querySelectorAll('#nav button[data-view][aria-current="page"]')) b.setAttribute('aria-current', 'false'); }
     atualizaNavServico();
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
@@ -9268,6 +9331,7 @@ window.PRICER_ESCOPO_PADRAO = {
     const bm = $('#bMode'); if (bm) { bm.innerHTML = '<span class="tl">' + (ui.simple ? 'Planilha completa' : 'Visão guiada') + '</span>'; bm.dataset.ico = ui.simple ? 'table-2' : 'list-checks'; }
     atualizaSaveSt();
     if (ui.view === 'cadastro' || ui.view === 'config') bindCadastro();
+    tituloDoMenu();
     temaBarra();
     decorar(document);
     window.scrollTo(0, scroll);
@@ -10219,6 +10283,17 @@ window.PRICER_ESCOPO_PADRAO = {
       ${pcCampo('parcelasPrazo', 'Prazo de pagamento de cada parcela', { ph: 'ex.: 30 DDL' })}${lista('parcelas')}${lista('volumes')}${lista('opcoes')}${lista('desviosEsp')}</details>`;
   }
   const TIPO_LB = Object.fromEntries(PRP.TIPOS); const LANG_LB = Object.fromEntries(PRP.IDIOMAS);
+  // o que falta para o documento ir ao cliente completo (mesmos campos do cartão "Proposta técnica e comercial")
+  function faltamNoPdf() {
+    try { const pc = pcGet(); const lang = pc.idioma || 'pt'; const D = propostaDados(); const E = PRP.efetivo(D, pc, PRP.modelo(REG, lang), lang);
+      const L = []; if (!E.cliente && !E.razao) L.push('cliente'); if (!E.cnpj) L.push('CNPJ'); if (!E.aosCuidados) L.push('aos cuidados de');
+      if (!E.pagamento) L.push('condição de pagamento'); if (!(Number(E.prazoFab) || Number(E.prazoEnt) || E.prazoTexto)) L.push('prazo'); return L;
+    } catch (e) { return []; }
+  }
+  async function confirmaPdf() {
+    const L = faltamNoPdf(); if (!L.length) return true;
+    return DLG.confirmar('O documento vai sair sem: ' + L.join(', ') + '. Gerar mesmo assim? (para completar, preencha nos dados da proposta)');
+  }
   function propComCard() {
     let D, E, M; const pc = pcGet(); const tipo = pc.tipoDoc || 'tc', lang = pc.idioma || 'pt';
     try { D = propostaDados(); M = PRP.modelo(REG, lang); E = PRP.efetivo(D, pc, M, lang); } catch (e) { return ''; }
@@ -10664,9 +10739,10 @@ window.PRICER_ESCOPO_PADRAO = {
     if (e.target.closest('[data-pctopo]')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (e.target.closest('[data-pcmodelo]')) { ui.cad = 'propmodelo'; setView('config'); return; }
     // técnica e comercial como dois PDFs separados, um depois do outro (cada um guardado nos documentos da proposta)
-    if (e.target.closest('[data-pcgerar2]')) { try { await gerarProposta('tec'); await gerarProposta('com'); toast('Técnica e comercial geradas (2 PDFs)'); } catch (er) { toast(errMsg(er)); } return; }
+    if (e.target.closest('[data-pcgerar2]')) { if (!await confirmaPdf()) return; try { await gerarProposta('tec'); await gerarProposta('com'); toast('Técnica e comercial geradas (2 PDFs)'); } catch (er) { toast(errMsg(er)); } return; }
     if (e.target.closest('[data-pchtml]')) { try { await gerarProposta(undefined, { html: true }); } catch (er) { toast(errMsg(er)); } return; }
     if (!e.target.closest('[data-pcgerar]')) return;
+    if (!await confirmaPdf()) return;
     try { await gerarProposta(); } catch (er) { toast(errMsg(er)); }
   });
 
@@ -14250,7 +14326,7 @@ window.PRICER_ESCOPO_PADRAO = {
         <div><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></div><div>Percorrer o menu lateral e os resultados da busca</div>
         <div><kbd>Enter</kbd></div><div>Abrir o item escolhido no menu ou na busca; num campo da planilha, gravar e sair do campo</div></div></section>
       <section class="card" id="ajuda_versao"><h2>Informações da versão</h2><div class="kv pcro">
-        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>13/11/2026 02:00 · commit bf6788e</div>
+        <div>Aplicativo</div><div>LS Pricer REV22</div><div>Gerado em</div><div>13/11/2026 02:50 · commit 8dc0ae4</div>
         <div>Dados</div><div>${REG.mode === 'shared' ? 'banco compartilhado da equipe (claude.ai)' : 'neste navegador (arquivo aberto localmente; sem login nem permissões por pessoa)'}</div>
         <div>Motor de cálculo</div><div>planilha REV21 (fórmulas e células preservadas; regressão com 0 diferença)</div>
         <div>Documentação</div><div><code>pricer/docs/REV22/</code> (relatórios) e <code>pricer/docs/manual/</code> (manual de utilização)</div></div></section></div>`;
@@ -14450,7 +14526,8 @@ window.PRICER_ESCOPO_PADRAO = {
     o.querySelector('.modal').addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close(); });
     bind && bind(o, close);
   }
-  function loadDoc(doc, name, id, extra) { state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); ui.assinaturaAberta = assinatura(); setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }
+  // trocar de proposta por aqui encerra o rascunho da que sai (ela foi salva, descartada pela pessoa, ou nunca foi alterada)
+  function loadDoc(doc, name, id, extra) { if (state && state.uid) rasc.tira(state.uid); state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); ui.assinaturaAberta = assinatura(); setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }
   const assinatura = () => JSON.stringify([state.doc, state.spv, state.facts, state.propCom || {}]);
   function docTitle() {
     if (isSpv()) return [state.spv.numero, state.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome';
@@ -14466,12 +14543,43 @@ window.PRICER_ESCOPO_PADRAO = {
         [['salvar', 'Salvar e abrir', 'pri'], ['descartar', 'Descartar e abrir'], ['cancelar', 'Continuar nesta']]).then(async (r) => {
         if (r === 'cancelar') return;
         if (r === 'salvar') { await $('#bSave').onclick(); if (dirty) return; }
+        if (r === 'descartar') rasc.tira(state.uid);
         openPropostaJa(p, dup); if (depois) depois(); render(); window.scrollTo(0, 0);
       });
       return false;
     }
     openPropostaJa(p, dup); return true;
   }
+  // rascunhos não salvos de outras propostas (outra aba, ou aberta outra proposta antes de salvar): listados na tela inicial
+  function outrosRascunhos() {
+    const lim = Date.now() - 30 * 864e5;
+    return rasc.lista().filter((x) => x.uid !== state.uid).filter((x) => { const t = Date.parse(x._editEm || ''); if (t && t < lim) { rasc.tira(x.uid); return false; } return true; })
+      .map((x) => ({ uid: x.uid, div: x.div === 'SPV' ? 'SPV' : 'SEQ', em: x._editEm, label: x.div === 'SPV' && x.spv ? ([x.spv.numero, x.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome') : x.facts ? ['FACTS', x.facts.numero, x.facts.cliente].filter(Boolean).join(' · ') : ([((x.doc || {}).PROPOSTA || {}).C5, ((x.doc || {}).PROPOSTA || {}).F5].filter((v) => v != null && v !== '').join(' · ') || x.name || 'Proposta sem nome') }))
+      .sort((a, b) => String(b.em).localeCompare(String(a.em)));
+  }
+  function abrirRascunho(uid) {
+    let st = null; try { st = JSON.parse(localStorage.getItem(RASC + uid) || 'null'); } catch (e) { st = null; }
+    if (!st) { toast('Este rascunho não existe mais.'); render(); return; }
+    const abre = () => { state = st; build(); persist(); dlMap = null; ui.item = 0; dirty = true; ui.recuperado = st._editEm || true; ui.assinaturaAberta = null; setView('proposta'); toast('Rascunho recuperado: ' + docTitle() + '. Salve para gravar.'); };
+    if (dirty && assinatura() !== ui.assinaturaAberta && DLG && DLG.escolha) {
+      DLG.escolha(`Há alterações não salvas em "${docTitle() || 'esta proposta'}". O que fazer antes de abrir o rascunho?`, [['salvar', 'Salvar e abrir', 'pri'], ['manter', 'Abrir e guardar esta como rascunho'], ['cancelar', 'Continuar nesta']]).then(async (r) => {
+        if (r === 'cancelar') return; if (r === 'salvar') { await $('#bSave').onclick(); if (dirty) return; } else rasc.grava(Object.assign({}, state, { _sujo: true, _editEm: state._editEm || new Date().toISOString() }));
+        abre();
+      }); return;
+    }
+    abre();
+  }
+  document.addEventListener('click', async (e) => {
+    const a = e.target.closest('[data-rascabrir]'); if (a) { abrirRascunho(a.dataset.rascabrir); return; }
+    const d = e.target.closest('[data-rascdesc]'); if (d) { if (!await DLG.confirmar('Descartar as alterações não salvas deste rascunho? A proposta salva (se houver) continua como está.')) return; rasc.tira(d.dataset.rascdesc); render(); toast('Rascunho descartado'); }
+  });
+  // a mesma proposta alterada em outra aba deste navegador: avisa (vale a última a salvar; a conferência de versão pega o conflito)
+  let avisoAba = 0;
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key !== RASC + state.uid || !e.newValue || !dirty) return;
+    if (Date.now() - avisoAba < 60000) return; avisoAba = Date.now();
+    toast('Esta proposta também está sendo alterada em outra aba. Salve em uma só para não misturar alterações.');
+  });
   function openPropostaJa(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
     const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null), origemItens: p.origemItens || {}, propCom: p.propCom ? JSON.parse(JSON.stringify(p.propCom)) : {} };
@@ -14589,6 +14697,16 @@ window.PRICER_ESCOPO_PADRAO = {
   let temaVisto = null, temaDaTela = null;
   // faixa de abas do tema no alto da página, no mesmo padrão do Serviço de campo: as abas são as do tema no menu.
   // Em Cadastros e Configurações, a fileira de áreas/abas que a própria tela já tem sobe para a faixa.
+  // o título da tela é o nome do item do menu que a abriu (ex.: Fiscal › "Impostos e NCM" em vez de "Cadastros")
+  function tituloDoMenu() {
+    if (!['cadastro', 'config', 'margens', 'guia', 'inicio'].includes(ui.view)) return;
+    const go = document.querySelector('#nav button[data-go][aria-current="true"]'); if (!go) return;
+    const h = document.querySelector('#app h1'); if (!h) return;
+    const lb = ((go.querySelector('.nl') || go).dataset.t || (go.querySelector('.nl') || go).textContent || '').trim(); if (!lb) return;
+    const g = go.closest('.navg'); const tema = g ? ((g.querySelector('[data-navgt] .nl') || {}).textContent || '').trim() : '';
+    h.textContent = lb;
+    if (tema && !h.previousElementSibling?.classList?.contains('trilha')) h.insertAdjacentHTML('beforebegin', `<div class="trilha">${esc(tema)}</div>`);
+  }
   function temaBarra() {
     const bar = document.getElementById('temaBar'); if (!bar) return;
     const fim = () => { bar.hidden = true; bar.innerHTML = ''; document.documentElement.style.setProperty('--tbh', '0px'); };
@@ -14597,7 +14715,7 @@ window.PRICER_ESCOPO_PADRAO = {
     if (propria) { bar.innerHTML = ''; bar.appendChild(propria); bar.hidden = false; }
     else {
       const g = temaDaTela && document.querySelector(`#nav .navg[data-navg="${temaDaTela}"]`); if (!g || g.hidden) return fim();
-      const itens = [...g.querySelectorAll('.navsub > button')].filter((b) => !b.hidden && b.dataset.fora !== '1'); if (itens.length < 2) return fim();
+      const itens = [...g.querySelectorAll('.navsub > button')].filter((b) => !b.hidden && b.dataset.fora !== '1' && !b.classList.contains('navmais')); if (itens.length < 2) return fim();
       bar.innerHTML = `<div class="tbtabs" role="navigation" aria-label="${esc((g.querySelector('[data-navgt] .nl') || {}).textContent || 'Seção')}">${itens.map((b, i) => { const atual = b.getAttribute('aria-current'); const ic = b.querySelector('.ico');
         return `<button type="button" class="tbtab" data-tbi="${i}"${atual === 'page' || atual === 'true' ? ' aria-current="page"' : ''}>${ic ? ic.outerHTML : ''}<span>${esc(((b.querySelector('.nl') || b).textContent || '').trim())}</span></button>`; }).join('')}</div>`;
       bar.onclick = (e) => { const t = e.target.closest('[data-tbi]'); if (t && itens[+t.dataset.tbi]) itens[+t.dataset.tbi].click(); };
@@ -14649,7 +14767,8 @@ window.PRICER_ESCOPO_PADRAO = {
     const base = ['dashboard', 'agenda', 'visitas', 'meus-atendimentos', 'relatorios', 'contratos', 'tecnicos'];
     return new Set(p === 'tecnico' ? base : base.concat(['aprovacoes', 'auditoria']));
   }
-  function atualizaNavServico() {
+  function atualizaNavServico() { atualizaNavServico0(); try { navMaisBotoes(); } catch (e) { /* menu ainda montando */ } }
+  function atualizaNavServico0() {
     const ns = document.getElementById('navServico'); if (!ns) return;
     const p = perfilServicoAtual(); ns.hidden = !p; if (!p) return;
     const abas = abasServico(p); const pesquisando = !!String(($('#navQ') || {}).value || '').trim();
@@ -15020,6 +15139,7 @@ window.PRICER_ESCOPO_PADRAO = {
   const SPV = window.PricerSPV({ revisar: () => revisarModal(), separar: () => separarSpv(), servicoHtml: (s) => servicoHtml(s), separarMotivo: (s) => separarMotivo(s), vinculo: (uid) => vinculoDe(uid), abrirVinculo: (id) => abrirVinculo(id), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
     persist: () => { persist(); dirty = true; },
+    outrosRascunhos: () => outrosRascunhos(),
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
 
   $('#bMode').onclick = () => { ui.simple = !ui.simple; ui.propFull = false; ui.itemFull = false; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
@@ -15044,6 +15164,9 @@ window.PRICER_ESCOPO_PADRAO = {
   $('#bSave').onclick = async (ev) => { const sb = $('#bSave'); if (sb.classList.contains('busy')) return; sb.classList.add('busy'); sb.dataset.ico = 'loader-circle'; decorar(sb.parentElement);
     try { return await salvar0(ev); } finally { sb.classList.remove('busy'); sb.dataset.ico = 'save'; decorar(sb.parentElement); } };
   const salvar0 = async (ev) => {
+    // salvar pelo botão (ou Ctrl+S) uma proposta sem cliente: pergunta antes (as gravações automáticas não perguntam)
+    if (ev && !state.id) { const cli = isSpv() ? state.spv.cliente : isFacts() ? state.facts.cliente : txt('PROPOSTA', 'F5');
+      if (!String(cli || '').trim() && !await DLG.confirmar('Esta proposta ainda não tem cliente. Salvar assim mesmo como rascunho? (dá para completar depois)')) return; }
     if (state.verRev) { toast('Você está consultando a revisão ' + state.verRev.rev + '. Volte à atual ou restaure esta como nova revisão.'); return; }
     // proposta já enviada ao cliente: alterar cria revisão nova (a enviada fica guardada), salvo se for só correção
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id);
@@ -15112,7 +15235,7 @@ window.PRICER_ESCOPO_PADRAO = {
   // rascunho: o estado em edição já fica no navegador; marca se há alteração pendente para recuperar depois
   setInterval(() => {
     const sujo = !!dirty && !state.verRev;
-    if (sujo !== !!state._sujo) { state._sujo = sujo; state._editEm = sujo ? new Date().toISOString() : null; store.set(SK.cur, state); }
+    if (sujo !== !!state._sujo) { state._sujo = sujo; state._editEm = sujo ? new Date().toISOString() : null; store.set(SK.cur, state); sess.set(state); if (sujo) rasc.grava(state); else rasc.tira(state.uid); }
     atualizaSaveSt();
   }, 1500);
   window.addEventListener('beforeunload', (e) => { if (dirty && !state.verRev) { e.preventDefault(); e.returnValue = ''; } });

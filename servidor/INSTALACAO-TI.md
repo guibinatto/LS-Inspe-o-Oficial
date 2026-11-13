@@ -124,7 +124,8 @@ Os celulares pegam a versão nova do Serviço de campo sozinhos, na próxima abe
 ```bash
 cd servidor
 npm test                      # 70 + 35 verificações: login, permissões, sincronização e os ataques da auditoria (sobe servidores temporários)
-node test/seguranca_test.mjs  # 35 verificações: os ataques da auditoria de nov/2026 (anexo com script, token de exemplo, aprovação forjada, histórico apagado, arquivo corrompido…)
+node test/seguranca_test.mjs  # 38 verificações: os ataques da auditoria de nov/2026 (anexo com script, token de exemplo, aprovação forjada, histórico apagado, arquivo corrompido…)
+node test/trava_test.mjs      # navegador: duas pessoas salvando a mesma proposta ao mesmo tempo (precisa do Playwright)
 node test/e2e_test.mjs        # navegador: Pricer + Serviço de campo, gestor e técnico (precisa do Playwright)
 node test/migracao_test.mjs   # navegador: backup do Pricer → servidor, mesmo total no exemplo Cocamar
 ```

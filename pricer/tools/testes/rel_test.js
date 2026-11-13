@@ -6,7 +6,7 @@ const path = require('path'); const L = __dirname + '/libs/';
 const ok = [], falha = []; const confere = (n, c, d) => (c ? ok : falha).push(n + (d !== undefined ? ' (' + d + ')' : ''));
 const brl = (t) => Number(String(t).replace(/[^\d,-]/g, '').replace(',', '.'));
 (async () => {
-  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true })).newPage();
+  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true })).newPage(); p.on('dialog', (d) => d.accept());
   await p.route('https://cdnjs.cloudflare.com/**', (r) => { const u = r.request().url(); return u.endsWith('exceljs.min.js') ? r.fulfill({ path: L + 'exceljs-4.4.0/dist/exceljs.min.js', contentType: 'text/javascript' }) : r.abort(); });
   await p.route('https://fonts.googleapis.com/**', (r) => r.abort());
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));

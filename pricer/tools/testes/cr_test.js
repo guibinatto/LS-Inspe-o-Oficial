@@ -1,7 +1,7 @@
 const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
 const L = __dirname + '/libs/';
 (async () => {
-  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true })).newPage();
+  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true })).newPage(); p.on('dialog', (d) => d.accept());
   await p.route('https://cdnjs.cloudflare.com/**', (r) => { const u = r.request().url(); return u.endsWith('exceljs.min.js') ? r.fulfill({ path: L + 'exceljs-4.4.0/dist/exceljs.min.js', contentType: 'text/javascript' }) : r.abort(); });
   await p.route('https://fonts.googleapis.com/**', (r) => r.abort());
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));

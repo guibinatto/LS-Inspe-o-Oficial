@@ -5,7 +5,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
 const path = require('path');
 const ok = [], falha = []; const confere = (n, c, d) => (c ? ok : falha).push(n + (d !== undefined ? ' (' + d + ')' : ''));
 (async () => {
-  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage(); p.on('dialog', (d) => d.accept());
   const erros = []; p.on('pageerror', (e) => erros.push(String(e)));
   await p.route('https://**', (r) => r.abort()); await p.route('https://cdnjs.cloudflare.com/**', (r) => r.abort());
   await p.goto('file://' + path.resolve(__dirname, '../../dist/ls-pricer.html')); await p.waitForTimeout(1500);

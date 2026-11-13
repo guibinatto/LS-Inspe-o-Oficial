@@ -548,6 +548,14 @@ tr.click{cursor:pointer}
 tr.click:hover td{background:var(--or-soft)}
 .t td select{border:1px solid var(--line2);background:var(--card);border-radius:6px;padding:3px 6px;font-size:13px}
 .contcard{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;border:1px dashed var(--or-line);background:var(--or-soft);border-radius:10px;padding:10px 14px}
+/* menu enxuto: itens secundários aparecem com "+ N mais", na pesquisa e quando são a tela aberta */
+#nav:not(.buscando) .navsub:not(.mais-aberto) > button.sec:not([aria-current="true"]):not([aria-current="page"]){display:none}
+#nav.buscando .navmais{display:none}
+.navmais{background:none;border:0;color:var(--bar-dim);font:600 12.5px/1.2 var(--f-body);text-align:left;padding:5px 10px 5px 64px;cursor:pointer;border-radius:6px;width:100%}
+.navmais:hover,.navmais:focus-visible{color:var(--bar-ink);background:rgba(255,255,255,.06)}
+body.side-mini .navmais{display:none}
+.trilha{font:700 12.5px/1.2 var(--f-cond);letter-spacing:.1em;text-transform:uppercase;color:var(--or-ink);margin:0 0 2px}
+.contcard.rasclist{align-items:flex-start}.contcard.rasclist ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}.contcard.rasclist li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 .split2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px 28px}
 @media (max-width:900px){.split2{grid-template-columns:1fr}}
 .kv .in input{width:96px;text-align:right;border:1px solid var(--entry-line);background:var(--entry);border-radius:6px;padding:3px 8px}
@@ -935,14 +943,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button type="button" class="navgh" data-navgt="comercial" data-ico="file-text" aria-expanded="false" aria-controls="navs_comercial"><span class="nl">Comercial</span></button>
       <div class="navsub" id="navs_comercial" role="group" aria-label="Comercial" hidden>
       <button data-view="proposta" data-ico="file-text" title="Proposta aberta"><span class="nl">Proposta aberta</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SEQ" data-ico="flame"><span class="nl">Propostas SEQ</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SPV" data-ico="wrench"><span class="nl">Propostas SPV</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SEQ" data-ico="flame" class="sec"><span class="nl">Propostas SEQ</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="SPV" data-ico="wrench" class="sec"><span class="nl">Propostas SPV</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="todas" data-ico="list"><span class="nl">Todas as propostas</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aberto" data-ico="file-pen"><span class="nl">Rascunhos (em aberto)</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aberto" data-ico="file-pen" class="sec"><span class="nl">Rascunhos (em aberto)</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="aprovacao" data-ico="hourglass"><span class="nl">Aguardando aprovação</span></button>
-      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="enviada" data-ico="send"><span class="nl">Enviadas</span></button>
+      <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="enviada" data-ico="send" class="sec"><span class="nl">Enviadas</span></button>
       <button type="button" data-go="inicio" data-gk="homeDiv" data-gv="ganha" data-ico="trophy"><span class="nl">Ganhas</span></button>
-      <button type="button" data-go="phist" data-ico="history"><span class="nl">Histórico da proposta aberta</span></button>
+      <button type="button" data-go="phist" data-ico="history" class="sec"><span class="nl">Histórico da proposta aberta</span></button>
       <button type="button" data-go="documentos" data-ico="paperclip"><span class="nl">Documentos</span></button>
       </div>
     </div>
@@ -954,13 +962,13 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <div class="navsub" id="navs_servico" role="group" aria-label="Serviço de campo" hidden>
       <button data-view="servico" data-ico="wrench" title="Serviço de campo: painel com visitas, atrasos e relatórios pendentes"><span class="nl">Painel do serviço</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="agenda" data-ico="calendar-days"><span class="nl">Agenda</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="visitas" data-ico="clipboard-list"><span class="nl">Visitas técnicas</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="meus-atendimentos" data-ico="clipboard-check"><span class="nl">Atendimentos por técnico</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="visitas" data-ico="clipboard-list" class="sec"><span class="nl">Visitas técnicas</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="meus-atendimentos" data-ico="clipboard-check" class="sec"><span class="nl">Atendimentos por técnico</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="relatorios" data-ico="file-text"><span class="nl">Relatórios</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="aprovacoes" data-ico="badge-check"><span class="nl">Aprovação de relatórios</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="aprovacoes" data-ico="badge-check" class="sec"><span class="nl">Aprovação de relatórios</span></button>
       <button type="button" data-go="servico" data-gk="svcTab" data-gv="contratos" data-ico="building-2"><span class="nl">Contratos de manutenção</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="tecnicos" data-ico="hard-hat"><span class="nl">Técnicos</span></button>
-      <button type="button" data-go="servico" data-gk="svcTab" data-gv="auditoria" data-ico="scroll-text"><span class="nl">Auditoria do serviço</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="tecnicos" data-ico="hard-hat" class="sec"><span class="nl">Técnicos</span></button>
+      <button type="button" data-go="servico" data-gk="svcTab" data-gv="auditoria" data-ico="scroll-text" class="sec"><span class="nl">Auditoria do serviço</span></button>
       </div>
     </div>
     <div class="navg" data-navg="cadastros">
@@ -969,15 +977,15 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button data-view="cadastro" data-ico="database" title="Cadastros: todas as áreas"><span class="nl cl">Todos os cadastros</span><span class="nlr">Cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="insumos" data-ico="package"><span class="nl">Produtos e insumos</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="importar" data-ico="table-properties"><span class="nl">Importar preços</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="custoscfg" data-ico="coins"><span class="nl">Validade e alertas de custos</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="familias" data-ico="folder-tree"><span class="nl">Famílias e modelos prontos</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="fornecedores" data-ico="factory"><span class="nl">Fabricantes e fornecedores</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="valvulas" data-ico="boxes"><span class="nl">Válvulas de alívio</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="cambio" data-ico="globe"><span class="nl">Câmbio e importação</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="facts" data-ico="badge-check"><span class="nl">FACTS (MECON)</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="custoscfg" data-ico="coins" class="sec"><span class="nl">Validade e alertas de custos</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="familias" data-ico="folder-tree" class="sec"><span class="nl">Famílias e modelos prontos</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="fornecedores" data-ico="factory" class="sec"><span class="nl">Fabricantes e fornecedores</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="valvulas" data-ico="boxes" class="sec"><span class="nl">Válvulas de alívio</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="cambio" data-ico="globe" class="sec"><span class="nl">Câmbio e importação</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="facts" data-ico="badge-check" class="sec"><span class="nl">FACTS (MECON)</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="servicos" data-ico="hard-hat"><span class="nl">Serviços e equipe</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="geral" data-ico="building-2"><span class="nl">Empresa, unidades e famílias</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="sinonimos" data-ico="languages"><span class="nl">Sinônimos e abreviações</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="geral" data-ico="building-2" class="sec"><span class="nl">Empresa, unidades e famílias</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="sinonimos" data-ico="languages" class="sec"><span class="nl">Sinônimos e abreviações</span></button>
       </div>
     </div>
     <div class="navg" data-navg="engenharia">
@@ -985,13 +993,13 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <div class="navsub" id="navs_engenharia" role="group" aria-label="Engenharia de produto" hidden>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="estruturas" data-ico="network"><span class="nl">Estruturas e tabelas por porte</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="motor" data-ico="boxes"><span class="nl">Kits de motor diesel</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="bomba" data-ico="boxes"><span class="nl">Kits de bomba</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="mobase" data-ico="ruler"><span class="nl">Mão de obra e bases por porte</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="bomba" data-ico="boxes" class="sec"><span class="nl">Kits de bomba</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="mobase" data-ico="ruler" class="sec"><span class="nl">Mão de obra e bases por porte</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="regras" data-ico="git-branch"><span class="nl">Regras de configuração</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="testador" data-ico="flask-conical"><span class="nl">Testador de estruturas</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="padrao" data-ico="type"><span class="nl">Padronização de descrições</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="campos" data-ico="list-checks"><span class="nl">Campos por família</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="codificacao" data-ico="hash"><span class="nl">Codificação dos equipamentos</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="testador" data-ico="flask-conical" class="sec"><span class="nl">Testador de estruturas</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="padrao" data-ico="type" class="sec"><span class="nl">Padronização de descrições</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="campos" data-ico="list-checks" class="sec"><span class="nl">Campos por família</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="codificacao" data-ico="hash" class="sec"><span class="nl">Codificação dos equipamentos</span></button>
       </div>
     </div>
     <div class="navg" data-navg="fiscal">
@@ -1014,9 +1022,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <div class="navsub" id="navs_gestao" role="group" aria-label="Gestão" hidden>
       <button data-view="pendencias" data-ico="clipboard-list" title="Pendências"><span class="nl">Pendências</span></button>
       <button data-view="margens" data-ico="chart-no-axes-combined" title="Margens e indicadores comerciais"><span class="nl">Margens e indicadores</span></button>
-      <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass"><span class="nl">Em andamento</span></button>
+      <button type="button" data-go="margens" data-gk="mgTab" data-gv="abertas" data-ico="hourglass" class="sec"><span class="nl">Em andamento</span></button>
       <button type="button" data-go="margens" data-gk="mgTab" data-gv="relatorios" data-ico="chart-no-axes-combined"><span class="nl">Relatórios gerenciais</span></button>
-      <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check"><span class="nl">Auditoria de cadastros</span></button>
+      <button type="button" data-go="cadastro" data-gk="cad" data-gv="qualidade" data-ico="shield-check" class="sec"><span class="nl">Auditoria de cadastros</span></button>
       <button type="button" data-go="cadastro" data-gk="cad" data-gv="pedidos" data-ico="inbox"><span class="nl">Pedidos de cadastro</span></button>
       </div>
     </div>
@@ -1025,19 +1033,19 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <div class="navsub" id="navs_admin" role="group" aria-label="Administração" hidden>
       <button data-view="config" data-ico="settings-2" title="Configurações e administração"><span class="nl">Configurações</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="acessos" data-ico="users"><span class="nl">Usuários e permissões</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="numeracao" data-ico="hash"><span class="nl">Máscaras e numeração</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="historico" data-ico="scroll-text"><span class="nl">Auditoria (histórico)</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="numeracao" data-ico="hash" class="sec"><span class="nl">Máscaras e numeração</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="historico" data-ico="scroll-text" class="sec"><span class="nl">Auditoria (histórico)</span></button>
       <button type="button" data-go="config" data-gk="cad" data-gv="backup" data-ico="hard-drive-download"><span class="nl">Backup e restauração</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="propmodelo" data-ico="layout-template"><span class="nl">Modelo da proposta</span></button>
-      <button type="button" data-go="config" data-gk="cad" data-gv="tabelas" data-ico="table-2"><span class="nl">Planilha (avançado)</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="propmodelo" data-ico="layout-template" class="sec"><span class="nl">Modelo da proposta</span></button>
+      <button type="button" data-go="config" data-gk="cad" data-gv="tabelas" data-ico="table-2" class="sec"><span class="nl">Planilha (avançado)</span></button>
       </div>
     </div>
     <div class="navg" data-navg="ajuda">
       <button type="button" class="navgh" data-navgt="ajuda" data-ico="circle-help" aria-expanded="false" aria-controls="navs_ajuda"><span class="nl">Ajuda</span></button>
       <div class="navsub" id="navs_ajuda" role="group" aria-label="Ajuda" hidden>
       <button data-view="guia" data-ico="circle-help" title="Ajuda"><span class="nl cl">Central de ajuda</span><span class="nlr">Ajuda</span></button>
-      <button type="button" data-go="guia" data-gk="ajuda" data-gv="atalhos" data-ico="keyboard"><span class="nl">Atalhos de teclado</span></button>
-      <button type="button" data-go="guia" data-gk="ajuda" data-gv="versao" data-ico="info"><span class="nl">Informações da versão</span></button>
+      <button type="button" data-go="guia" data-gk="ajuda" data-gv="atalhos" data-ico="keyboard" class="sec"><span class="nl">Atalhos de teclado</span></button>
+      <button type="button" data-go="guia" data-gk="ajuda" data-gv="versao" data-ico="info" class="sec"><span class="nl">Informações da versão</span></button>
       </div>
     </div>
   </nav>

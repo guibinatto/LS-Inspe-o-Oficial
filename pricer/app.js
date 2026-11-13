@@ -55,7 +55,22 @@
   var armazFalhou = null; // var: pode ser lido antes do resto iniciar
   function falhaArmaz(e) { const pri = !armazFalhou; armazFalhou = { at: new Date().toISOString(), msg: e && e.name === 'QuotaExceededError' ? 'o navegador está sem espaço' : 'o navegador bloqueou a gravação' }; if (pri) setTimeout(() => { try { render(); } catch (er) { /* ainda iniciando */ } }, 0); }
   const newUid = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  let state = store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
+  // Rascunho em edição:
+  // - por aba (sessionStorage): recarregar a aba volta à proposta DELA, mesmo que outra aba tenha aberto outra proposta;
+  // - por proposta (lspricer.rasc.<uid>): alteração não salva de cada proposta fica guardada à parte e pode ser recuperada
+  //   na tela inicial (antes, abrir outra proposta numa segunda aba trocava o único rascunho e a alteração da primeira sumia);
+  // - lspricer.current continua sendo "onde parou" para uma aba nova.
+  const RASC = 'lspricer.rasc.', ABA = 'lspricer.aba';
+  const sess = {
+    get() { try { const v = sessionStorage.getItem(ABA); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set(v) { try { sessionStorage.setItem(ABA, JSON.stringify(v)); } catch (e) { /* aba sem espaço: fica o rascunho geral */ } },
+  };
+  const rasc = {
+    grava(st) { if (st && st.uid) try { localStorage.setItem(RASC + st.uid, JSON.stringify(st)); } catch (e) { /* sem espaço: o rascunho geral continua */ } },
+    tira(uid) { try { localStorage.removeItem(RASC + uid); } catch (e) { /* segue */ } },
+    lista() { const out = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(RASC)) { try { const v = JSON.parse(localStorage.getItem(k)); if (v && v._sujo) out.push(v); } catch (e) { /* ignora */ } } } } catch (e) { /* sem acesso */ } return out; },
+  };
+  let state = sess.get() || store.get(SK.cur, null) || { id: null, doc: MODEL.example, name: '' };
   if (!state.uid) state.uid = newUid();
   if (!state.div) state.div = 'SEQ';
   const isSpv = () => state.div === 'SPV' && !!state.spv;
@@ -84,7 +99,7 @@
     return n;
   }
   function build() { if (migrar(state.doc)) store.set(SK.cur, state); wb = new Workbook(MODEL); REG.applyTo(wb); if (state.precosFix) aplicaPrecos(wb, state.precosFix); wb.applyDoc(state.doc || {}); listCache = new Map(); }
-  function persist() { store.set(SK.cur, state); }
+  function persist() { store.set(SK.cur, state); sess.set(state); if (state._sujo) rasc.grava(state); }
   // ---------- preços da época ----------
   // Ao salvar, a proposta SEQ guarda os preços do cadastro que usou (insumos e kits). Enviadas, aprovadas e ganhas
   // continuam calculando com eles (state.precosFix) mesmo que o cadastro mude; o rascunho acompanha o cadastro
@@ -369,8 +384,24 @@
     setTimeout(() => { const alvo = k === 'homeDiv' ? document.querySelector(`[data-hdiv="${CSS.escape(val)}"]`) : k === 'ajuda' ? document.getElementById('ajuda_' + val) : null; if (alvo) alvo.scrollIntoView({ block: 'start' }); }, 30);
   });
   // pesquisa no menu: mostra só o que bate (abre os grupos enquanto pesquisa)
+  // menu enxuto: cada tema mostra os itens principais; os demais (class="sec") ficam nas abas do topo, na pesquisa do
+  // menu e no "+ N mais" do fim do tema. O item da tela aberta aparece sempre.
+  const NAVMAIS_K = 'lspricer.navmais'; let navMais = {}; try { navMais = JSON.parse(localStorage.getItem(NAVMAIS_K) || '{}') || {}; } catch (e) { navMais = {}; }
+  function navMaisBotoes() {
+    for (const sb of document.querySelectorAll('#nav .navsub')) {
+      const k = sb.id.replace(/^navs_/, ''); const secs = [...sb.querySelectorAll(':scope > button.sec')].filter((b) => b.dataset.fora !== '1');
+      let bt = sb.querySelector(':scope > .navmais');
+      if (!secs.length) { if (bt) bt.remove(); continue; }
+      if (!bt) { bt = document.createElement('button'); bt.type = 'button'; bt.className = 'navmais'; bt.dataset.navmais = k; sb.appendChild(bt); }
+      const aberto = !!navMais[k]; sb.classList.toggle('mais-aberto', aberto);
+      bt.textContent = aberto ? 'Menos' : '+ ' + secs.length + ' mais'; bt.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+      bt.title = aberto ? 'Mostrar só os principais deste tema' : secs.map((b) => ((b.querySelector('.nl') || b).textContent || '').trim()).join(' · ');
+    }
+  }
+  $('#nav').addEventListener('click', (e) => { const b = e.target.closest('[data-navmais]'); if (!b) return; e.stopPropagation(); const k = b.dataset.navmais; navMais[k] = !navMais[k]; try { localStorage.setItem(NAVMAIS_K, JSON.stringify(navMais)); } catch (er) { /* só nesta visita */ } navMaisBotoes(); }, true);
+  navMaisBotoes();
   $('#navQ').addEventListener('input', (e) => {
-    const q = String(e.target.value || '').trim(); const nq = normMenu(q);
+    const q = String(e.target.value || '').trim(); const nq = normMenu(q); $('#nav').classList.toggle('buscando', !!nq);
     let n = 0;
     for (const b of document.querySelectorAll('#nav [data-view], #nav [data-go]')) {
       const nl = b.querySelector('.nl'); const t = nl ? (nl.dataset.t || (nl.dataset.t = nl.textContent)) : '';
@@ -470,6 +501,11 @@
     for (const b of document.querySelectorAll('#nav button[data-go]')) { const v = b.dataset.go, k = b.dataset.gk, gv = b.dataset.gv;
       const on = ui.view === v && (!k || (k === 'homeDiv' ? (ui.homeDiv || 'todas') === gv : k === 'cad' ? ui.cad === gv : k === 'mgTab' ? (ui.mgTab || 'painel') === gv : k === 'ajuda' ? (ui.ajuda || 'guia') === gv : k === 'svcTab' ? (ui.svcTab || 'dashboard') === gv : false));
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }
+    // um item marcado por vez: o atalho específico (ex.: Produtos e insumos) vale mais que a tela geral (Todos os cadastros);
+    // no Início com a lista padrão, fica marcado só o Início
+    { const go = document.querySelector('#nav button[data-go][aria-current="true"]');
+      if (go && ui.view === 'inicio' && go.dataset.gk === 'homeDiv' && (ui.homeDiv || 'todas') === 'todas') go.removeAttribute('aria-current');
+      else if (go) for (const b of document.querySelectorAll('#nav button[data-view][aria-current="page"]')) b.setAttribute('aria-current', 'false'); }
     atualizaNavServico();
     if (ui.view === 'servico' && !(LSF() ? (!lsfMe || temServico()) : SVC_CLAUDE())) ui.view = 'inicio';
     mostraServico(ui.view === 'servico');
@@ -500,6 +536,7 @@
     const bm = $('#bMode'); if (bm) { bm.innerHTML = '<span class="tl">' + (ui.simple ? 'Planilha completa' : 'Visão guiada') + '</span>'; bm.dataset.ico = ui.simple ? 'table-2' : 'list-checks'; }
     atualizaSaveSt();
     if (ui.view === 'cadastro' || ui.view === 'config') bindCadastro();
+    tituloDoMenu();
     temaBarra();
     decorar(document);
     window.scrollTo(0, scroll);
@@ -1451,6 +1488,17 @@
       ${pcCampo('parcelasPrazo', 'Prazo de pagamento de cada parcela', { ph: 'ex.: 30 DDL' })}${lista('parcelas')}${lista('volumes')}${lista('opcoes')}${lista('desviosEsp')}</details>`;
   }
   const TIPO_LB = Object.fromEntries(PRP.TIPOS); const LANG_LB = Object.fromEntries(PRP.IDIOMAS);
+  // o que falta para o documento ir ao cliente completo (mesmos campos do cartão "Proposta técnica e comercial")
+  function faltamNoPdf() {
+    try { const pc = pcGet(); const lang = pc.idioma || 'pt'; const D = propostaDados(); const E = PRP.efetivo(D, pc, PRP.modelo(REG, lang), lang);
+      const L = []; if (!E.cliente && !E.razao) L.push('cliente'); if (!E.cnpj) L.push('CNPJ'); if (!E.aosCuidados) L.push('aos cuidados de');
+      if (!E.pagamento) L.push('condição de pagamento'); if (!(Number(E.prazoFab) || Number(E.prazoEnt) || E.prazoTexto)) L.push('prazo'); return L;
+    } catch (e) { return []; }
+  }
+  async function confirmaPdf() {
+    const L = faltamNoPdf(); if (!L.length) return true;
+    return DLG.confirmar('O documento vai sair sem: ' + L.join(', ') + '. Gerar mesmo assim? (para completar, preencha nos dados da proposta)');
+  }
   function propComCard() {
     let D, E, M; const pc = pcGet(); const tipo = pc.tipoDoc || 'tc', lang = pc.idioma || 'pt';
     try { D = propostaDados(); M = PRP.modelo(REG, lang); E = PRP.efetivo(D, pc, M, lang); } catch (e) { return ''; }
@@ -1896,9 +1944,10 @@
     if (e.target.closest('[data-pctopo]')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (e.target.closest('[data-pcmodelo]')) { ui.cad = 'propmodelo'; setView('config'); return; }
     // técnica e comercial como dois PDFs separados, um depois do outro (cada um guardado nos documentos da proposta)
-    if (e.target.closest('[data-pcgerar2]')) { try { await gerarProposta('tec'); await gerarProposta('com'); toast('Técnica e comercial geradas (2 PDFs)'); } catch (er) { toast(errMsg(er)); } return; }
+    if (e.target.closest('[data-pcgerar2]')) { if (!await confirmaPdf()) return; try { await gerarProposta('tec'); await gerarProposta('com'); toast('Técnica e comercial geradas (2 PDFs)'); } catch (er) { toast(errMsg(er)); } return; }
     if (e.target.closest('[data-pchtml]')) { try { await gerarProposta(undefined, { html: true }); } catch (er) { toast(errMsg(er)); } return; }
     if (!e.target.closest('[data-pcgerar]')) return;
+    if (!await confirmaPdf()) return;
     try { await gerarProposta(); } catch (er) { toast(errMsg(er)); }
   });
 
@@ -5682,7 +5731,8 @@
     o.querySelector('.modal').addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.closest('[data-close]')) close(); });
     bind && bind(o, close);
   }
-  function loadDoc(doc, name, id, extra) { state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); ui.assinaturaAberta = assinatura(); setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }
+  // trocar de proposta por aqui encerra o rascunho da que sai (ela foi salva, descartada pela pessoa, ou nunca foi alterada)
+  function loadDoc(doc, name, id, extra) { if (state && state.uid) rasc.tira(state.uid); state = Object.assign({ id: id || null, uid: newUid(), div: 'SEQ', status: 'rascunho', doc: JSON.parse(JSON.stringify(doc || {})), name: name || '' }, extra || {}); build(); persist(); dlMap = null; ui.item = 0; render(); ui.assinaturaAberta = assinatura(); setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); }
   const assinatura = () => JSON.stringify([state.doc, state.spv, state.facts, state.propCom || {}]);
   function docTitle() {
     if (isSpv()) return [state.spv.numero, state.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome';
@@ -5698,12 +5748,43 @@
         [['salvar', 'Salvar e abrir', 'pri'], ['descartar', 'Descartar e abrir'], ['cancelar', 'Continuar nesta']]).then(async (r) => {
         if (r === 'cancelar') return;
         if (r === 'salvar') { await $('#bSave').onclick(); if (dirty) return; }
+        if (r === 'descartar') rasc.tira(state.uid);
         openPropostaJa(p, dup); if (depois) depois(); render(); window.scrollTo(0, 0);
       });
       return false;
     }
     openPropostaJa(p, dup); return true;
   }
+  // rascunhos não salvos de outras propostas (outra aba, ou aberta outra proposta antes de salvar): listados na tela inicial
+  function outrosRascunhos() {
+    const lim = Date.now() - 30 * 864e5;
+    return rasc.lista().filter((x) => x.uid !== state.uid).filter((x) => { const t = Date.parse(x._editEm || ''); if (t && t < lim) { rasc.tira(x.uid); return false; } return true; })
+      .map((x) => ({ uid: x.uid, div: x.div === 'SPV' ? 'SPV' : 'SEQ', em: x._editEm, label: x.div === 'SPV' && x.spv ? ([x.spv.numero, x.spv.cliente].filter(Boolean).join(' · ') || 'SPV sem nome') : x.facts ? ['FACTS', x.facts.numero, x.facts.cliente].filter(Boolean).join(' · ') : ([((x.doc || {}).PROPOSTA || {}).C5, ((x.doc || {}).PROPOSTA || {}).F5].filter((v) => v != null && v !== '').join(' · ') || x.name || 'Proposta sem nome') }))
+      .sort((a, b) => String(b.em).localeCompare(String(a.em)));
+  }
+  function abrirRascunho(uid) {
+    let st = null; try { st = JSON.parse(localStorage.getItem(RASC + uid) || 'null'); } catch (e) { st = null; }
+    if (!st) { toast('Este rascunho não existe mais.'); render(); return; }
+    const abre = () => { state = st; build(); persist(); dlMap = null; ui.item = 0; dirty = true; ui.recuperado = st._editEm || true; ui.assinaturaAberta = null; setView('proposta'); toast('Rascunho recuperado: ' + docTitle() + '. Salve para gravar.'); };
+    if (dirty && assinatura() !== ui.assinaturaAberta && DLG && DLG.escolha) {
+      DLG.escolha(`Há alterações não salvas em "${docTitle() || 'esta proposta'}". O que fazer antes de abrir o rascunho?`, [['salvar', 'Salvar e abrir', 'pri'], ['manter', 'Abrir e guardar esta como rascunho'], ['cancelar', 'Continuar nesta']]).then(async (r) => {
+        if (r === 'cancelar') return; if (r === 'salvar') { await $('#bSave').onclick(); if (dirty) return; } else rasc.grava(Object.assign({}, state, { _sujo: true, _editEm: state._editEm || new Date().toISOString() }));
+        abre();
+      }); return;
+    }
+    abre();
+  }
+  document.addEventListener('click', async (e) => {
+    const a = e.target.closest('[data-rascabrir]'); if (a) { abrirRascunho(a.dataset.rascabrir); return; }
+    const d = e.target.closest('[data-rascdesc]'); if (d) { if (!await DLG.confirmar('Descartar as alterações não salvas deste rascunho? A proposta salva (se houver) continua como está.')) return; rasc.tira(d.dataset.rascdesc); render(); toast('Rascunho descartado'); }
+  });
+  // a mesma proposta alterada em outra aba deste navegador: avisa (vale a última a salvar; a conferência de versão pega o conflito)
+  let avisoAba = 0;
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key !== RASC + state.uid || !e.newValue || !dirty) return;
+    if (Date.now() - avisoAba < 60000) return; avisoAba = Date.now();
+    toast('Esta proposta também está sendo alterada em outra aba. Salve em uma só para não misturar alterações.');
+  });
   function openPropostaJa(p, dup) {
     const keepId = dup ? null : (p.local && REG.mode === 'shared' ? null : p.id);
     const extra = { uid: dup || !p.uid ? newUid() : p.uid, status: dup ? 'rascunho' : (p.status || 'rascunho'), ack: dup ? {} : (p.ack || {}), verBase: dup ? undefined : (p.verDoc || 0), cenSim: dup ? [] : (p.cenSim || []), naCustos: dup ? {} : (p.naCustos || {}), precosFix: !dup && precosFixos(p) ? JSON.parse(JSON.stringify(p.precos)) : null, precosSalvos: dup ? null : (p.precos || null), origemItens: p.origemItens || {}, propCom: p.propCom ? JSON.parse(JSON.stringify(p.propCom)) : {} };
@@ -5821,6 +5902,16 @@
   let temaVisto = null, temaDaTela = null;
   // faixa de abas do tema no alto da página, no mesmo padrão do Serviço de campo: as abas são as do tema no menu.
   // Em Cadastros e Configurações, a fileira de áreas/abas que a própria tela já tem sobe para a faixa.
+  // o título da tela é o nome do item do menu que a abriu (ex.: Fiscal › "Impostos e NCM" em vez de "Cadastros")
+  function tituloDoMenu() {
+    if (!['cadastro', 'config', 'margens', 'guia', 'inicio'].includes(ui.view)) return;
+    const go = document.querySelector('#nav button[data-go][aria-current="true"]'); if (!go) return;
+    const h = document.querySelector('#app h1'); if (!h) return;
+    const lb = ((go.querySelector('.nl') || go).dataset.t || (go.querySelector('.nl') || go).textContent || '').trim(); if (!lb) return;
+    const g = go.closest('.navg'); const tema = g ? ((g.querySelector('[data-navgt] .nl') || {}).textContent || '').trim() : '';
+    h.textContent = lb;
+    if (tema && !h.previousElementSibling?.classList?.contains('trilha')) h.insertAdjacentHTML('beforebegin', `<div class="trilha">${esc(tema)}</div>`);
+  }
   function temaBarra() {
     const bar = document.getElementById('temaBar'); if (!bar) return;
     const fim = () => { bar.hidden = true; bar.innerHTML = ''; document.documentElement.style.setProperty('--tbh', '0px'); };
@@ -5829,7 +5920,7 @@
     if (propria) { bar.innerHTML = ''; bar.appendChild(propria); bar.hidden = false; }
     else {
       const g = temaDaTela && document.querySelector(`#nav .navg[data-navg="${temaDaTela}"]`); if (!g || g.hidden) return fim();
-      const itens = [...g.querySelectorAll('.navsub > button')].filter((b) => !b.hidden && b.dataset.fora !== '1'); if (itens.length < 2) return fim();
+      const itens = [...g.querySelectorAll('.navsub > button')].filter((b) => !b.hidden && b.dataset.fora !== '1' && !b.classList.contains('navmais')); if (itens.length < 2) return fim();
       bar.innerHTML = `<div class="tbtabs" role="navigation" aria-label="${esc((g.querySelector('[data-navgt] .nl') || {}).textContent || 'Seção')}">${itens.map((b, i) => { const atual = b.getAttribute('aria-current'); const ic = b.querySelector('.ico');
         return `<button type="button" class="tbtab" data-tbi="${i}"${atual === 'page' || atual === 'true' ? ' aria-current="page"' : ''}>${ic ? ic.outerHTML : ''}<span>${esc(((b.querySelector('.nl') || b).textContent || '').trim())}</span></button>`; }).join('')}</div>`;
       bar.onclick = (e) => { const t = e.target.closest('[data-tbi]'); if (t && itens[+t.dataset.tbi]) itens[+t.dataset.tbi].click(); };
@@ -5881,7 +5972,8 @@
     const base = ['dashboard', 'agenda', 'visitas', 'meus-atendimentos', 'relatorios', 'contratos', 'tecnicos'];
     return new Set(p === 'tecnico' ? base : base.concat(['aprovacoes', 'auditoria']));
   }
-  function atualizaNavServico() {
+  function atualizaNavServico() { atualizaNavServico0(); try { navMaisBotoes(); } catch (e) { /* menu ainda montando */ } }
+  function atualizaNavServico0() {
     const ns = document.getElementById('navServico'); if (!ns) return;
     const p = perfilServicoAtual(); ns.hidden = !p; if (!p) return;
     const abas = abasServico(p); const pesquisando = !!String(($('#navQ') || {}).value || '').trim();
@@ -6252,6 +6344,7 @@
   const SPV = window.PricerSPV({ revisar: () => revisarModal(), separar: () => separarSpv(), servicoHtml: (s) => servicoHtml(s), separarMotivo: (s) => separarMotivo(s), vinculo: (uid) => vinculoDe(uid), abrirVinculo: (id) => abrirVinculo(id), clientes: () => clientesConhecidos(), vendedores: () => equipeCom().filter((x) => x.papel !== 'an').map((x) => x.nome), pagamentos: () => listFor('PROPOSTA', 'J6') || [], painel: () => PNL.vPainel(), revAtual: () => revAtual(), pendencias: () => MG.resumoPendencias(), confCard: () => (() => { try { return docPropostaCampos(propostaDados()); } catch (e) { return ''; } })() + propComCard() + confCard() + PN.cardProposta(state.id, docTitle()), revSelo: () => revSelo(), tribCard: (snap, c) => TB.cardProposta(snap, c), famsHome: () => famsHome(), etapasHtml: (p) => MG.etapasHtml(p), etapaPendente: (p, k) => MG.etapaPendente(p, k), proximo: (p) => MG.proximo(p), situacao: (p) => MG.situacao(p), podeReabrir: () => MG.podeReabrir(), aprovHtml: () => aprovLinha({ aprov: aprovInfo() }), REG, esc, brl, pct, fmtNum, NF, modal, toast, parseInput, txt, val, docTitle, newSeq, openProposta, ui, render, fechar: (p) => MG.fecharModal(p), log: (e) => REG.log(e), home: () => PD.cardHome(), insumos: () => REG.insumos,
     getState: () => state, setState: (s) => { state = Object.assign({ doc: {} }, s); build(); persist(); dirty = true; ui.assinaturaAberta = null; setTimeout(() => { ui.assinaturaAberta = assinatura(); }, 150); },
     persist: () => { persist(); dirty = true; },
+    outrosRascunhos: () => outrosRascunhos(),
     current: () => { if (isSpv()) return { div: 'SPV', label: docTitle(), total: SPV.total() }; if (isFacts()) return { div: 'SEQ', label: docTitle(), total: FX.total() }; const n = txt('PROPOSTA', 'C5'), c = txt('PROPOSTA', 'F5'); return n || c ? { div: 'SEQ', label: docTitle(), total: val('PROPOSTA', 'P43') } : null; } });
 
   $('#bMode').onclick = () => { ui.simple = !ui.simple; ui.propFull = false; ui.itemFull = false; store.set(SK.view, ui); render(); window.scrollTo(0, 0); };
@@ -6276,6 +6369,9 @@
   $('#bSave').onclick = async (ev) => { const sb = $('#bSave'); if (sb.classList.contains('busy')) return; sb.classList.add('busy'); sb.dataset.ico = 'loader-circle'; decorar(sb.parentElement);
     try { return await salvar0(ev); } finally { sb.classList.remove('busy'); sb.dataset.ico = 'save'; decorar(sb.parentElement); } };
   const salvar0 = async (ev) => {
+    // salvar pelo botão (ou Ctrl+S) uma proposta sem cliente: pergunta antes (as gravações automáticas não perguntam)
+    if (ev && !state.id) { const cli = isSpv() ? state.spv.cliente : isFacts() ? state.facts.cliente : txt('PROPOSTA', 'F5');
+      if (!String(cli || '').trim() && !await DLG.confirmar('Esta proposta ainda não tem cliente. Salvar assim mesmo como rascunho? (dá para completar depois)')) return; }
     if (state.verRev) { toast('Você está consultando a revisão ' + state.verRev.rev + '. Volte à atual ou restaure esta como nova revisão.'); return; }
     // proposta já enviada ao cliente: alterar cria revisão nova (a enviada fica guardada), salvo se for só correção
     const salva = (REG.listPropostas() || []).find((x) => x.id === state.id);
@@ -6344,7 +6440,7 @@
   // rascunho: o estado em edição já fica no navegador; marca se há alteração pendente para recuperar depois
   setInterval(() => {
     const sujo = !!dirty && !state.verRev;
-    if (sujo !== !!state._sujo) { state._sujo = sujo; state._editEm = sujo ? new Date().toISOString() : null; store.set(SK.cur, state); }
+    if (sujo !== !!state._sujo) { state._sujo = sujo; state._editEm = sujo ? new Date().toISOString() : null; store.set(SK.cur, state); sess.set(state); if (sujo) rasc.grava(state); else rasc.tira(state.uid); }
     atualizaSaveSt();
   }, 1500);
   window.addEventListener('beforeunload', (e) => { if (dirty && !state.verRev) { e.preventDefault(); e.returnValue = ''; } });

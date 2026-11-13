@@ -33,7 +33,7 @@ const FAKE = (perfil) => `(() => { if (window.top !== window) return;
   await new Promise((r) => srv.listen(0, r)); const BASE = 'http://127.0.0.1:' + srv.address().port;
   const b = await chromium.launch(); const errs = [];
   const abre = async (perfil, docs) => { const c = await b.newContext({ viewport: { width: 1440, height: 900 } }); await c.addInitScript(FAKE(perfil)); await c.route('https://**', (r) => r.abort());
-    const p = await c.newPage(); p.on('pageerror', (e) => errs.push(e.message)); await p.goto(BASE + '/'); await p.waitForTimeout(1500);
+    const p = await c.newPage(); p.on('dialog', (d) => d.accept()); p.on('pageerror', (e) => errs.push(e.message)); await p.goto(BASE + '/'); await p.waitForTimeout(1500);
     if (docs) await p.evaluate((d) => { for (const [k, v] of Object.entries(d)) window.__docs.set(k, v); }, docs);
     await p.waitForTimeout(800); return { c, p }; };
   const frame = async (p) => { await p.click('#navServico [data-view="servico"]'); await p.waitForTimeout(3500); return p.frames().find((f) => /servico-claude/.test(f.url())); };

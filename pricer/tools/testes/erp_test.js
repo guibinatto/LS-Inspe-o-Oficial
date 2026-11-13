@@ -13,6 +13,9 @@ const path = require('path');
   confere('a tela principal de cada tema fica dentro dele (ex.: Proposta aberta em Propostas)', await p.evaluate(() => !!document.querySelector('#navs_comercial [data-view="proposta"]') && !!document.querySelector('#navs_gestao [data-view="pendencias"]') && !document.querySelector('#nav .navg > [data-view]')));
   confere('temas começam abertos', await p.$$eval('#nav .navg:not([hidden]) .navsub', (x) => x.every((e) => !e.hidden)));
   await p.click('[data-navgt="engenharia"]'); confere('a seta do tema fecha as abas', await p.$eval('#navs_engenharia', (x) => x.hidden) && (await p.getAttribute('[data-navgt="engenharia"]', 'aria-expanded')) === 'false');
+  // menu enxuto: os atalhos secundários ficam no "+ N mais" do tema
+  confere('menu enxuto: "Propostas SEQ" escondido até abrir o "+ mais"', await p.$eval('[data-go="inicio"][data-gv="SEQ"]', (x) => !x.offsetParent) && /\+ \d+ mais/.test(await p.$eval('[data-navmais="comercial"]', (x) => x.innerText)));
+  await p.click('[data-navmais="comercial"]'); await p.waitForTimeout(150);
   await p.click('[data-go="inicio"][data-gv="SEQ"]'); await p.waitForTimeout(300);
   confere('atalho "Propostas SEQ" filtra a lista', await p.$eval('[data-hdiv="SEQ"]', (x) => x.classList.contains('on')) && (await p.getAttribute('[data-go="inicio"][data-gv="SEQ"]', 'aria-current')) === 'true');
   await p.reload(); await p.waitForTimeout(1200); confere('tema fechado lembrado', await p.$eval('#navs_engenharia', (x) => x.hidden) && await p.$eval('#navs_comercial', (x) => !x.hidden));
@@ -28,7 +31,7 @@ const path = require('path');
   confere('recolhido: submenus escondidos', await p.$$eval('#nav .navgh', (x) => x.every((e) => e.offsetParent === null))); await p.click('#bSideCol');
   await p.focus('#nav [data-view="inicio"]'); await p.keyboard.press('ArrowDown'); confere('setas percorrem o menu', await p.evaluate(() => document.activeElement && document.activeElement.dataset.navgt === 'comercial'));
   // 2) Ajuda
-  await p.evaluate(() => { const h = document.querySelector('[data-navgt="ajuda"]'); if (h.getAttribute('aria-expanded') !== 'true') h.click(); }); await p.click('[data-go="guia"][data-gv="versao"]'); await p.waitForTimeout(300);
+  await p.evaluate(() => { const h = document.querySelector('[data-navgt="ajuda"]'); if (h.getAttribute('aria-expanded') !== 'true') h.click(); }); await p.evaluate(() => document.querySelector('[data-go="guia"][data-gv="versao"]').click()); await p.waitForTimeout(300);
   const ver = await p.$eval('#ajuda_versao', (x) => x.innerText).catch(() => '');
   confere('Informações da versão com data de geração', /LS Pricer REV22/.test(ver) && /\d{2}\/\d{2}\/\d{4}/.test(ver), ver.split('\n').slice(0, 4).join(' / '));
   confere('Atalhos de teclado', /Ctrl/.test(await p.$eval('#ajuda_atalhos', (x) => x.innerText).catch(() => '')));

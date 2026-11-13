@@ -2,7 +2,7 @@
 const { chromium } = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright');
 const L = __dirname + '/libs/'; const fs = require('fs');
 (async () => {
-  const b = await chromium.launch(); const ctxB = await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true }); const p = await ctxB.newPage();
+  const b = await chromium.launch(); const ctxB = await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true }); const p = await ctxB.newPage(); p.on('dialog', (d) => d.accept());
   await p.route('https://cdnjs.cloudflare.com/**', (r) => { const u = r.request().url();
     const f = u.endsWith('pdf.min.js') ? 'pdfjs-dist-3.11.174/build/pdf.min.js' : u.endsWith('pdf.worker.min.js') ? 'pdfjs-dist-3.11.174/build/pdf.worker.min.js' : /jspdf\.umd\.min\.js$/.test(u) ? 'jspdf-2.5.1/dist/jspdf.umd.min.js' : null;
     return f ? r.fulfill({ path: L + f, contentType: 'text/javascript' }) : r.abort(); });
